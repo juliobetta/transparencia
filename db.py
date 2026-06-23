@@ -1,7 +1,8 @@
+import re
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path("data/transparencia.db")
+DB_PATH = Path(__file__).parent / "data" / "transparencia.db"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS despesas_por_orgao (
@@ -107,7 +108,7 @@ CREATE TABLE IF NOT EXISTS pessoal (
 
 def get_connection() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
@@ -119,8 +120,12 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
 
 def _ensure_columns(conn: sqlite3.Connection, table: str, cols: list[str]) -> None:
+    if not re.match(r"^[a-z_][a-z0-9_]*$", table):
+        raise ValueError(f"Invalid table name: {table!r}")
     existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
     for col in cols:
+        if not re.match(r"^[a-z_][a-z0-9_]*$", col):
+            raise ValueError(f"Invalid column name from API: {col!r}")
         if col not in existing:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
     conn.commit()

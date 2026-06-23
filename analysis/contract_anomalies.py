@@ -18,7 +18,7 @@ def run(conn: sqlite3.Connection, year: int) -> dict:
     lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
     near = contratos[(contratos["valor_num"] >= lower) & (contratos["valor_num"] < THRESHOLD)]
     supplier_counts = near.groupby("fornecedor").size()
-    splitting = contratos[contratos["fornecedor"].isin(supplier_counts[supplier_counts >= 3].index)].copy()
+    splitting = near[near["fornecedor"].isin(supplier_counts[supplier_counts >= 3].index)].copy()
 
     # repeated supplier: >50% of contracts in a department from one supplier
     dept_totals = contratos.groupby("empresa").size().rename("total")

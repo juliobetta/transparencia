@@ -1,4 +1,5 @@
 import sys
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -21,7 +22,7 @@ from analysis import (
 
 st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
 
-YEARS = list(range(2022, 2027))
+YEARS = list(range(2022, date.today().year + 1))
 
 
 @st.cache_resource
