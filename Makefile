@@ -42,6 +42,9 @@ test:
 pipeline:
 	uv run python pipeline.py
 
+pipeline/from:
+	uv run python -c "from pipeline import run; run(start_from='$(FROM)', years=$(if $(YEARS),[$(YEARS)],None))"
+
 # REPORTS
 
 report:

@@ -146,17 +146,24 @@ def _normalize(rows: list[dict], ano: int, empresa: str) -> list[dict]:
     return out
 
 
-def run(years: list[int] | None = None) -> None:
+def run(years: list[int] | None = None, start_from: str | None = None) -> None:
     if years is None:
         years = list(range(START_YEAR, date.today().year + 1))
 
     conn = get_connection()
     create_tables(conn)
 
-    total = len(ENDPOINTS) * len(ENTITIES) * len(years)
+    endpoints = ENDPOINTS
+    if start_from:
+        idx = next((i for i, e in enumerate(ENDPOINTS) if e[1] == start_from), None)
+        if idx is None:
+            raise ValueError(f"Unknown listagem: {start_from!r}. Valid values: {[e[1] for e in ENDPOINTS]}")
+        endpoints = ENDPOINTS[idx:]
+
+    total = len(endpoints) * len(ENTITIES) * len(years)
     done = 0
 
-    for path, listagem, table, key_cols, extra in ENDPOINTS:
+    for path, listagem, table, key_cols, extra in endpoints:
         for empresa_id, empresa_name in ENTITIES.items():
             for year in years:
                 url = _build_url(path, listagem, empresa_id, year, extra)
