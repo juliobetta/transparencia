@@ -1,6 +1,7 @@
 import json
 import logging
 from html.parser import HTMLParser
+
 import requests
 
 FLARESOLVERR_URL = "http://localhost:8191/v1"

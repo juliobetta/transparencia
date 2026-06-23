@@ -26,3 +26,6 @@ __pycache__
 *.dump
 .csvdocs/
 *.csv
+.mypy_cache/
+.ruff_cache/
+.pre-commit-cache/

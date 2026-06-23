@@ -1,11 +1,13 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
+
 from scraper import fetch
 
 FAKE_JSON = [{"EMPRESA": "7", "CODIGO": "01", "DESCRICAO": "SAUDE", "EMPENHADO": "1000"}]
 
 
-def _mock_flare(url, **kwargs):
+def _mock_flare(_url, **_kwargs):
     m = MagicMock()
     m.raise_for_status = MagicMock()
     m.json.return_value = {
@@ -25,7 +27,7 @@ def test_fetch_returns_parsed_json():
 
 
 def test_fetch_raises_on_flaresolverr_error():
-    def bad_flare(url, **kwargs):
+    def bad_flare(_url, **_kwargs):
         m = MagicMock()
         m.raise_for_status = MagicMock()
         m.json.return_value = {"status": "error", "message": "timeout"}
@@ -39,7 +41,7 @@ def test_fetch_raises_on_flaresolverr_error():
 def test_fetch_retries_once_on_failure():
     call_count = {"n": 0}
 
-    def flaky_flare(url, **kwargs):
+    def flaky_flare(_url, **_kwargs):
         call_count["n"] += 1
         m = MagicMock()
         m.raise_for_status = MagicMock()
