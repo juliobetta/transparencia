@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+.DS_Store
+target/
+logs/
+.env
+.env.local
+.env.production.local
+.user.yml
+venv/
+.vscode/
+docker/postgres
+__pycache__
+*mypy_cache
+.superpowers
+*.toc
+*.dump
