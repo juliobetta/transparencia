@@ -53,7 +53,7 @@ pipeline/only:
 # REPORTS
 
 report:
-	uv run python report/generate.py
+	uv run python report/generate.py $(if $(YEAR),$(YEAR) $(MONTH))
 
 # DASHBOARD
 

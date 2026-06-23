@@ -65,8 +65,19 @@ def generate(conn: sqlite3.Connection, year: int, month: int) -> Path:
 
 
 if __name__ == "__main__":
+    import sys
+
     today = date.today()
+    args = sys.argv[1:]
+    if len(args) == 2:
+        year, month = int(args[0]), int(args[1])
+    elif len(args) == 0:
+        year, month = today.year, today.month
+    else:
+        print("Usage: generate.py [YEAR MONTH]", file=sys.stderr)
+        sys.exit(1)
+
     conn = db.get_connection()
-    path = generate(conn, today.year, today.month)
+    path = generate(conn, year, month)
     print(f"Report written to {path}")
     conn.close()
