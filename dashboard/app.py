@@ -16,6 +16,7 @@ from analysis import (
     payroll_vs_services,
     revenue_sources,
     supplier_concentration,
+    yoy_trends,
 )
 
 st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
@@ -72,6 +73,10 @@ with tabs[0]:
         c3.metric("Receita própria", f"{revenue.iloc[0]['pct_propria']:.1f}%", help=glossary.tooltip("Receita Própria"))
     if not payroll.empty:
         c4.metric("Folha / gastos totais", f"{payroll.iloc[0]['percentual_folha']:.1f}%")
+
+    st.subheader("Tendências Ano a Ano")
+    yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
+    st.dataframe(yoy, use_container_width=True)
 
     st.info(f"🔗 Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})")
 
@@ -193,17 +198,17 @@ with tabs[5]:
 # ── Tab 6: Dados Brutos ─────────────────────────────────────────────────────
 with tabs[6]:
     st.header("Dados Brutos")
-    table = st.selectbox(
-        "Tabela",
-        [
-            "despesas_por_orgao",
-            "despesas_por_fornecedor",
-            "licitacoes",
-            "contratos",
-            "pessoal",
-            "receita_orcamentaria",
-        ],
-    )
+    allowed_tables = [
+        "despesas_por_orgao",
+        "despesas_por_fornecedor",
+        "licitacoes",
+        "contratos",
+        "pessoal",
+        "receita_orcamentaria",
+    ]
+    table = st.selectbox("Tabela", allowed_tables)
+    if table not in allowed_tables:
+        raise ValueError(f"Tabela inválida: {table}")
     df = pd.read_sql_query(f"SELECT * FROM {table} WHERE ano = ?", conn, params=(year,))
     st.dataframe(df, use_container_width=True)
     st.download_button("Baixar CSV", df.to_csv(index=False).encode(), file_name=f"{table}_{year}.csv", mime="text/csv")
