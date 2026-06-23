@@ -170,14 +170,18 @@ with tabs[4]:
         row = df[df["ano"] == year]
         if not row.empty:
             row = row.iloc[0]
-            fig, ax = plt.subplots()
-            ax.pie(
-                [row["receita_propria"], row["transferencias_uniao"], row["transferencias_estado"]],
-                labels=["Receita Própria", "Transferências União", "Transferências Estado"],
-                autopct="%1.1f%%",
-                startangle=90,
-            )
-            st.pyplot(fig)
+            values = [row["receita_propria"], row["transferencias_uniao"], row["transferencias_estado"]]
+            if any(v > 0 for v in values):
+                fig, ax = plt.subplots()
+                ax.pie(
+                    values,
+                    labels=["Receita Própria", "Transferências União", "Transferências Estado"],
+                    autopct="%1.1f%%",
+                    startangle=90,
+                )
+                st.pyplot(fig)
+            else:
+                st.info("Sem dados de receita para o ano selecionado.")
             if row["alerta_dependencia"]:
                 st.warning("⚠️ Receita própria abaixo de 10% — alta dependência de repasses federais/estaduais.")
     st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
