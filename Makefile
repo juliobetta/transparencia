@@ -1,5 +1,13 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard
 
+# SETUP TASKS
+
+install-uv:
+	@command -v uv >/dev/null 2>&1 || { echo "Installing uv..."; curl -LsSf https://astral.sh/uv/install.sh | sh; }
+
+install: install-uv
+	uv sync --group dev
+
 # CODE QUALITY TASKS
 
 type-check:
