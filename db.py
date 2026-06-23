@@ -118,10 +118,19 @@ def create_tables(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-def upsert(conn: sqlite3.Connection, table: str, rows: list[dict], key_cols: list[str]) -> int:
+def _ensure_columns(conn: sqlite3.Connection, table: str, cols: list[str]) -> None:
+    existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    for col in cols:
+        if col not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
+    conn.commit()
+
+
+def upsert(conn: sqlite3.Connection, table: str, rows: list[dict], _key_cols: list[str]) -> int:
     if not rows:
         return 0
     cols = list(rows[0].keys())
+    _ensure_columns(conn, table, cols)
     placeholders = ", ".join("?" for _ in cols)
     col_names = ", ".join(cols)
     sql = f"INSERT OR REPLACE INTO {table} ({col_names}) VALUES ({placeholders})"

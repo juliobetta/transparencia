@@ -1,9 +1,13 @@
+import json
 import logging
 from datetime import date
+from pathlib import Path
 from urllib.parse import urlencode
 
 from db import create_tables, get_connection, upsert
 from scraper import fetch
+
+RAW_DIR = Path("data/raw")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -158,6 +162,9 @@ def run(years: list[int] | None = None) -> None:
                 url = _build_url(path, listagem, empresa_id, year, extra)
                 try:
                     rows = fetch(url)
+                    raw_path = RAW_DIR / table / f"{empresa_id}_{year}.json"
+                    raw_path.parent.mkdir(parents=True, exist_ok=True)
+                    raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
                     normalised = _normalize(rows, year, str(empresa_id))
                     count = upsert(conn, table, normalised, key_cols)
                     logger.info("[%d/%d] %s / %s / %d → %d rows", done + 1, total, listagem, empresa_name, year, count)
