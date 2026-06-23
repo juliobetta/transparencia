@@ -69,7 +69,7 @@ def test_revenue_breakdown(conn):
     assert row["alerta_dependencia"] is False
 
 
-def test_flags_high_dependency(_conn):
+def test_flags_high_dependency(conn):  # noqa: ARG001
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
     db.create_tables(c)
