@@ -18,6 +18,7 @@ from analysis import (
     payroll_vs_services,
     revenue_sources,
     supplier_concentration,
+    yoy_trends,
 )
 
 REPORTS_DIR = Path("reports")
@@ -35,6 +36,7 @@ def generate(conn: sqlite3.Connection, year: int, month: int) -> Path:
     bidding_saude = bidding[bidding["acima_limite"] & bidding["orgao_saude"]]
     revenue = revenue_sources.run(conn, list(range(2022, year + 1)))
     payroll = payroll_vs_services.run(conn, list(range(2022, year + 1)))
+    trends = yoy_trends.run(conn, list(range(2022, year + 1)))
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("template.html")
@@ -50,6 +52,7 @@ def generate(conn: sqlite3.Connection, year: int, month: int) -> Path:
         bidding_saude_count=len(bidding_saude),
         revenue=revenue,
         payroll=payroll,
+        trends=trends,
     )
 
     out = REPORTS_DIR / f"{year}-{month:02d}.html"

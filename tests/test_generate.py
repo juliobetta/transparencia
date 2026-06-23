@@ -180,6 +180,29 @@ def conn():
     ]
     db.upsert(c, "pessoal", payroll_rows_2024 + payroll_rows_2025, ["ano", "empresa", "mes", "matricula"])
 
+    # Year-over-Year trends data (despesas_restos_pagar)
+    restos_rows = [
+        {
+            "ano": 2024,
+            "empresa": "7",
+            "numero": "001",
+            "descricao": "Restos a pagar 2024",
+            "fornecedor": "VARIO",
+            "valor": "10000",
+            "situacao": "pendente",
+        },
+        {
+            "ano": 2025,
+            "empresa": "7",
+            "numero": "002",
+            "descricao": "Restos a pagar 2025",
+            "fornecedor": "VARIO",
+            "valor": "15000",
+            "situacao": "pendente",
+        },
+    ]
+    db.upsert(c, "despesas_restos_pagar", restos_rows, ["ano", "empresa", "numero"])
+
     yield c
     c.close()
 

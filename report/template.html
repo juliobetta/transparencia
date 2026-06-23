@@ -119,6 +119,23 @@
     <p><a href="{{ portal_url }}" target="_blank">Ver pessoal no portal →</a></p>
   </div>
 
+  <!-- TENDÊNCIAS ANO A ANO -->
+  <div class="secao">
+    <h2>Tendências Ano a Ano</h2>
+    <p class="glossario"><strong>Gasto Total:</strong> despesa paga · <strong>% Variação:</strong> crescimento/redução em relação ao ano anterior</p>
+    <table>
+      <tr><th>Ano</th><th>Gasto Total (R$)</th><th>% Variação</th></tr>
+      {% for _, r in trends.iterrows() %}
+      <tr>
+        <td>{{ r.ano|int }}</td>
+        <td>{{ "{:,.0f}".format(r.total_gasto) }}</td>
+        <td>{% if r.total_gasto_pct_change != r.total_gasto_pct_change %}—{% else %}{{ "{:+.1f}%".format(r.total_gasto_pct_change) }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p><a href="{{ portal_url }}" target="_blank">Ver detalhes no portal →</a></p>
+  </div>
+
   <footer>
     Dados extraídos do Portal de Transparência do Município de Porciúncula/RJ.<br>
     Fonte oficial: <a href="{{ portal_url }}">{{ portal_url }}</a><br>
