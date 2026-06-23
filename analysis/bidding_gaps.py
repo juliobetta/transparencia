@@ -2,7 +2,7 @@ import sqlite3
 
 import pandas as pd
 
-DISPENSATION_THRESHOLD = 57_000
+DISPENSATION_THRESHOLD = 57_000  # Lei 14.133/2021 — limite para dispensa em serviços (valor conservador)
 SAUDE_EMPRESA = "2"
 
 

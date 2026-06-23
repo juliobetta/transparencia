@@ -18,6 +18,7 @@ TERMS: dict[str, str] = {
     "Diária": "Valor pago a servidor por viagem a serviço. O uso excessivo pode indicar irregularidade.",
     "Emenda Impositiva": "Recurso que vereadores têm o direito de destinar ao orçamento municipal.",
     "Extra-orçamentário": "Movimentação financeira fora do orçamento aprovado, como depósitos de terceiros.",
+    "Adesão de Ata (Carona)": "Contratação direta aproveitando uma licitação já realizada por outro órgão. Evita nova licitação, mas o uso excessivo — especialmente na Saúde — pode indicar fuga ao controle.",
 }
 
 
