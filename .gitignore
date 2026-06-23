@@ -28,4 +28,4 @@ __pycache__
 *.csv
 .mypy_cache/
 .ruff_cache/
-.pre-commit-cache/
+.pre-commit/
