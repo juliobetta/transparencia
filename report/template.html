@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transparência Porciúncula — {{ year }}/{{ "%02d"|format(month) }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 1rem; color: #222; }
+    h1 { color: #1a5276; }
+    h2 { color: #1f618d; border-bottom: 2px solid #aed6f1; padding-bottom: 4px; }
+    .portal-link { background: #eaf4fb; border-left: 4px solid #2e86c1; padding: 0.5rem 1rem; margin: 1rem 0; }
+    .alerta-baixa { color: #e67e22; font-weight: bold; }
+    .alerta-excesso { color: #e74c3c; font-weight: bold; }
+    .alerta-normal { color: #27ae60; }
+    .glossario { font-size: 0.85em; color: #555; margin-top: 0.25rem; }
+    .secao { margin-bottom: 2.5rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9em; }
+    th { background: #2e86c1; color: white; padding: 6px 10px; text-align: left; }
+    td { padding: 5px 10px; border-bottom: 1px solid #ddd; }
+    tr:nth-child(even) { background: #f4f9fc; }
+    footer { font-size: 0.8em; color: #777; margin-top: 3rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+    .como-ler { background: #fef9e7; border: 1px solid #f9e79f; padding: 1rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Transparência Porciúncula</h1>
+  <p><strong>Período:</strong> {{ year }}/{{ "%02d"|format(month) }} · Acumulado {{ year }}</p>
+
+  <div class="portal-link">
+    🔗 <strong>Ver no portal oficial:</strong>
+    <a href="{{ portal_url }}" target="_blank">{{ portal_url }}</a>
+    — todos os dados desta análise estão disponíveis no portal oficial de transparência do município.
+  </div>
+
+  <div class="como-ler">
+    <strong>Como ler os dados de gastos:</strong><br>
+    <strong>Empenho</strong> → reserva de verba (compromisso) ·
+    <strong>Liquidação</strong> → serviço confirmado ·
+    <strong>Pagamento</strong> → dinheiro saiu da conta.
+    <em>Nem todo empenho vira pagamento no mesmo ano.</em>
+  </div>
+
+  <!-- EXECUÇÃO ORÇAMENTÁRIA -->
+  <div class="secao">
+    <h2>Execução Orçamentária por Órgão</h2>
+    <p class="glossario"><strong>Dotação Atualizada:</strong> {{ glossario["Dotação Atualizada"] }} · <strong>Empenho:</strong> {{ glossario["Empenho"] }}</p>
+    <table>
+      <tr><th>Órgão</th><th>Empenhado (R$)</th><th>Dotação (R$)</th><th>Taxa</th><th>Situação</th></tr>
+      {% for _, r in budget.iterrows() %}
+      <tr>
+        <td>{{ r.descricao }}</td>
+        <td>{{ "{:,.0f}".format(r.empenhado) }}</td>
+        <td>{{ "{:,.0f}".format(r.dotacao_atualizada) }}</td>
+        <td>{{ "{:.0f}%".format(r.taxa_execucao * 100) }}</td>
+        <td class="alerta-{{ r.alerta }}">{{ r.alerta.upper() }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p><a href="{{ portal_url }}" target="_blank">Ver detalhes no portal →</a></p>
+  </div>
+
+  <!-- FORNECEDORES -->
+  <div class="secao">
+    <h2>Concentração de Fornecedores</h2>
+    <p class="glossario"><strong>Fornecedor:</strong> {{ glossario["Fornecedor"] }}</p>
+    {% if supplier.dominante %}
+    <p class="alerta-excesso">⚠️ Atenção: {{ supplier.dominante }} recebeu mais de 40% do total pago a fornecedores.</p>
+    {% endif %}
+    <p>Índice de concentração (HHI): <strong>{{ "{:,.0f}".format(supplier.hhi) }}</strong>
+    {% if supplier.hhi > 2500 %}<span class="alerta-excesso"> — concentração alta</span>{% endif %}</p>
+    <table>
+      <tr><th>Fornecedor</th><th>Empenhado (R$)</th><th>%</th></tr>
+      {% for _, r in supplier.top10.iterrows() %}
+      <tr><td>{{ r.descricao }}</td><td>{{ "{:,.0f}".format(r.empenhado) }}</td><td>{{ "{:.1f}%".format(r.percentual) }}</td></tr>
+      {% endfor %}
+    </table>
+    <p><a href="{{ portal_url }}" target="_blank">Ver detalhes no portal →</a></p>
+  </div>
+
+  <!-- LICITAÇÕES -->
+  <div class="secao">
+    <h2>Contratos sem Licitação ⚠️</h2>
+    <p class="glossario"><strong>Licitação:</strong> {{ glossario["Licitação"] }} · <strong>Dispensa:</strong> {{ glossario["Dispensa de Licitação"] }}</p>
+    <p>Total de contratos sem licitação: <strong>{{ bidding|length }}</strong> |
+       Acima do limite legal (R$57 mil): <strong class="alerta-excesso">{{ bidding_acima|length }}</strong> |
+       Na Saúde: <strong class="alerta-excesso">{{ bidding_saude_count }}</strong></p>
+    {% if bidding_acima %}
+    <table>
+      <tr><th>Nº</th><th>Fornecedor</th><th>Objeto</th><th>Valor (R$)</th><th>Saúde?</th></tr>
+      {% for r in bidding_acima %}
+      <tr>
+        <td>{{ r.numero }}</td>
+        <td>{{ r.fornecedor }}</td>
+        <td>{{ r.objeto }}</td>
+        <td>{{ r.valor }}</td>
+        <td>{{ "Sim" if r.orgao_saude else "Não" }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    <p><a href="{{ portal_url }}" target="_blank">Ver licitações no portal →</a></p>
+  </div>
+
+  <!-- RECEITAS -->
+  <div class="secao">
+    <h2>Fontes de Receita</h2>
+    <p class="glossario"><strong>Receita Própria:</strong> {{ glossario["Receita Própria"] }} · <strong>FPM:</strong> {{ glossario["FPM (Fundo de Participação dos Municípios)"] }}</p>
+    {% set rev_row = revenue[revenue.ano == year].iloc[0] %}
+    <p>Receita própria: <strong>{{ "{:.1f}%".format(rev_row.pct_propria) }}</strong> do total
+    {% if rev_row.alerta_dependencia %}<span class="alerta-excesso"> — dependência alta de repasses federais/estaduais</span>{% endif %}</p>
+    <p><a href="{{ portal_url }}" target="_blank">Ver receitas no portal →</a></p>
+  </div>
+
+  <!-- FOLHA -->
+  <div class="secao">
+    <h2>Folha de Pagamento vs Gastos Totais</h2>
+    {% set pay_row = payroll[payroll.ano == year].iloc[0] %}
+    <p>Folha de pessoal representa <strong>{{ "{:.1f}%".format(pay_row.percentual_folha) }}</strong> dos gastos pagos em {{ year }}.</p>
+    <p><a href="{{ portal_url }}" target="_blank">Ver pessoal no portal →</a></p>
+  </div>
+
+  <footer>
+    Dados extraídos do Portal de Transparência do Município de Porciúncula/RJ.<br>
+    Fonte oficial: <a href="{{ portal_url }}">{{ portal_url }}</a><br>
+    Gerado automaticamente. Os valores são os publicados pelo município.
+  </footer>
+</body>
+</html>
