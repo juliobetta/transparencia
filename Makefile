@@ -45,6 +45,9 @@ pipeline:
 pipeline/from:
 	uv run python -c "from pipeline import run; run(start_from='$(FROM)', years=$(if $(YEARS),[$(YEARS)],None))"
 
+pipeline/only:
+	uv run python -c "from pipeline import run; run(only='$(ENDPOINT)', years=$(if $(YEARS),[$(YEARS)],None))"
+
 # REPORTS
 
 report:

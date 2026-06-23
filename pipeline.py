@@ -146,18 +146,23 @@ def _normalize(rows: list[dict], ano: int, empresa: str) -> list[dict]:
     return out
 
 
-def run(years: list[int] | None = None, start_from: str | None = None) -> None:
+def run(years: list[int] | None = None, start_from: str | None = None, only: str | None = None) -> None:
     if years is None:
         years = list(range(START_YEAR, date.today().year + 1))
 
     conn = get_connection()
     create_tables(conn)
 
+    valid = [e[1] for e in ENDPOINTS]
     endpoints = ENDPOINTS
-    if start_from:
-        idx = next((i for i, e in enumerate(ENDPOINTS) if e[1] == start_from), None)
-        if idx is None:
-            raise ValueError(f"Unknown listagem: {start_from!r}. Valid values: {[e[1] for e in ENDPOINTS]}")
+    if only:
+        if only not in valid:
+            raise ValueError(f"Unknown listagem: {only!r}. Valid values: {valid}")
+        endpoints = [e for e in ENDPOINTS if e[1] == only]
+    elif start_from:
+        if start_from not in valid:
+            raise ValueError(f"Unknown listagem: {start_from!r}. Valid values: {valid}")
+        idx = next(i for i, e in enumerate(ENDPOINTS) if e[1] == start_from)
         endpoints = ENDPOINTS[idx:]
 
     total = len(endpoints) * len(ENTITIES) * len(years)
