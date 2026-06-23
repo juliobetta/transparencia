@@ -5,6 +5,10 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent / "data" / "transparencia.db"
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);
 CREATE TABLE IF NOT EXISTS despesas_por_orgao (
     ano INTEGER, empresa TEXT, codigo TEXT, descricao TEXT,
     empenhado TEXT, liquidado TEXT, pago TEXT,
@@ -129,6 +133,16 @@ def _ensure_columns(conn: sqlite3.Connection, table: str, cols: list[str]) -> No
         if col not in existing:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
     conn.commit()
+
+
+def set_metadata(conn: sqlite3.Connection, key: str, value: str) -> None:
+    conn.execute("INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)", (key, value))
+    conn.commit()
+
+
+def get_metadata(conn: sqlite3.Connection, key: str) -> str | None:
+    row = conn.execute("SELECT value FROM metadata WHERE key = ?", (key,)).fetchone()
+    return row[0] if row else None
 
 
 def upsert(conn: sqlite3.Connection, table: str, rows: list[dict], key_cols: list[str]) -> int:  # noqa: ARG001

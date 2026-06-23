@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlencode
 
-from db import create_tables, get_connection, upsert
+from db import create_tables, get_connection, set_metadata, upsert
 from scraper import fetch
 
 RAW_DIR = Path("data/raw")
@@ -170,12 +170,15 @@ def run(years: list[int] | None = None, start_from: str | None = None, only: str
         idx = next(i for i, e in enumerate(ENDPOINTS) if e[1] == start_from)
         endpoints = ENDPOINTS[idx:]
 
-    total = len(endpoints) * len(ENTITIES) * len(years)
+    current_year = date.today().year
+    total = sum(len(ENTITIES) * (1 if "/Receitas/" in path else len(years)) for path, *_ in endpoints)
     done = 0
 
     for path, listagem, table, key_cols, extra in endpoints:
+        is_receita = "/Receitas/" in path
+        endpoint_years = [current_year] if is_receita else years
         for empresa_id, empresa_name in ENTITIES.items():
-            for year in years:
+            for year in endpoint_years:
                 url = _build_url(path, listagem, empresa_id, year, extra)
                 try:
                     rows = fetch(url)
@@ -189,6 +192,7 @@ def run(years: list[int] | None = None, start_from: str | None = None, only: str
                     logger.warning("SKIP %s / %s / %d: %s", listagem, empresa_name, year, exc)
                 done += 1
 
+    set_metadata(conn, "last_extracted_at", date.today().isoformat())
     logger.info("Pipeline complete.")
 
 

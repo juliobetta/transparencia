@@ -4,8 +4,13 @@ import pandas as pd
 
 
 def _sum_arrecadado(conn: sqlite3.Connection, table: str, year: int) -> float:
-    df = pd.read_sql_query(f"SELECT arrecadado FROM {table} WHERE ano = ?", conn, params=(year,))
-    return pd.to_numeric(df["arrecadado"].str.replace(",", "."), errors="coerce").fillna(0).sum()
+    df = pd.read_sql_query(f"SELECT arrecadado, previsao_atualizada FROM {table} WHERE ano = ?", conn, params=(year,))
+    total = pd.to_numeric(df["arrecadado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
+    if total == 0:
+        total = (
+            pd.to_numeric(df["previsao_atualizada"].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
+        )
+    return total
 
 
 def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:

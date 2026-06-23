@@ -20,6 +20,7 @@ from analysis import (
     supplier_concentration,
     yoy_trends,
 )
+from db import get_metadata
 
 REPORTS_DIR = Path("reports")
 TEMPLATE_DIR = Path(__file__).parent
@@ -40,9 +41,12 @@ def generate(conn: sqlite3.Connection, year: int, month: int) -> Path:
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("template.html")
+    last_extracted = get_metadata(conn, "last_extracted_at") or "desconhecida"
+
     html = template.render(
         year=year,
         month=month,
+        last_extracted=last_extracted,
         portal_url=glossary.PORTAL_URL,
         glossario=glossary.TERMS,
         budget=budget,

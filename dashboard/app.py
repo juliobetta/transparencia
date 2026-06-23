@@ -39,6 +39,10 @@ st.sidebar.markdown(
 )
 year = st.sidebar.selectbox("Ano", YEARS, index=len(YEARS) - 2)
 
+_last_extracted = db.get_metadata(conn, "last_extracted_at")
+st.sidebar.markdown("---")
+st.sidebar.caption(f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida")
+
 st.title("Transparência Porciúncula / RJ")
 st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL}) do município.")
 
@@ -77,7 +81,22 @@ with tabs[0]:
 
     st.subheader("Tendências Ano a Ano")
     yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
-    st.dataframe(yoy, use_container_width=True)
+    st.dataframe(
+        yoy.rename(
+            columns={
+                "ano": "Ano",
+                "total_gasto": "Total Gasto (R$)",
+                "total_folha": "Total Folha (R$)",
+                "total_receita": "Total Receita (R$)",
+                "restos_a_pagar": "Restos a Pagar (R$)",
+                "total_gasto_pct_change": "Δ% Gasto",
+                "total_folha_pct_change": "Δ% Folha",
+                "total_receita_pct_change": "Δ% Receita",
+                "restos_a_pagar_pct_change": "Δ% Restos",
+            }
+        ),
+        use_container_width=True,
+    )
 
     st.info(f"🔗 Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})")
 
@@ -162,6 +181,10 @@ with tabs[3]:
 # ── Tab 4: Receitas ─────────────────────────────────────────────────────────
 with tabs[4]:
     st.header("Fontes de Receita")
+    st.info(
+        "⚠️ O portal de transparência só disponibiliza dados de receita para o exercício corrente. "
+        "Comparações históricas não estão disponíveis via API."
+    )
     with st.expander("ℹ️ O que isso significa?"):
         st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
         st.write(f"**FPM:** {glossary.tooltip('FPM (Fundo de Participação dos Municípios)')}")
@@ -179,7 +202,9 @@ with tabs[4]:
                     autopct="%1.1f%%",
                     startangle=90,
                 )
+                ax.set_title("Distribuição de Receitas (Previsão Atualizada)")
                 st.pyplot(fig)
+                st.caption("Fonte: previsão atualizada — dados de arrecadação efetiva não disponíveis na API.")
             else:
                 st.info("Sem dados de receita para o ano selecionado.")
             if row["alerta_dependencia"]:
@@ -201,20 +226,58 @@ with tabs[5]:
     st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
 
 # ── Tab 6: Dados Brutos ─────────────────────────────────────────────────────
+_COLUMN_LABELS = {
+    "ano": "Ano",
+    "empresa": "Entidade",
+    "codigo": "Código",
+    "descricao": "Descrição",
+    "empenhado": "Empenhado (R$)",
+    "liquidado": "Liquidado (R$)",
+    "pago": "Pago (R$)",
+    "dotac": "Dotação Inicial (R$)",
+    "altdo": "Alterações (R$)",
+    "dotacao_atualizada": "Dotação Atualizada (R$)",
+    "numero": "Número",
+    "modalidade": "Modalidade",
+    "objeto": "Objeto",
+    "valor": "Valor (R$)",
+    "situacao": "Situação",
+    "data_abertura": "Data de Abertura",
+    "fornecedor": "Fornecedor",
+    "data_inicio": "Data Início",
+    "data_fim": "Data Fim",
+    "licitacao_numero": "Nº Licitação",
+    "mes": "Mês",
+    "matricula": "Matrícula",
+    "nome": "Nome",
+    "cargo": "Cargo",
+    "proventos": "Proventos (R$)",
+    "descontos": "Descontos (R$)",
+    "liquido_isnull_proventos_0_isnull_descontos_0": "Líquido (R$)",
+    "previsto": "Previsto (R$)",
+    "arrecadado": "Arrecadado (R$)",
+    "previsao_inicial": "Previsão Inicial (R$)",
+    "previsao_atualizada": "Previsão Atualizada (R$)",
+    "arrecadado_periodo": "Arrecadado no Período (R$)",
+    "arrecadado_total": "Arrecadado Total (R$)",
+}
+
+_TABLE_LABELS = {
+    "despesas_por_orgao": "Despesas por Órgão",
+    "despesas_por_fornecedor": "Despesas por Fornecedor",
+    "licitacoes": "Licitações",
+    "contratos": "Contratos",
+    "pessoal": "Pessoal",
+    "receita_orcamentaria": "Receita Orçamentária",
+}
+
 with tabs[6]:
     st.header("Dados Brutos")
-    allowed_tables = [
-        "despesas_por_orgao",
-        "despesas_por_fornecedor",
-        "licitacoes",
-        "contratos",
-        "pessoal",
-        "receita_orcamentaria",
-    ]
-    table = st.selectbox("Tabela", allowed_tables)
+    allowed_tables = list(_TABLE_LABELS.keys())
+    table = st.selectbox("Tabela", allowed_tables, format_func=lambda t: _TABLE_LABELS[t])
     if table not in allowed_tables:
         raise ValueError(f"Tabela inválida: {table}")
     df = pd.read_sql_query(f"SELECT * FROM {table} WHERE ano = ?", conn, params=(year,))
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df.fillna("N/D").rename(columns=_COLUMN_LABELS), use_container_width=True)
     st.download_button("Baixar CSV", df.to_csv(index=False).encode(), file_name=f"{table}_{year}.csv", mime="text/csv")
     st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
