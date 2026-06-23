@@ -1,5 +1,7 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard
 
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report dashboard
+
 # SETUP TASKS
 
 install-uv:
