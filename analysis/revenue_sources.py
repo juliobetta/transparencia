@@ -1,0 +1,32 @@
+import sqlite3
+
+import pandas as pd
+
+
+def _sum_arrecadado(conn: sqlite3.Connection, table: str, year: int) -> float:
+    df = pd.read_sql_query(f"SELECT arrecadado FROM {table} WHERE ano = ?", conn, params=(year,))
+    return pd.to_numeric(df["arrecadado"].str.replace(",", "."), errors="coerce").fillna(0).sum()
+
+
+def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:
+    records = []
+    for year in years:
+        propria = _sum_arrecadado(conn, "receita_orcamentaria", year)
+        uniao = _sum_arrecadado(conn, "receita_uniao", year)
+        estado = _sum_arrecadado(conn, "receita_estado", year)
+        total = propria + uniao + estado
+        pct = propria / total * 100 if total > 0 else 0
+        records.append(
+            {
+                "ano": year,
+                "receita_propria": propria,
+                "transferencias_uniao": uniao,
+                "transferencias_estado": estado,
+                "total": total,
+                "pct_propria": pct,
+                "alerta_dependencia": bool(pct < 10),
+            }
+        )
+    df = pd.DataFrame(records)
+    df["alerta_dependencia"] = df["alerta_dependencia"].astype(object)
+    return df
