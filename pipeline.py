@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import date
 from pathlib import Path
 from urllib.parse import urlencode
@@ -136,10 +137,14 @@ def _build_url(path: str, listagem: str, empresa_id: int, year: int, extra: dict
     return f"{BASE_HOST}{path}?{urlencode(params)}"
 
 
+def _sanitize_key(k: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", k.lower()).strip("_")
+
+
 def _normalize(rows: list[dict], ano: int, empresa: str) -> list[dict]:
     out = []
     for r in rows:
-        normalised = {k.lower(): v for k, v in r.items()}
+        normalised = {_sanitize_key(k): v for k, v in r.items()}
         normalised.setdefault("ano", ano)
         normalised.setdefault("empresa", empresa)
         out.append(normalised)
