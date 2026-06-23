@@ -126,7 +126,7 @@ def _ensure_columns(conn: sqlite3.Connection, table: str, cols: list[str]) -> No
     conn.commit()
 
 
-def upsert(conn: sqlite3.Connection, table: str, rows: list[dict], _key_cols: list[str]) -> int:
+def upsert(conn: sqlite3.Connection, table: str, rows: list[dict], key_cols: list[str]) -> int:  # noqa: ARG001
     if not rows:
         return 0
     cols = list(rows[0].keys())

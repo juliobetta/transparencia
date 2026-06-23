@@ -46,4 +46,10 @@ def fetch(url: str) -> list[dict]:
         extractor.feed(body)
         body = extractor.get_text()
 
-    return json.loads(body) if body else []
+    if not body.strip():
+        return []
+    try:
+        return json.loads(body)
+    except json.JSONDecodeError:
+        logger.warning("Invalid JSON from %s — skipping", url)
+        return []
