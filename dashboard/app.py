@@ -11,6 +11,7 @@ st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
 pages = [
     st.Page("pages/visao_geral.py", title="Visão Geral"),
     st.Page("pages/saude.py", title="Narrativa: Saúde"),
+    st.Page("pages/caprem.py", title="Narrativa: CAPREM"),
     st.Page("pages/orcamento.py", title="Execução Orçamentária"),
     st.Page("pages/fornecedores.py", title="Fornecedores"),
     st.Page("pages/licitacoes.py", title="Licitações e Contratos"),
