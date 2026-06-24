@@ -36,7 +36,12 @@ if data["emendas_total"] > 0:
                 }
             ),
             use_container_width=True,
-            column_config={"Valor Autorizado (R$)": st.column_config.NumberColumn(format="%.2f")},
+            column_config={
+                "Valor Autorizado (R$)": st.column_config.NumberColumn(format="%.2f"),
+                "Nº": st.column_config.Column(width="small"),
+                "Autor": st.column_config.Column(width="medium"),
+            },
+            hide_index=True,
         )
     with st.expander("ℹ️ O que é uma emenda parlamentar?"):
         st.write(glossary.tooltip("Emenda Impositiva"))
