@@ -36,6 +36,40 @@ c2.metric("Acima do limite — Saúde", len(saude), help="Contratos acima de R$5
 c3.metric("Total sem processo licitatório", len(gaps))
 c4.metric("Adesões de Ata", adesao["count"])
 
+with st.expander("Ver contratos sem processo licitatório"):
+    st.dataframe(
+        gaps.rename(
+            columns={
+                "numero": "Nº",
+                "fornecedor": "Fornecedor",
+                "objeto": "Objeto",
+                "valcon": "Valor (R$)",
+                "modali": "Modalidade",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+with st.expander("Ver licitações via Adesão de Ata"):
+    if not adesao["list"].empty:
+        st.dataframe(
+            adesao["list"].rename(
+                columns={
+                    "numero": "Nº Licit.",
+                    "objeto": "Objeto",
+                    "licitacao_valor": "Valor Est. Licitação (R$)",
+                    "total_c_valor": "Valor Total Contratado (R$)",
+                    "total_c_empenhado": "Valor Empenhado (R$)",
+                    "has_contract": "Contrato Associado",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("Nenhuma adesão de ata registrada para este ano.")
+
 if not acima.empty:
     st.subheader("Contratos acima do limite legal sem licitação")
     st.dataframe(
