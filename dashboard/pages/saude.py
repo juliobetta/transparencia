@@ -26,19 +26,12 @@ if data["emendas_total"] > 0:
     st.metric("Total de emendas (valor autorizado)", f"R$ {data['emendas_total']:,.0f}")
     if not data["emendas"].empty and data["emendas"].notna().any().any():
         st.dataframe(
-            data["emendas"].rename(
-                columns={
-                    "numero": "Nº",
-                    "descricao": "Objeto",
-                    "valor": "Valor Autorizado (R$)",
-                    "empenhado": "Empenhado (R$)",
-                    "autor": "Autor",
-                }
-            ),
+            data["emendas"],
             use_container_width=True,
             column_config={
-                "Valor Autorizado (R$)": st.column_config.NumberColumn(format="%.2f"),
-                "Nº": None,
+                "valor": st.column_config.NumberColumn("Valor Autorizado (R$)", format="%.2f"),
+                "empenhado": st.column_config.NumberColumn("Empenhado (R$)", format="%.2f"),
+                "numero": None,
             },
             hide_index=True,
         )
