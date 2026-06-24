@@ -79,7 +79,21 @@
   <div class="metrics-row">
     <div class="metric"><div class="label">Licitações via Adesão (Carona)</div><div class="value">{{ adesao_de_ata_count }}</div></div>
     <div class="metric"><div class="label">Valor Total Contratado via Adesão (R$)</div><div class="value">R$ {{ "{:,.0f}".format(adesao_de_ata_value) }}</div></div>
+    <div class="metric"><div class="label">Qtd. de Contratos Vinculados</div><div class="value">{{ adesao_de_ata_contracts_linked_count }}</div></div>
   </div>
+  <h3>Licitações via Adesão de Ata</h3>
+  {% if adesao_de_ata_list %}
+  <table>
+    <tr><th>Nº Licit.</th><th>Objeto</th><th>Valor Total Contratado (R$)</th></tr>
+    {% for row in adesao_de_ata_list %}
+    <tr>
+      <td>{{ row.numero }}</td>
+      <td>{{ row.objeto }}</td>
+      <td>{% if row.total_c_valor %}R$ {{ "{:,.0f}".format(row.total_c_valor) }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
   <h3>Distribuição por Modalidade</h3>
   {% if contracts_by_modality %}
   <table>

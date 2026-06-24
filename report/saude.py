@@ -49,6 +49,17 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
     else:
         splitting = data["splitting"]
 
+    # Pre-format adesao_de_ata for template rendering
+    if not data["adesao_de_ata_list"].empty:
+        adesao_df = data["adesao_de_ata_list"].copy()
+        adesao_df["valor_fmt"] = (
+            pd.to_numeric(adesao_df["total_c_valor"].astype(str).str.replace(",", "."), errors="coerce")
+            .fillna(0)
+            .map("{:,.0f}".format)
+        )
+    else:
+        adesao_df = data["adesao_de_ata_list"]
+
     transfers_df = data["transfers_to_health"]
     html = template.render(
         year=year,
@@ -60,8 +71,9 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
         execution_trend=data["execution_trend"].to_dict("records"),
         adesao_de_ata_count=data["adesao_de_ata_count"],
         adesao_de_ata_value=data["adesao_de_ata_value"],
+        adesao_de_ata_contracts_linked_count=int(data["adesao_de_ata_list"]["has_contract"].sum()),
+        adesao_de_ata_list=adesao_df.to_dict("records") if not adesao_df.empty else [],
         contracts_by_modality=data["contracts_by_modality"].to_dict("records"),
-        bidding_gaps=gaps.to_dict("records") if not gaps.empty else [],
         splitting=splitting.to_dict("records") if not splitting.empty else [],
         hhi=data["hhi"],
         top_suppliers=data["top_suppliers"].to_dict("records") if not data["top_suppliers"].empty else [],
