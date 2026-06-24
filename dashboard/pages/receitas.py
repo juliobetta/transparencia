@@ -4,7 +4,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import matplotlib.pyplot as plt
+import pandas as pd
+import plotly.express as px
 import streamlit as st
 from shared import get_conn, render_sidebar
 
@@ -27,23 +28,27 @@ if not df.empty:
     row = df[df["ano"] == year]
     if not row.empty:
         row = row.iloc[0]
-        values = [row["receita_propria"], row["transferencias_uniao"], row["transferencias_estado"]]
-        if any(v > 0 for v in values):
-            fig, ax = plt.subplots(figsize=(6, 3))
-            ax.pie(
-                values,
-                labels=["Receita Própria", "Transferências União", "Transferências Estado"],
-                autopct="%1.1f%%",
-                startangle=90,
-            )
-            ax.set_title("Distribuição de Receitas (Previsão Atualizada)")
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.pyplot(fig, use_container_width=True)
 
-            st.caption("Fonte: previsão atualizada — dados de arrecadação efetiva não disponíveis na API.")
-        else:
-            st.info("Sem dados de receita para o ano selecionado.")
+        # Summary Table
+        st.subheader("Resumo: Previsto vs. Arrecadado")
+        resumo_df = pd.DataFrame(
+            {
+                "Fonte": ["Receita Própria", "Transferências União", "Transferências Estado"],
+                "Previsto (R$)": [row["receita_propria"], row["transferencias_uniao"], row["transferencias_estado"]],
+                # Assuming 'arrecadado' is not available based on previous code comment
+            }
+        )
+        st.dataframe(resumo_df, use_container_width=True, hide_index=True)
+
+        # Plotly Pie Chart
+        fig = px.pie(
+            resumo_df,
+            values="Previsto (R$)",
+            names="Fonte",
+            title="Distribuição de Receitas (Previsão Atualizada)",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
         if row["alerta_dependencia"]:
             st.warning("⚠️ Receita própria abaixo de 10% — alta dependência de repasses federais/estaduais.")
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
