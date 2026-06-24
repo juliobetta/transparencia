@@ -28,7 +28,27 @@ c2.metric("Número de Operações", data.get("count_operations", 0))
 # Section 2: Detalhes de Despesas
 st.header("② Detalhes de Despesas")
 if "despesas" in data and not data["despesas"].empty:
-    st.dataframe(data["despesas"], use_container_width=True, hide_index=True)
+    st.dataframe(
+        data["despesas"].rename(
+            columns={
+                "ano": "Ano",
+                "descricao": "Descrição",
+                "empenhado": "Empenhado",
+                "liquidado": "Liquidado",
+                "pago": "Pago",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "codigo": None,
+            "insmf": None,
+            "cepci": None,
+            "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Liquidado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+        },
+    )
 else:
     st.info("Sem detalhes de despesas registrados para este ano.")
 

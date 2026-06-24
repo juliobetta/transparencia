@@ -2,15 +2,15 @@ import sqlite3
 
 import pandas as pd
 
-CAPREM_EMPRESA = "10"
-
+CAPREM_EMPRESA_IDS = ["2", "3", "7", "8", "9", "10"]
 
 def run(conn: sqlite3.Connection, year: int):
-    # Fetch CAPREM expenses
+    # Fetch CAPREM expenses using a tuple of IDs
+    placeholders = ",".join("?" for _ in CAPREM_EMPRESA_IDS)
     df = pd.read_sql_query(
-        "SELECT * FROM despesas_por_fornecedor WHERE empresa = ? AND ano = ?",
+        f"SELECT * FROM despesas_por_fornecedor WHERE empresa IN ({placeholders}) AND ano = ?",
         conn,
-        params=(CAPREM_EMPRESA, year),
+        params=(*CAPREM_EMPRESA_IDS, year),
     )
 
     if not df.empty:
