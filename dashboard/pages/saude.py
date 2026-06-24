@@ -32,6 +32,7 @@ if data["emendas_total"] > 0:
                     "descricao": "Objeto",
                     "valor": "Valor Autorizado (R$)",
                     "empenhado": "Empenhado (R$)",
+                    "autor": "Autor",
                 }
             ),
             use_container_width=True,
