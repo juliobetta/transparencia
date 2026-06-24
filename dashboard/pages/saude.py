@@ -99,7 +99,9 @@ c1.metric(
     data["adesao_de_ata_count"],
     help=glossary.tooltip("Adesão de Ata (Carona)"),
 )
-c2.metric("Valor total — Adesão de Ata (R$)", f"{data['adesao_de_ata_value']:,.0f}")
+c2.metric("Valor Total Contratado via Adesão (R$)", f"{data['adesao_de_ata_value']:,.0f}")
+
+c3.metric("Qtd. de Contratos Vinculados", int(data["adesao_de_ata_list"]["has_contract"].sum()))
 
 if not data["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
