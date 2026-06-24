@@ -13,12 +13,14 @@ import glossary
 from analysis import (
     bidding_gaps,
     budget_execution,
+    comparison,
     contract_anomalies,
     payroll_vs_services,
     revenue_sources,
     supplier_concentration,
     yoy_trends,
 )
+from analysis.comparison import PeriodSpec
 
 st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
 
@@ -31,6 +33,23 @@ def get_conn():
 
 
 conn = get_conn()
+
+
+def _comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str) -> pd.DataFrame:
+    records = []
+    for label, key in rows:
+        d = domain[key]
+        records.append(
+            {
+                "Métrica": label,
+                "Período A": fmt.format(d["a"]),
+                "Período B": fmt.format(d["b"]),
+                "Δ Absoluto": f"{d['abs']:+,.2f}",
+                "Δ %": f"{d['pct']:+.1f}%" if d["pct"] is not None else "N/A",
+            }
+        )
+    return pd.DataFrame(records)
+
 
 # Persistent portal link in sidebar
 st.sidebar.markdown(
@@ -54,6 +73,7 @@ tabs = st.tabs(
         "Licitações e Contratos",
         "Receitas",
         "Pessoal",
+        "Comparação",
         "Dados Brutos",
     ]
 )
@@ -230,7 +250,103 @@ with tabs[5]:
         st.pyplot(fig)
     st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
 
-# ── Tab 6: Dados Brutos ─────────────────────────────────────────────────────
+# ── Tab 6: Comparação ───────────────────────────────────────────────────────
+with tabs[6]:
+    st.header("Comparação de Períodos")
+    st.caption("Compare dois períodos e veja as variações em cada dimensão.")
+
+    MONTHS = list(range(1, 13))
+    MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.subheader("Período A")
+        year_a = st.selectbox("Ano A", YEARS, index=0, key="cmp_year_a")
+        m_start_a = st.selectbox(
+            "Mês início A", MONTHS, index=0, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_ms_a"
+        )
+        m_end_a = st.selectbox("Mês fim A", MONTHS, index=11, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_me_a")
+    with col_b:
+        st.subheader("Período B")
+        year_b = st.selectbox("Ano B", YEARS, index=len(YEARS) - 1, key="cmp_year_b")
+        m_start_b = st.selectbox(
+            "Mês início B", MONTHS, index=0, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_ms_b"
+        )
+        m_end_b = st.selectbox("Mês fim B", MONTHS, index=11, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_me_b")
+
+    spec_a = PeriodSpec(year=year_a, month_start=m_start_a, month_end=m_end_a)
+    spec_b = PeriodSpec(year=year_b, month_start=m_start_b, month_end=m_end_b)
+
+    result = comparison.run(conn, spec_a, spec_b)
+
+    def _fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
+        if d["pct"] is None:
+            return "N/A"
+        return f"{fmt.format(d['abs'])} ({d['pct']:+.1f}%)"
+
+    st.subheader("Resumo")
+    m1, m2, m3, m4, m5 = st.columns(5)
+    d = result["despesas"]["empenhado"]
+    m1.metric("Empenhado (R$)", f"{d['b']:,.0f}", delta=_fmt_delta(d))
+    d = result["pessoal"]["percentual_folha"]
+    m2.metric("Folha / Gastos", f"{d['b']:.1f}%", delta=_fmt_delta(d, "{:+.1f}%"))
+    d = result["receitas"]["pct_propria"]
+    m3.metric("Receita Própria %", f"{d['b']:.1f}%", delta=_fmt_delta(d, "{:+.1f}%"))
+    d = result["licitacoes"]["sem_licitacao"]
+    m4.metric("Sem Licitação", f"{d['b']:.0f}", delta=_fmt_delta(d, "{:+.0f}"))
+    d = result["fornecedores"]["hhi"]
+    m5.metric("HHI", f"{d['b']:,.0f}", delta=_fmt_delta(d))
+
+    with st.expander("Despesas"):
+        rows = [
+            ("Empenhado (R$)", "empenhado"),
+            ("Dotação Atualizada (R$)", "dotacao"),
+        ]
+        st.dataframe(
+            _comparison_table(result["despesas"], rows, "{:,.0f}"),
+            use_container_width=True,
+        )
+
+    with st.expander("Pessoal"):
+        rows = [("Total Folha (R$)", "total_folha"), ("% dos Gastos", "percentual_folha")]
+        st.dataframe(
+            _comparison_table(result["pessoal"], rows, "{:.2f}"),
+            use_container_width=True,
+        )
+
+    with st.expander("Receitas"):
+        rows = [
+            ("Receita Própria (R$)", "receita_propria"),
+            ("Transferências União (R$)", "transferencias_uniao"),
+            ("Transferências Estado (R$)", "transferencias_estado"),
+            ("% Receita Própria", "pct_propria"),
+        ]
+        st.dataframe(
+            _comparison_table(result["receitas"], rows, "{:.2f}"),
+            use_container_width=True,
+        )
+
+    with st.expander("Licitações"):
+        rows = [
+            ("Contratos sem Licitação", "sem_licitacao"),
+            ("Acima do Limite Legal", "acima_limite"),
+            ("Na Saúde", "saude"),
+        ]
+        st.dataframe(
+            _comparison_table(result["licitacoes"], rows, "{:.0f}"),
+            use_container_width=True,
+        )
+
+    with st.expander("Fornecedores"):
+        rows = [("HHI", "hhi")]
+        st.dataframe(
+            _comparison_table(result["fornecedores"], rows, "{:,.0f}"),
+            use_container_width=True,
+        )
+
+    st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
+
+# ── Tab 7: Dados Brutos ─────────────────────────────────────────────────────
 _COLUMN_LABELS = {
     "ano": "Ano",
     "empresa": "Entidade",
@@ -276,7 +392,7 @@ _TABLE_LABELS = {
     "receita_orcamentaria": "Receita Orçamentária",
 }
 
-with tabs[6]:
+with tabs[7]:
     st.header("Dados Brutos")
     allowed_tables = list(_TABLE_LABELS.keys())
     table = st.selectbox("Tabela", allowed_tables, format_func=lambda t: _TABLE_LABELS[t])
