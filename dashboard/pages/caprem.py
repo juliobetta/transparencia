@@ -36,6 +36,7 @@ if "despesas" in data and not data["despesas"].empty:
                 "empenhado": "Empenhado",
                 "liquidado": "Liquidado",
                 "pago": "Pago",
+                "empresa": "Empresa",
             }
         ),
         use_container_width=True,
@@ -44,6 +45,7 @@ if "despesas" in data and not data["despesas"].empty:
             "codigo": None,
             "insmf": None,
             "cepci": None,
+            "Empresa": None,
             "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Liquidado": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
