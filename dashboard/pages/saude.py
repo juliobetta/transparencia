@@ -52,6 +52,17 @@ c3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
 if budget["flag_under_execution"]:
     st.warning(f"⚠️ Taxa de execução abaixo de 70% ao final do ano {year}.")
 
+st.subheader("Repasses da Prefeitura")
+transfers_total = data["transfers_to_health_total"]
+if transfers_total > 0:
+    st.metric(
+        "Total de repasses recebidos (R$)",
+        f"{transfers_total:,.0f}",
+        help="Valores transferidos pela Prefeitura Municipal (empresa 7) ao Fundo de Saúde no ano.",
+    )
+else:
+    st.info("Sem repasses registrados para este ano.")
+
 # ── Seção 2: O que foi gasto ────────────────────────────────────────────────
 st.header("② O que foi gasto")
 st.subheader("Evolução do Gasto (Empenhado por Ano)")
