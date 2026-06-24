@@ -65,8 +65,8 @@
     <tr>
       <td>{{ row.numero }}</td>
       <td>{{ row.descricao }}</td>
-      <td>R$ {{ "{:,.0f}".format(row.valor_total) }}</td>
-      <td>R$ {{ "{:,.0f}".format(row.empenhado) }}</td>
+      <td>R$ {{ "{:,.0f}".format(row.valor) }}</td>
+      <td>{% if row.empenhado %}{{ "{:,.0f}".format(row.empenhado) }}{% endif %}</td>
     </tr>
     {% endfor %}
   </table>
