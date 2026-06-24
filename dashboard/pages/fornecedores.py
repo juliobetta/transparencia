@@ -29,8 +29,12 @@ st.metric(
 )
 st.dataframe(
     result["top10"][["descricao", "empenhado", "percentual"]].rename(
-        columns={"descricao": "Fornecedor", "empenhado": "Empenhado (R$)", "percentual": "%"}
+        columns={"descricao": "Fornecedor", "empenhado": "Empenhado", "percentual": "%"}
     ),
+    column_config={
+        "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+        "%": st.column_config.NumberColumn(format="%.2f%%"),
+    },
     use_container_width=True,
     hide_index=True,
 )

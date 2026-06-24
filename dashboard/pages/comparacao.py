@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import YEARS, comparison_table, fmt_delta, get_conn, render_sidebar
+from shared import YEARS, comparison_table, fmt_currency, fmt_delta, fmt_percent, get_conn, render_sidebar
 
 import glossary
 from analysis import comparison
@@ -39,60 +39,117 @@ result = comparison.run(conn, spec_a, spec_b)
 st.subheader("Resumo")
 m1, m2, m3, m4, m5 = st.columns(5)
 d = result["despesas"]["empenhado"]
-m1.metric("Empenhado (R$)", f"{d['b']:,.0f}", delta=fmt_delta(d), delta_color="inverse")
+m1.metric("Empenhado", fmt_currency(d["b"]), delta=fmt_delta(d), delta_color="inverse")
 d = result["pessoal"]["percentual_folha"]
-m2.metric("Folha / Gastos", f"{d['b']:.1f}%", delta=fmt_delta(d, "{:+.1f}%"), delta_color="inverse")
+m2.metric("Folha / Gastos", fmt_percent(d["b"]), delta=fmt_delta(d, "{:+.1f}%"), delta_color="inverse")
 d = result["licitacoes"]["sem_licitacao"]
-m3.metric("Sem Licitação (Requer Verificação)", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
+m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 d = result["fornecedores"]["hhi"]
-m4.metric("HHI", f"{d['b']:,.0f}", delta=fmt_delta(d), delta_color="inverse")
+m4.metric("HHI", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 d = result["adesao"]["count"]
 m5.metric("Adesões", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 
 with st.expander("Despesas"):
+    df = comparison_table(result["despesas"], [("Empenhado", "empenhado"), ("Dotação Atualizada", "dotacao")])
     st.dataframe(
-        comparison_table(
-            result["despesas"], [("Empenhado (R$)", "empenhado"), ("Dotação Atualizada (R$)", "dotacao")], "{:,.0f}"
-        ),
+        df,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Período B": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
         use_container_width=True,
         hide_index=True,
     )
 with st.expander("Pessoal"):
+    df_currency = comparison_table(result["pessoal"], [("Total Folha", "total_folha")])
     st.dataframe(
-        comparison_table(
-            result["pessoal"], [("Total Folha (R$)", "total_folha"), ("% dos Gastos", "percentual_folha")], "{:.2f}"
-        ),
+        df_currency,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Período B": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
+        use_container_width=True,
+        hide_index=True,
+    )
+    df_percent = comparison_table(result["pessoal"], [("% dos Gastos", "percentual_folha")])
+    st.dataframe(
+        df_percent,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="%.2f%%"),
+            "Período B": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
         use_container_width=True,
         hide_index=True,
     )
 with st.expander("Licitações"):
+    df = comparison_table(
+        result["licitacoes"],
+        [
+            ("Contratos sem Licitação", "sem_licitacao"),
+            ("Acima do Limite Legal", "acima_limite"),
+            ("Na Saúde", "saude"),
+        ],
+    )
     st.dataframe(
-        comparison_table(
-            result["licitacoes"],
-            [
-                ("Contratos sem Licitação (Requer Verificação)", "sem_licitacao"),
-                ("Acima do Limite Legal", "acima_limite"),
-                ("Na Saúde", "saude"),
-            ],
-            "{:.0f}",
-        ),
+        df,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="%,.0f"),
+            "Período B": st.column_config.NumberColumn(format="%,.0f"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="%,.0f"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
         use_container_width=True,
         hide_index=True,
     )
 with st.expander("Fornecedores"):
+    df = comparison_table(result["fornecedores"], [("HHI", "hhi")])
     st.dataframe(
-        comparison_table(result["fornecedores"], [("HHI", "hhi")], "{:,.0f}"),
+        df,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="%,.0f"),
+            "Período B": st.column_config.NumberColumn(format="%,.0f"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="%,.0f"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
         use_container_width=True,
         hide_index=True,
     )
 
 with st.expander("Adesão de Ata"):
+    st.subheader("Adesão de Ata")
+    df = comparison_table(
+        result["adesao"],
+        [("Quantidade", "count")],
+    )
     st.dataframe(
-        comparison_table(
-            result["adesao"],
-            [("Quantidade", "count"), ("Valor Licitação", "valor_licitacao"), ("Valor Contratos", "valor_contratos")],
-            "{:,.0f}",
-        ),
+        df,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="%,.0f"),
+            "Período B": st.column_config.NumberColumn(format="%,.0f"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="%,.0f"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
+        use_container_width=True,
+        hide_index=True,
+    )
+    df = comparison_table(
+        result["adesao"],
+        [("Valor Licitação", "valor_licitacao"), ("Valor Contratos", "valor_contratos")],
+    )
+    st.dataframe(
+        df,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Período B": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
         use_container_width=True,
         hide_index=True,
     )

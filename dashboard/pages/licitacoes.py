@@ -30,24 +30,26 @@ st.info(
 )
 
 st.subheader("Resumo")
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3 = st.columns(3)
 c1.metric("Acima do limite legal (R$57k)", len(acima))
-c2.metric("Acima do limite — Saúde", len(saude), help="Contratos acima de R$57k sem licitação em órgãos de saúde.")
-c3.metric("Total sem processo licitatório", len(gaps))
-c4.metric("Adesões de Ata", adesao["count"])
+c2.metric("Total sem processo licitatório", len(gaps))
+c3.metric("Adesões de Ata", adesao["count"])
 
 # Fix gap table
 gaps_display = gaps.rename(
     columns={
         "fornecedor": "Fornecedor",
         "objeto": "Objeto",
-        "valor": "Valor (R$)",
+        "valor": "Valor",
     }
 )
 
 with st.expander("Ver contratos sem processo licitatório"):
     st.dataframe(
-        gaps_display[["Fornecedor", "Objeto", "Valor (R$)"]],
+        gaps_display[["Fornecedor", "Objeto", "Valor"]],
+        column_config={
+            "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
+        },
         use_container_width=True,
         hide_index=True,
     )
@@ -58,20 +60,25 @@ with st.expander("Ver licitações via Adesão de Ata"):
             adesao["list"].rename(
                 columns={
                     "objeto": "Objeto",
-                    "licitacao_valor": "Valor Est. Licitação (R$)",
-                    "total_c_valor": "Valor Total Contratado (R$)",
-                    "total_c_empenhado": "Valor Empenhado (R$)",
+                    "licitacao_valor": "Valor Est. Licitação",
+                    "total_c_valor": "Valor Total Contratado",
+                    "total_c_empenhado": "Valor Empenhado",
                     "has_contract": "Contrato Associado",
                 }
             )[
                 [
                     "Objeto",
-                    "Valor Est. Licitação (R$)",
-                    "Valor Total Contratado (R$)",
-                    "Valor Empenhado (R$)",
+                    "Valor Est. Licitação",
+                    "Valor Total Contratado",
+                    "Valor Empenhado",
                     "Contrato Associado",
                 ]
             ],
+            column_config={
+                "Valor Est. Licitação": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Total Contratado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
             use_container_width=True,
             hide_index=True,
         )
@@ -86,14 +93,30 @@ if not acima.empty:
                 "empresa": "Entidade",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
-                "valor": "Valor (R$)",
+                "valor": "Valor",
                 "orgao_saude": "Saúde?",
             }
         ),
+        column_config={
+            "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
+        },
         use_container_width=True,
         hide_index=True,
     )
 if not anomalies["splitting"].empty:
     st.subheader("⚠️ Possível fracionamento de contratos")
-    st.dataframe(anomalies["splitting"][["fornecedor", "valor", "objeto"]], use_container_width=True, hide_index=True)
+    st.dataframe(
+        anomalies["splitting"][["fornecedor", "valor", "objeto"]].rename(
+            columns={
+                "fornecedor": "Fornecedor",
+                "valor": "Valor",
+                "objeto": "Objeto",
+            }
+        ),
+        column_config={
+            "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
+        },
+        use_container_width=True,
+        hide_index=True,
+    )
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")

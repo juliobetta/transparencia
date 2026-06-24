@@ -34,19 +34,27 @@ if not df.empty:
         resumo_df = pd.DataFrame(
             {
                 "Fonte": ["Receita Própria", "Transferências União", "Transferências Estado"],
-                "Previsto (R$)": [row["receita_propria"], row["transferencias_uniao"], row["transferencias_estado"]],
+                "Previsto": [row["receita_propria"], row["transferencias_uniao"], row["transferencias_estado"]],
                 # Assuming 'arrecadado' is not available based on previous code comment
             }
         )
-        st.dataframe(resumo_df, use_container_width=True, hide_index=True)
+        st.dataframe(
+            resumo_df,
+            column_config={
+                "Previsto": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
 
         # Plotly Pie Chart
         fig = px.pie(
             resumo_df,
-            values="Previsto (R$)",
+            values="Previsto",
             names="Fonte",
             title="Distribuição de Receitas (Previsão Atualizada)",
         )
+        fig.update_traces(hovertemplate="%{label}: R$ %{value:,.2f}")
         st.plotly_chart(fig, use_container_width=True)
 
         if row["alerta_dependencia"]:

@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
 import streamlit as st
-from shared import get_conn, render_sidebar
+from shared import fmt_currency, get_conn, render_sidebar
 
 import glossary
 from analysis import health_story
@@ -23,15 +23,15 @@ data = health_story.run(conn, year)
 st.header("① O que entrou")
 st.subheader("Emendas Parlamentares")
 if data["emendas_total"] > 0:
-    st.metric("Total de emendas (valor autorizado)", f"R$ {data['emendas_total']:,.0f}")
+    st.metric("Total de emendas (valor autorizado)", fmt_currency(data["emendas_total"]))
     if not data["emendas"].empty and data["emendas"].notna().any().any():
         st.dataframe(
             data["emendas"].rename(
                 columns={
                     "numero": "Nº",
                     "descricao": "Objeto",
-                    "valor": "Valor Autorizado (R$)",
-                    "empenhado": "Empenhado (R$)",
+                    "valor": "Valor Autorizado",
+                    "empenhado": "Empenhado",
                     "autor": "Autor",
                     "Tipo da Emenda": "Tipo da Emenda",
                     "Esfera de Origem": "Esfera de Origem",
@@ -41,8 +41,8 @@ if data["emendas_total"] > 0:
             ),
             use_container_width=True,
             column_config={
-                "Valor Autorizado (R$)": st.column_config.NumberColumn(format="%.2f"),
-                "Empenhado (R$)": st.column_config.NumberColumn(format="%.2f"),
+                "Valor Autorizado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Nº": None,
                 "Tipo da Emenda": None,
                 "Esfera de Origem": None,
@@ -58,8 +58,8 @@ else:
 st.subheader("Orçamento")
 budget = data["budget"]
 c1, c2, c3 = st.columns(3)
-c1.metric("Dotação Atualizada (R$)", f"{budget['dotacao']:,.0f}", help=glossary.tooltip("Dotação Atualizada"))
-c2.metric("Total Empenhado (R$)", f"{budget['empenhado']:,.0f}", help=glossary.tooltip("Empenho"))
+c1.metric("Dotação Atualizada", fmt_currency(budget["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
+c2.metric("Total Empenhado", fmt_currency(budget["empenhado"]), help=glossary.tooltip("Empenho"))
 c3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
 if budget["flag_under_execution"]:
     st.warning(f"⚠️ Taxa de execução abaixo de 70% ao final do ano {year}.")
@@ -68,8 +68,8 @@ st.subheader("Repasses da Prefeitura")
 transfers_total = data["transfers_to_health_total"]
 if transfers_total > 0:
     st.metric(
-        "Total de repasses recebidos (R$)",
-        f"{transfers_total:,.0f}",
+        "Total de repasses recebidos",
+        fmt_currency(transfers_total),
         help="Valores transferidos pela Prefeitura Municipal ao Fundo de Saúde no ano.",
     )
 else:
@@ -85,19 +85,19 @@ if not trend.empty:
         x="ano",
         y="empenhado",
         title="Fundo de Saúde — Empenhado por Ano",
-        labels={"ano": "Ano", "empenhado": "Empenhado (R$)"},
+        labels={"ano": "Ano", "empenhado": "Empenhado"},
     )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(
-        trend.rename(columns={"ano": "Ano", "empenhado": "Empenhado (R$)"}),
+        trend.rename(columns={"ano": "Ano", "empenhado": "Empenhado"}),
         use_container_width=True,
         hide_index=True,
         column_config={
             "Ano": st.column_config.NumberColumn(format="%d"),
-            "Empenhado (R$)": st.column_config.NumberColumn(format="R$ %,.0f"),
+            "Empenhado": st.column_config.NumberColumn(format="R$ %,.0f"),
         },
     )
 
@@ -112,7 +112,7 @@ c1.metric(
     help=glossary.tooltip("Adesão de Ata (Carona)"),
 )
 c2.metric("Qtd. de Contratos Vinculados", int(data["adesao_de_ata_list"]["has_contract"].sum()))
-c3.metric("Valor Total Contratado via Adesão (R$)", f"{data['adesao_de_ata_value']:,.0f}")
+c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata_value"]))
 
 if not data["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
@@ -121,9 +121,9 @@ if not data["adesao_de_ata_list"].empty:
                 columns={
                     "numero": "Nº Licit.",
                     "objeto": "Objeto",
-                    "licitacao_valor": "Valor Est. Licitação (R$)",
-                    "total_c_valor": "Valor Total Contratado (R$)",
-                    "total_c_empenhado": "Valor Empenhado (R$)",
+                    "licitacao_valor": "Valor Est. Licitação",
+                    "total_c_valor": "Valor Total Contratado",
+                    "total_c_empenhado": "Valor Empenhado",
                     "has_contract": "Contrato Associado",
                 }
             ),
@@ -135,9 +135,9 @@ st.subheader("Distribuição por Modalidade")
 modality_df = data["contracts_by_modality"]
 if not modality_df.empty and modality_df.notna().all().all():
     st.dataframe(
-        modality_df.rename(columns={"modality": "Modalidade", "count": "Qtd", "total_value": "Valor Total (R$)"}),
+        modality_df.rename(columns={"modality": "Modalidade", "count": "Qtd", "total_value": "Valor Total"}),
         use_container_width=True,
-        column_config={"Valor Total (R$)": st.column_config.NumberColumn(format="%.2f")},
+        column_config={"Valor Total": st.column_config.NumberColumn(format="R$ %,.2f")},
         hide_index=True,
     )
     with st.expander("ℹ️ O que são essas modalidades?"):
@@ -158,12 +158,12 @@ if not gaps.empty and gaps.notna().all().all():
                 "numero": "Nº",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
-                "valcon": "Valor (R$)",
+                "valcon": "Valor",
                 "modali": "Modalidade",
             }
         ),
         use_container_width=True,
-        column_config={"Nº": None},
+        column_config={"Nº": None, "Valor": st.column_config.NumberColumn(format="R$ %,.2f")},
         hide_index=True,
     )
 else:
@@ -185,11 +185,13 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
 
     # Display main Top 10 table
     st.dataframe(
-        data["top_suppliers"].rename(
-            columns={"descricao": "Fornecedor", "empenhado": "Empenhado (R$)", "percentual": "%"}
-        ),
+        data["top_suppliers"].rename(columns={"descricao": "Fornecedor", "empenhado": "Empenhado", "percentual": "%"}),
         use_container_width=True,
-        column_config={"codigo": None},
+        column_config={
+            "codigo": None,
+            "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "%": st.column_config.NumberColumn(format="%.2f%%"),
+        },
         hide_index=True,
     )
 
@@ -211,10 +213,11 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
             columns={
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto / Serviço",
-                "total": "Valor Contratado (R$)",
+                "total": "Valor Contratado",
             }
         ),
         use_container_width=True,
+        column_config={"Valor Contratado": st.column_config.NumberColumn(format="R$ %,.2f")},
         hide_index=True,
     )
 

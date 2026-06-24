@@ -18,16 +18,16 @@ _COLUMN_LABELS = {
     "empresa": "Entidade",
     "codigo": "Código",
     "descricao": "Descrição",
-    "empenhado": "Empenhado (R$)",
-    "liquidado": "Liquidado (R$)",
-    "pago": "Pago (R$)",
-    "dotac": "Dotação Inicial (R$)",
-    "altdo": "Alterações (R$)",
-    "dotacao_atualizada": "Dotação Atualizada (R$)",
+    "empenhado": "Empenhado",
+    "liquidado": "Liquidado",
+    "pago": "Pago",
+    "dotac": "Dotação Inicial",
+    "altdo": "Alterações",
+    "dotacao_atualizada": "Dotação Atualizada",
     "numero": "Número",
     "modalidade": "Modalidade",
     "objeto": "Objeto",
-    "valor": "Valor (R$)",
+    "valor": "Valor",
     "situacao": "Situação",
     "data_abertura": "Data de Abertura",
     "fornecedor": "Fornecedor",
@@ -38,15 +38,33 @@ _COLUMN_LABELS = {
     "matricula": "Matrícula",
     "nome": "Nome",
     "cargo": "Cargo",
-    "proventos": "Proventos (R$)",
-    "descontos": "Descontos (R$)",
-    "previsto": "Previsto (R$)",
-    "arrecadado": "Arrecadado (R$)",
-    "previsao_inicial": "Previsão Inicial (R$)",
-    "previsao_atualizada": "Previsão Atualizada (R$)",
-    "arrecadado_periodo": "Arrecadado no Período (R$)",
-    "arrecadado_total": "Arrecadado Total (R$)",
+    "proventos": "Proventos",
+    "descontos": "Descontos",
+    "previsto": "Previsto",
+    "arrecadado": "Arrecadado",
+    "previsao_inicial": "Previsão Inicial",
+    "previsao_atualizada": "Previsão Atualizada",
+    "arrecadado_periodo": "Arrecadado no Período",
+    "arrecadado_total": "Arrecadado Total",
 }
+
+_CURRENCY_COLUMNS = [
+    "empenhado",
+    "liquidado",
+    "pago",
+    "dotac",
+    "altdo",
+    "dotacao_atualizada",
+    "valor",
+    "proventos",
+    "descontos",
+    "previsto",
+    "arrecadado",
+    "previsao_inicial",
+    "previsao_atualizada",
+    "arrecadado_periodo",
+    "arrecadado_total",
+]
 
 _TABLE_LABELS = {
     "despesas_por_orgao": "Despesas por Órgão",
@@ -63,6 +81,11 @@ table = st.selectbox("Tabela", allowed_tables, format_func=lambda t: _TABLE_LABE
 if table not in allowed_tables:
     raise ValueError(f"Tabela inválida: {table}")
 df = pd.read_sql_query(f"SELECT * FROM {table} WHERE ano = ?", conn, params=(year,))
-st.dataframe(df.fillna("N/D").rename(columns=_COLUMN_LABELS), use_container_width=True)
+config = {
+    _COLUMN_LABELS[col]: st.column_config.NumberColumn(format="R$ %,.2f")
+    for col in df.columns
+    if col in _CURRENCY_COLUMNS
+}
+st.dataframe(df.fillna("N/D").rename(columns=_COLUMN_LABELS), column_config=config, use_container_width=True)
 st.download_button("Baixar CSV", df.to_csv(index=False).encode(), file_name=f"{table}_{year}.csv", mime="text/csv")
 st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")

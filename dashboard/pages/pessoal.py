@@ -27,6 +27,7 @@ if not df.empty:
         title="Folha / Total de Gastos (%)",
         labels={"ano": "Ano", "percentual_folha": "%"},
     )
+    fig.update_traces(hovertemplate="Ano: %{x}<br>Percentual: %{y:.2f}%")
     st.plotly_chart(fig, use_container_width=True)
 
 # Granular Salary Analysis
@@ -40,7 +41,8 @@ if not df_pessoal.empty:
         x="remuneracao",
         nbins=20,
         title="Distribuição das Remunerações",
-        labels={"remuneracao": "Remuneração (R$)"},
+        labels={"remuneracao": "Remuneração"},
     )
+    fig_hist.update_traces(hovertemplate="Remuneração: R$ %{x:,.2f}<br>Contagem: %{y}")
     st.plotly_chart(fig_hist, use_container_width=True)
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")

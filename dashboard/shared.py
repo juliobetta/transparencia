@@ -53,7 +53,15 @@ def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
     return f"{fmt.format(d['abs'])} ({d['pct']:+.1f}%)"
 
 
-def comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str):
+def fmt_currency(value: float) -> str:
+    return f"R$ {value:,.2f}"
+
+
+def fmt_percent(value: float) -> str:
+    return f"{value:.2f}%"
+
+
+def comparison_table(domain: dict, rows: list[tuple[str, str]]):
     import pandas as pd
 
     records = []
@@ -62,10 +70,10 @@ def comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str):
         records.append(
             {
                 "Métrica": label,
-                "Período A": fmt.format(d["a"]),
-                "Período B": fmt.format(d["b"]),
-                "Δ Absoluto": ("+" if d["abs"] >= 0 else "") + fmt.format(d["abs"]),
-                "Δ %": f"{d['pct']:+.1f}%" if d["pct"] is not None else "N/D",
+                "Período A": d["a"],
+                "Período B": d["b"],
+                "Δ Absoluto": d["abs"],
+                "Δ %": d["pct"],
             }
         )
     return pd.DataFrame(records)

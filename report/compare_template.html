@@ -104,7 +104,7 @@
     <h2>Licitações e Contratos</h2>
     <table>
       <tr><th>Métrica</th><th>Período A</th><th>Período B</th><th>Δ Absoluto</th><th>Δ %</th></tr>
-      {% for label, key in [("Contratos sem Licitação (Requer Verificação)", "sem_licitacao"), ("Acima do Limite Legal (R$57k)", "acima_limite"), ("Acima do Limite — Saúde", "saude")] %}
+      {% for label, key in [("Contratos sem Licitação (Requer Verificação)", "sem_licitacao"), ("Acima do Limite Legal (R$57k)", "acima_limite")] %}
       {% set d = result.licitacoes[key] %}
       <tr>
         <td>{{ label }}</td>

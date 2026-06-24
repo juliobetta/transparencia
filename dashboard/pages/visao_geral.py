@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import get_conn, render_sidebar
+from shared import fmt_currency, fmt_percent, get_conn, render_sidebar
 
 import glossary
 from analysis import (
@@ -31,16 +31,16 @@ revenue = revenue_sources.run(conn, [year])
 payroll = payroll_vs_services.run(conn, [year])
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Total empenhado (R$)", f"{budget['empenhado'].sum():,.0f}", help=glossary.tooltip("Empenho"))
+c1.metric("Total empenhado", fmt_currency(budget["empenhado"].sum()), help=glossary.tooltip("Empenho"))
 c2.metric(
     "Contratos sem licitação",
     int((bidding["licitacao_numero"].fillna("").str.strip() == "").sum()),
     help=glossary.tooltip("Licitação"),
 )
 if not revenue.empty:
-    c3.metric("Receita própria", f"{revenue.iloc[0]['pct_propria']:.1f}%", help=glossary.tooltip("Receita Própria"))
+    c3.metric("Receita própria", fmt_percent(revenue.iloc[0]["pct_propria"]), help=glossary.tooltip("Receita Própria"))
 if not payroll.empty:
-    c4.metric("Folha / gastos totais", f"{payroll.iloc[0]['percentual_folha']:.1f}%")
+    c4.metric("Folha / gastos totais", fmt_percent(payroll.iloc[0]["percentual_folha"]))
 
 st.subheader("Tendências Ano a Ano")
 yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
@@ -48,10 +48,10 @@ st.dataframe(
     yoy.rename(
         columns={
             "ano": "Ano",
-            "total_gasto": "Total Gasto (R$)",
-            "total_folha": "Total Folha (R$)",
-            "total_receita": "Total Receita (R$)",
-            "restos_a_pagar": "Restos a Pagar (R$)",
+            "total_gasto": "Total Gasto",
+            "total_folha": "Total Folha",
+            "total_receita": "Total Receita",
+            "restos_a_pagar": "Restos a Pagar",
             "total_gasto_pct_change": "Δ% Gasto",
             "total_folha_pct_change": "Δ% Folha",
             "total_receita_pct_change": "Δ% Receita",
@@ -59,5 +59,16 @@ st.dataframe(
         }
     ),
     use_container_width=True,
+    column_config={
+        "Total Gasto": st.column_config.NumberColumn(format="R$ %,.2f"),
+        "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),
+        "Total Receita": st.column_config.NumberColumn(format="R$ %,.2f"),
+        "Restos a Pagar": st.column_config.NumberColumn(format="R$ %,.2f"),
+        "Δ% Gasto": st.column_config.NumberColumn(format="%.2f%%"),
+        "Δ% Folha": st.column_config.NumberColumn(format="%.2f%%"),
+        "Δ% Receita": st.column_config.NumberColumn(format="%.2f%%"),
+        "Δ% Restos": st.column_config.NumberColumn(format="%.2f%%"),
+    },
 )
+
 st.info(f"🔗 Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})")
