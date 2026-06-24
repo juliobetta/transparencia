@@ -89,7 +89,7 @@
     <tr>
       <td>{{ row.numero }}</td>
       <td>{{ row.objeto }}</td>
-      <td>{% if row.total_c_valor %}R$ {{ "{:,.0f}".format(row.total_c_valor) }}{% endif %}</td>
+      <td>{% if row.total_c_valor and row.total_c_valor > 0 %}R$ {{ "{:,.0f}".format(row.total_c_valor) }}{% endif %}</td>
     </tr>
     {% endfor %}
   </table>
