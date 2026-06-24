@@ -12,7 +12,7 @@ import db
 import glossary
 from analysis.comparison import PeriodSpec, run
 
-REPORTS_DIR = Path("reports")
+REPORTS_DIR = Path(__file__).parent.parent / "reports"
 TEMPLATE_DIR = Path(__file__).parent
 
 
@@ -52,6 +52,8 @@ if __name__ == "__main__":
     spec_b = PeriodSpec(year=int(args[3]), month_start=int(args[4]), month_end=int(args[5]))
 
     conn = db.get_connection()
-    path = generate(conn, spec_a, spec_b)
-    print(f"Report written to {path}")
-    conn.close()
+    try:
+        path = generate(conn, spec_a, spec_b)
+        print(f"Report written to {path}")
+    finally:
+        conn.close()
