@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -27,6 +28,27 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("saude_template.html")
 
+    # Pre-format valor for template rendering
+    if not data["bidding_gaps"].empty:
+        gaps = data["bidding_gaps"].copy()
+        gaps["valor_fmt"] = (
+            pd.to_numeric(gaps["valor"].astype(str).str.replace(",", "."), errors="coerce")
+            .fillna(0)
+            .map("{:,.0f}".format)
+        )
+    else:
+        gaps = data["bidding_gaps"]
+
+    if not data["splitting"].empty:
+        splitting = data["splitting"].copy()
+        splitting["valor_fmt"] = (
+            pd.to_numeric(splitting["valor"].astype(str).str.replace(",", "."), errors="coerce")
+            .fillna(0)
+            .map("{:,.0f}".format)
+        )
+    else:
+        splitting = data["splitting"]
+
     transfers_df = data["transfers_to_health"]
     html = template.render(
         year=year,
@@ -39,8 +61,8 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
         adesao_de_ata_count=data["adesao_de_ata_count"],
         adesao_de_ata_value=data["adesao_de_ata_value"],
         contracts_by_modality=data["contracts_by_modality"].to_dict("records"),
-        bidding_gaps=data["bidding_gaps"].to_dict("records") if not data["bidding_gaps"].empty else [],
-        splitting=data["splitting"].to_dict("records") if not data["splitting"].empty else [],
+        bidding_gaps=gaps.to_dict("records") if not gaps.empty else [],
+        splitting=splitting.to_dict("records") if not splitting.empty else [],
         hhi=data["hhi"],
         top_suppliers=data["top_suppliers"].to_dict("records") if not data["top_suppliers"].empty else [],
         transfers_to_health=transfers_df.to_dict("records") if not transfers_df.empty else [],

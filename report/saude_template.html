@@ -113,7 +113,7 @@
   <table>
     <tr><th>Nº</th><th>Fornecedor</th><th>Objeto</th><th>Valor (R$)</th></tr>
     {% for row in bidding_gaps %}
-    <tr><td>{{ row.numero }}</td><td>{{ row.fornecedor }}</td><td>{{ row.objeto }}</td><td>R$ {{ row.valor }}</td></tr>
+    <tr><td>{{ row.numero }}</td><td>{{ row.fornecedor }}</td><td>{{ row.objeto }}</td><td>R$ {{ row.valor_fmt }}</td></tr>
     {% endfor %}
   </table>
   {% else %}
@@ -124,7 +124,7 @@
   <table>
     <tr><th>Fornecedor</th><th>Valor (R$)</th><th>Objeto</th></tr>
     {% for row in splitting %}
-    <tr><td>{{ row.fornecedor }}</td><td>R$ {{ row.valor }}</td><td>{{ row.objeto }}</td></tr>
+    <tr><td>{{ row.fornecedor }}</td><td>R$ {{ row.valor_fmt }}</td><td>{{ row.objeto }}</td></tr>
     {% endfor %}
   </table>
   {% endif %}
