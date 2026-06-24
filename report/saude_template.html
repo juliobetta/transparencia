@@ -60,10 +60,9 @@
   </div>
   {% if emendas %}
   <table>
-    <tr><th>Objeto</th><th>Valor Autorizado (R$)</th><th>Empenhado (R$)</th><th>Autor/Ato</th></tr>
+    <tr><th>Valor Autorizado (R$)</th><th>Empenhado (R$)</th><th>Autor/Ato</th></tr>
     {% for row in emendas %}
     <tr>
-      <td>{{ row.descricao }}</td>
       <td>R$ {{ "{:,.0f}".format(row.valor) }}</td>
       <td>{% if row.empenhado %}{{ "{:,.0f}".format(row.empenhado) }}{% endif %}</td>
       <td>{{ row.autor }}<br><small>{{ row.ato_normativo }}</small></td>
