@@ -153,13 +153,18 @@ with tabs[3]:
     anomalies = contract_anomalies.run(conn, year)
     acima = gaps[gaps["acima_limite"]]
     saude = gaps[gaps["acima_limite"] & gaps["orgao_saude"]]
+    st.info(
+        "Contratos sem processo licitatório são comuns e frequentemente legais — dispensas de baixo valor "
+        "e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de R$57k** "
+        "sem licitação, pois nesses casos a lei exige justificativa formal."
+    )
     c1, c2, c3 = st.columns(3)
-    c1.metric("Contratos sem licitação", len(gaps))
-    c2.metric("Acima do limite legal (R$57k)", len(acima))
-    c3.metric("Na Saúde", len(saude))
+    c1.metric("Acima do limite legal (R$57k)", len(acima))
+    c2.metric("Na Saúde", len(saude))
+    c3.metric("Total sem processo licitatório", len(gaps))
     acima_df = gaps[gaps["acima_limite"]]
     if not acima_df.empty:
-        st.subheader("Contratos sem licitação acima do limite legal")
+        st.subheader("Contratos acima do limite legal sem licitação")
         st.dataframe(
             acima_df[["numero", "empresa", "fornecedor", "objeto", "valor", "orgao_saude"]].rename(
                 columns={

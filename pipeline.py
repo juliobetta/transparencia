@@ -24,6 +24,16 @@ ENTITIES = {
     10: "Fundo de Solidariedade — FUNDESOL",
 }
 
+
+def _post_process_contratos(row: dict) -> dict:
+    # Raw field is CODIGO (e.g. "0053/26"), not NUMERO — map it to the key column
+    row.setdefault("numero", row.get("codigo", ""))
+    # PROCLIC format is "000120/26" — strip the /YY suffix to match licitacoes.numero
+    proclic = row.get("proclic", "")
+    row["licitacao_numero"] = proclic.split("/")[0] if proclic else ""
+    return row
+
+
 ENDPOINTS = [
     ("/Transparencia/VersaoJson/Despesas/", "DespesasPorOrgao", "despesas_por_orgao", ["ano", "empresa", "codigo"], {}),
     (
@@ -99,6 +109,7 @@ ENDPOINTS = [
         "contratos",
         ["ano", "empresa", "numero"],
         {"ContratosApenasPublicados": "False"},
+        _post_process_contratos,
     ),
     ("/Transparencia/VersaoJson/Transferencias/", "Transf", "transferencias", ["ano", "empresa", "codigo"], {}),
     (
@@ -141,15 +152,18 @@ def _sanitize_key(k: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", k.lower()).strip("_")
 
 
-def _normalize(rows: list[dict], ano: int, empresa: str) -> list[dict]:
+def _normalize(rows: list[dict], ano: int, empresa: str, post_process=None) -> list[dict]:
     out = []
     for r in rows:
         normalised = {_sanitize_key(k): v for k, v in r.items()}
-        normalised.setdefault("ano", ano)
+        if not normalised.get("ano"):
+            normalised["ano"] = ano
         normalised.setdefault("empresa", empresa)
         raw_ano = int(normalised["ano"])
         if raw_ano < 100:
             normalised["ano"] = 2000 + raw_ano
+        if post_process:
+            normalised = post_process(normalised)
         out.append(normalised)
     return out
 
@@ -177,7 +191,9 @@ def run(years: list[int] | None = None, start_from: str | None = None, only: str
     total = sum(len(ENTITIES) * (1 if "/Receitas/" in path else len(years)) for path, *_ in endpoints)
     done = 0
 
-    for path, listagem, table, key_cols, extra in endpoints:
+    for endpoint in endpoints:
+        path, listagem, table, key_cols, extra = endpoint[:5]
+        post_process = endpoint[5] if len(endpoint) > 5 else None
         is_receita = "/Receitas/" in path
         endpoint_years = [current_year] if is_receita else years
         for empresa_id, empresa_name in ENTITIES.items():
@@ -188,7 +204,7 @@ def run(years: list[int] | None = None, start_from: str | None = None, only: str
                     raw_path = RAW_DIR / table / f"{empresa_id}_{year}.json"
                     raw_path.parent.mkdir(parents=True, exist_ok=True)
                     raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
-                    normalised = _normalize(rows, year, str(empresa_id))
+                    normalised = _normalize(rows, year, str(empresa_id), post_process)
                     count = upsert(conn, table, normalised, key_cols)
                     logger.info("[%d/%d] %s / %s / %d → %d rows", done + 1, total, listagem, empresa_name, year, count)
                 except Exception as exc:
