@@ -34,7 +34,14 @@ else:
 
 # Export functionality
 st.header("Exportar")
+
+if "report_path" not in st.session_state:
+    st.session_state["report_path"] = None
+
 if st.button("Gerar Relatório HTML"):
-    path = generate(conn, year)
+    st.session_state["report_path"] = generate(conn, year)
+
+if st.session_state["report_path"] is not None:
+    path = st.session_state["report_path"]
     with open(path, "rb") as f:
         st.download_button("Baixar relatório (HTML)", f, file_name=f"caprem-{year}.html", mime="text/html")
