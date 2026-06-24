@@ -56,9 +56,9 @@
     <h2>Resumo Executivo</h2>
     <div class="summary-grid">
       {{ delta_card("Total Empenhado (R$)", result.despesas.empenhado) }}
-      {{ delta_card("Folha / Gastos Totais", result.pessoal.percentual_folha, fmt="{:.1f}%") }}
-      {{ delta_card("Contratos sem Licitação", result.licitacoes.sem_licitacao, fmt="{:.0f}", invert=true) }}
-      {{ delta_card("HHI Fornecedores", result.fornecedores.hhi, fmt="{:,.0f}", invert=true) }}
+      {{ delta_card("Folha / Gastos Totais", result.pessoal.percentual_folha, fmt="{:.1f}%", invert=false) }}
+      {{ delta_card("Contratos sem Licitação", result.licitacoes.sem_licitacao, fmt="{:.0f}", invert=false) }}
+      {{ delta_card("HHI Fornecedores", result.fornecedores.hhi, fmt="{:,.0f}", invert=false) }}
     </div>
   </div>
 

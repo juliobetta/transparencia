@@ -278,7 +278,7 @@ with tabs[6]:
         m_end_a = st.selectbox("Mês fim A", MONTHS, index=11, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_me_a")
     with col_b:
         st.subheader("Período B")
-        year_b = st.selectbox("Ano B", YEARS, index=len(YEARS) - 1, key="cmp_year_b")
+        year_b = st.selectbox("Ano B", YEARS, index=len(YEARS) - 2, key="cmp_year_b")
         m_start_b = st.selectbox(
             "Mês início B", MONTHS, index=0, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_ms_b"
         )
@@ -292,13 +292,13 @@ with tabs[6]:
     st.subheader("Resumo")
     m1, m2, m3, m4 = st.columns(4)
     d = result["despesas"]["empenhado"]
-    m1.metric("Empenhado (R$)", f"{d['b']:,.0f}", delta=_fmt_delta(d))
+    m1.metric("Empenhado (R$)", f"{d['b']:,.0f}", delta=_fmt_delta(d), delta_color="inverse")
     d = result["pessoal"]["percentual_folha"]
-    m2.metric("Folha / Gastos", f"{d['b']:.1f}%", delta=_fmt_delta(d, "{:+.1f}%"))
+    m2.metric("Folha / Gastos", f"{d['b']:.1f}%", delta=_fmt_delta(d, "{:+.1f}%"), delta_color="inverse")
     d = result["licitacoes"]["sem_licitacao"]
-    m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=_fmt_delta(d, "{:+.0f}"))
+    m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=_fmt_delta(d, "{:+.0f}"), delta_color="inverse")
     d = result["fornecedores"]["hhi"]
-    m4.metric("HHI", f"{d['b']:,.0f}", delta=_fmt_delta(d))
+    m4.metric("HHI", f"{d['b']:,.0f}", delta=_fmt_delta(d), delta_color="inverse")
 
     with st.expander("Despesas"):
         rows = [
