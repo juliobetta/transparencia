@@ -125,10 +125,6 @@ st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
 # ── Exportar relatório ───────────────────────────────────────────────────────
 st.subheader("Exportar")
 if st.button("Gerar Relatório HTML"):
-    import sys
-    from pathlib import Path as _Path
-
-    sys.path.insert(0, str(_Path(__file__).parent.parent.parent))
     from report.saude import generate
 
     path = generate(conn, year)
