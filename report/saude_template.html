@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saúde {{ year }} — Transparência Porciúncula</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 16px; color: #222; }
+    h1 { color: #1a5276; }
+    h2 { color: #1a7abf; border-bottom: 2px solid #1a7abf; padding-bottom: 4px; }
+    h3 { color: #444; }
+    .metric { background: #f0f4f8; border-radius: 8px; padding: 12px 16px; display: inline-block; margin: 6px; min-width: 180px; }
+    .metric .label { font-size: 0.85em; color: #666; }
+    .metric .value { font-size: 1.4em; font-weight: bold; color: #1a5276; }
+    .metrics-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px 14px; border-radius: 4px; margin: 10px 0; }
+    .success { background: #d4edda; border-left: 4px solid #28a745; padding: 10px 14px; border-radius: 4px; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th { background: #1a5276; color: white; padding: 8px; text-align: left; }
+    td { padding: 8px; border-bottom: 1px solid #ddd; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 0.85em; color: #666; }
+    a { color: #1a7abf; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body>
+  <h1>Fundo Municipal de Saúde — {{ year }}</h1>
+  <p>Dados extraídos do <a href="{{ portal_url }}">Portal de Transparência</a> do município de Porciúncula / RJ.
+  Última extração: {{ last_extracted }}.</p>
+
+  <h2>① O que entrou</h2>
+  <h3>Repasses da Prefeitura</h3>
+  {% if transfers_to_health_total > 0 %}
+  <div class="metrics-row">
+    <div class="metric"><div class="label">Total de repasses líquidos (Prefeitura → Saúde)</div><div class="value">R$ {{ "{:,.0f}".format(transfers_to_health_total) }}</div></div>
+  </div>
+  {% if transfers_to_health %}
+  <table>
+    <tr><th>Mês</th><th>Entidade Pagadora</th><th>Entidade Recebedora</th><th>Repasse (R$)</th><th>Devolução (R$)</th></tr>
+    {% for row in transfers_to_health %}
+    <tr>
+      <td>{{ row.mes }}</td>
+      <td>{{ row.entidade_pagadora }}</td>
+      <td>{{ row.entidade_recebedora }}</td>
+      <td>R$ {{ "{:,.0f}".format(row.repasse_num) }}</td>
+      <td>R$ {{ "{:,.0f}".format(row.devolucao_num) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  {% else %}
+  <p>Sem repasses da Prefeitura registrados para {{ year }}.</p>
+  {% endif %}
+
+  <h3>Emendas Parlamentares</h3>
+  {% if emendas_total > 0 %}
+  <div class="metrics-row">
+    <div class="metric"><div class="label">Total de emendas (valor autorizado)</div><div class="value">R$ {{ "{:,.0f}".format(emendas_total) }}</div></div>
+  </div>
+  {% if emendas %}
+  <table>
+    <tr><th>Nº</th><th>Objeto</th><th>Valor Autorizado (R$)</th><th>Empenhado (R$)</th></tr>
+    {% for row in emendas %}
+    <tr>
+      <td>{{ row.numero }}</td>
+      <td>{{ row.descricao }}</td>
+      <td>R$ {{ "{:,.0f}".format(row.valor_total) }}</td>
+      <td>R$ {{ "{:,.0f}".format(row.empenhado) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  {% else %}
+  <p>Sem emendas parlamentares registradas para {{ year }}.</p>
+  {% endif %}
+
+  <h3>Orçamento</h3>
+  <div class="metrics-row">
+    <div class="metric"><div class="label">Dotação Atualizada (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.dotacao) }}</div></div>
+    <div class="metric"><div class="label">Total Empenhado (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.empenhado) }}</div></div>
+    <div class="metric"><div class="label">Taxa de Execução</div><div class="value">{{ "{:.1%}".format(budget.taxa_execucao) }}</div></div>
+  </div>
+  {% if budget.flag_under_execution %}
+  <div class="warning">⚠️ Taxa de execução abaixo de 70% ao final do ano {{ year }}.</div>
+  {% endif %}
+
+  <h2>② O que foi gasto</h2>
+  <h3>Empenhado por Ano</h3>
+  <table>
+    <tr><th>Ano</th><th>Empenhado (R$)</th></tr>
+    {% for row in execution_trend %}
+    <tr><td>{{ row.ano }}</td><td>R$ {{ "{:,.0f}".format(row.empenhado) }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>③ Como foi contratado</h2>
+  <div class="metrics-row">
+    <div class="metric"><div class="label">Contratos via Adesão de Ata (Carona)</div><div class="value">{{ adesao_de_ata_count }}</div></div>
+    <div class="metric"><div class="label">Valor total — Adesão de Ata (R$)</div><div class="value">R$ {{ "{:,.0f}".format(adesao_de_ata_value) }}</div></div>
+  </div>
+  <h3>Distribuição por Modalidade</h3>
+  {% if contracts_by_modality %}
+  <table>
+    <tr><th>Modalidade</th><th>Qtd</th><th>Valor Total (R$)</th></tr>
+    {% for row in contracts_by_modality %}
+    <tr><td>{{ row.modality }}</td><td>{{ row.count }}</td><td>R$ {{ "{:,.0f}".format(row.total_value) }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+  <h3>Contratos sem Licitação acima de R$57k</h3>
+  {% if bidding_gaps %}
+  <table>
+    <tr><th>Nº</th><th>Fornecedor</th><th>Objeto</th><th>Valor (R$)</th></tr>
+    {% for row in bidding_gaps %}
+    <tr><td>{{ row.numero }}</td><td>{{ row.fornecedor }}</td><td>{{ row.objeto }}</td><td>R$ {{ row.valor }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <div class="success">Nenhum contrato acima do limite legal sem processo licitatório.</div>
+  {% endif %}
+  {% if splitting %}
+  <h3>⚠️ Possível fracionamento de contratos</h3>
+  <table>
+    <tr><th>Fornecedor</th><th>Valor (R$)</th><th>Objeto</th></tr>
+    {% for row in splitting %}
+    <tr><td>{{ row.fornecedor }}</td><td>R$ {{ row.valor }}</td><td>{{ row.objeto }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <h2>④ Quem recebeu</h2>
+  <div class="metrics-row">
+    <div class="metric"><div class="label">HHI (concentração de fornecedores)</div><div class="value">{{ "{:,.0f}".format(hhi) }}</div></div>
+  </div>
+  {% if hhi > 2500 %}
+  <div class="warning">⚠️ HHI acima de 2.500 — concentração alta de fornecedores.</div>
+  {% endif %}
+  {% if top_suppliers %}
+  <h3>Top 10 Fornecedores</h3>
+  <table>
+    <tr><th>Fornecedor</th><th>Empenhado (R$)</th><th>%</th></tr>
+    {% for row in top_suppliers %}
+    <tr><td>{{ row.descricao }}</td><td>R$ {{ "{:,.0f}".format(row.empenhado) }}</td><td>{{ "{:.1f}%".format(row.percentual) }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <div class="footer">
+    <p>Fonte: <a href="{{ portal_url }}">{{ portal_url }}</a></p>
+    <p>Este relatório é gerado automaticamente a partir de dados públicos do Portal de Transparência do município de Porciúncula / RJ.</p>
+  </div>
+</body>
+</html>
