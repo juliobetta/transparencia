@@ -90,7 +90,9 @@ def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
         SELECT
             l.numero,
             l.discr as objeto,
-            SUM(c.valcon) as total_c_valor
+            l.valor as licitacao_valor,
+            SUM(c.valcon) as total_c_valor,
+            SUM(c.empenhado) as total_c_empenhado
         FROM licitacoes l
         LEFT JOIN contratos c
             ON c.licitacao_numero = l.numero
@@ -102,6 +104,8 @@ def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
     try:
         df = pd.read_sql_query(query, conn, params=(year, empresa_id))
         total_value = float(_to_float(df["total_c_valor"]).sum()) if not df.empty else 0.0
+        # Add a column indicating if a contract is attached (has total_c_valor > 0)
+        df["has_contract"] = df["total_c_valor"] > 0
         return df, total_value
     except Exception:
         return pd.DataFrame(), 0.0

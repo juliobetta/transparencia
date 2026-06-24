@@ -108,7 +108,10 @@ if not data["adesao_de_ata_list"].empty:
                 columns={
                     "numero": "Nº Licit.",
                     "objeto": "Objeto",
+                    "licitacao_valor": "Valor Est. Licitação (R$)",
                     "total_c_valor": "Valor Total Contratado (R$)",
+                    "total_c_empenhado": "Valor Empenhado (R$)",
+                    "has_contract": "Contrato Associado",
                 }
             ),
             use_container_width=True,
