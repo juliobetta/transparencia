@@ -37,7 +37,7 @@ spec_b = PeriodSpec(year=year_b, month_start=m_start_b, month_end=m_end_b)
 result = comparison.run(conn, spec_a, spec_b)
 
 st.subheader("Resumo")
-m1, m2, m3, m4 = st.columns(4)
+m1, m2, m3, m4, m5 = st.columns(5)
 d = result["despesas"]["empenhado"]
 m1.metric("Empenhado (R$)", f"{d['b']:,.0f}", delta=fmt_delta(d), delta_color="inverse")
 d = result["pessoal"]["percentual_folha"]
@@ -46,6 +46,8 @@ d = result["licitacoes"]["sem_licitacao"]
 m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 d = result["fornecedores"]["hhi"]
 m4.metric("HHI", f"{d['b']:,.0f}", delta=fmt_delta(d), delta_color="inverse")
+d = result["adesao"]["count"]
+m5.metric("Adesões", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 
 with st.expander("Despesas"):
     st.dataframe(
@@ -76,5 +78,15 @@ with st.expander("Licitações"):
     )
 with st.expander("Fornecedores"):
     st.dataframe(comparison_table(result["fornecedores"], [("HHI", "hhi")], "{:,.0f}"), use_container_width=True)
+
+with st.expander("Adesão de Ata"):
+    st.dataframe(
+        comparison_table(
+            result["adesao"],
+            [("Quantidade", "count"), ("Valor Licitação", "valor_licitacao"), ("Valor Contratos", "valor_contratos")],
+            "{:,.0f}",
+        ),
+        use_container_width=True,
+    )
 
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
