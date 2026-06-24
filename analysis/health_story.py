@@ -65,6 +65,23 @@ def _execution_trend(conn: sqlite3.Connection, empresa_id: str) -> pd.DataFrame:
     return df.groupby("ano", as_index=False)["empenhado"].sum().sort_values("ano").reset_index(drop=True)
 
 
+def _execution_flow(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
+    df = pd.read_sql_query(
+        "SELECT empenhado, liquidado, pago FROM despesas_por_orgao WHERE ano = ? AND empresa = ?",
+        conn,
+        params=(year, empresa_id),
+    )
+    df["empenhado"] = _to_float(df["empenhado"])
+    df["liquidado"] = _to_float(df["liquidado"])
+    df["pago"] = _to_float(df["pago"])
+    return pd.DataFrame(
+        {
+            "Categoria": ["Empenhado", "Liquidado", "Pago"],
+            "Valor (R$)": [df["empenhado"].sum(), df["liquidado"].sum(), df["pago"].sum()],
+        }
+    )
+
+
 def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
         "SELECT modali, valcon FROM contratos WHERE ano = ? AND empresa = ?",
@@ -173,6 +190,7 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
     emendas_df, emendas_total = _emendas(conn, year, empresa_id)
     budget = _budget(conn, year, empresa_id)
     execution_trend = _execution_trend(conn, empresa_id)
+    execution_flow = _execution_flow(conn, year, empresa_id)
     contracts_by_modality = _contracts_by_modality(conn, year, empresa_id)
     adesao_df, adesao_value = _adesao_de_ata(conn, year, empresa_id)
     bidding_gaps = _bidding_gaps(conn, year, empresa_id)
@@ -184,6 +202,7 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
         "emendas_total": emendas_total,
         "budget": budget,
         "execution_trend": execution_trend,
+        "execution_flow": execution_flow,
         "contracts_by_modality": contracts_by_modality,
         "adesao_de_ata_list": adesao_df,
         "adesao_de_ata_count": len(adesao_df),
