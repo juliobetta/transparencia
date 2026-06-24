@@ -89,7 +89,7 @@ def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
     query = """
         SELECT
             l.numero,
-            l.objeto,
+            l.discr as objeto,
             SUM(c.valcon) as total_c_valor
         FROM licitacoes l
         LEFT JOIN contratos c
