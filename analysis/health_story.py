@@ -85,17 +85,26 @@ def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str)
 
 
 def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[int, float]:
+    # Fetch all Carona licitacoes and sum the value of any linked contracts
+    query = """
+        SELECT
+            l.numero as licit_numero,
+            SUM(c.valcon) as total_c_valor
+        FROM licitacoes l
+        LEFT JOIN contratos c
+            ON c.licitacao_numero = l.numero
+            AND c.ano = l.ano
+            AND c.empresa = l.empresa
+        WHERE l.ano = ? AND l.empresa = ? AND l.carona = 'S'
+        GROUP BY l.numero
+    """
     try:
-        df = pd.read_sql_query(
-            """SELECT c.valcon FROM contratos c
-               JOIN licitacoes l
-                 ON c.licitacao_numero = l.numero AND c.ano = l.ano AND c.empresa = l.empresa
-               WHERE c.ano = ? AND c.empresa = ? AND l.carona = 'S'""",
-            conn,
-            params=(year, empresa_id),
-        )
-        total = float(_to_float(df["valcon"]).sum()) if not df.empty else 0.0
-        return len(df), total
+        df = pd.read_sql_query(query, conn, params=(year, empresa_id))
+
+        count = len(df)
+        total_value = float(_to_float(df["total_c_valor"]).sum()) if not df.empty else 0.0
+
+        return count, total_value
     except Exception:
         return 0, 0.0
 
