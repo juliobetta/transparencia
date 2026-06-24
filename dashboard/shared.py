@@ -1,0 +1,58 @@
+import sys
+from datetime import date, datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+import streamlit as st
+
+import db
+import glossary
+
+YEARS = list(range(2022, date.today().year + 1))
+
+
+@st.cache_resource
+def get_conn():
+    return db.get_connection()
+
+
+def render_sidebar() -> int:
+    conn = get_conn()
+    st.sidebar.markdown(
+        f"### 🔗 Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
+        unsafe_allow_html=True,
+    )
+    year = st.sidebar.selectbox("Ano", YEARS, index=len(YEARS) - 2, key="sidebar_year")
+    _last_extracted = db.get_metadata(conn, "last_extracted_at")
+    if _last_extracted:
+        _last_extracted = datetime.strptime(_last_extracted, "%Y-%m-%d").strftime("%m/%d/%Y")
+    st.sidebar.markdown("---")
+    st.sidebar.caption(
+        f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
+    )
+    return year
+
+
+def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
+    if d["pct"] is None:
+        return "N/D"
+    return f"{fmt.format(d['abs'])} ({d['pct']:+.1f}%)"
+
+
+def comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str):
+    import pandas as pd
+
+    records = []
+    for label, key in rows:
+        d = domain[key]
+        records.append(
+            {
+                "Métrica": label,
+                "Período A": fmt.format(d["a"]),
+                "Período B": fmt.format(d["b"]),
+                "Δ Absoluto": ("+" if d["abs"] >= 0 else "") + fmt.format(d["abs"]),
+                "Δ %": f"{d['pct']:+.1f}%" if d["pct"] is not None else "N/D",
+            }
+        )
+    return pd.DataFrame(records)
