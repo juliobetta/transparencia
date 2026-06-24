@@ -87,13 +87,20 @@ if not trend.empty:
         title="Fundo de Saúde — Empenhado por Ano",
         labels={"ano": "Ano", "empenhado": "Empenhado (R$)"},
     )
-    st.plotly_chart(fig, use_container_width=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(
         trend.rename(columns={"ano": "Ano", "empenhado": "Empenhado (R$)"}),
         use_container_width=True,
         hide_index=True,
+        column_config={
+            "Ano": st.column_config.NumberColumn(format="%d"),
+            "Empenhado (R$)": st.column_config.NumberColumn(format="R$ %,.0f"),
+        },
     )
+
 
 # ── Seção 3: Como foi contratado ────────────────────────────────────────────
 st.header("③ Como foi contratado")
