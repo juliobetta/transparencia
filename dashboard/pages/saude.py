@@ -97,6 +97,8 @@ if not modality_df.empty and modality_df.notna().all().all():
     )
     with st.expander("ℹ️ O que são essas modalidades?"):
         st.write(f"**Licitação:** {glossary.tooltip('Licitação')}")
+        st.write(f"**Pregão Eletrônico:** {glossary.tooltip('Pregão Eletrônico')}")
+        st.write(f"**Pregão Presencial:** {glossary.tooltip('Pregão Presencial')}")
         st.write(f"**Dispensa:** {glossary.tooltip('Dispensa de Licitação')}")
         st.write(f"**Inexigibilidade:** {glossary.tooltip('Inexigibilidade')}")
         st.write(f"**Adesão de Ata:** {glossary.tooltip('Adesão de Ata (Carona)')}")
