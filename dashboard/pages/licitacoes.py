@@ -76,9 +76,8 @@ with st.expander("Ver licitações via Adesão de Ata"):
 if not acima.empty:
     st.subheader("Contratos acima do limite legal sem licitação")
     st.dataframe(
-        acima[["numero", "empresa", "fornecedor", "objeto", "valor", "orgao_saude"]].rename(
+        acima[["empresa", "fornecedor", "objeto", "valor", "orgao_saude"]].rename(
             columns={
-                "numero": "Nº",
                 "empresa": "Entidade",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
