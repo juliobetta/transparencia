@@ -44,11 +44,17 @@ def _comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str) -> pd
                 "Métrica": label,
                 "Período A": fmt.format(d["a"]),
                 "Período B": fmt.format(d["b"]),
-                "Δ Absoluto": f"{d['abs']:+,.2f}",
+                "Δ Absoluto": ("+" if d["abs"] > 0 else "") + fmt.format(d["abs"]),
                 "Δ %": f"{d['pct']:+.1f}%" if d["pct"] is not None else "N/A",
             }
         )
     return pd.DataFrame(records)
+
+
+def _fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
+    if d["pct"] is None:
+        return "N/A"
+    return f"{fmt.format(d['abs'])} ({d['pct']:+.1f}%)"
 
 
 # Persistent portal link in sidebar
@@ -278,11 +284,6 @@ with tabs[6]:
     spec_b = PeriodSpec(year=year_b, month_start=m_start_b, month_end=m_end_b)
 
     result = comparison.run(conn, spec_a, spec_b)
-
-    def _fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
-        if d["pct"] is None:
-            return "N/A"
-        return f"{fmt.format(d['abs'])} ({d['pct']:+.1f}%)"
 
     st.subheader("Resumo")
     m1, m2, m3, m4, m5 = st.columns(5)
