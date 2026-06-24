@@ -182,12 +182,39 @@ st.metric(
 )
 if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all():
     st.subheader("Top 10 Fornecedores")
+
+    # Display main Top 10 table
     st.dataframe(
         data["top_suppliers"].rename(
             columns={"descricao": "Fornecedor", "empenhado": "Empenhado (R$)", "percentual": "%"}
         ),
         use_container_width=True,
         column_config={"codigo": None},
+        hide_index=True,
+    )
+
+    # New: Supplier-to-Services Correlation Table
+    st.subheader("Top Fornecedores e seus Objetos de Contrato")
+    services_df = data["top_suppliers_services"]
+    top_suppliers_names = data["top_suppliers"]["descricao"].unique()
+
+    # Filter for top suppliers only
+    filtered_services = services_df[services_df["fornecedor"].isin(top_suppliers_names)]
+
+    # Take top 3 objects per supplier
+    top_services = (
+        filtered_services.sort_values(["fornecedor", "total"], ascending=[True, False]).groupby("fornecedor").head(3)
+    )
+
+    st.dataframe(
+        top_services.rename(
+            columns={
+                "fornecedor": "Fornecedor",
+                "objeto": "Objeto / Serviço",
+                "total": "Valor Contratado (R$)",
+            }
+        ),
+        use_container_width=True,
         hide_index=True,
     )
 

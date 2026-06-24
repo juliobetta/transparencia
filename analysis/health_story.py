@@ -186,6 +186,19 @@ def _transfers_to_health(conn: sqlite3.Connection, year: int, empresa_id: str) -
     return df, total
 
 
+def _top_suppliers_services(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
+    query = """
+        SELECT fornecedor, objeto, SUM(valcon) as total
+        FROM contratos
+        WHERE ano = ? AND empresa = ?
+        GROUP BY fornecedor, objeto
+        ORDER BY total DESC
+    """
+    df = pd.read_sql_query(query, conn, params=(year, empresa_id))
+    df["total"] = _to_float(df["total"])
+    return df
+
+
 def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     emendas_df, emendas_total = _emendas(conn, year, empresa_id)
     budget = _budget(conn, year, empresa_id)
@@ -195,6 +208,7 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
     adesao_df, adesao_value = _adesao_de_ata(conn, year, empresa_id)
     bidding_gaps = _bidding_gaps(conn, year, empresa_id)
     top_suppliers, hhi = _top_suppliers(conn, year, empresa_id)
+    top_suppliers_services = _top_suppliers_services(conn, year, empresa_id)
     splitting = _splitting(conn, year, empresa_id)
     transfers_df, transfers_total = _transfers_to_health(conn, year, empresa_id)
     return {
@@ -209,6 +223,7 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
         "adesao_de_ata_value": adesao_value,
         "bidding_gaps": bidding_gaps,
         "top_suppliers": top_suppliers,
+        "top_suppliers_services": top_suppliers_services,
         "hhi": hhi,
         "splitting": splitting,
         "transfers_to_health": transfers_df,
