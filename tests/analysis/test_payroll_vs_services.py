@@ -34,7 +34,7 @@ def conn():
             "matricula": "001",
             "nome": "JOAO",
             "cargo": "AGENTE",
-            "remuneracao": "300000",
+            "proventos": "300000",
         },
         {
             "ano": 2024,
@@ -43,7 +43,7 @@ def conn():
             "matricula": "001",
             "nome": "JOAO",
             "cargo": "AGENTE",
-            "remuneracao": "300000",
+            "proventos": "300000",
         },
     ]
     db.upsert(c, "pessoal", pessoal, ["ano", "empresa", "mes", "matricula"])
