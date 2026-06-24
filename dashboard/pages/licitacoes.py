@@ -63,12 +63,17 @@ with st.expander("Ver licitações via Adesão de Ata"):
                     "total_c_empenhado": "Valor Empenhado (R$)",
                     "has_contract": "Contrato Associado",
                 }
-            ),
+            )[
+                [
+                    "Objeto",
+                    "Valor Est. Licitação (R$)",
+                    "Valor Total Contratado (R$)",
+                    "Valor Empenhado (R$)",
+                    "Contrato Associado",
+                ]
+            ],
             use_container_width=True,
             hide_index=True,
-            column_config={
-                "Nº Licit.": None,
-            },
         )
     else:
         st.info("Nenhuma adesão de ata registrada para este ano.")
