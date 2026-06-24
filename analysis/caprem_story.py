@@ -2,15 +2,15 @@ import sqlite3
 
 import pandas as pd
 
-CAPREM_EMPRESA_IDS = ["2", "3", "7", "8", "9", "10"]
+# The code "1061" identifies CAPREM payments across various entities.
+CAPREM_CODE = "1061"
 
 def run(conn: sqlite3.Connection, year: int):
-    # Fetch CAPREM expenses using a tuple of IDs
-    placeholders = ",".join("?" for _ in CAPREM_EMPRESA_IDS)
+    # Fetch CAPREM expenses using the unique code
     df = pd.read_sql_query(
-        f"SELECT * FROM despesas_por_fornecedor WHERE empresa IN ({placeholders}) AND ano = ?",
+        "SELECT * FROM despesas_por_fornecedor WHERE codigo = ? AND ano = ?",
         conn,
-        params=(*CAPREM_EMPRESA_IDS, year),
+        params=(CAPREM_CODE, year),
     )
 
     if not df.empty:
