@@ -43,7 +43,7 @@ m1.metric("Empenhado (R$)", f"{d['b']:,.0f}", delta=fmt_delta(d), delta_color="i
 d = result["pessoal"]["percentual_folha"]
 m2.metric("Folha / Gastos", f"{d['b']:.1f}%", delta=fmt_delta(d, "{:+.1f}%"), delta_color="inverse")
 d = result["licitacoes"]["sem_licitacao"]
-m3.metric("Sem Licitação (Irregular)", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
+m3.metric("Sem Licitação (Requer Verificação)", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 d = result["fornecedores"]["hhi"]
 m4.metric("HHI", f"{d['b']:,.0f}", delta=fmt_delta(d), delta_color="inverse")
 d = result["adesao"]["count"]
@@ -68,7 +68,7 @@ with st.expander("Licitações"):
         comparison_table(
             result["licitacoes"],
             [
-                ("Contratos sem Licitação (Irregular)", "sem_licitacao"),
+                ("Contratos sem Licitação (Requer Verificação)", "sem_licitacao"),
                 ("Acima do Limite Legal", "acima_limite"),
                 ("Na Saúde", "saude"),
             ],
