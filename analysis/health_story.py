@@ -38,6 +38,7 @@ def _emendas(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.D
     )
 
     df["valor"] = _to_float(df["valor"])
+    df["empenhado"] = _to_float(df["empenhado"]).replace(0, pd.NA)
     return df, float(df["valor"].sum())
 
 
