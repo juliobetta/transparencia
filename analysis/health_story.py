@@ -102,7 +102,7 @@ def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
 
 def _bidding_gaps(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT numero, fornecedor, objeto, valcon, licitacao_numero FROM contratos WHERE ano = ? AND empresa = ?",
+        "SELECT numero, fornecedor, objeto, valcon, licitacao_numero, modali FROM contratos WHERE ano = ? AND empresa = ?",
         conn,
         params=(year, empresa_id),
     )

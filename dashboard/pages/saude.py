@@ -123,7 +123,15 @@ gaps = data["bidding_gaps"]
 if not gaps.empty and gaps.notna().all().all():
     st.metric("Total de contratos", len(gaps))
     st.dataframe(
-        gaps.rename(columns={"numero": "Nº", "fornecedor": "Fornecedor", "objeto": "Objeto", "valcon": "Valor (R$)"}),
+        gaps.rename(
+            columns={
+                "numero": "Nº",
+                "fornecedor": "Fornecedor",
+                "objeto": "Objeto",
+                "valcon": "Valor (R$)",
+                "modali": "Modalidade",
+            }
+        ),
         use_container_width=True,
         column_config={"Nº": None},
         hide_index=True,
