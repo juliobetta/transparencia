@@ -38,8 +38,7 @@ if data["emendas_total"] > 0:
             use_container_width=True,
             column_config={
                 "Valor Autorizado (R$)": st.column_config.NumberColumn(format="%.2f"),
-                "Nº": st.column_config.Column(width="small"),
-                "Autor": st.column_config.Column(width="medium"),
+                "Nº": None,
             },
             hide_index=True,
         )
@@ -101,6 +100,7 @@ if not modality_df.empty and modality_df.notna().all().all():
         modality_df.rename(columns={"modality": "Modalidade", "count": "Qtd", "total_value": "Valor Total (R$)"}),
         use_container_width=True,
         column_config={"Valor Total (R$)": st.column_config.NumberColumn(format="%.2f")},
+        hide_index=True,
     )
     with st.expander("ℹ️ O que são essas modalidades?"):
         st.write(f"**Licitação:** {glossary.tooltip('Licitação')}")
@@ -117,13 +117,15 @@ if not gaps.empty and gaps.notna().all().all():
     st.dataframe(
         gaps.rename(columns={"numero": "Nº", "fornecedor": "Fornecedor", "objeto": "Objeto", "valcon": "Valor (R$)"}),
         use_container_width=True,
+        column_config={"Nº": None},
+        hide_index=True,
     )
 else:
     st.success("Nenhum contrato acima do limite legal sem processo licitatório.")
 
 if not data["splitting"].empty and data["splitting"].notna().all().all():
     st.subheader("⚠️ Possível fracionamento de contratos")
-    st.dataframe(data["splitting"][["fornecedor", "valcon", "objeto"]], use_container_width=True)
+    st.dataframe(data["splitting"][["fornecedor", "valcon", "objeto"]], use_container_width=True, hide_index=True)
 
 # ── Seção 4: Quem recebeu ────────────────────────────────────────────────────
 st.header("④ Quem recebeu")
@@ -139,6 +141,7 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
             columns={"descricao": "Fornecedor", "empenhado": "Empenhado (R$)", "percentual": "%"}
         ),
         use_container_width=True,
+        hide_index=True,
     )
 
 st.divider()
