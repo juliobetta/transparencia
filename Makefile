@@ -1,6 +1,6 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard
 
-.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report dashboard
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare dashboard
 
 # SETUP TASKS
 
@@ -54,6 +54,15 @@ pipeline/only:
 
 report:
 	uv run python report/generate.py $(if $(YEAR),$(YEAR) $(MONTH))
+
+report/compare:
+ifndef YEAR_A
+	$(error YEAR_A is required. Usage: make report/compare YEAR_A=2023 MONTH_A_START=1 MONTH_A_END=12 YEAR_B=2024 MONTH_B_START=1 MONTH_B_END=12)
+endif
+ifndef YEAR_B
+	$(error YEAR_B is required. Usage: make report/compare YEAR_A=2023 MONTH_A_START=1 MONTH_A_END=12 YEAR_B=2024 MONTH_B_START=1 MONTH_B_END=12)
+endif
+	uv run python report/compare.py $(YEAR_A) $(or $(MONTH_A_START),1) $(or $(MONTH_A_END),12) $(YEAR_B) $(or $(MONTH_B_START),1) $(or $(MONTH_B_END),12)
 
 # DASHBOARD
 
