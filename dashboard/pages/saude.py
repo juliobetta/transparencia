@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import matplotlib.pyplot as plt
 import streamlit as st
 from shared import get_conn, render_sidebar
 
@@ -13,63 +14,128 @@ from analysis import health_story
 conn = get_conn()
 year = render_sidebar()
 
-st.header("Narrativa: Saúde")
-st.caption("Análise focada na Secretaria Municipal de Saúde (empresa 2).")
+st.title("Fundo Municipal de Saúde")
+st.caption(
+    f"Dados do Fundo Municipal de Saúde (empresa 2) extraídos do [Portal de Transparência]({glossary.PORTAL_URL})."
+)
 
 data = health_story.run(conn, year)
+
+# ── Seção 1: O que entrou ───────────────────────────────────────────────────
+st.header("① O que entrou")
+st.subheader("Emendas Parlamentares")
+if data["emendas_total"] > 0:
+    st.metric("Total de emendas (valor autorizado)", f"R$ {data['emendas_total']:,.0f}")
+    if not data["emendas"].empty:
+        st.dataframe(
+            data["emendas"].rename(
+                columns={
+                    "numero": "Nº",
+                    "descricao": "Objeto",
+                    "valor_total": "Valor Autorizado (R$)",
+                    "empenhado": "Empenhado (R$)",
+                }
+            ),
+            use_container_width=True,
+        )
+    with st.expander("ℹ️ O que é uma emenda parlamentar?"):
+        st.write(glossary.tooltip("Emenda Impositiva"))
+else:
+    st.info("Sem emendas parlamentares registradas para este ano.")
+
+st.subheader("Orçamento")
 budget = data["budget"]
-
 c1, c2, c3 = st.columns(3)
-c1.metric("Dotação (R$)", f"{budget['dotacao']:,.0f}")
-c2.metric("Empenhado (R$)", f"{budget['empenhado']:,.0f}")
+c1.metric("Dotação Atualizada (R$)", f"{budget['dotacao']:,.0f}", help=glossary.tooltip("Dotação Atualizada"))
+c2.metric("Total Empenhado (R$)", f"{budget['empenhado']:,.0f}", help=glossary.tooltip("Empenho"))
 c3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
-
 if budget["flag_under_execution"]:
-    st.warning("⚠️ Taxa de execução orçamentária abaixo de 70% — possível subexecução.")
+    st.warning(f"⚠️ Taxa de execução abaixo de 70% ao final do ano {year}.")
 
-st.subheader("Tendência de Execução")
+# ── Seção 2: O que foi gasto ────────────────────────────────────────────────
+st.header("② O que foi gasto")
+st.subheader("Evolução do Gasto (Empenhado por Ano)")
 trend = data["execution_trend"]
 if not trend.empty:
-    import matplotlib.pyplot as plt
-
     fig, ax = plt.subplots()
-    ax.bar(trend["ano"].astype(str), trend["empenhado"], color="#1a7f4b")
+    ax.bar(trend["ano"].astype(str), trend["empenhado"], color="#1a7abf")
     ax.set_ylabel("Empenhado (R$)")
-    ax.set_title("Execução Orçamentária — Saúde")
+    ax.set_title("Fundo de Saúde — Empenhado por Ano")
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"R$ {x:,.0f}"))
     st.pyplot(fig)
 
-if data["emendas_total"] > 0:
-    st.subheader("Emendas Parlamentares")
-    st.metric("Total de Emendas (R$)", f"{data['emendas_total']:,.0f}")
-    st.dataframe(data["emendas"], use_container_width=True)
+# ── Seção 3: Como foi contratado ────────────────────────────────────────────
+st.header("③ Como foi contratado")
 
-st.subheader("Contratos por Modalidade")
-if not data["contracts_by_modality"].empty:
-    st.dataframe(data["contracts_by_modality"], use_container_width=True)
-
-if data["adesao_de_ata_count"] > 0:
-    st.subheader("Adesão de Ata (Carona)")
-    st.metric("Contratos via carona", data["adesao_de_ata_count"])
-    st.metric("Valor total caronas (R$)", f"{data['adesao_de_ata_value']:,.0f}")
-
-st.subheader("Fornecedores — Top 10")
-st.metric(
-    "HHI (concentração)", f"{data['hhi']:,.0f}", help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta."
+c1, c2 = st.columns(2)
+c1.metric(
+    "Contratos via Adesão de Ata (Carona)",
+    data["adesao_de_ata_count"],
+    help=glossary.tooltip("Adesão de Ata (Carona)"),
 )
-if not data["top_suppliers"].empty:
+c2.metric("Valor total — Adesão de Ata (R$)", f"{data['adesao_de_ata_value']:,.0f}")
+
+st.subheader("Distribuição por Modalidade")
+modality_df = data["contracts_by_modality"]
+if not modality_df.empty:
     st.dataframe(
-        data["top_suppliers"][["descricao", "empenhado", "percentual"]].rename(
-            columns={"descricao": "Fornecedor", "empenhado": "Empenhado (R$)", "percentual": "%"}
-        ),
+        modality_df.rename(columns={"modality": "Modalidade", "count": "Qtd", "total_value": "Valor Total (R$)"}),
         use_container_width=True,
     )
+    with st.expander("ℹ️ O que são essas modalidades?"):
+        st.write(f"**Licitação:** {glossary.tooltip('Licitação')}")
+        st.write(f"**Dispensa:** {glossary.tooltip('Dispensa de Licitação')}")
+        st.write(f"**Inexigibilidade:** {glossary.tooltip('Inexigibilidade')}")
+        st.write(f"**Adesão de Ata:** {glossary.tooltip('Adesão de Ata (Carona)')}")
 
-if not data["bidding_gaps"].empty:
-    st.subheader("⚠️ Contratos acima do limite legal sem licitação")
-    st.dataframe(data["bidding_gaps"], use_container_width=True)
+st.subheader("Contratos sem Licitação acima de R$57k")
+gaps = data["bidding_gaps"]
+if not gaps.empty:
+    st.metric("Total de contratos", len(gaps))
+    st.dataframe(
+        gaps.rename(columns={"numero": "Nº", "fornecedor": "Fornecedor", "objeto": "Objeto", "valor": "Valor (R$)"}),
+        use_container_width=True,
+    )
+else:
+    st.success("Nenhum contrato acima do limite legal sem processo licitatório.")
 
 if not data["splitting"].empty:
     st.subheader("⚠️ Possível fracionamento de contratos")
     st.dataframe(data["splitting"][["fornecedor", "valor", "objeto"]], use_container_width=True)
 
-st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
+# ── Seção 4: Quem recebeu ────────────────────────────────────────────────────
+st.header("④ Quem recebeu")
+st.metric(
+    "HHI (concentração de fornecedores)",
+    f"{data['hhi']:,.0f}",
+    help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
+)
+if not data["top_suppliers"].empty:
+    st.subheader("Top 10 Fornecedores")
+    st.dataframe(
+        data["top_suppliers"].rename(
+            columns={"descricao": "Fornecedor", "empenhado": "Empenhado (R$)", "percentual": "%"}
+        ),
+        use_container_width=True,
+    )
+
+st.divider()
+st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
+
+# ── Exportar relatório ───────────────────────────────────────────────────────
+st.subheader("Exportar")
+if st.button("Gerar Relatório HTML"):
+    import sys
+    from pathlib import Path as _Path
+
+    sys.path.insert(0, str(_Path(__file__).parent.parent.parent))
+    from report.saude import generate
+
+    path = generate(conn, year)
+    with open(path, "rb") as f:
+        st.download_button(
+            label="Baixar relatório (HTML)",
+            data=f,
+            file_name=path.name,
+            mime="text/html",
+        )
