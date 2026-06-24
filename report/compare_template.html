@@ -57,7 +57,7 @@
     <div class="summary-grid">
       {{ delta_card("Total Empenhado (R$)", result.despesas.empenhado) }}
       {{ delta_card("Folha / Gastos Totais", result.pessoal.percentual_folha, fmt="{:.1f}%", invert=false) }}
-      {{ delta_card("Contratos sem Licitação", result.licitacoes.sem_licitacao, fmt="{:.0f}", invert=false) }}
+      {{ delta_card("Contratos sem Licitação (Irregular)", result.licitacoes.sem_licitacao, fmt="{:.0f}", invert=false) }}
       {{ delta_card("HHI Fornecedores", result.fornecedores.hhi, fmt="{:,.0f}", invert=false) }}
       {{ delta_card("Adesões de Ata", result.adesao.count, fmt="{:.0f}", invert=false) }}
     </div>
@@ -104,7 +104,7 @@
     <h2>Licitações e Contratos</h2>
     <table>
       <tr><th>Métrica</th><th>Período A</th><th>Período B</th><th>Δ Absoluto</th><th>Δ %</th></tr>
-      {% for label, key in [("Contratos sem Licitação", "sem_licitacao"), ("Acima do Limite Legal (R$57k)", "acima_limite"), ("Acima do Limite — Saúde", "saude")] %}
+      {% for label, key in [("Contratos sem Licitação (Irregular)", "sem_licitacao"), ("Acima do Limite Legal (R$57k)", "acima_limite"), ("Acima do Limite — Saúde", "saude")] %}
       {% set d = result.licitacoes[key] %}
       <tr>
         <td>{{ label }}</td>
