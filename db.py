@@ -53,17 +53,17 @@ CREATE TABLE IF NOT EXISTS diarias (
 );
 CREATE TABLE IF NOT EXISTS receita_orcamentaria (
     ano INTEGER, empresa TEXT, codigo TEXT, descricao TEXT,
-    previsto TEXT, arrecadado TEXT,
+    previsto TEXT, arrecadado TEXT, previsao_atualizada TEXT,
     PRIMARY KEY (ano, empresa, codigo)
 );
 CREATE TABLE IF NOT EXISTS receita_uniao (
     ano INTEGER, empresa TEXT, codigo TEXT, descricao TEXT,
-    previsto TEXT, arrecadado TEXT,
+    previsto TEXT, arrecadado TEXT, previsao_atualizada TEXT,
     PRIMARY KEY (ano, empresa, codigo)
 );
 CREATE TABLE IF NOT EXISTS receita_estado (
     ano INTEGER, empresa TEXT, codigo TEXT, descricao TEXT,
-    previsto TEXT, arrecadado TEXT,
+    previsto TEXT, arrecadado TEXT, previsao_atualizada TEXT,
     PRIMARY KEY (ano, empresa, codigo)
 );
 CREATE TABLE IF NOT EXISTS receita_extra_orcamentaria (
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS emendas_cad (
 );
 CREATE TABLE IF NOT EXISTS pessoal (
     ano INTEGER, empresa TEXT, mes TEXT, matricula TEXT,
-    nome TEXT, cargo TEXT, remuneracao TEXT,
+    nome TEXT, cargo TEXT, remuneracao TEXT, proventos TEXT,
     PRIMARY KEY (ano, empresa, mes, matricula)
 );
 """
