@@ -147,6 +147,9 @@ def _normalize(rows: list[dict], ano: int, empresa: str) -> list[dict]:
         normalised = {_sanitize_key(k): v for k, v in r.items()}
         normalised.setdefault("ano", ano)
         normalised.setdefault("empresa", empresa)
+        raw_ano = int(normalised["ano"])
+        if raw_ano < 100:
+            normalised["ano"] = 2000 + raw_ano
         out.append(normalised)
     return out
 

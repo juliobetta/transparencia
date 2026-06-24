@@ -156,7 +156,7 @@ with tabs[3]:
     c1, c2, c3 = st.columns(3)
     c1.metric("Contratos sem licitação", len(gaps))
     c2.metric("Acima do limite legal (R$57k)", len(acima))
-    c3.metric("Na Saúde (Empresa 2)", len(saude))
+    c3.metric("Na Saúde", len(saude))
     acima_df = gaps[gaps["acima_limite"]]
     if not acima_df.empty:
         st.subheader("Contratos sem licitação acima do limite legal")
