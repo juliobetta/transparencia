@@ -24,6 +24,7 @@
     .metric-card .delta { font-size: 1.4em; font-weight: bold; }
     .metric-card .detail { font-size: 0.8em; color: #777; margin-top: 0.25rem; }
     .na { color: #aaa; font-style: italic; }
+    .aviso { background: #fef9e7; border-left: 4px solid #f39c12; padding: 0.5rem 1rem; margin: 0.5rem 0 1rem; }
   </style>
 </head>
 <body>
@@ -44,7 +45,7 @@
     <div class="label">{{ label }}</div>
     <div class="delta {{ css }}">
       {{ "▲" if d.abs > 0 else ("▼" if d.abs < 0 else "—") }}
-      {% if pct is not none %}{{ "{:+.1f}%".format(pct) }}{% else %}<span class="na">N/A</span>{% endif %}
+      {% if pct is not none %}{{ "{:+.1f}%".format(pct) }}{% else %}<span class="na">N/D</span>{% endif %}
     </div>
     <div class="detail">A: {{ fmt.format(d.a) }} → B: {{ fmt.format(d.b) }}</div>
   </div>
@@ -56,7 +57,6 @@
     <div class="summary-grid">
       {{ delta_card("Total Empenhado (R$)", result.despesas.empenhado) }}
       {{ delta_card("Folha / Gastos Totais", result.pessoal.percentual_folha, fmt="{:.1f}%") }}
-      {{ delta_card("Receita Própria (R$)", result.receitas.receita_propria) }}
       {{ delta_card("Contratos sem Licitação", result.licitacoes.sem_licitacao, fmt="{:.0f}", invert=true) }}
       {{ delta_card("HHI Fornecedores", result.fornecedores.hhi, fmt="{:,.0f}", invert=true) }}
     </div>
@@ -74,7 +74,7 @@
         <td>{{ "{:,.0f}".format(d.a) }}</td>
         <td>{{ "{:,.0f}".format(d.b) }}</td>
         <td>{{ "{:+,.0f}".format(d.abs) }}</td>
-        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/A</span>{% endif %}</td>
+        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/D</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </table>
@@ -92,25 +92,7 @@
         <td>{{ fmt.format(d.a) }}</td>
         <td>{{ fmt.format(d.b) }}</td>
         <td>{{ "{:+,.0f}".format(d.abs) if key == "total_folha" else "{:+.1f}%".format(d.abs) }}</td>
-        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/A</span>{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-
-  <!-- RECEITAS -->
-  <div class="secao">
-    <h2>Fontes de Receita <small>(Previsão Atualizada)</small></h2>
-    <table>
-      <tr><th>Métrica</th><th>Período A</th><th>Período B</th><th>Δ Absoluto</th><th>Δ %</th></tr>
-      {% for label, key in [("Receita Própria (R$)", "receita_propria"), ("Transferências União (R$)", "transferencias_uniao"), ("Transferências Estado (R$)", "transferencias_estado"), ("% Receita Própria", "pct_propria")] %}
-      {% set d = result.receitas[key] %}
-      <tr>
-        <td>{{ label }}</td>
-        <td>{{ "{:,.0f}".format(d.a) if key != "pct_propria" else "{:.1f}%".format(d.a) }}</td>
-        <td>{{ "{:,.0f}".format(d.b) if key != "pct_propria" else "{:.1f}%".format(d.b) }}</td>
-        <td>{{ "{:+,.0f}".format(d.abs) if key != "pct_propria" else "{:+.1f}%".format(d.abs) }}</td>
-        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/A</span>{% endif %}</td>
+        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/D</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </table>
@@ -121,14 +103,14 @@
     <h2>Licitações e Contratos</h2>
     <table>
       <tr><th>Métrica</th><th>Período A</th><th>Período B</th><th>Δ Absoluto</th><th>Δ %</th></tr>
-      {% for label, key in [("Contratos sem Licitação", "sem_licitacao"), ("Acima do Limite Legal", "acima_limite"), ("Na Saúde", "saude")] %}
+      {% for label, key in [("Contratos sem Licitação", "sem_licitacao"), ("Acima do Limite Legal (R$57k)", "acima_limite"), ("Acima do Limite — Saúde", "saude")] %}
       {% set d = result.licitacoes[key] %}
       <tr>
         <td>{{ label }}</td>
         <td>{{ "{:.0f}".format(d.a) }}</td>
         <td>{{ "{:.0f}".format(d.b) }}</td>
         <td>{{ "{:+.0f}".format(d.abs) }}</td>
-        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/A</span>{% endif %}</td>
+        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/D</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </table>
@@ -145,7 +127,7 @@
         <td>{{ "{:,.0f}".format(d.a) }}</td>
         <td>{{ "{:,.0f}".format(d.b) }}</td>
         <td>{{ "{:+,.0f}".format(d.abs) }}</td>
-        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/A</span>{% endif %}</td>
+        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/D</span>{% endif %}</td>
       </tr>
     </table>
   </div>

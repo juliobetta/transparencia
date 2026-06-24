@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import sys
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -19,7 +20,8 @@ TEMPLATE_DIR = Path(__file__).parent
 def generate(conn: sqlite3.Connection, spec_a: PeriodSpec, spec_b: PeriodSpec) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
     result = run(conn, spec_a, spec_b)
-    last_extracted = db.get_metadata(conn, "last_extracted_at") or "desconhecida"
+    _raw = db.get_metadata(conn, "last_extracted_at")
+    last_extracted = datetime.strptime(_raw, "%Y-%m-%d").strftime("%m/%d/%Y") if _raw else "desconhecida"
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("compare_template.html")

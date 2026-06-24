@@ -45,7 +45,7 @@ def _comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str) -> pd
                 "Período A": fmt.format(d["a"]),
                 "Período B": fmt.format(d["b"]),
                 "Δ Absoluto": ("+" if d["abs"] >= 0 else "") + fmt.format(d["abs"]),
-                "Δ %": f"{d['pct']:+.1f}%" if d["pct"] is not None else "N/A",
+                "Δ %": f"{d['pct']:+.1f}%" if d["pct"] is not None else "N/D",
             }
         )
     return pd.DataFrame(records)
@@ -53,7 +53,7 @@ def _comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str) -> pd
 
 def _fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
     if d["pct"] is None:
-        return "N/A"
+        return "N/D"
     return f"{fmt.format(d['abs'])} ({d['pct']:+.1f}%)"
 
 
@@ -65,6 +65,10 @@ st.sidebar.markdown(
 year = st.sidebar.selectbox("Ano", YEARS, index=len(YEARS) - 2)
 
 _last_extracted = db.get_metadata(conn, "last_extracted_at")
+if _last_extracted:
+    from datetime import datetime
+
+    _last_extracted = datetime.strptime(_last_extracted, "%Y-%m-%d").strftime("%m/%d/%Y")
 st.sidebar.markdown("---")
 st.sidebar.caption(f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida")
 
@@ -186,7 +190,7 @@ with tabs[3]:
     )
     c1, c2, c3 = st.columns(3)
     c1.metric("Acima do limite legal (R$57k)", len(acima))
-    c2.metric("Na Saúde", len(saude))
+    c2.metric("Acima do limite — Saúde", len(saude), help="Contratos acima de R$57k sem licitação em órgãos de saúde.")
     c3.metric("Total sem processo licitatório", len(gaps))
     acima_df = gaps[gaps["acima_limite"]]
     if not acima_df.empty:
@@ -286,17 +290,15 @@ with tabs[6]:
     result = comparison.run(conn, spec_a, spec_b)
 
     st.subheader("Resumo")
-    m1, m2, m3, m4, m5 = st.columns(5)
+    m1, m2, m3, m4 = st.columns(4)
     d = result["despesas"]["empenhado"]
     m1.metric("Empenhado (R$)", f"{d['b']:,.0f}", delta=_fmt_delta(d))
     d = result["pessoal"]["percentual_folha"]
     m2.metric("Folha / Gastos", f"{d['b']:.1f}%", delta=_fmt_delta(d, "{:+.1f}%"))
-    d = result["receitas"]["pct_propria"]
-    m3.metric("Receita Própria %", f"{d['b']:.1f}%", delta=_fmt_delta(d, "{:+.1f}%"))
     d = result["licitacoes"]["sem_licitacao"]
-    m4.metric("Sem Licitação", f"{d['b']:.0f}", delta=_fmt_delta(d, "{:+.0f}"))
+    m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=_fmt_delta(d, "{:+.0f}"))
     d = result["fornecedores"]["hhi"]
-    m5.metric("HHI", f"{d['b']:,.0f}", delta=_fmt_delta(d))
+    m4.metric("HHI", f"{d['b']:,.0f}", delta=_fmt_delta(d))
 
     with st.expander("Despesas"):
         rows = [
@@ -312,18 +314,6 @@ with tabs[6]:
         rows = [("Total Folha (R$)", "total_folha"), ("% dos Gastos", "percentual_folha")]
         st.dataframe(
             _comparison_table(result["pessoal"], rows, "{:.2f}"),
-            use_container_width=True,
-        )
-
-    with st.expander("Receitas"):
-        rows = [
-            ("Receita Própria (R$)", "receita_propria"),
-            ("Transferências União (R$)", "transferencias_uniao"),
-            ("Transferências Estado (R$)", "transferencias_estado"),
-            ("% Receita Própria", "pct_propria"),
-        ]
-        st.dataframe(
-            _comparison_table(result["receitas"], rows, "{:.2f}"),
             use_container_width=True,
         )
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import sys
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
@@ -41,7 +41,8 @@ def generate(conn: sqlite3.Connection, year: int, month: int) -> Path:
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("template.html")
-    last_extracted = get_metadata(conn, "last_extracted_at") or "desconhecida"
+    _raw = get_metadata(conn, "last_extracted_at")
+    last_extracted = datetime.strptime(_raw, "%Y-%m-%d").strftime("%m/%d/%Y") if _raw else "desconhecida"
 
     html = template.render(
         year=year,
