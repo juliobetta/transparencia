@@ -129,6 +129,16 @@
   </table>
   {% endif %}
 
+  {% if splitting %}
+  <h3>⚠️ Possível fracionamento de contratos</h3>
+  <table>
+    <tr><th>Fornecedor</th><th>Valor (R$)</th><th>Objeto</th></tr>
+    {% for row in splitting %}
+    <tr><td>{{ row.fornecedor }}</td><td>R$ {{ row.valor_fmt }}</td><td>{{ row.objeto }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
   <h2>④ Quem recebeu</h2>
   <div class="metrics-row">
     <div class="metric"><div class="label">HHI (concentração de fornecedores)</div><div class="value">{{ "{:,.0f}".format(hhi) }}</div></div>

@@ -28,11 +28,11 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("saude_template.html")
 
-    # Pre-format valor for template rendering
+    # Pre-format valcon for template rendering
     if not data["bidding_gaps"].empty:
         gaps = data["bidding_gaps"].copy()
         gaps["valor_fmt"] = (
-            pd.to_numeric(gaps["valor"].astype(str).str.replace(",", "."), errors="coerce")
+            pd.to_numeric(gaps["valcon"].astype(str).str.replace(",", "."), errors="coerce")
             .fillna(0)
             .map("{:,.0f}".format)
         )
@@ -42,7 +42,7 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
     if not data["splitting"].empty:
         splitting = data["splitting"].copy()
         splitting["valor_fmt"] = (
-            pd.to_numeric(splitting["valor"].astype(str).str.replace(",", "."), errors="coerce")
+            pd.to_numeric(splitting["valcon"].astype(str).str.replace(",", "."), errors="coerce")
             .fillna(0)
             .map("{:,.0f}".format)
         )
