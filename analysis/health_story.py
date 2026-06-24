@@ -32,7 +32,7 @@ def _emendas(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.D
             "valor_total": "valor",
             "tipo_emenda_descr": "Tipo da Emenda",
             "esfera_origem": "Esfera de Origem",
-            "ato_normativo": "Ato Normativo",
+            "ato_normativo": "ato_normativo",
             "destinacao_descr": "Destinação",
         }
     )
