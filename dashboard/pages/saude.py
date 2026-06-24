@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import matplotlib.pyplot as plt
+import plotly.express as px
 import streamlit as st
 from shared import get_conn, render_sidebar
 
@@ -80,15 +80,20 @@ st.header("② O que foi gasto")
 st.subheader("Evolução do Gasto (Empenhado por Ano)")
 trend = data["execution_trend"]
 if not trend.empty:
-    fig, ax = plt.subplots(figsize=(10, 2))
-    ax.bar(trend["ano"].astype(str), trend["empenhado"], color="#1a7abf")
-    ax.set_ylabel("Empenhado (R$)")
-    ax.set_title("Fundo de Saúde — Empenhado por Ano")
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"R$ {x:,.0f}"))
+    fig = px.bar(
+        trend,
+        x="ano",
+        y="empenhado",
+        title="Fundo de Saúde — Empenhado por Ano",
+        labels={"ano": "Ano", "empenhado": "Empenhado (R$)"},
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
-    col1, col2, col3 = st.columns([1, 4, 1])
-    with col2:
-        st.pyplot(fig, use_container_width=True)
+    st.dataframe(
+        trend.rename(columns={"ano": "Ano", "empenhado": "Empenhado (R$)"}),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 # ── Seção 3: Como foi contratado ────────────────────────────────────────────
 st.header("③ Como foi contratado")
