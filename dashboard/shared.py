@@ -23,15 +23,28 @@ def render_sidebar() -> int:
         f"### 🔗 Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
         unsafe_allow_html=True,
     )
-    year = st.sidebar.selectbox("Ano", YEARS, index=len(YEARS) - 2, key="sidebar_year")
+    if "sidebar_year" not in st.session_state:
+        st.session_state["sidebar_year"] = YEARS[len(YEARS) - 2]
+
+    def update_year():
+        st.session_state["sidebar_year"] = st.session_state["sidebar_year_selector"]
+
+    st.sidebar.selectbox(
+        "Ano",
+        YEARS,
+        key="sidebar_year_selector",
+        index=YEARS.index(st.session_state["sidebar_year"]),
+        on_change=update_year,
+    )
     _last_extracted = db.get_metadata(conn, "last_extracted_at")
+
     if _last_extracted:
         _last_extracted = datetime.strptime(_last_extracted, "%Y-%m-%d").strftime("%m/%d/%Y")
     st.sidebar.markdown("---")
     st.sidebar.caption(
         f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
     )
-    return year
+    return st.session_state["sidebar_year"]
 
 
 def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:

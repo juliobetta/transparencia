@@ -29,7 +29,7 @@ if not df.empty:
         row = row.iloc[0]
         values = [row["receita_propria"], row["transferencias_uniao"], row["transferencias_estado"]]
         if any(v > 0 for v in values):
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(6, 3))
             ax.pie(
                 values,
                 labels=["Receita Própria", "Transferências União", "Transferências Estado"],
@@ -37,7 +37,10 @@ if not df.empty:
                 startangle=90,
             )
             ax.set_title("Distribuição de Receitas (Previsão Atualizada)")
-            st.pyplot(fig)
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.pyplot(fig, use_container_width=True)
+
             st.caption("Fonte: previsão atualizada — dados de arrecadação efetiva não disponíveis na API.")
         else:
             st.info("Sem dados de receita para o ano selecionado.")

@@ -10,15 +10,12 @@ from shared import get_conn, render_sidebar
 
 import glossary
 from analysis import health_story
-from report.saude import generate as _generate_report
 
 conn = get_conn()
 year = render_sidebar()
 
 st.title("Fundo Municipal de Saúde")
-st.caption(
-    f"Dados do Fundo Municipal de Saúde (empresa 2) extraídos do [Portal de Transparência]({glossary.PORTAL_URL})."
-)
+st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
 
 data = health_story.run(conn, year)
 
@@ -27,7 +24,7 @@ st.header("① O que entrou")
 st.subheader("Emendas Parlamentares")
 if data["emendas_total"] > 0:
     st.metric("Total de emendas (valor autorizado)", f"R$ {data['emendas_total']:,.0f}")
-    if not data["emendas"].empty:
+    if not data["emendas"].empty and data["emendas"].notna().all().all():
         st.dataframe(
             data["emendas"].rename(
                 columns={
@@ -59,7 +56,7 @@ if transfers_total > 0:
     st.metric(
         "Total de repasses recebidos (R$)",
         f"{transfers_total:,.0f}",
-        help="Valores transferidos pela Prefeitura Municipal (empresa 7) ao Fundo de Saúde no ano.",
+        help="Valores transferidos pela Prefeitura Municipal ao Fundo de Saúde no ano.",
     )
 else:
     st.info("Sem repasses registrados para este ano.")
@@ -69,12 +66,15 @@ st.header("② O que foi gasto")
 st.subheader("Evolução do Gasto (Empenhado por Ano)")
 trend = data["execution_trend"]
 if not trend.empty:
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 2))
     ax.bar(trend["ano"].astype(str), trend["empenhado"], color="#1a7abf")
     ax.set_ylabel("Empenhado (R$)")
     ax.set_title("Fundo de Saúde — Empenhado por Ano")
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"R$ {x:,.0f}"))
-    st.pyplot(fig)
+
+    col1, col2, col3 = st.columns([1, 4, 1])
+    with col2:
+        st.pyplot(fig, use_container_width=True)
 
 # ── Seção 3: Como foi contratado ────────────────────────────────────────────
 st.header("③ Como foi contratado")
@@ -89,7 +89,7 @@ c2.metric("Valor total — Adesão de Ata (R$)", f"{data['adesao_de_ata_value']:
 
 st.subheader("Distribuição por Modalidade")
 modality_df = data["contracts_by_modality"]
-if not modality_df.empty:
+if not modality_df.empty and modality_df.notna().all().all():
     st.dataframe(
         modality_df.rename(columns={"modality": "Modalidade", "count": "Qtd", "total_value": "Valor Total (R$)"}),
         use_container_width=True,
@@ -102,18 +102,18 @@ if not modality_df.empty:
 
 st.subheader("Contratos sem Licitação acima de R$57k")
 gaps = data["bidding_gaps"]
-if not gaps.empty:
+if not gaps.empty and gaps.notna().all().all():
     st.metric("Total de contratos", len(gaps))
     st.dataframe(
-        gaps.rename(columns={"numero": "Nº", "fornecedor": "Fornecedor", "objeto": "Objeto", "valor": "Valor (R$)"}),
+        gaps.rename(columns={"numero": "Nº", "fornecedor": "Fornecedor", "objeto": "Objeto", "valcon": "Valor (R$)"}),
         use_container_width=True,
     )
 else:
     st.success("Nenhum contrato acima do limite legal sem processo licitatório.")
 
-if not data["splitting"].empty:
+if not data["splitting"].empty and data["splitting"].notna().all().all():
     st.subheader("⚠️ Possível fracionamento de contratos")
-    st.dataframe(data["splitting"][["fornecedor", "valor", "objeto"]], use_container_width=True)
+    st.dataframe(data["splitting"][["fornecedor", "valcon", "objeto"]], use_container_width=True)
 
 # ── Seção 4: Quem recebeu ────────────────────────────────────────────────────
 st.header("④ Quem recebeu")
@@ -122,7 +122,7 @@ st.metric(
     f"{data['hhi']:,.0f}",
     help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
 )
-if not data["top_suppliers"].empty:
+if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all():
     st.subheader("Top 10 Fornecedores")
     st.dataframe(
         data["top_suppliers"].rename(
@@ -141,7 +141,9 @@ if "saude_report_year" not in st.session_state:
     st.session_state["saude_report_year"] = None
 
 if st.button("Gerar Relatório HTML"):
-    path = _generate_report(conn, year)
+    from report.saude import generate
+
+    path = generate(conn, year)
     st.session_state["saude_report_year"] = (year, str(path))
 
 if st.session_state["saude_report_year"] is not None:

@@ -19,9 +19,11 @@ with st.expander("ℹ️ O que isso significa?"):
     st.write("Percentual dos gastos pagos que corresponde à folha de pessoal (servidores municipais).")
 df = payroll_vs_services.run(conn, list(range(2022, year + 1)))
 if not df.empty:
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 2))
     ax.bar(df["ano"].astype(str), df["percentual_folha"], color="#2e86c1")
     ax.set_ylabel("% dos gastos")
     ax.set_title("Folha / Total de Gastos (%)")
-    st.pyplot(fig)
+    col1, col2, col3 = st.columns([1, 4, 1])
+    with col2:
+        st.pyplot(fig, use_container_width=True)
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
