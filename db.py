@@ -79,17 +79,19 @@ CREATE TABLE IF NOT EXISTS receita_detalhes (
 CREATE TABLE IF NOT EXISTS licitacoes (
     ano INTEGER, empresa TEXT, numero TEXT, modalidade TEXT,
     objeto TEXT, valor TEXT, situacao TEXT, data_abertura TEXT,
+    carona TEXT,
     PRIMARY KEY (ano, empresa, numero)
 );
 CREATE TABLE IF NOT EXISTS contratos (
     ano INTEGER, empresa TEXT, numero TEXT, fornecedor TEXT,
     objeto TEXT, valor TEXT, data_inicio TEXT, data_fim TEXT,
-    licitacao_numero TEXT,
+    licitacao_numero TEXT, modali TEXT, valcon TEXT, empenhado TEXT,
     PRIMARY KEY (ano, empresa, numero)
 );
 CREATE TABLE IF NOT EXISTS transferencias (
     ano INTEGER, empresa TEXT, codigo TEXT, descricao TEXT,
-    valor TEXT,
+    valor TEXT, mes TEXT, entidade_pagadora TEXT, entidade_recebedora TEXT,
+    repasse TEXT, devolucao TEXT,
     PRIMARY KEY (ano, empresa, codigo)
 );
 CREATE TABLE IF NOT EXISTS emendas_impositivas (

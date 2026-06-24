@@ -221,7 +221,16 @@ def test_run_returns_all_domains(conn):
     spec_a = PeriodSpec(year=2024, month_start=1, month_end=12)
     spec_b = PeriodSpec(year=2025, month_start=1, month_end=12)
     result = run(conn, spec_a, spec_b)
-    assert set(result.keys()) == {"spec_a", "spec_b", "despesas", "pessoal", "receitas", "licitacoes", "fornecedores"}
+    assert set(result.keys()) == {
+        "spec_a",
+        "spec_b",
+        "despesas",
+        "pessoal",
+        "receitas",
+        "licitacoes",
+        "fornecedores",
+        "adesao",
+    }
 
 
 def test_despesas_delta_direction(conn):

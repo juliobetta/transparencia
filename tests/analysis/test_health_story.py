@@ -23,19 +23,29 @@ def conn():
                 "ano": 2023,
                 "empresa": SAUDE,
                 "numero": "E001",
-                "descricao": "MEDICAMENTOS",
-                "valor": "0",
+                "numero_emenda": "E001",
+                "resumo": "MEDICAMENTOS",
                 "valor_total": "500000",
                 "empenhado": "400000",
+                "autor": "Deputado X",
+                "tipo_emenda_descr": "Individual",
+                "esfera_origem": "Federal",
+                "ato_normativo": "123",
+                "destinacao_descr": "Saúde",
             },
             {
                 "ano": 2023,
                 "empresa": OTHER,
                 "numero": "E002",
-                "descricao": "OBRAS",
-                "valor": "0",
+                "numero_emenda": "E002",
+                "resumo": "OBRAS",
                 "valor_total": "1000000",
                 "empenhado": "0",
+                "autor": "Deputado Y",
+                "tipo_emenda_descr": "Individual",
+                "esfera_origem": "Federal",
+                "ato_normativo": "456",
+                "destinacao_descr": "Infra",
             },
         ],
         ["ano", "empresa", "numero"],
@@ -87,54 +97,6 @@ def conn():
 
     db.upsert(
         c,
-        "contratos",
-        [
-            {
-                "ano": 2023,
-                "empresa": SAUDE,
-                "numero": "C001",
-                "fornecedor": "ALFA",
-                "objeto": "REMÉDIOS",
-                "valor": "200000",
-                "licitacao_numero": "L001",
-                "modali": "PREGÃO ELETRÔNICO",
-            },
-            {
-                "ano": 2023,
-                "empresa": SAUDE,
-                "numero": "C002",
-                "fornecedor": "BETA",
-                "objeto": "MATERIAL",
-                "valor": "100000",
-                "licitacao_numero": "",
-                "modali": "DISPENSA",
-            },
-            {
-                "ano": 2023,
-                "empresa": SAUDE,
-                "numero": "C003",
-                "fornecedor": "GAMA",
-                "objeto": "CARONA",
-                "valor": "150000",
-                "licitacao_numero": "L002",
-                "modali": "PREGÃO ELETRÔNICO",
-            },
-            {
-                "ano": 2023,
-                "empresa": OTHER,
-                "numero": "C004",
-                "fornecedor": "DELTA",
-                "objeto": "OBRA",
-                "valor": "500000",
-                "licitacao_numero": "L003",
-                "modali": "PREGÃO PRESENCIAL",
-            },
-        ],
-        ["ano", "empresa", "numero"],
-    )
-
-    db.upsert(
-        c,
         "licitacoes",
         [
             {
@@ -145,6 +107,7 @@ def conn():
                 "objeto": "REMÉDIOS",
                 "valor": "200000",
                 "carona": "N",
+                "discr": "REMÉDIOS",
             },
             {
                 "ano": 2023,
@@ -154,6 +117,62 @@ def conn():
                 "objeto": "CARONA",
                 "valor": "150000",
                 "carona": "S",
+                "discr": "CARONA",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    db.upsert(
+        c,
+        "contratos",
+        [
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "C001",
+                "fornecedor": "ALFA",
+                "objeto": "REMÉDIOS",
+                "valor": "200000",
+                "valcon": "200000",
+                "empenhado": "200000",
+                "licitacao_numero": "L001",
+                "modali": "PREGÃO ELETRÔNICO",
+            },
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "C002",
+                "fornecedor": "BETA",
+                "objeto": "MATERIAL",
+                "valor": "100000",
+                "valcon": "100000",
+                "empenhado": "100000",
+                "licitacao_numero": "",
+                "modali": "DISPENSA",
+            },
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "C003",
+                "fornecedor": "GAMA",
+                "objeto": "CARONA",
+                "valor": "150000",
+                "valcon": "150000",
+                "empenhado": "150000",
+                "licitacao_numero": "L002",
+                "modali": "PREGÃO ELETRÔNICO",
+            },
+            {
+                "ano": 2023,
+                "empresa": OTHER,
+                "numero": "C004",
+                "fornecedor": "DELTA",
+                "objeto": "OBRA",
+                "valor": "500000",
+                "valcon": "500000",
+                "empenhado": "500000",
+                "licitacao_numero": "L003",
+                "modali": "PREGÃO PRESENCIAL",
             },
         ],
         ["ano", "empresa", "numero"],
@@ -201,7 +220,7 @@ def conn():
 def test_emendas_filtered_to_empresa(conn):
     result = run(conn, 2023)
     assert len(result["emendas"]) == 1
-    assert result["emendas"].iloc[0]["numero"] == "E001"
+    assert result["emendas"].iloc[0]["Nº"] == "E001"
 
 
 def test_emendas_total(conn):
@@ -241,7 +260,14 @@ def test_contracts_by_modality(conn):
 
 
 def test_adesao_de_ata_detected(conn):
+    # Debugging
+    rows = conn.execute("SELECT * FROM licitacoes WHERE ano = 2023").fetchall()
+    for r in rows:
+        print(
+            f"DEBUG: licitacoes row: {dict(zip([col[0] for col in conn.execute('PRAGMA table_info(licitacoes)').fetchall()], r))}"
+        )
     result = run(conn, 2023)
+    print(f"DEBUG: Result from run: {result}")
     assert result["adesao_de_ata_count"] == 1
     assert result["adesao_de_ata_value"] == 150_000.0
 

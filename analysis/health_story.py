@@ -27,19 +27,21 @@ def _emendas(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.D
     # Rename for consistency with expected output
     df = df.rename(
         columns={
-            "numero_emenda": "numero",
-            "resumo": "descricao",
-            "valor_total": "valor",
+            "numero_emenda": "Nº",
+            "resumo": "Objeto",
+            "valor_total": "Valor Autorizado",
+            "empenhado": "Empenhado",
+            "autor": "Autor",
             "tipo_emenda_descr": "Tipo da Emenda",
             "esfera_origem": "Esfera de Origem",
-            "ato_normativo": "ato_normativo",
+            "ato_normativo": "Ato Normativo",
             "destinacao_descr": "Destinação",
         }
     )
 
-    df["valor"] = _to_float(df["valor"])
-    df["empenhado"] = _to_float(df["empenhado"]).replace(0, pd.NA)
-    return df, float(df["valor"].sum())
+    df["Valor Autorizado"] = _to_float(df["Valor Autorizado"])
+    df["Empenhado"] = _to_float(df["Empenhado"]).replace(0, pd.NA)
+    return df, float(df["Valor Autorizado"].sum())
 
 
 def _budget(conn: sqlite3.Connection, year: int, empresa_id: str) -> dict:
