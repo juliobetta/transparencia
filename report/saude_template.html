@@ -60,13 +60,13 @@
   </div>
   {% if emendas %}
   <table>
-    <tr><th>Nº</th><th>Objeto</th><th>Valor Autorizado (R$)</th><th>Empenhado (R$)</th></tr>
+    <tr><th>Objeto</th><th>Valor Autorizado (R$)</th><th>Empenhado (R$)</th><th>Autor/Ato</th></tr>
     {% for row in emendas %}
     <tr>
-      <td>{{ row.numero }}</td>
       <td>{{ row.descricao }}</td>
       <td>R$ {{ "{:,.0f}".format(row.valor) }}</td>
       <td>{% if row.empenhado %}{{ "{:,.0f}".format(row.empenhado) }}{% endif %}</td>
+      <td>{{ row.autor }}<br><small>{{ row.ato_normativo }}</small></td>
     </tr>
     {% endfor %}
   </table>
@@ -111,24 +111,14 @@
   <h3>Contratos sem Licitação acima de R$57k</h3>
   {% if bidding_gaps %}
   <table>
-    <tr><th>Nº</th><th>Fornecedor</th><th>Objeto</th><th>Valor (R$)</th></tr>
+    <tr><th>Fornecedor</th><th>Objeto</th><th>Modalidade</th><th>Valor (R$)</th></tr>
     {% for row in bidding_gaps %}
-    <tr><td>{{ row.numero }}</td><td>{{ row.fornecedor }}</td><td>{{ row.objeto }}</td><td>R$ {{ row.valor_fmt }}</td></tr>
+    <tr><td>{{ row.fornecedor }}</td><td>{{ row.objeto }}</td><td>{{ row.modali }}</td><td>R$ {{ row.valor_fmt }}</td></tr>
     {% endfor %}
   </table>
   {% else %}
   <div class="success">Nenhum contrato acima do limite legal sem processo licitatório.</div>
   {% endif %}
-  {% if splitting %}
-  <h3>⚠️ Possível fracionamento de contratos</h3>
-  <table>
-    <tr><th>Fornecedor</th><th>Valor (R$)</th><th>Objeto</th></tr>
-    {% for row in splitting %}
-    <tr><td>{{ row.fornecedor }}</td><td>R$ {{ row.valor_fmt }}</td><td>{{ row.objeto }}</td></tr>
-    {% endfor %}
-  </table>
-  {% endif %}
-
   {% if splitting %}
   <h3>⚠️ Possível fracionamento de contratos</h3>
   <table>
