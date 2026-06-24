@@ -14,6 +14,14 @@ class PeriodSpec:
     month_start: int
     month_end: int
 
+    def __post_init__(self) -> None:
+        if self.month_start < 1:
+            raise ValueError(f"month_start must be >= 1, got {self.month_start}")
+        if self.month_end > 12:
+            raise ValueError(f"month_end must be <= 12, got {self.month_end}")
+        if self.month_start > self.month_end:
+            raise ValueError(f"month_start ({self.month_start}) must be <= month_end ({self.month_end})")
+
     def label(self) -> str:
         if self.month_start == 1 and self.month_end == 12:
             return str(self.year)

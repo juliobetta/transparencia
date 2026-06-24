@@ -52,6 +52,7 @@ if __name__ == "__main__":
     spec_b = PeriodSpec(year=int(args[3]), month_start=int(args[4]), month_end=int(args[5]))
 
     conn = db.get_connection()
+    db.create_tables(conn)
     try:
         path = generate(conn, spec_a, spec_b)
         print(f"Report written to {path}")

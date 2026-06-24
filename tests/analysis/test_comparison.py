@@ -14,6 +14,16 @@ def test_period_spec_fields():
     assert spec.month_end == 6
 
 
+def test_period_spec_invalid_month_range():
+    with pytest.raises(ValueError):
+        PeriodSpec(year=2024, month_start=6, month_end=3)
+
+
+def test_period_spec_invalid_month_out_of_bounds():
+    with pytest.raises(ValueError):
+        PeriodSpec(year=2024, month_start=0, month_end=12)
+
+
 def test_delta_normal():
     d = _delta(100.0, 150.0)
     assert d["a"] == 100.0

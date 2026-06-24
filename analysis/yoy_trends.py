@@ -12,7 +12,7 @@ def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:
     records = []
     for year in sorted(years):
         total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year)
-        total_folha = _sum_col(conn, "pessoal", "remuneracao", year)
+        total_folha = _sum_col(conn, "pessoal", "proventos", year)
         receita = (
             _sum_col(conn, "receita_orcamentaria", "arrecadado", year)
             + _sum_col(conn, "receita_uniao", "arrecadado", year)

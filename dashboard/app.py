@@ -44,7 +44,7 @@ def _comparison_table(domain: dict, rows: list[tuple[str, str]], fmt: str) -> pd
                 "Métrica": label,
                 "Período A": fmt.format(d["a"]),
                 "Período B": fmt.format(d["b"]),
-                "Δ Absoluto": ("+" if d["abs"] > 0 else "") + fmt.format(d["abs"]),
+                "Δ Absoluto": ("+" if d["abs"] >= 0 else "") + fmt.format(d["abs"]),
                 "Δ %": f"{d['pct']:+.1f}%" if d["pct"] is not None else "N/A",
             }
         )
