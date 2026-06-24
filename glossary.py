@@ -19,6 +19,8 @@ TERMS: dict[str, str] = {
     "Emenda Impositiva": "Recurso que vereadores têm o direito de destinar ao orçamento municipal.",
     "Extra-orçamentário": "Movimentação financeira fora do orçamento aprovado, como depósitos de terceiros.",
     "Adesão de Ata (Carona)": "Contratação direta aproveitando uma licitação já realizada por outro órgão. Evita nova licitação, mas o uso excessivo — especialmente na Saúde — pode indicar fuga ao controle.",
+    "Pregão Eletrônico": "Modalidade de licitação feita pela internet, voltada para aquisição de bens e serviços comuns, garantindo ampla concorrência.",
+    "Pregão Presencial": "Modalidade de licitação feita presencialmente, também voltada para bens e serviços comuns.",
 }
 
 
