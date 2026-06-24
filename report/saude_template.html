@@ -30,29 +30,7 @@
   Última extração: {{ last_extracted }}.</p>
 
   <h2>① O que entrou</h2>
-  <h3>Repasses da Prefeitura</h3>
-  {% if transfers_to_health_total > 0 %}
-  <div class="metrics-row">
-    <div class="metric"><div class="label">Total de repasses líquidos (Prefeitura → Saúde)</div><div class="value">R$ {{ "{:,.0f}".format(transfers_to_health_total) }}</div></div>
-  </div>
-  {% if transfers_to_health %}
-  <table>
-    <tr><th>Mês</th><th>Entidade Pagadora</th><th>Entidade Recebedora</th><th>Repasse (R$)</th><th>Devolução (R$)</th></tr>
-    {% for row in transfers_to_health %}
-    <tr>
-      <td>{{ row.mes }}</td>
-      <td>{{ row.entidade_pagadora }}</td>
-      <td>{{ row.entidade_recebedora }}</td>
-      <td>R$ {{ "{:,.0f}".format(row.repasse_num) }}</td>
-      <td>R$ {{ "{:,.0f}".format(row.devolucao_num) }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% endif %}
-  {% else %}
-  <p>Sem repasses da Prefeitura registrados para {{ year }}.</p>
-  {% endif %}
-
+  
   <h3>Emendas Parlamentares</h3>
   {% if emendas_total > 0 %}
   <div class="metrics-row">
@@ -79,6 +57,9 @@
     <div class="metric"><div class="label">Dotação Atualizada (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.dotacao) }}</div></div>
     <div class="metric"><div class="label">Total Empenhado (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.empenhado) }}</div></div>
     <div class="metric"><div class="label">Taxa de Execução</div><div class="value">{{ "{:.1%}".format(budget.taxa_execucao) }}</div></div>
+    {% if transfers_to_health_total > 0 %}
+    <div class="metric"><div class="label">Total de repasses líquidos (Prefeitura → Saúde)</div><div class="value">R$ {{ "{:,.0f}".format(transfers_to_health_total) }}</div></div>
+    {% endif %}
   </div>
   {% if budget.flag_under_execution %}
   <div class="warning">⚠️ Taxa de execução abaixo de 70% ao final do ano {{ year }}.</div>
