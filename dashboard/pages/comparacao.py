@@ -55,6 +55,7 @@ with st.expander("Despesas"):
             result["despesas"], [("Empenhado (R$)", "empenhado"), ("Dotação Atualizada (R$)", "dotacao")], "{:,.0f}"
         ),
         use_container_width=True,
+        hide_index=True,
     )
 with st.expander("Pessoal"):
     st.dataframe(
@@ -62,6 +63,7 @@ with st.expander("Pessoal"):
             result["pessoal"], [("Total Folha (R$)", "total_folha"), ("% dos Gastos", "percentual_folha")], "{:.2f}"
         ),
         use_container_width=True,
+        hide_index=True,
     )
 with st.expander("Licitações"):
     st.dataframe(
@@ -75,9 +77,14 @@ with st.expander("Licitações"):
             "{:.0f}",
         ),
         use_container_width=True,
+        hide_index=True,
     )
 with st.expander("Fornecedores"):
-    st.dataframe(comparison_table(result["fornecedores"], [("HHI", "hhi")], "{:,.0f}"), use_container_width=True)
+    st.dataframe(
+        comparison_table(result["fornecedores"], [("HHI", "hhi")], "{:,.0f}"),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 with st.expander("Adesão de Ata"):
     st.dataframe(
@@ -87,6 +94,7 @@ with st.expander("Adesão de Ata"):
             "{:,.0f}",
         ),
         use_container_width=True,
+        hide_index=True,
     )
 
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
