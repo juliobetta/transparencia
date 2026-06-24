@@ -93,15 +93,14 @@ if not trend.empty:
 # ── Seção 3: Como foi contratado ────────────────────────────────────────────
 st.header("③ Como foi contratado")
 
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
 c1.metric(
     "Licitações via Adesão de Ata (Carona)",
     data["adesao_de_ata_count"],
     help=glossary.tooltip("Adesão de Ata (Carona)"),
 )
-c2.metric("Valor Total Contratado via Adesão (R$)", f"{data['adesao_de_ata_value']:,.0f}")
-
-c3.metric("Qtd. de Contratos Vinculados", int(data["adesao_de_ata_list"]["has_contract"].sum()))
+c2.metric("Qtd. de Contratos Vinculados", int(data["adesao_de_ata_list"]["has_contract"].sum()))
+c3.metric("Valor Total Contratado via Adesão (R$)", f"{data['adesao_de_ata_value']:,.0f}")
 
 if not data["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
