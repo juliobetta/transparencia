@@ -59,7 +59,7 @@ report/saude:
 ifndef YEAR
 	$(error YEAR is required. Usage: make report/saude YEAR=2025)
 endif
-	uv run python -c "from report.saude import generate; import db; generate(db.get_connection(), $(YEAR))"
+	@uv run python -c "from report.saude import generate; import db; path = generate(db.get_connection(), $(YEAR)); print(f'Report written to {path}')"
 
 report/compare:
 ifndef YEAR_A
