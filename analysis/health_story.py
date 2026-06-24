@@ -15,12 +15,16 @@ def _to_float(series: pd.Series) -> pd.Series:
 
 def _emendas(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
     df = pd.read_sql_query(
-        "SELECT numero, descricao, valor FROM emendas_cad WHERE ano = ? AND empresa = ?",
+        "SELECT numero_emenda, resumo, valor_total, empenhado FROM emendas_cad WHERE ano = ? AND empresa = ?",
         conn,
         params=(year, empresa_id),
     )
     if df.empty:
         return df, 0.0
+
+    # Rename for consistency with expected output
+    df = df.rename(columns={"numero_emenda": "numero", "resumo": "descricao", "valor_total": "valor"})
+
     df["valor"] = _to_float(df["valor"])
     return df, float(df["valor"].sum())
 

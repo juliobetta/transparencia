@@ -24,17 +24,18 @@ st.header("① O que entrou")
 st.subheader("Emendas Parlamentares")
 if data["emendas_total"] > 0:
     st.metric("Total de emendas (valor autorizado)", f"R$ {data['emendas_total']:,.0f}")
-    if not data["emendas"].empty and data["emendas"].notna().all().all():
+    if not data["emendas"].empty and data["emendas"].notna().any().any():
         st.dataframe(
             data["emendas"].rename(
                 columns={
                     "numero": "Nº",
                     "descricao": "Objeto",
-                    "valor_total": "Valor Autorizado (R$)",
+                    "valor": "Valor Autorizado (R$)",
                     "empenhado": "Empenhado (R$)",
                 }
             ),
             use_container_width=True,
+            column_config={"Valor Autorizado (R$)": st.column_config.NumberColumn(format="%.2f")},
         )
     with st.expander("ℹ️ O que é uma emenda parlamentar?"):
         st.write(glossary.tooltip("Emenda Impositiva"))
