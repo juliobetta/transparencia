@@ -194,38 +194,6 @@ def conn():
         ["ano", "empresa", "codigo"],
     )
 
-    db.upsert(
-        c,
-        "transferencias",
-        [
-            {
-                "ano": 2023,
-                "empresa": "7",
-                "codigo": "T001",
-                "descricao": "REPASSE",
-                "valor": "0",
-                "mes": "1",
-                "entidade_pagadora": "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
-                "entidade_recebedora": "FUNDO MUNICIPAL DE SAUDE",
-                "repasse": "1000000",
-                "devolucao": "0",
-            },
-            {
-                "ano": 2023,
-                "empresa": "7",
-                "codigo": "T002",
-                "descricao": "REPASSE",
-                "valor": "0",
-                "mes": "2",
-                "entidade_pagadora": "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
-                "entidade_recebedora": "FUNDO MUNICIPAL DE EDUCAÇÃO",
-                "repasse": "500000",
-                "devolucao": "0",
-            },
-        ],
-        ["ano", "empresa", "codigo"],
-    )
-
     yield c
     c.close()
 
@@ -295,10 +263,3 @@ def test_top_suppliers_filtered_to_empresa(conn):
 def test_hhi_positive(conn):
     result = run(conn, 2023)
     assert result["hhi"] > 0
-
-
-def test_transfers_to_health_filtered(conn):
-    result = run(conn, 2023)
-    assert result["transfers_to_health_total"] == 1_000_000.0
-    assert len(result["transfers_to_health"]) == 1
-    assert "SAUDE" in result["transfers_to_health"].iloc[0]["entidade_recebedora"].upper()

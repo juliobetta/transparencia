@@ -124,24 +124,6 @@ def _splitting(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataF
     return near[near["fornecedor"].isin(counts[counts >= 3].index)].copy()
 
 
-def _transfers_to_health(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
-    # Transfers only apply to the health fund (empresa '2'); other funds receive from different sources.
-    if empresa_id != SAUDE_EMPRESA:
-        return pd.DataFrame(), 0.0
-    df = pd.read_sql_query(
-        "SELECT mes, entidade_pagadora, entidade_recebedora, repasse, devolucao FROM transferencias "
-        "WHERE empresa = '7' AND ano = ? AND UPPER(entidade_recebedora) LIKE '%SAUDE%'",
-        conn,
-        params=(year,),
-    )
-    if df.empty:
-        return df, 0.0
-    df["repasse_num"] = _to_float(df["repasse"])
-    df["devolucao_num"] = _to_float(df["devolucao"])
-    total = float((df["repasse_num"] - df["devolucao_num"]).sum())
-    return df, total
-
-
 def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     emendas_df, emendas_total = _emendas(conn, year, empresa_id)
     budget = _budget(conn, year, empresa_id)
@@ -151,7 +133,6 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
     bidding_gaps = _bidding_gaps(conn, year, empresa_id)
     top_suppliers, hhi = _top_suppliers(conn, year, empresa_id)
     splitting = _splitting(conn, year, empresa_id)
-    transfers_df, transfers_total = _transfers_to_health(conn, year, empresa_id)
     return {
         "emendas": emendas_df,
         "emendas_total": emendas_total,
@@ -164,6 +145,4 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
         "top_suppliers": top_suppliers,
         "hhi": hhi,
         "splitting": splitting,
-        "transfers_to_health": transfers_df,
-        "transfers_to_health_total": transfers_total,
     }
