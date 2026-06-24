@@ -175,6 +175,7 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
             columns={"descricao": "Fornecedor", "empenhado": "Empenhado (R$)", "percentual": "%"}
         ),
         use_container_width=True,
+        column_config={"codigo": None},
         hide_index=True,
     )
 
