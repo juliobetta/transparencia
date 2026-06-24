@@ -17,6 +17,9 @@ TERMS: dict[str, str] = {
     "FPM (Fundo de Participação dos Municípios)": "Repasse federal do qual a maioria dos pequenos municípios brasileiros depende muito.",
     "Diária": "Valor pago a servidor por viagem a serviço. O uso excessivo pode indicar irregularidade.",
     "Emenda Impositiva": "Recurso que parlamentares destinam ao orçamento federal para obras e serviços em suas bases, com execução obrigatória pelo governo.",
+    "Adesão de Ata (Carona)": "Contratação direta aproveitando uma licitação já realizada por outro órgão. Evita nova licitação, mas o uso excessivo — especialmente na Saúde — pode indicar fuga ao controle.",
+    "Pregão Eletrônico": "Modalidade de licitação feita pela internet, voltada para aquisição de bens e serviços comuns, garantindo ampla concorrência.",
+    "Pregão Presencial": "Modalidade de licitação feita presencialmente, também voltada para bens e serviços comuns.",
 }
 
 
