@@ -5,7 +5,14 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from analysis import bidding_gaps, budget_execution, payroll_vs_services, revenue_sources, supplier_concentration
+from analysis import (
+    adesao_de_ata,
+    bidding_gaps,
+    budget_execution,
+    payroll_vs_services,
+    revenue_sources,
+    supplier_concentration,
+)
 
 
 @dataclass
@@ -91,12 +98,21 @@ def run(conn: sqlite3.Connection, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dic
         result = supplier_concentration.run(conn, spec.year)
         return {"hhi": float(result["hhi"])}
 
+    def _adesao(spec: PeriodSpec) -> dict:
+        result = adesao_de_ata.run(conn, spec.year, "2")
+        return {
+            "count": float(result["count"]),
+            "valor_licitacao": float(result["total_licitacao"]),
+            "valor_contratos": float(result["value"]),
+        }
+
     domains = [
         ("despesas", _despesas),
         ("pessoal", _pessoal),
         ("receitas", _receitas),
         ("licitacoes", _licitacoes),
         ("fornecedores", _fornecedores),
+        ("adesao", _adesao),
     ]
 
     result: dict = {"spec_a": spec_a, "spec_b": spec_b}

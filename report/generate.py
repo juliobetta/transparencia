@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import db
 import glossary
 from analysis import (
+    adesao_de_ata,
     bidding_gaps,
     budget_execution,
     payroll_vs_services,
@@ -32,6 +33,7 @@ def generate(conn: sqlite3.Connection, year: int, month: int) -> Path:
     budget = budget_execution.run(conn, year)
     supplier = supplier_concentration.run(conn, year)  # dict with top10/hhi/dominante
     bidding = bidding_gaps.run(conn, year)
+    adesao = adesao_de_ata.run(conn, year, "2")  # Using "2" as it was the health entity ID
     # Pre-filter for template — Jinja2 can't do pandas boolean indexing
     bidding_acima = bidding[bidding["acima_limite"]].to_dict("records")
     bidding_saude = bidding[bidding["acima_limite"] & bidding["orgao_saude"]]
@@ -55,6 +57,7 @@ def generate(conn: sqlite3.Connection, year: int, month: int) -> Path:
         bidding=bidding,
         bidding_acima=bidding_acima,
         bidding_saude_count=len(bidding_saude),
+        adesao=adesao,
         revenue=revenue,
         payroll=payroll,
         trends=trends,

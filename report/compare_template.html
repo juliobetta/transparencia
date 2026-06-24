@@ -59,6 +59,7 @@
       {{ delta_card("Folha / Gastos Totais", result.pessoal.percentual_folha, fmt="{:.1f}%", invert=false) }}
       {{ delta_card("Contratos sem Licitação", result.licitacoes.sem_licitacao, fmt="{:.0f}", invert=false) }}
       {{ delta_card("HHI Fornecedores", result.fornecedores.hhi, fmt="{:,.0f}", invert=false) }}
+      {{ delta_card("Adesões de Ata", result.adesao.count, fmt="{:.0f}", invert=false) }}
     </div>
   </div>
 
@@ -129,6 +130,24 @@
         <td>{{ "{:+,.0f}".format(d.abs) }}</td>
         <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/D</span>{% endif %}</td>
       </tr>
+    </table>
+  </div>
+
+  <!-- ADESÃO DE ATA -->
+  <div class="secao">
+    <h2>Adesão de Ata</h2>
+    <table>
+      <tr><th>Métrica</th><th>Período A</th><th>Período B</th><th>Δ Absoluto</th><th>Δ %</th></tr>
+      {% for label, key, fmt in [("Quantidade", "count", "{:.0f}"), ("Valor Estimado (Licitação) (R$)", "valor_licitacao", "{:,.0f}"), ("Valor Contratado (R$)", "valor_contratos", "{:,.0f}")] %}
+      {% set d = result.adesao[key] %}
+      <tr>
+        <td>{{ label }}</td>
+        <td>{{ fmt.format(d.a) }}</td>
+        <td>{{ fmt.format(d.b) }}</td>
+        <td>{{ "{:+,.0f}".format(d.abs) if key != "count" else "{:+.0f}".format(d.abs) }}</td>
+        <td>{% if d.pct is not none %}{{ "{:+.1f}%".format(d.pct) }}{% else %}<span class="na">N/D</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
     </table>
   </div>
 
