@@ -93,7 +93,7 @@ if not modality_df.empty and modality_df.notna().all().all():
     st.dataframe(
         modality_df.rename(columns={"modality": "Modalidade", "count": "Qtd", "total_value": "Valor Total (R$)"}),
         use_container_width=True,
-        column_config={"Valor Total (R$)": st.column_config.NumberColumn(format="R$ %.2f")},
+        column_config={"Valor Total (R$)": st.column_config.NumberColumn(format="%.2f")},
     )
     with st.expander("ℹ️ O que são essas modalidades?"):
         st.write(f"**Licitação:** {glossary.tooltip('Licitação')}")
