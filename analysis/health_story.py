@@ -84,11 +84,12 @@ def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str)
     )
 
 
-def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[int, float]:
+def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
     # Fetch all Carona licitacoes and sum the value of any linked contracts
     query = """
         SELECT
-            l.numero as licit_numero,
+            l.numero,
+            l.objeto,
             SUM(c.valcon) as total_c_valor
         FROM licitacoes l
         LEFT JOIN contratos c
@@ -100,13 +101,10 @@ def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
     """
     try:
         df = pd.read_sql_query(query, conn, params=(year, empresa_id))
-
-        count = len(df)
         total_value = float(_to_float(df["total_c_valor"]).sum()) if not df.empty else 0.0
-
-        return count, total_value
+        return df, total_value
     except Exception:
-        return 0, 0.0
+        return pd.DataFrame(), 0.0
 
 
 def _bidding_gaps(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
@@ -172,7 +170,7 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
     budget = _budget(conn, year, empresa_id)
     execution_trend = _execution_trend(conn, empresa_id)
     contracts_by_modality = _contracts_by_modality(conn, year, empresa_id)
-    adesao_count, adesao_value = _adesao_de_ata(conn, year, empresa_id)
+    adesao_df, adesao_value = _adesao_de_ata(conn, year, empresa_id)
     bidding_gaps = _bidding_gaps(conn, year, empresa_id)
     top_suppliers, hhi = _top_suppliers(conn, year, empresa_id)
     splitting = _splitting(conn, year, empresa_id)
@@ -183,7 +181,8 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) ->
         "budget": budget,
         "execution_trend": execution_trend,
         "contracts_by_modality": contracts_by_modality,
-        "adesao_de_ata_count": adesao_count,
+        "adesao_de_ata_list": adesao_df,
+        "adesao_de_ata_count": len(adesao_df),
         "adesao_de_ata_value": adesao_value,
         "bidding_gaps": bidding_gaps,
         "top_suppliers": top_suppliers,

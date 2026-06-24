@@ -35,7 +35,7 @@ if data["emendas_total"] > 0:
                     "autor": "Autor",
                     "Tipo da Emenda": "Tipo da Emenda",
                     "Esfera de Origem": "Esfera de Origem",
-                    "Ato Normativo": "Ato Normativo",
+                    "ato_normativo": "Ato Normativo",
                     "Destinação": "Destinação",
                 }
             ),
@@ -95,11 +95,25 @@ st.header("③ Como foi contratado")
 
 c1, c2 = st.columns(2)
 c1.metric(
-    "Contratos via Adesão de Ata (Carona)",
+    "Licitações via Adesão de Ata (Carona)",
     data["adesao_de_ata_count"],
     help=glossary.tooltip("Adesão de Ata (Carona)"),
 )
 c2.metric("Valor total — Adesão de Ata (R$)", f"{data['adesao_de_ata_value']:,.0f}")
+
+if not data["adesao_de_ata_list"].empty:
+    with st.expander("Ver licitações via Adesão de Ata"):
+        st.dataframe(
+            data["adesao_de_ata_list"].rename(
+                columns={
+                    "numero": "Nº Licit.",
+                    "objeto": "Objeto",
+                    "total_c_valor": "Valor Total Contratado (R$)",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 st.subheader("Distribuição por Modalidade")
 modality_df = data["contracts_by_modality"]
