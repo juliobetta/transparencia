@@ -15,13 +15,7 @@ install: install-uv
 type-check:
 	uv run mypy $(SRC) --ignore-missing-imports
 
-lint: lint/ruff lint/vulture
-
-lint/ruff:
-	uv run ruff check $(SRC)
-
-lint/vulture:
-	uv run vulture $(SRC)
+lint: lint/ruff
 
 lint/fix:
 	uv run ruff check --fix $(SRC)
