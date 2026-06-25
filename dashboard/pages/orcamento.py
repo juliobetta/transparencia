@@ -40,7 +40,7 @@ fig = px.bar(
 fig.update_traces(hovertemplate="Órgão: %{x}<br>Empenhado: R$ %{y:,.2f}")
 fig.update_layout(yaxis_tickformat=",.2f")
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 st.dataframe(
     df[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
@@ -52,7 +52,7 @@ st.dataframe(
             "alerta": "Situação",
         }
     ),
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
     column_config={
         "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),

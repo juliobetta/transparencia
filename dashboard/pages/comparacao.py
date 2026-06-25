@@ -59,7 +59,7 @@ with st.expander("Despesas"):
             "Δ Absoluto": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 with st.expander("Pessoal"):
@@ -72,7 +72,7 @@ with st.expander("Pessoal"):
             "Δ Absoluto": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     df_percent = comparison_table(result["pessoal"], [("% dos Gastos", "percentual_folha")])
@@ -84,7 +84,7 @@ with st.expander("Pessoal"):
             "Δ Absoluto": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 with st.expander("Licitações"):
@@ -104,7 +104,7 @@ with st.expander("Licitações"):
             "Δ Absoluto": st.column_config.NumberColumn(format="%,.0f"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 with st.expander("Fornecedores"):
@@ -117,7 +117,7 @@ with st.expander("Fornecedores"):
             "Δ Absoluto": st.column_config.NumberColumn(format="%,.0f"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -135,7 +135,7 @@ with st.expander("Adesão de Ata"):
             "Δ Absoluto": st.column_config.NumberColumn(format="%,.0f"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
     df = comparison_table(
@@ -150,7 +150,7 @@ with st.expander("Adesão de Ata"):
             "Δ Absoluto": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 

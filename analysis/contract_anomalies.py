@@ -8,7 +8,7 @@ NEAR_THRESHOLD_PCT = 0.20
 
 def run(conn: sqlite3.Connection, year: int) -> dict:
     contratos = pd.read_sql_query(
-        "SELECT empresa, numero, fornecedor, objeto, valor, licitacao_numero FROM contratos WHERE ano = ?",
+        "SELECT ano, empresa, numero, fornecedor, objeto, valor, licitacao_numero, mes FROM contratos WHERE ano = ?",
         conn,
         params=(year,),
     )

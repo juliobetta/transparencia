@@ -5,8 +5,11 @@ import pandas as pd
 # The code "1061" identifies CAPREM payments across various entities.
 CAPREM_CODE = "1061"
 
+
 def run(conn: sqlite3.Connection, year: int):
     # Fetch CAPREM expenses using the unique code
+    # We might not have 'mes' here based on table_info.
+    # If not, we can't show 'Período'.
     df = pd.read_sql_query(
         "SELECT * FROM despesas_por_fornecedor WHERE codigo = ? AND ano = ?",
         conn,

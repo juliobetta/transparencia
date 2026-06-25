@@ -39,7 +39,7 @@ if "despesas" in data and not data["despesas"].empty:
                 "empresa": "Empresa",
             }
         ),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "codigo": None,

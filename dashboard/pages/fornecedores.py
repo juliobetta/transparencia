@@ -35,7 +35,7 @@ st.dataframe(
         "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
         "%": st.column_config.NumberColumn(format="%.2f%%"),
     },
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
 )
 
@@ -57,7 +57,7 @@ pie_data = pd.concat(
 )
 
 fig = px.pie(pie_data, values="empenhado", names="Fornecedor", title="Distribuição do Empenhado")
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
 

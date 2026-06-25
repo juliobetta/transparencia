@@ -11,21 +11,23 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str) -> dict:
     query = """
         SELECT
             l.numero,
+            ? as ano,
             l.discr as objeto,
             l.valor as licitacao_valor,
             SUM(c.valcon) as total_c_valor,
             SUM(c.empenhado) as total_c_empenhado,
-            l.carona
+            l.carona,
+            c.mes
         FROM licitacoes l
         LEFT JOIN contratos c
             ON c.licitacao_numero = l.numero
             AND c.ano = l.ano
             AND c.empresa = l.empresa
         WHERE l.ano = ? AND l.empresa = ?
-        GROUP BY l.numero
+        GROUP BY l.numero, c.mes
     """
     try:
-        df = pd.read_sql_query(query, conn, params=(year, empresa_id))
+        df = pd.read_sql_query(query, conn, params=(year, year, empresa_id))
 
         # Add column from join which might be None if no contract matched
         if "total_c_valor" in df.columns:

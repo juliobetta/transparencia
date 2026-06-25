@@ -58,7 +58,8 @@ st.dataframe(
             "restos_a_pagar_pct_change": "Δ% Restos",
         }
     ),
-    use_container_width=True,
+    width="stretch",
+    hide_index=True,
     column_config={
         "Total Gasto": st.column_config.NumberColumn(format="R$ %,.2f"),
         "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),

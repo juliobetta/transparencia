@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -18,6 +20,14 @@ st.title("Fundo Municipal de Saúde")
 st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
 
 data = health_story.run(conn, year)
+# Create MM/YYYY column for display
+for key, val in data.items():
+    if isinstance(val, pd.DataFrame) and "mes" in val.columns:
+        if "ano" in val.columns:
+            val["periodo"] = val["mes"].astype(str).str.zfill(2) + "/" + val["ano"].astype(str)
+        else:
+            val["periodo"] = val["mes"].astype(str).str.zfill(2) + "/" + str(year)
+
 
 # ── Seção 1: O que entrou ───────────────────────────────────────────────────
 st.header("① O que entrou")
@@ -30,6 +40,7 @@ if data["emendas_total"] > 0:
                 columns={
                     "numero": "Nº",
                     "descricao": "Objeto",
+                    "Período": "Período",
                     "valor": "Valor Autorizado",
                     "empenhado": "Empenhado",
                     "autor": "Autor",
@@ -39,7 +50,7 @@ if data["emendas_total"] > 0:
                     "Destinação": "Destinação",
                 }
             ),
-            use_container_width=True,
+            width="stretch",
             column_config={
                 "Valor Autorizado": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
@@ -89,11 +100,11 @@ if not trend.empty:
     )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.dataframe(
         trend.rename(columns={"ano": "Ano", "empenhado": "Empenhado"}),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
         column_config={
             "Ano": st.column_config.NumberColumn(format="%d"),
@@ -117,17 +128,20 @@ c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata
 if not data["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
         st.dataframe(
-            data["adesao_de_ata_list"].rename(
+            data["adesao_de_ata_list"]
+            .rename(
                 columns={
                     "numero": "Nº Licit.",
                     "objeto": "Objeto",
+                    "periodo": "Período",
                     "licitacao_valor": "Valor Est. Licitação",
                     "total_c_valor": "Valor Total Contratado",
                     "total_c_empenhado": "Valor Empenhado",
                     "has_contract": "Contrato Associado",
                 }
-            ),
-            use_container_width=True,
+            )
+            .drop(columns=["mes", "ano"], errors="ignore"),
+            width="stretch",
             hide_index=True,
         )
 
@@ -135,10 +149,20 @@ st.subheader("Distribuição por Modalidade")
 modality_df = data["contracts_by_modality"]
 if not modality_df.empty and modality_df.notna().all().all():
     st.dataframe(
-        modality_df.rename(columns={"modality": "Modalidade", "count": "Qtd", "total_value": "Valor Total"}),
-        use_container_width=True,
+        modality_df.rename(
+            columns={
+                "modality": "Modalidade",
+                "count": "Qtd",
+                "total_value": "Valor Total",
+                "periodo": "Período",
+            }
+        )
+        .sort_values(by=["Modalidade", "Período"], ascending=True)
+        .drop(columns=["mes", "ano"], errors="ignore"),
+        width="stretch",
         column_config={"Valor Total": st.column_config.NumberColumn(format="R$ %,.2f")},
         hide_index=True,
+        column_order=["Período", "Modalidade", "Qtd", "Valor Total"],
     )
     with st.expander("ℹ️ O que são essas modalidades?"):
         st.write(f"**Licitação:** {glossary.tooltip('Licitação')}")
@@ -155,23 +179,31 @@ if not gaps.empty and gaps.notna().all().all():
     st.dataframe(
         gaps.rename(
             columns={
+                "periodo": "Período",
                 "numero": "Nº",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
                 "valcon": "Valor",
                 "modali": "Modalidade",
             }
-        ),
-        use_container_width=True,
+        )
+        .sort_values(by="Valor", ascending=False)
+        .drop(columns=["mes", "ano"], errors="ignore"),
+        width="stretch",
         column_config={"Nº": None, "Valor": st.column_config.NumberColumn(format="R$ %,.2f")},
         hide_index=True,
+        column_order=["Período", "Nº", "Fornecedor", "Objeto", "Valor", "Modalidade"],
     )
 else:
     st.success("Nenhum contrato acima do limite legal sem processo licitatório.")
 
 if not data["splitting"].empty and data["splitting"].notna().all().all():
     st.subheader("⚠️ Possível fracionamento de contratos")
-    st.dataframe(data["splitting"][["fornecedor", "valcon", "objeto"]], use_container_width=True, hide_index=True)
+    st.dataframe(
+        data["splitting"].rename(columns={"periodo": "Período"}).drop(columns=["mes", "ano"], errors="ignore"),
+        width="stretch",
+        hide_index=True,
+    )
 
 # ── Seção 4: Quem recebeu ────────────────────────────────────────────────────
 st.header("④ Quem recebeu")
@@ -186,7 +218,7 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
     # Display main Top 10 table
     st.dataframe(
         data["top_suppliers"].rename(columns={"descricao": "Fornecedor", "empenhado": "Empenhado", "percentual": "%"}),
-        use_container_width=True,
+        width="stretch",
         column_config={
             "codigo": None,
             "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
@@ -216,7 +248,7 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
                 "total": "Valor Contratado",
             }
         ),
-        use_container_width=True,
+        width="stretch",
         column_config={"Valor Contratado": st.column_config.NumberColumn(format="R$ %,.2f")},
         hide_index=True,
     )
