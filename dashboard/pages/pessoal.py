@@ -27,8 +27,9 @@ if not df.empty:
         title="Folha / Total de Gastos (%)",
         labels={"ano": "Ano", "percentual_folha": "%"},
     )
+    fig.update_xaxes(tickmode="linear", dtick=1)
     fig.update_traces(hovertemplate="Ano: %{x}<br>Percentual: %{y:.2f}%")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 # Granular Salary Analysis
 st.subheader("Distribuição de Remuneração")
@@ -44,5 +45,5 @@ if not df_pessoal.empty:
         labels={"remuneracao": "Remuneração"},
     )
     fig_hist.update_traces(hovertemplate="Remuneração: R$ %{x:,.2f}<br>Contagem: %{y}")
-    st.plotly_chart(fig_hist, use_container_width=True)
+    st.plotly_chart(fig_hist, width="stretch")
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")

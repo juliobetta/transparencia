@@ -86,6 +86,6 @@ config = {
     for col in df.columns
     if col in _CURRENCY_COLUMNS
 }
-st.dataframe(df.fillna("N/D").rename(columns=_COLUMN_LABELS), column_config=config, use_container_width=True)
+st.dataframe(df.fillna("N/D").rename(columns=_COLUMN_LABELS), column_config=config, width="stretch")
 st.download_button("Baixar CSV", df.to_csv(index=False).encode(), file_name=f"{table}_{year}.csv", mime="text/csv")
 st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")

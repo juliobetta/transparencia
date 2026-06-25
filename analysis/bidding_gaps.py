@@ -8,7 +8,7 @@ SAUDE_EMPRESA = "2"
 
 def run(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT ano, empresa, numero, fornecedor, objeto, valor, licitacao_numero FROM contratos WHERE ano = ?",
+        "SELECT ano, empresa, numero, fornecedor, objeto, valor, licitacao_numero, mes FROM contratos WHERE ano = ?",
         conn,
         params=(year,),
     )

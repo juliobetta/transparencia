@@ -1,12 +1,48 @@
 import json
 import logging
 import re
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
 from db import create_tables, get_connection, set_metadata, upsert
 from scraper import fetch
+
+_MONTH_MAP = {
+    "Janeiro": "01",
+    "Fevereiro": "02",
+    "Março": "03",
+    "Abril": "04",
+    "Maio": "05",
+    "Junho": "06",
+    "Julho": "07",
+    "Agosto": "08",
+    "Setembro": "09",
+    "Outubro": "10",
+    "Novembro": "11",
+    "Dezembro": "12",
+}
+
+
+def _extract_month(row: dict) -> str | None:
+    # Check date fields
+    for field in ["dtassi", "datae", "dtpublic", "dataadmissao"]:
+        if field in row and row[field]:
+            try:
+                return datetime.strptime(row[field], "%d/%m/%Y %H:%M:%S").strftime("%m")
+            except ValueError:
+                continue
+
+    # Check reference name
+    if "referencia_nome" in row and row["referencia_nome"]:
+        # Format: "Folha Mensal - Dezembro"
+        parts = row["referencia_nome"].split(" - ")
+        if len(parts) > 1:
+            mes = parts[1].strip()
+            return _MONTH_MAP.get(mes)
+
+    return None
+
 
 RAW_DIR = Path("data/raw")
 
@@ -164,6 +200,12 @@ def _normalize(rows: list[dict], ano: int, empresa: str, post_process=None) -> l
             normalised["ano"] = 2000 + raw_ano
         if post_process:
             normalised = post_process(normalised)
+
+        # Add month extraction
+        mes = _extract_month(normalised)
+        if mes:
+            normalised["mes"] = mes
+
         out.append(normalised)
     return out
 

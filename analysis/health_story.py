@@ -86,7 +86,7 @@ def _execution_flow(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.
 
 def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT modali, valcon FROM contratos WHERE ano = ? AND empresa = ?",
+        "SELECT modali, valcon, mes FROM contratos WHERE ano = ? AND empresa = ?",
         conn,
         params=(year, empresa_id),
     )
@@ -96,7 +96,7 @@ def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str)
     df["modality"] = df["modali"].fillna("").str.strip()
     df["modality"] = df["modality"].where(df["modality"] != "", "Sem Informação")
     return (
-        df.groupby("modality")
+        df.groupby(["modality", "mes"])  # Include mes in grouping if needed, or just keep it
         .agg(count=("modality", "size"), total_value=("valor_num", "sum"))
         .reset_index()
         .sort_values("total_value", ascending=False)
@@ -132,13 +132,26 @@ def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
 
 def _bidding_gaps(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT numero, fornecedor, objeto, valcon, licitacao_numero, modali FROM contratos WHERE ano = ? AND empresa = ?",
+        "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes FROM contratos WHERE ano = ? AND empresa = ?",
         conn,
         params=(year, empresa_id),
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
     df["valor_num"] = _to_float(df["valcon"])
     return df[df["valor_num"] > DISPENSATION_THRESHOLD].drop(columns=["valor_num", "licitacao_numero"])
+
+
+def _splitting(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
+    df = pd.read_sql_query(
+        "SELECT ano, fornecedor, valcon, objeto, mes FROM contratos WHERE ano = ? AND empresa = ?",
+        conn,
+        params=(year, empresa_id),
+    )
+    df["valor_num"] = _to_float(df["valcon"])
+    lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
+    near = df[(df["valor_num"] >= lower) & (df["valor_num"] < THRESHOLD)]
+    counts = near.groupby("fornecedor").size()
+    return near[near["fornecedor"].isin(counts[counts >= 3].index)].copy()
 
 
 def _top_suppliers(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
@@ -155,19 +168,6 @@ def _top_suppliers(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
     shares = df["empenhado"] / total if total > 0 else df["empenhado"] * 0
     hhi = float((shares**2).sum() * 10000)
     return top10, hhi
-
-
-def _splitting(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
-    df = pd.read_sql_query(
-        "SELECT fornecedor, valcon, objeto FROM contratos WHERE ano = ? AND empresa = ?",
-        conn,
-        params=(year, empresa_id),
-    )
-    df["valor_num"] = _to_float(df["valcon"])
-    lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
-    near = df[(df["valor_num"] >= lower) & (df["valor_num"] < THRESHOLD)]
-    counts = near.groupby("fornecedor").size()
-    return near[near["fornecedor"].isin(counts[counts >= 3].index)].copy()
 
 
 def _transfers_to_health(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:

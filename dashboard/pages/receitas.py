@@ -43,7 +43,7 @@ if not df.empty:
             column_config={
                 "Previsto": st.column_config.NumberColumn(format="R$ %,.2f"),
             },
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
 
@@ -55,7 +55,7 @@ if not df.empty:
             title="Distribuição de Receitas (Previsão Atualizada)",
         )
         fig.update_traces(hovertemplate="%{label}: R$ %{value:,.2f}")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         if row["alerta_dependencia"]:
             st.warning("⚠️ Receita própria abaixo de 10% — alta dependência de repasses federais/estaduais.")
