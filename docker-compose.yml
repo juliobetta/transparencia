@@ -7,3 +7,8 @@ services:
     ports:
       - "8191:8191"
     restart: unless-stopped
+  app:
+    build: .
+    container_name: app
+    volumes:
+      - .:/app
