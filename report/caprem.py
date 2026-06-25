@@ -5,6 +5,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
+import glossary
 from analysis import caprem_story
 
 REPORTS_DIR = Path("reports")
@@ -18,7 +19,7 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("caprem_template.html")
 
-    html = template.render(year=year, **data)
+    html = template.render(year=year, portal_url=glossary.PORTAL_URL, **data)
 
     out = REPORTS_DIR / f"caprem-{year}.html"
     out.write_text(html, encoding="utf-8")
