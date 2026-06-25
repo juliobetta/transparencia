@@ -28,6 +28,21 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("saude_template.html")
 
+    # Pre-format emendas for template rendering
+    if not data["emendas"].empty:
+        emendas_df = data["emendas"].copy()
+        # Rename to match template expectations
+        emendas_df = emendas_df.rename(
+            columns={"Autor": "autor", "Ato Normativo": "ato_normativo", "Empenhado": "empenhado"}
+        )
+        emendas_df["valor_fmt"] = (
+            pd.to_numeric(emendas_df["Valor Autorizado"].astype(str).str.replace(",", "."), errors="coerce")
+            .fillna(0)
+            .map("{:,.0f}".format)
+        )
+    else:
+        emendas_df = data["emendas"]
+
     # Pre-format valcon for template rendering
     if not data["bidding_gaps"].empty:
         gaps = data["bidding_gaps"].copy()
@@ -60,14 +75,14 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
     else:
         adesao_df = data["adesao_de_ata_list"]
 
-    transfers_df = data["transfers_to_health"]
     html = template.render(
         year=year,
         last_extracted=last_extracted,
         portal_url=glossary.PORTAL_URL,
         emendas_total=data["emendas_total"],
-        emendas=data["emendas"].to_dict("records") if not data["emendas"].empty else [],
+        emendas=emendas_df.to_dict("records") if not emendas_df.empty else [],
         budget=data["budget"],
+        transfers_to_health_total=data["transfers_to_health_total"],
         execution_trend=data["execution_trend"].to_dict("records"),
         adesao_de_ata_count=data["adesao_de_ata_count"],
         adesao_de_ata_value=data["adesao_de_ata_value"],
@@ -77,8 +92,10 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
         splitting=splitting.to_dict("records") if not splitting.empty else [],
         hhi=data["hhi"],
         top_suppliers=data["top_suppliers"].to_dict("records") if not data["top_suppliers"].empty else [],
-        transfers_to_health=transfers_df.to_dict("records") if not transfers_df.empty else [],
-        transfers_to_health_total=data["transfers_to_health_total"],
+        top_suppliers_services=data["top_suppliers_services"].to_dict("records")
+        if not data["top_suppliers_services"].empty
+        else [],
+        bidding_gaps=gaps.to_dict("records") if not gaps.empty else [],
     )
 
     out = REPORTS_DIR / f"saude-{year}.html"

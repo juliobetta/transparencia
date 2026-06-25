@@ -43,7 +43,7 @@
     <tr>
       <td>{{ row.autor }}</td>
       <td>{{ row.ato_normativo }}</td>
-      <td>R$ {{ "{:,.0f}".format(row.valor) }}</td>
+      <td>R$ {{ row.valor_fmt }}</td>
       <td>{% if row.empenhado %}{{ "{:,.0f}".format(row.empenhado) }}{% endif %}</td>
     </tr>
     {% endfor %}
@@ -58,12 +58,18 @@
     <div class="metric"><div class="label">Dotação Atualizada (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.dotacao) }}</div></div>
     <div class="metric"><div class="label">Total Empenhado (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.empenhado) }}</div></div>
     <div class="metric"><div class="label">Taxa de Execução</div><div class="value">{{ "{:.1%}".format(budget.taxa_execucao) }}</div></div>
-    {% if transfers_to_health_total > 0 %}
-    <div class="metric"><div class="label">Total de repasses líquidos (Prefeitura → Saúde)</div><div class="value">R$ {{ "{:,.0f}".format(transfers_to_health_total) }}</div></div>
-    {% endif %}
   </div>
   {% if budget.flag_under_execution %}
   <div class="warning">⚠️ Taxa de execução abaixo de 70% ao final do ano {{ year }}.</div>
+  {% endif %}
+
+  <h3>Repasses da Prefeitura</h3>
+  {% if transfers_to_health_total > 0 %}
+  <div class="metrics-row">
+    <div class="metric"><div class="label">Total de repasses recebidos</div><div class="value">R$ {{ "{:,.0f}".format(transfers_to_health_total) }}</div></div>
+  </div>
+  {% else %}
+  <p>Sem repasses registrados para {{ year }}.</p>
   {% endif %}
 
   <h2>② O que foi gasto</h2>
@@ -137,6 +143,16 @@
     <tr><th>Fornecedor</th><th>Empenhado (R$)</th><th>%</th></tr>
     {% for row in top_suppliers %}
     <tr><td>{{ row.descricao }}</td><td>R$ {{ "{:,.0f}".format(row.empenhado) }}</td><td>{{ "{:.1f}%".format(row.percentual) }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <h3>Top Fornecedores e seus Objetos de Contrato</h3>
+  {% if top_suppliers_services %}
+  <table>
+    <tr><th>Fornecedor</th><th>Objeto / Serviço</th><th>Valor Contratado (R$)</th></tr>
+    {% for row in top_suppliers_services %}
+    <tr><td>{{ row.fornecedor }}</td><td>{{ row.objeto }}</td><td>R$ {{ "{:,.0f}".format(row.total) }}</td></tr>
     {% endfor %}
   </table>
   {% endif %}
