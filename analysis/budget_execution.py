@@ -16,9 +16,11 @@ def run(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
         axis=1,
     )
     df["alerta"] = df.apply(
-        lambda r: "N/D"
-        if r["empenhado"] == 0 and r["dotacao_atualizada"] == 0 and r["taxa_execucao"] == 0
-        else ("baixa" if r["taxa_execucao"] < 0.3 else ("excesso" if r["taxa_execucao"] > 1.0 else "normal")),
+        lambda r: (
+            "N/D"
+            if r["empenhado"] == 0 and r["dotacao_atualizada"] == 0 and r["taxa_execucao"] == 0
+            else ("baixa" if r["taxa_execucao"] < 0.3 else ("excesso" if r["taxa_execucao"] > 1.0 else "normal"))
+        ),
         axis=1,
     )
     return df
