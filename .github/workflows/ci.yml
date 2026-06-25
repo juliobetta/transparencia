@@ -9,17 +9,28 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      flaresolverr:
+        image: ghcr.io/flaresolverr/flaresolverr:latest
+        ports:
+          - 8191:8191
+        env:
+          LOG_LEVEL: info
     steps:
       - uses: actions/checkout@v4
 
-      - name: Start containers
-        run: docker compose up -d --build
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
-      - name: Wait for services
-        run: sleep 10
+      - name: Install dependencies
+        run: pip install uv && uv sync
 
       - name: Run linting
-        run: docker compose exec -T app make check
+        run: uv run make check
 
       - name: Run tests
-        run: docker compose exec -T app make test
+        run: uv run make test
+        env:
+          FLARESOLVERR_URL: http://localhost:8191/v1
