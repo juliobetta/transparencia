@@ -1,6 +1,8 @@
 import sqlite3
-import pytest
+
 import pandas as pd
+import pytest
+
 from analysis.caprem_story import run
 
 
@@ -24,4 +26,3 @@ def test_run_returns_expected_structure(conn):
     assert isinstance(result["despesas"], pd.DataFrame)
     assert result["transfers_by_type"] == []
     assert result["budget"] == {"dotacao": 0, "empenhado": 0, "taxa_execucao": 0}
-
