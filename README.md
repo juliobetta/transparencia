@@ -1,5 +1,7 @@
 # Transparencia
 
+[![CI](https://github.com/juliobetta/transparencia/actions/workflows/ci.yml/badge.svg)](https://github.com/juliobetta/transparencia/actions/workflows/ci.yml)
+
 Transparencia é uma ferramenta abrangente para coletar, analisar e visualizar dados de transparência pública. Ela agiliza o processo desde a ingestão dos dados até a geração de relatórios e a exploração em um dashboard interativo.
 
 ## Funcionalidades
