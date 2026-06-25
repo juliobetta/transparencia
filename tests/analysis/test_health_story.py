@@ -137,6 +137,7 @@ def conn():
                 "empenhado": "200000",
                 "licitacao_numero": "L001",
                 "modali": "PREGÃO ELETRÔNICO",
+                "mes": "01",
             },
             {
                 "ano": 2023,
@@ -149,6 +150,7 @@ def conn():
                 "empenhado": "100000",
                 "licitacao_numero": "",
                 "modali": "DISPENSA",
+                "mes": "02",
             },
             {
                 "ano": 2023,
@@ -161,6 +163,7 @@ def conn():
                 "empenhado": "150000",
                 "licitacao_numero": "L002",
                 "modali": "PREGÃO ELETRÔNICO",
+                "mes": "03",
             },
             {
                 "ano": 2023,
@@ -173,6 +176,7 @@ def conn():
                 "empenhado": "500000",
                 "licitacao_numero": "L003",
                 "modali": "PREGÃO PRESENCIAL",
+                "mes": "04",
             },
         ],
         ["ano", "empresa", "numero"],
@@ -263,11 +267,8 @@ def test_adesao_de_ata_detected(conn):
     # Debugging
     rows = conn.execute("SELECT * FROM licitacoes WHERE ano = 2023").fetchall()
     for r in rows:
-        print(
-            f"DEBUG: licitacoes row: {dict(zip([col[0] for col in conn.execute('PRAGMA table_info(licitacoes)').fetchall()], r))}"
-        )
+        print()
     result = run(conn, 2023)
-    print(f"DEBUG: Result from run: {result}")
     assert result["adesao_de_ata_count"] == 1
     assert result["adesao_de_ata_value"] == 150_000.0
 
