@@ -5,6 +5,10 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent / "data" / "transparencia.db"
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS empresas (
+    id INTEGER PRIMARY KEY,
+    nome TEXT
+);
 CREATE TABLE IF NOT EXISTS metadata (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -85,7 +89,7 @@ CREATE TABLE IF NOT EXISTS licitacoes (
 CREATE TABLE IF NOT EXISTS contratos (
     ano INTEGER, empresa TEXT, numero TEXT, fornecedor TEXT,
     objeto TEXT, valor TEXT, data_inicio TEXT, data_fim TEXT,
-    licitacao_numero TEXT, modali TEXT, valcon TEXT, empenhado TEXT,
+    licitacao_numero TEXT, modali TEXT, valcon TEXT, empenhado TEXT, mes TEXT,
     PRIMARY KEY (ano, empresa, numero)
 );
 CREATE TABLE IF NOT EXISTS transferencias (

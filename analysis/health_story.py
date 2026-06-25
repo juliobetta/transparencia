@@ -96,7 +96,7 @@ def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str)
     df["modality"] = df["modali"].fillna("").str.strip()
     df["modality"] = df["modality"].where(df["modality"] != "", "Sem Informação")
     return (
-        df.groupby(["modality", "mes"])  # Include mes in grouping if needed, or just keep it
+        df.groupby(["modality"])  # Group by modality only
         .agg(count=("modality", "size"), total_value=("valor_num", "sum"))
         .reset_index()
         .sort_values("total_value", ascending=False)
