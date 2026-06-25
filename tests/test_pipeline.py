@@ -39,7 +39,7 @@ def test_run_upserts_data_for_all_entities(mem_conn):
                 return rows
         return []
 
-    with patch("pipeline.fetch", side_effect=fake_fetch):
+    with patch("extractors.base.fetch", side_effect=fake_fetch):
         pipeline.run(years=[2025])
 
     cur = mem_conn.execute("SELECT COUNT(*) FROM despesas_por_orgao WHERE ano=2025")
@@ -54,7 +54,7 @@ def test_run_logs_and_skips_on_fetch_error(mem_conn, caplog):  # noqa: ARG001
             raise RuntimeError("timeout")
         return []
 
-    with patch("pipeline.fetch", side_effect=bad_fetch):
+    with patch("extractors.base.fetch", side_effect=bad_fetch):
         with caplog.at_level(logging.WARNING):
             pipeline.run(years=[2025])
 
