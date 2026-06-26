@@ -24,8 +24,11 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Install PostgreSQL
+        run: sudo apt-get install -y postgresql postgresql-client
+
       - name: Install dependencies
-        run: pip install uv && uv sync
+        run: pip install uv && uv sync --all-groups
 
       - name: Run linting
         run: uv run make check
@@ -34,3 +37,22 @@ jobs:
         run: uv run make test
         env:
           FLARESOLVERR_URL: http://localhost:8191/v1
+
+  migrate:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install uv && uv sync
+
+      - name: Run migrations
+        run: make migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

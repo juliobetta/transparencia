@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 
 import db
@@ -7,11 +5,7 @@ from analysis.contract_anomalies import run
 
 
 @pytest.fixture
-def conn():
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
-    # splitting pattern: 4 contracts just below 57k from same supplier
+def conn(conn):
     contratos = [
         {
             "ano": 2025,
@@ -26,9 +20,8 @@ def conn():
         }
         for i in range(1, 5)
     ]
-    db.upsert(c, "contratos", contratos, ["ano", "empresa", "numero"])
-    yield c
-    c.close()
+    db.upsert(conn, "contratos", contratos, ["ano", "empresa", "numero"])
+    return conn
 
 
 def test_splitting_detects_pattern(conn):

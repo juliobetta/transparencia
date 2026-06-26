@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import get_conn, render_sidebar
+from sqlalchemy import text
 
 import glossary
 from analysis import payroll_vs_services
@@ -33,7 +34,7 @@ if not df.empty:
 
 # Granular Salary Analysis
 st.subheader("Distribuição de Remuneração")
-df_pessoal = pd.read_sql_query("SELECT remuneracao FROM pessoal WHERE ano = ?", conn, params=(year,))
+df_pessoal = pd.read_sql_query(text("SELECT remuneracao FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
 df_pessoal["remuneracao"] = pd.to_numeric(df_pessoal["remuneracao"].str.replace(",", "."), errors="coerce").fillna(0)
 
 if not df_pessoal.empty:

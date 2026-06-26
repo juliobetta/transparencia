@@ -1,5 +1,3 @@
-import sqlite3
-
 import pandas as pd
 import pytest
 
@@ -8,51 +6,51 @@ from analysis.budget_execution import run
 
 
 @pytest.fixture
-def conn():
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
-    rows = [
-        {
-            "ano": 2025,
-            "empresa": "7",
-            "codigo": "01",
-            "descricao": "SAUDE",
-            "empenhado": "100000",
-            "liquidado": "90000",
-            "pago": "80000",
-            "dotac": "500000",
-            "altdo": "0",
-            "dotacao_atualizada": "500000",
-        },
-        {
-            "ano": 2025,
-            "empresa": "7",
-            "codigo": "02",
-            "descricao": "EDUCACAO",
-            "empenhado": "600000",
-            "liquidado": "600000",
-            "pago": "600000",
-            "dotac": "500000",
-            "altdo": "0",
-            "dotacao_atualizada": "500000",
-        },
-        {
-            "ano": 2025,
-            "empresa": "7",
-            "codigo": "03",
-            "descricao": "CULTURA",
-            "empenhado": "250000",
-            "liquidado": "200000",
-            "pago": "200000",
-            "dotac": "500000",
-            "altdo": "0",
-            "dotacao_atualizada": "500000",
-        },
-    ]
-    db.upsert(c, "despesas_por_orgao", rows, ["ano", "empresa", "codigo"])
-    yield c
-    c.close()
+def conn(conn):
+    db.upsert(
+        conn,
+        "despesas_por_orgao",
+        [
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "codigo": "01",
+                "descricao": "SAUDE",
+                "empenhado": "100000",
+                "liquidado": "90000",
+                "pago": "80000",
+                "dotac": "500000",
+                "altdo": "0",
+                "dotacao_atualizada": "500000",
+            },
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "codigo": "02",
+                "descricao": "EDUCACAO",
+                "empenhado": "600000",
+                "liquidado": "600000",
+                "pago": "600000",
+                "dotac": "500000",
+                "altdo": "0",
+                "dotacao_atualizada": "500000",
+            },
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "codigo": "03",
+                "descricao": "CULTURA",
+                "empenhado": "250000",
+                "liquidado": "200000",
+                "pago": "200000",
+                "dotac": "500000",
+                "altdo": "0",
+                "dotacao_atualizada": "500000",
+            },
+        ],
+        ["ano", "empresa", "codigo"],
+    )
+    return conn
 
 
 def test_returns_dataframe_with_expected_columns(conn):

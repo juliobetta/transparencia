@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 
 import db
@@ -7,13 +5,10 @@ from analysis.yoy_trends import run
 
 
 @pytest.fixture
-def conn():
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
+def conn(conn):
     for year, pago in [(2023, "800000"), (2024, "1000000")]:
         db.upsert(
-            c,
+            conn,
             "despesas_por_orgao",
             [
                 {
@@ -27,12 +22,11 @@ def conn():
                     "dotac": pago,
                     "altdo": "0",
                     "dotacao_atualizada": pago,
-                }
+                },
             ],
             ["ano", "empresa", "codigo"],
         )
-    yield c
-    c.close()
+    return conn
 
 
 def test_returns_expected_columns(conn):

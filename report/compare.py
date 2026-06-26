@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -17,7 +16,7 @@ REPORTS_DIR = Path(__file__).parent.parent / "reports"
 TEMPLATE_DIR = Path(__file__).parent
 
 
-def generate(conn: sqlite3.Connection, spec_a: PeriodSpec, spec_b: PeriodSpec) -> Path:
+def generate(conn, spec_a: PeriodSpec, spec_b: PeriodSpec) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
     result = run(conn, spec_a, spec_b)
     _raw = db.get_metadata(conn, "last_extracted_at")
@@ -53,10 +52,6 @@ if __name__ == "__main__":
     spec_a = PeriodSpec(year=int(args[0]), month_start=int(args[1]), month_end=int(args[2]))
     spec_b = PeriodSpec(year=int(args[3]), month_start=int(args[4]), month_end=int(args[5]))
 
-    conn = db.get_connection()
-    db.create_tables(conn)
-    try:
-        path = generate(conn, spec_a, spec_b)
-        print(f"Report written to {path}")
-    finally:
-        conn.close()
+    engine = db.get_engine()
+    path = generate(engine, spec_a, spec_b)
+    print(f"Report written to {path}")

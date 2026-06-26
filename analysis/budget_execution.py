@@ -1,13 +1,16 @@
-import sqlite3
+from typing import Any
 
 import pandas as pd
+from sqlalchemy import text
 
 
-def run(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
+def run(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT ano, empresa, codigo, descricao, empenhado, dotacao_atualizada FROM despesas_por_orgao WHERE ano = ?",
+        text(
+            "SELECT ano, empresa, codigo, descricao, empenhado, dotacao_atualizada FROM despesas_por_orgao WHERE ano = :ano"
+        ),
         conn,
-        params=(year,),
+        params={"ano": year},
     )
     df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
     df["dotacao_atualizada"] = pd.to_numeric(df["dotacao_atualizada"].str.replace(",", "."), errors="coerce").fillna(0)

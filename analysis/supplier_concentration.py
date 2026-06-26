@@ -1,11 +1,14 @@
-import sqlite3
+from typing import Any
 
 import pandas as pd
+from sqlalchemy import text
 
 
-def run(conn: sqlite3.Connection, year: int) -> dict:
+def run(conn: Any, year: int) -> dict:
     df = pd.read_sql_query(
-        "SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = ?", conn, params=(year,)
+        text("SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = :ano"),
+        conn,
+        params={"ano": year},
     )
     df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
     df = df.groupby(["codigo", "descricao"], as_index=False)["empenhado"].sum()

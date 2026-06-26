@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 
 import db
@@ -9,48 +7,48 @@ SAUDE_EMPRESA = "2"
 
 
 @pytest.fixture
-def conn():
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
-    contratos = [
-        {
-            "ano": 2025,
-            "empresa": SAUDE_EMPRESA,
-            "numero": "001",
-            "fornecedor": "ALFA LTDA",
-            "objeto": "REMÉDIOS",
-            "valor": "200000",
-            "data_inicio": "2025-01-01",
-            "data_fim": "2025-12-31",
-            "licitacao_numero": "",
-        },
-        {
-            "ano": 2025,
-            "empresa": SAUDE_EMPRESA,
-            "numero": "002",
-            "fornecedor": "BETA ME",
-            "objeto": "MATERIAL",
-            "valor": "10000",
-            "data_inicio": "2025-01-01",
-            "data_fim": "2025-12-31",
-            "licitacao_numero": "",
-        },
-        {
-            "ano": 2025,
-            "empresa": "7",
-            "numero": "003",
-            "fornecedor": "GAMA SA",
-            "objeto": "OBRA",
-            "valor": "500000",
-            "data_inicio": "2025-01-01",
-            "data_fim": "2025-12-31",
-            "licitacao_numero": "LC-001",
-        },
-    ]
-    db.upsert(c, "contratos", contratos, ["ano", "empresa", "numero"])
-    yield c
-    c.close()
+def conn(conn):
+    db.upsert(
+        conn,
+        "contratos",
+        [
+            {
+                "ano": 2025,
+                "empresa": SAUDE_EMPRESA,
+                "numero": "001",
+                "fornecedor": "ALFA LTDA",
+                "objeto": "REMÉDIOS",
+                "valor": "200000",
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-12-31",
+                "licitacao_numero": "",
+            },
+            {
+                "ano": 2025,
+                "empresa": SAUDE_EMPRESA,
+                "numero": "002",
+                "fornecedor": "BETA ME",
+                "objeto": "MATERIAL",
+                "valor": "10000",
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-12-31",
+                "licitacao_numero": "",
+            },
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "numero": "003",
+                "fornecedor": "GAMA SA",
+                "objeto": "OBRA",
+                "valor": "500000",
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-12-31",
+                "licitacao_numero": "LC-001",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    return conn
 
 
 def test_excludes_contracts_with_licitacao(conn):
