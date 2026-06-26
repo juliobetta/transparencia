@@ -10,7 +10,7 @@ def _sum_arrecadado(conn: sqlite3.Connection, table: str, year: int) -> float:
         total = (
             pd.to_numeric(df["previsao_atualizada"].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
         )
-    return total
+    return float(total)
 
 
 def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:

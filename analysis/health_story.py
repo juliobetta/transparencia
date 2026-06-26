@@ -91,12 +91,13 @@ def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str)
         params=(year, empresa_id),
     )
     if df.empty:
-        return pd.DataFrame(columns=["modality", "count", "total_value"])
+        return pd.DataFrame(columns=["modality", "count", "total_value", "periodo"])
     df["valor_num"] = _to_float(df["valcon"])
     df["modality"] = df["modali"].fillna("").str.strip()
     df["modality"] = df["modality"].where(df["modality"] != "", "Sem Informação")
+    df["periodo"] = df["mes"].astype(str).str.zfill(2) + "/" + str(year)
     return (
-        df.groupby(["modality"])  # Group by modality only
+        df.groupby(["modality", "periodo"])  # Group by modality and periodo
         .agg(count=("modality", "size"), total_value=("valor_num", "sum"))
         .reset_index()
         .sort_values("total_value", ascending=False)

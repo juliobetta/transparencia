@@ -5,7 +5,8 @@ import pandas as pd
 
 def _sum_col(conn: sqlite3.Connection, table: str, col: str, year: int) -> float:
     df = pd.read_sql_query(f"SELECT {col} FROM {table} WHERE ano = ?", conn, params=(year,))
-    return pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
+    result = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
+    return float(result)
 
 
 def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:
