@@ -26,16 +26,14 @@ def render_sidebar() -> int:
     if "sidebar_year" not in st.session_state:
         st.session_state["sidebar_year"] = YEARS[len(YEARS) - 2]
 
-    def update_year():
-        st.session_state["sidebar_year"] = st.session_state["sidebar_year_selector"]
-
-    st.sidebar.selectbox(
+    selected_year = st.sidebar.selectbox(
         "Ano",
         YEARS,
         key="sidebar_year_selector",
         index=YEARS.index(st.session_state["sidebar_year"]),
-        on_change=update_year,
     )
+    st.session_state["sidebar_year"] = selected_year
+
     _last_extracted = db.get_metadata(conn, "last_extracted_at")
 
     if _last_extracted:
@@ -44,7 +42,7 @@ def render_sidebar() -> int:
     st.sidebar.caption(
         f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
     )
-    return st.session_state["sidebar_year"]
+    return int(st.session_state["sidebar_year"])
 
 
 def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
