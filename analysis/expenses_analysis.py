@@ -34,7 +34,7 @@ def get_expenses_by_unit(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
         params=(year,),
     )
     if df.empty:
-        return pd.DataFrame(columns=["codigo", "descricao", "empenhado", "liquidado", "pago", "dotacao_atualizada"])
+        return pd.DataFrame(columns=["descricao", "empenhado", "liquidado", "pago", "dotacao_atualizada"])
 
     df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
     df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
@@ -122,6 +122,7 @@ def get_top_diarias_beneficiaries(conn: sqlite3.Connection, year: int) -> pd.Dat
 
 def get_searchable_transactions(conn: sqlite3.Connection, year: int, query: str, limit: int = 500) -> pd.DataFrame:
     # Perform substring search across columns
+    params: tuple[int | str, ...]
     if query.strip():
         sql = """
             SELECT datae as data, nomefor as fornecedor, pago, nomeunidade as unidade, produ as descricao
