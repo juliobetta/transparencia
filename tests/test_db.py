@@ -1,5 +1,7 @@
 import sqlite3
+
 import pytest
+
 import db
 
 
@@ -22,9 +24,18 @@ def test_create_tables_creates_despesas_por_orgao(conn):
 
 def test_upsert_inserts_rows(conn):
     rows = [
-        {"ano": 2025, "empresa": "7", "codigo": "01", "descricao": "SAUDE",
-         "empenhado": "1000", "liquidado": "900", "pago": "800",
-         "dotac": "2000", "altdo": "0", "dotacao_atualizada": "2000"},
+        {
+            "ano": 2025,
+            "empresa": "7",
+            "codigo": "01",
+            "descricao": "SAUDE",
+            "empenhado": "1000",
+            "liquidado": "900",
+            "pago": "800",
+            "dotac": "2000",
+            "altdo": "0",
+            "dotacao_atualizada": "2000",
+        },
     ]
     count = db.upsert(conn, "despesas_por_orgao", rows, key_cols=["ano", "empresa", "codigo"])
     assert count == 1
@@ -33,9 +44,18 @@ def test_upsert_inserts_rows(conn):
 
 
 def test_upsert_replaces_on_conflict(conn):
-    row = {"ano": 2025, "empresa": "7", "codigo": "01", "descricao": "SAUDE",
-           "empenhado": "1000", "liquidado": "900", "pago": "800",
-           "dotac": "2000", "altdo": "0", "dotacao_atualizada": "2000"}
+    row = {
+        "ano": 2025,
+        "empresa": "7",
+        "codigo": "01",
+        "descricao": "SAUDE",
+        "empenhado": "1000",
+        "liquidado": "900",
+        "pago": "800",
+        "dotac": "2000",
+        "altdo": "0",
+        "dotacao_atualizada": "2000",
+    }
     db.upsert(conn, "despesas_por_orgao", [row], key_cols=["ano", "empresa", "codigo"])
     row["empenhado"] = "1500"
     db.upsert(conn, "despesas_por_orgao", [row], key_cols=["ano", "empresa", "codigo"])
