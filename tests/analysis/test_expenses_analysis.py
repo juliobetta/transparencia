@@ -125,7 +125,7 @@ def conn():
                 "datae": "01/01/2026",
                 "nomefor": "Fornecedor X",
                 "pago": "5000",
-                "nomeunidade": "Saude",
+                "nomeempresa": "Saude",
                 "produ": "compra de ambulancia",
             },
             {
@@ -135,7 +135,7 @@ def conn():
                 "datae": "02/01/2026",
                 "nomefor": "Fornecedor Y",
                 "pago": "12000",
-                "nomeunidade": "Educacao",
+                "nomeempresa": "Educacao",
                 "produ": "merenda escolar",
             },
         ],

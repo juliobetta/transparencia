@@ -125,9 +125,9 @@ def get_searchable_transactions(conn: sqlite3.Connection, year: int, query: str,
     params: tuple[int | str, ...]
     if query.strip():
         sql = """
-            SELECT datae as data, nomefor as fornecedor, pago, nomeunidade as unidade, produ as descricao
+            SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
             FROM despesas_gerais
-            WHERE ano = ? AND (nomefor LIKE ? OR produ LIKE ? OR nomeunidade LIKE ?)
+            WHERE ano = ? AND (nomefor LIKE ? OR produ LIKE ? OR nomeempresa LIKE ?)
             ORDER BY CAST(pago AS REAL) DESC
             LIMIT ?
         """
@@ -135,7 +135,7 @@ def get_searchable_transactions(conn: sqlite3.Connection, year: int, query: str,
         params = (year, param, param, param, limit)
     else:
         sql = """
-            SELECT datae as data, nomefor as fornecedor, pago, nomeunidade as unidade, produ as descricao
+            SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
             FROM despesas_gerais
             WHERE ano = ?
             ORDER BY CAST(pago AS REAL) DESC
