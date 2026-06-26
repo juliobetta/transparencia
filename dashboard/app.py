@@ -13,6 +13,7 @@ pages = [
     st.Page("pages/saude.py", title="Narrativa: Saúde"),
     st.Page("pages/caprem.py", title="Narrativa: CAPREM"),
     st.Page("pages/orcamento.py", title="Execução Orçamentária"),
+    st.Page("pages/despesas.py", title="Despesas Detalhadas"),
     st.Page("pages/fornecedores.py", title="Fornecedores"),
     st.Page("pages/licitacoes.py", title="Licitações e Contratos"),
     st.Page("pages/receitas.py", title="Receitas"),

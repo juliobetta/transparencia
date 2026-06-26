@@ -13,7 +13,6 @@ from analysis import (
     budget_execution,
     payroll_vs_services,
     revenue_sources,
-    supplier_concentration,
     yoy_trends,
 )
 
@@ -25,22 +24,31 @@ st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL
 st.header("Visão Geral")
 
 budget = budget_execution.run(conn, year)
-supplier_result = supplier_concentration.run(conn, year)
 bidding = bidding_gaps.run(conn, year)
 revenue = revenue_sources.run(conn, [year])
 payroll = payroll_vs_services.run(conn, [year])
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Total empenhado", fmt_currency(budget["empenhado"].sum()), help=glossary.tooltip("Empenho"))
+
+# Expense Paid as actual total gasto
+total_gasto_pago = budget["pago"].sum() if "pago" in budget.columns else budget["empenhado"].sum()
+c1.metric("Total Pago (Despesas)", fmt_currency(total_gasto_pago), help="Valor total liquidado e pago.")
+
 c2.metric(
     "Contratos sem licitação",
     int((bidding["licitacao_numero"].fillna("").str.strip() == "").sum()),
     help=glossary.tooltip("Licitação"),
 )
+
 if not revenue.empty:
-    c3.metric("Receita própria", fmt_percent(revenue.iloc[0]["pct_propria"]), help=glossary.tooltip("Receita Própria"))
+    row = revenue.iloc[0]
+    if year == 2026:
+        c3.metric("Receita Arrecadada", fmt_currency(row["total_arrecadado"]), help="Total efetivamente arrecadado.")
+    else:
+        c3.metric("Receita Prevista", fmt_currency(row["total_previsto"]), help="Previsão orçamentária do ano.")
+
 if not payroll.empty:
-    c4.metric("Folha / gastos totais", fmt_percent(payroll.iloc[0]["percentual_folha"]))
+    c4.metric("Folha / Gastos Totais", fmt_percent(payroll.iloc[0]["percentual_folha"]))
 
 st.subheader("Tendências Ano a Ano")
 yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
@@ -48,23 +56,23 @@ st.dataframe(
     yoy.rename(
         columns={
             "ano": "Ano",
-            "total_gasto": "Total Gasto",
+            "total_gasto": "Total Pago",
             "total_folha": "Total Folha",
             "total_receita": "Total Receita",
-            "restos_a_pagar": "Restos a Pagar",
+            "restos_a_pagar": "Restos Pago",
             "total_gasto_pct_change": "Δ% Gasto",
             "total_folha_pct_change": "Δ% Folha",
             "total_receita_pct_change": "Δ% Receita",
             "restos_a_pagar_pct_change": "Δ% Restos",
         }
     ),
-    width="stretch",
+    use_container_width=True,
     hide_index=True,
     column_config={
-        "Total Gasto": st.column_config.NumberColumn(format="R$ %,.2f"),
+        "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
         "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),
         "Total Receita": st.column_config.NumberColumn(format="R$ %,.2f"),
-        "Restos a Pagar": st.column_config.NumberColumn(format="R$ %,.2f"),
+        "Restos Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
         "Δ% Gasto": st.column_config.NumberColumn(format="%.2f%%"),
         "Δ% Folha": st.column_config.NumberColumn(format="%.2f%%"),
         "Δ% Receita": st.column_config.NumberColumn(format="%.2f%%"),
