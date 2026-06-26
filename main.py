@@ -5,8 +5,10 @@ Requires FlareSolverr running locally:
 Then run:
     uv run python main.py
 """
+
 import json
 from urllib.parse import urlencode
+
 import requests
 
 FLARESOLVERR_URL = "http://localhost:8191/v1"
@@ -14,13 +16,13 @@ BASE_URL = "https://transparencia.porciuncula.rj.gov.br/Transparencia/VersaoJson
 
 PARAMS = {
     "ConectarExercicio": "2025",
-    "Listagem": "DespesasPorOrgao",
+    "Listagem": "DespesasPorUnidade",
     "DiaInicioPeriodo": "01",
     "MesInicialPeriodo": "01",
     "DiaFinalPeriodo": "31",
     "MesFinalPeriodo": "12",
     "Ano": "2025",
-    "Empresa": "7",
+    "Empresa": "8",
     "MostraDadosConsolidado": "False",
 }
 
