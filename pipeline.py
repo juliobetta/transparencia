@@ -2,12 +2,16 @@ import csv
 import json
 import logging
 import re
-import sqlite3
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, cast
 
-from db import create_tables, get_connection, set_metadata, upsert
+from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.engine import Engine
+from sqlmodel import SQLModel
+
+from db import create_tables, get_engine, set_metadata, upsert
 from extractors.extractors import ENDPOINT_CONFIGS
 
 START_YEAR = 2022
@@ -45,7 +49,6 @@ class PipelineHelper:
     @staticmethod
     def extract_month(row: dict) -> str | None:
         """Attempts to parse and extract a standardized two-digit month string from a data row."""
-        # Check date fields
         for field in ["dtassi", "datae", "dtpublic", "dataadmissao"]:
             if field in row and row[field]:
                 try:
@@ -53,9 +56,7 @@ class PipelineHelper:
                 except ValueError:
                     continue
 
-        # Check reference name
         if "referencia_nome" in row and row["referencia_nome"]:
-            # Format: "Folha Mensal - Dezembro"
             parts = row["referencia_nome"].split(" - ")
             if len(parts) > 1:
                 mes = parts[1].strip()
@@ -78,7 +79,6 @@ class PipelineHelper:
             if post_process:
                 normalised = post_process(normalised)
 
-            # Add month extraction
             mes = cls.extract_month(normalised)
             if mes:
                 normalised["mes"] = mes
@@ -87,20 +87,29 @@ class PipelineHelper:
         return out
 
 
+def _insert_entities(engine: Engine, entities: dict[int, str]) -> None:
+    table = SQLModel.metadata.tables["empresas"]
+    with engine.connect() as conn:
+        for eid, ename in entities.items():
+            stmt = pg_insert(table).values(id=eid, nome=ename).on_conflict_do_nothing()
+            conn.execute(stmt)
+        conn.commit()
+
+
 class DatabaseLoader:
-    """Manages loading standard schemas and raw JSON datasets into the SQLite database."""
+    """Manages loading standard schemas and raw JSON datasets into the PostgreSQL database."""
 
     @staticmethod
-    def get_entities(conn: sqlite3.Connection) -> dict[int, str]:
-        """Retrieves mapped corporate/fund entities from the active connection."""
-        rows = conn.execute("SELECT id, nome FROM empresas").fetchall()
-        return {row["id"]: row["nome"] for row in rows}
+    def get_entities(engine: Engine) -> dict[int, str]:
+        """Retrieves mapped corporate/fund entities from the database."""
+        with engine.connect() as conn:
+            rows = conn.execute(text("SELECT id, nome FROM empresas")).fetchall()
+        return {row[0]: row[1] for row in rows}
 
     @classmethod
     def load_from_dir(cls, dir_path: str | None) -> None:
-        """Loads extracted JSON files from a specific raw run directory into the SQLite database."""
+        """Loads extracted JSON files from a specific raw run directory into the database."""
         if not dir_path:
-            # Fallback to loading from the most recent run directory if none is specified
             run_dirs = list(Path("data/raw_runs").iterdir())
             if not run_dirs:
                 raise ValueError("No raw run directories found under data/raw_runs")
@@ -110,8 +119,8 @@ class DatabaseLoader:
         if not run_dir.exists():
             raise ValueError(f"Directory {dir_path} does not exist.")
 
-        conn = get_connection()
-        create_tables(conn)
+        engine = get_engine()
+        create_tables(engine)
 
         for json_file in run_dir.rglob("*.json"):
             table = json_file.parent.name
@@ -129,7 +138,7 @@ class DatabaseLoader:
 
             rows = json.loads(json_file.read_text(encoding="utf-8"))
             normalised = PipelineHelper.normalize(rows, year, str(empresa_id), post_process)
-            count = upsert(conn, table, normalised, key_cols)  # type: ignore
+            count = upsert(engine, table, normalised, key_cols)  # type: ignore
             logger.info("Loaded %s / %s / %d → %d rows", table, empresa_id, year, count)
 
         logger.info("Loading complete.")
@@ -163,8 +172,8 @@ class DataExtractor:
         run_dir = Path(f"data/raw_runs/{timestamp}")
         run_dir.mkdir(parents=True, exist_ok=True)
 
-        conn = get_connection()
-        entities = DatabaseLoader.get_entities(conn)
+        engine = get_engine()
+        entities = DatabaseLoader.get_entities(engine)
 
         endpoints = ENDPOINT_CONFIGS
         if only:
@@ -213,20 +222,20 @@ class PipelineRunner:
         if years is None:
             years = list(range(START_YEAR, date.today().year + 1))
 
-        conn = get_connection()
-        create_tables(conn)
+        engine = get_engine()
+        create_tables(engine)
 
-        # Ensure entities are populated
-        for eid, ename in {
-            10: "FUNDO DE SOLIDARIEDADE - FUNDESOL",
-            3: "FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL",
-            9: "FUNDO MUNICIPAL DE DEFESA AMBIENTAL",
-            8: "FUNDO MUNICIPAL DE EDUCAÇÃO",
-            2: "FUNDO MUNICIPAL DE SAUDE",
-            7: "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
-        }.items():
-            conn.execute("INSERT OR IGNORE INTO empresas (id, nome) VALUES (?, ?)", (eid, ename))
-        conn.commit()
+        _insert_entities(
+            engine,
+            {
+                10: "FUNDO DE SOLIDARIEDADE - FUNDESOL",
+                3: "FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL",
+                9: "FUNDO MUNICIPAL DE DEFESA AMBIENTAL",
+                8: "FUNDO MUNICIPAL DE EDUCAÇÃO",
+                2: "FUNDO MUNICIPAL DE SAUDE",
+                7: "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
+            },
+        )
 
         valid = [e[1] for e in ENDPOINT_CONFIGS]
 
@@ -240,7 +249,7 @@ class PipelineRunner:
                 failed_tasks = list(reader)
 
             FAILED_REQUESTS_FILE.unlink()
-            entity_name_to_id = {v: k for k, v in DatabaseLoader.get_entities(conn).items()}
+            entity_name_to_id = {v: k for k, v in DatabaseLoader.get_entities(engine).items()}
 
             for task in failed_tasks:
                 config = next((c for c in ENDPOINT_CONFIGS if c[1] == task["listagem"]), None)
@@ -269,7 +278,7 @@ class PipelineRunner:
                     raw_path.parent.mkdir(parents=True, exist_ok=True)
                     raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
                     normalised = PipelineHelper.normalize(rows, int(task["year"]), str(empresa_id), post_process)
-                    count = upsert(conn, str(table), normalised, key_cols)  # type: ignore
+                    count = upsert(engine, str(table), normalised, key_cols)  # type: ignore
                     logger.info(
                         "Retry successful: %s / %s / %s → %d rows", listagem, task["empresa"], task["year"], count
                     )
@@ -289,7 +298,7 @@ class PipelineRunner:
             idx = next(i for i, e in enumerate(ENDPOINT_CONFIGS) if e[1] == start_from)
             endpoints = ENDPOINT_CONFIGS[idx:]
 
-        entities = DatabaseLoader.get_entities(conn)
+        entities = DatabaseLoader.get_entities(engine)
         total = sum(len(entities) * len(years) for _ in endpoints)
         done = 0
 
@@ -305,7 +314,7 @@ class PipelineRunner:
 
             extractor = DataExtractor.get_extractor(path, listagem, table, key_cols, extra, post_process, extractor_cls)
 
-            entities = DatabaseLoader.get_entities(conn)
+            entities = DatabaseLoader.get_entities(engine)
             for empresa_id, empresa_name in entities.items():
                 for year in years:
                     raw_path = RAW_DIR / str(table) / f"{empresa_id}_{year}.json"
@@ -322,7 +331,7 @@ class PipelineRunner:
                             raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
 
                         normalised = PipelineHelper.normalize(rows, year, str(empresa_id), post_process)
-                        count = upsert(conn, str(table), normalised, key_cols)  # type: ignore
+                        count = upsert(engine, str(table), normalised, key_cols)  # type: ignore
                         logger.info(
                             "[%d/%d] %s / %s / %d → %d rows", done + 1, total, listagem, empresa_name, year, count
                         )
@@ -331,7 +340,7 @@ class PipelineRunner:
                         DataExtractor.log_failed_request(listagem, empresa_name, year, exc)
                     done += 1
 
-        set_metadata(conn, "last_extracted_at", date.today().isoformat())
+        set_metadata(engine, "last_extracted_at", date.today().isoformat())
         logger.info("Pipeline complete.")
 
 

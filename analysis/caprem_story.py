@@ -1,23 +1,19 @@
-import sqlite3
+from typing import Any
 
 import pandas as pd
+from sqlalchemy import text
 
-# The code "1061" identifies CAPREM payments across various entities.
 CAPREM_CODE = "1061"
 
 
-def run(conn: sqlite3.Connection, year: int):
-    # Fetch CAPREM expenses using the unique code
-    # We might not have 'mes' here based on table_info.
-    # If not, we can't show 'Período'.
+def run(conn: Any, year: int):
     df = pd.read_sql_query(
-        "SELECT * FROM despesas_por_fornecedor WHERE codigo = ? AND ano = ?",
+        text("SELECT * FROM despesas_por_fornecedor WHERE codigo = :codigo AND ano = :ano"),
         conn,
-        params=(CAPREM_CODE, year),
+        params={"codigo": CAPREM_CODE, "ano": year},
     )
 
     if not df.empty:
-        # Convert numeric columns
         for col in ["empenhado", "liquidado", "pago"]:
             df[col] = pd.to_numeric(df[col].str.replace(",", "."), errors="coerce").fillna(0)
 

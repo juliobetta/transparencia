@@ -122,7 +122,11 @@ c1.metric(
     data["adesao_de_ata_count"],
     help=glossary.tooltip("Adesão de Ata (Carona)"),
 )
-c2.metric("Qtd. de Contratos Vinculados", int(data["adesao_de_ata_list"]["has_contract"].sum()))
+adesao_df = data["adesao_de_ata_list"]
+c2.metric(
+    "Qtd. de Contratos Vinculados",
+    int(adesao_df["has_contract"].sum()) if not adesao_df.empty and "has_contract" in adesao_df.columns else 0,
+)
 c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata_value"]))
 
 if not data["adesao_de_ata_list"].empty:

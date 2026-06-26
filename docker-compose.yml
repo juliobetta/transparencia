@@ -7,3 +7,16 @@ services:
     ports:
       - "8191:8191"
     restart: unless-stopped
+
+  postgres:
+    image: postgres:17.6-alpine
+    container_name: transparencia_postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5544:5432"
+    volumes:
+      - ./docker/volumes/data:/var/lib/postgresql/data
+    restart: unless-stopped

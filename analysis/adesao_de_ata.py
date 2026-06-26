@@ -1,21 +1,22 @@
-import sqlite3
+from typing import Any
 
 import pandas as pd
+from sqlalchemy import text
 
 
 def _to_float(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series.astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
 
-def run(conn: sqlite3.Connection, year: int, empresa_id: str) -> dict:
-    query = """
+def run(conn: Any, year: int, empresa_id: str) -> dict:
+    query = text("""
         SELECT
             l.numero,
-            ? as ano,
+            :ano as ano,
             l.discr as objeto,
             l.valor as licitacao_valor,
-            SUM(c.valcon) as total_c_valor,
-            SUM(c.empenhado) as total_c_empenhado,
+            SUM(CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)) as total_c_valor,
+            SUM(CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT)) as total_c_empenhado,
             l.carona,
             c.mes
         FROM licitacoes l
@@ -23,21 +24,16 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str) -> dict:
             ON c.licitacao_numero = l.numero
             AND c.ano = l.ano
             AND c.empresa = l.empresa
-        WHERE l.ano = ? AND l.empresa = ?
-        GROUP BY l.numero, c.mes
-    """
+        WHERE l.ano = :ano AND l.empresa = :empresa
+        GROUP BY l.numero, l.discr, l.valor, l.carona, c.mes
+    """)
     try:
-        df = pd.read_sql_query(query, conn, params=(year, year, empresa_id))
+        df = pd.read_sql_query(query, conn, params={"ano": year, "empresa": empresa_id})
 
-        # Add column from join which might be None if no contract matched
         if "total_c_valor" in df.columns:
             df["total_c_valor"] = df["total_c_valor"].fillna(0)
 
-        # Filter for carona here in pandas
-        # Need to be very permissive
         df["carona_clean"] = df["carona"].fillna("").astype(str).str.strip().str.upper()
-
-        # Debugging the filter
         df = df[df["carona_clean"] == "S"]
 
         if df.empty:
@@ -51,8 +47,6 @@ def run(conn: sqlite3.Connection, year: int, empresa_id: str) -> dict:
 
         total_value = float(_to_float(df["total_c_valor"]).sum())
         total_licitacao = float(_to_float(df["licitacao_valor"]).sum())
-
-        # Add a column indicating if a contract is attached (has total_c_valor > 0)
         df["has_contract"] = _to_float(df["total_c_valor"]) > 0
 
         return {

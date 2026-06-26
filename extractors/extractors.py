@@ -11,6 +11,63 @@ def _post_process_contratos(row: dict) -> dict:
     return row
 
 
+def _post_process_pessoal(row: dict) -> dict:
+    # API sends REGISTRO; model PK uses matricula.
+    if "matricula" not in row or row["matricula"] is None:
+        row["matricula"] = row.get("registro")
+    return row
+
+
+def _post_process_despesas_extra_orcamentaria(row: dict) -> dict:
+    # API sends NUMEROGUIA; model PK uses numero.
+    if "numero" not in row or row["numero"] is None:
+        row["numero"] = row.get("numeroguia") or row.get("codigo")
+    return row
+
+
+def _post_process_despesas_gerais(row: dict) -> dict:
+    # API sends PKEMP (PK do empenho); model PK uses numero.
+    if "numero" not in row or row["numero"] is None:
+        row["numero"] = row.get("pkemp") or row.get("codigo")
+    return row
+
+
+def _post_process_despesas_restos_pagar(row: dict) -> dict:
+    # API sends CODIGO; model PK uses numero.
+    if "numero" not in row or row["numero"] is None:
+        row["numero"] = row.get("codigo")
+    return row
+
+
+def _post_process_diarias(row: dict) -> dict:
+    # ORDEMPAGAMENTO (payment order number) is the most unique per (ano, empresa).
+    # NEMPG is the budget commitment number and repeats across many diária payments.
+    if "numero" not in row or row["numero"] is None:
+        row["numero"] = row.get("ordempagamento") or row.get("nempg")
+    return row
+
+
+def _post_process_emendas_cad(row: dict) -> dict:
+    # API sends NUMERO_EMENDA; model PK uses numero.
+    if "numero" not in row or row["numero"] is None:
+        row["numero"] = row.get("numero_emenda") or row.get("pk_ep_emenda")
+    return row
+
+
+def _post_process_receita_detalhes(row: dict) -> dict:
+    # API sends NLANC (número de lançamento); model PK uses codigo.
+    if "codigo" not in row or row["codigo"] is None:
+        row["codigo"] = row.get("nlanc") or row.get("codre")
+    return row
+
+
+def _post_process_transferencias(row: dict) -> dict:
+    # DTLAN (data de lançamento) is unique per transfer event and the best natural key.
+    if "codigo" not in row or row["codigo"] is None:
+        row["codigo"] = row.get("dtlan") or f"{row.get('mes', '')}-{row.get('cnpjrecebedora', '')}"
+    return row
+
+
 class DespesasExtractor(BaseExtractor):
     pass
 
@@ -73,6 +130,7 @@ ENDPOINT_CONFIGS = [
             "ApenasIDEmpenho": "False",
         },
         DespesasExtractor,
+        _post_process_despesas_gerais,
     ),
     (
         "/Transparencia/VersaoJson/Despesas/",
@@ -81,6 +139,7 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "numero"],
         {"ApresentaNomeFavorecido": "True", "MostraDadosConsolidado": "False"},
         DespesasExtractor,
+        _post_process_despesas_restos_pagar,
     ),
     (
         "/Transparencia/VersaoJson/Despesas/",
@@ -89,6 +148,7 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "numero"],
         {"ApresentaNomeFavorecido": "True", "MostraDadosConsolidado": "False"},
         DespesasExtractor,
+        _post_process_despesas_extra_orcamentaria,
     ),
     (
         "/Transparencia/VersaoJson/Despesas/",
@@ -105,6 +165,7 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "numero"],
         {"MostraDadosConsolidado": "False"},
         DespesasExtractor,
+        _post_process_diarias,
     ),
     (
         "/Transparencia/VersaoJson/Receitas/",
@@ -145,6 +206,7 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "codigo"],
         {"MostraDadosConsolidado": "False"},
         ReceitasExtractor,
+        _post_process_receita_detalhes,
     ),
     (
         "/Transparencia/VersaoJson/LicitacoesEContratos/",
@@ -170,6 +232,7 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "codigo"],
         {"MostraDadosConsolidado": "False"},
         LicitacoesExtractor,
+        _post_process_transferencias,
     ),
     (
         "/Transparencia/VersaoJson/Transferencias/",
@@ -186,6 +249,7 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "numero"],
         {"MostraDadosConsolidado": "False"},
         LicitacoesExtractor,
+        _post_process_emendas_cad,
     ),
     (
         "/Transparencia/VersaoJson/Pessoal/",
@@ -194,5 +258,6 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "mes", "matricula"],
         {},
         PessoalExtractor,
+        _post_process_pessoal,
     ),
 ]

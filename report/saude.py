@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +17,7 @@ REPORTS_DIR = Path("reports")
 TEMPLATE_DIR = Path(__file__).parent
 
 
-def generate(conn: sqlite3.Connection, year: int) -> Path:
+def generate(conn, year: int) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
     data = health_story.run(conn, year)
 
@@ -104,8 +103,8 @@ def generate(conn: sqlite3.Connection, year: int) -> Path:
 
 
 if __name__ == "__main__":
-    conn = db.get_connection()
     from datetime import date
 
-    path = generate(conn, date.today().year - 1)
+    engine = db.get_engine()
+    path = generate(engine, date.today().year - 1)
     print(f"Report written to {path}")

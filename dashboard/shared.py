@@ -14,11 +14,11 @@ YEARS = list(range(2022, date.today().year + 1))
 
 @st.cache_resource
 def get_conn():
-    return db.get_connection()
+    return db.get_engine()
 
 
 def render_sidebar() -> int:
-    conn = get_conn()
+    engine = get_conn()
     st.sidebar.markdown(
         f"### 🔗 Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
         unsafe_allow_html=True,
@@ -34,7 +34,7 @@ def render_sidebar() -> int:
     )
     st.session_state["sidebar_year"] = selected_year
 
-    _last_extracted = db.get_metadata(conn, "last_extracted_at")
+    _last_extracted = db.get_metadata(engine, "last_extracted_at")
 
     if _last_extracted:
         _last_extracted = datetime.strptime(_last_extracted, "%Y-%m-%d").strftime("%m/%d/%Y")

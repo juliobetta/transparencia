@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 
 import db
@@ -7,13 +5,9 @@ from analysis.revenue_sources import run
 
 
 @pytest.fixture
-def conn():
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
-    # We add both previsao_atualizada and arrecadado_total as the scraper adds them dynamically
+def conn(conn):
     db.upsert(
-        c,
+        conn,
         "receita_orcamentaria",
         [
             {
@@ -25,12 +19,12 @@ def conn():
                 "arrecadado": "80000",
                 "previsao_atualizada": "100000",
                 "arrecadado_total": "80000",
-            }
+            },
         ],
         ["ano", "empresa", "codigo"],
     )
     db.upsert(
-        c,
+        conn,
         "receita_uniao",
         [
             {
@@ -42,12 +36,12 @@ def conn():
                 "arrecadado": "500000",
                 "previsao_atualizada": "500000",
                 "arrecadado_total": "500000",
-            }
+            },
         ],
         ["ano", "empresa", "codigo"],
     )
     db.upsert(
-        c,
+        conn,
         "receita_estado",
         [
             {
@@ -59,12 +53,11 @@ def conn():
                 "arrecadado": "200000",
                 "previsao_atualizada": "200000",
                 "arrecadado_total": "200000",
-            }
+            },
         ],
         ["ano", "empresa", "codigo"],
     )
-    yield c
-    c.close()
+    return conn
 
 
 def test_revenue_breakdown(conn):
@@ -77,16 +70,14 @@ def test_revenue_breakdown(conn):
     assert row["receita_propria_arrecadado"] == 80000.0
 
 
-def test_flags_high_dependency(conn):  # noqa: ARG001
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
+def test_flags_high_dependency(conn):
+    # Insert high-dependency data for a different year to avoid conflict
     db.upsert(
-        c,
+        conn,
         "receita_orcamentaria",
         [
             {
-                "ano": 2024,
+                "ano": 2020,
                 "empresa": "7",
                 "codigo": "01",
                 "descricao": "X",
@@ -94,16 +85,16 @@ def test_flags_high_dependency(conn):  # noqa: ARG001
                 "arrecadado": "5000",
                 "previsao_atualizada": "10000",
                 "arrecadado_total": "5000",
-            }
+            },
         ],
         ["ano", "empresa", "codigo"],
     )
     db.upsert(
-        c,
+        conn,
         "receita_uniao",
         [
             {
-                "ano": 2024,
+                "ano": 2020,
                 "empresa": "7",
                 "codigo": "FPM",
                 "descricao": "FPM",
@@ -111,10 +102,9 @@ def test_flags_high_dependency(conn):  # noqa: ARG001
                 "arrecadado": "900000",
                 "previsao_atualizada": "900000",
                 "arrecadado_total": "900000",
-            }
+            },
         ],
         ["ano", "empresa", "codigo"],
     )
-    df = run(c, [2024])
-    assert df[df["ano"] == 2024].iloc[0]["alerta_dependencia"] is True
-    c.close()
+    df = run(conn, [2020])
+    assert df[df["ano"] == 2020].iloc[0]["alerta_dependencia"] is True

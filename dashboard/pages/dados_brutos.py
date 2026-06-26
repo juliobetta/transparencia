@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import streamlit as st
 from shared import get_conn, render_sidebar
+from sqlalchemy import text
 
 import glossary
 
@@ -80,7 +81,7 @@ allowed_tables = list(_TABLE_LABELS.keys())
 table = st.selectbox("Tabela", allowed_tables, format_func=lambda t: _TABLE_LABELS[t])
 if table not in allowed_tables:
     raise ValueError(f"Tabela inválida: {table}")
-df = pd.read_sql_query(f"SELECT * FROM {table} WHERE ano = ?", conn, params=(year,))
+df = pd.read_sql_query(text(f"SELECT * FROM {table} WHERE ano = :ano"), conn, params={"ano": year})
 config = {
     _COLUMN_LABELS[col]: st.column_config.NumberColumn(format="R$ %,.2f")
     for col in df.columns
