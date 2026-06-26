@@ -47,6 +47,12 @@ pipeline/only:
 pipeline/raw:
 	uv run python -c "from pipeline import run; run(raw_only=True, years=$(if $(YEARS),[$(YEARS)],None))"
 
+pipeline/extract:
+	uv run python -c "from pipeline import extract_only; extract_only(years=$(if $(YEARS),[$(YEARS)],None))"
+
+pipeline/load:
+	uv run python -c "from pipeline import load_from_dir; load_from_dir('$(DIR)')"
+
 # REPORTS
 
 report:

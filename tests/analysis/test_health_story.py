@@ -255,10 +255,11 @@ def test_execution_trend_filtered_to_empresa(conn):
 
 def test_contracts_by_modality(conn):
     result = run(conn, 2023)
-    modalities = result["contracts_by_modality"]["modality"].tolist()
+    df_mod = result["contracts_by_modality"]
+    modalities = df_mod["modality"].tolist()
     # OTHER empresa contract (DELTA) must not appear
     assert all(m != "PREGÃO PRESENCIAL" or False for m in modalities)  # PREGÃO PRESENCIAL is OTHER's
-    counts = dict(zip(result["contracts_by_modality"]["modality"], result["contracts_by_modality"]["count"]))
+    counts = df_mod.groupby("modality")["count"].sum().to_dict()
     assert counts.get("PREGÃO ELETRÔNICO", 0) == 2
     assert counts.get("DISPENSA", 0) == 1
 
