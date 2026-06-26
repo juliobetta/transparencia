@@ -1,7 +1,8 @@
-import sqlite3
 from datetime import date
+from typing import Any
 
 import pandas as pd
+from sqlalchemy import text
 
 from analysis.contract_anomalies import NEAR_THRESHOLD_PCT, THRESHOLD
 
@@ -13,18 +14,17 @@ def _to_float(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series.astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
 
-def _emendas(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
+def _emendas(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
     df = pd.read_sql_query(
-        """SELECT numero_emenda, resumo, valor_total, empenhado, autor,
+        text("""SELECT numero_emenda, resumo, valor_total, empenhado, autor,
                   tipo_emenda_descr, esfera_origem, ato_normativo, destinacao_descr
-           FROM emendas_cad WHERE ano = ? AND empresa = ?""",
+           FROM emendas_cad WHERE ano = :ano AND empresa = :empresa"""),
         conn,
-        params=(year, empresa_id),
+        params={"ano": year, "empresa": empresa_id},
     )
     if df.empty:
         return df, 0.0
 
-    # Rename for consistency with expected output
     df = df.rename(
         columns={
             "numero_emenda": "Nº",
@@ -44,11 +44,11 @@ def _emendas(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.D
     return df, float(df["Valor Autorizado"].sum())
 
 
-def _budget(conn: sqlite3.Connection, year: int, empresa_id: str) -> dict:
+def _budget(conn: Any, year: int, empresa_id: str) -> dict:
     df = pd.read_sql_query(
-        "SELECT empenhado, dotacao_atualizada FROM despesas_por_orgao WHERE ano = ? AND empresa = ?",
+        text("SELECT empenhado, dotacao_atualizada FROM despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"),
         conn,
-        params=(year, empresa_id),
+        params={"ano": year, "empresa": empresa_id},
     )
     dotacao = _to_float(df["dotacao_atualizada"]).sum()
     empenhado = _to_float(df["empenhado"]).sum()
@@ -57,21 +57,21 @@ def _budget(conn: sqlite3.Connection, year: int, empresa_id: str) -> dict:
     return {"dotacao": dotacao, "empenhado": empenhado, "taxa_execucao": taxa, "flag_under_execution": flag}
 
 
-def _execution_trend(conn: sqlite3.Connection, empresa_id: str) -> pd.DataFrame:
+def _execution_trend(conn: Any, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT ano, empenhado FROM despesas_por_orgao WHERE empresa = ?",
+        text("SELECT ano, empenhado FROM despesas_por_orgao WHERE empresa = :empresa"),
         conn,
-        params=(empresa_id,),
+        params={"empresa": empresa_id},
     )
     df["empenhado"] = _to_float(df["empenhado"])
     return df.groupby("ano", as_index=False)["empenhado"].sum().sort_values("ano").reset_index(drop=True)
 
 
-def _execution_flow(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
+def _execution_flow(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT empenhado, liquidado, pago FROM despesas_por_orgao WHERE ano = ? AND empresa = ?",
+        text("SELECT empenhado, liquidado, pago FROM despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"),
         conn,
-        params=(year, empresa_id),
+        params={"ano": year, "empresa": empresa_id},
     )
     df["empenhado"] = _to_float(df["empenhado"])
     df["liquidado"] = _to_float(df["liquidado"])
@@ -84,11 +84,11 @@ def _execution_flow(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.
     )
 
 
-def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
+def _contracts_by_modality(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT modali, valcon, mes FROM contratos WHERE ano = ? AND empresa = ?",
+        text("SELECT modali, valcon, mes FROM contratos WHERE ano = :ano AND empresa = :empresa"),
         conn,
-        params=(year, empresa_id),
+        params={"ano": year, "empresa": empresa_id},
     )
     if df.empty:
         return pd.DataFrame(columns=["modality", "count", "total_value", "periodo"])
@@ -97,56 +97,56 @@ def _contracts_by_modality(conn: sqlite3.Connection, year: int, empresa_id: str)
     df["modality"] = df["modality"].where(df["modality"] != "", "Sem Informação")
     df["periodo"] = df["mes"].astype(str).str.zfill(2) + "/" + str(year)
     return (
-        df.groupby(["modality", "periodo"])  # Group by modality and periodo
+        df.groupby(["modality", "periodo"])
         .agg(count=("modality", "size"), total_value=("valor_num", "sum"))
         .reset_index()
         .sort_values("total_value", ascending=False)
     )
 
 
-def _adesao_de_ata(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
-    # Fetch all Carona licitacoes and sum the value of any linked contracts
-    query = """
+def _adesao_de_ata(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
+    query = text("""
         SELECT
             l.numero,
             l.discr as objeto,
             l.valor as licitacao_valor,
-            SUM(c.valcon) as total_c_valor,
-            SUM(c.empenhado) as total_c_empenhado
+            SUM(CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)) as total_c_valor,
+            SUM(CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT)) as total_c_empenhado
         FROM licitacoes l
         LEFT JOIN contratos c
             ON c.licitacao_numero = l.numero
             AND c.ano = l.ano
             AND c.empresa = l.empresa
-        WHERE l.ano = ? AND l.empresa = ? AND l.carona = 'S'
-        GROUP BY l.numero
-    """
+        WHERE l.ano = :ano AND l.empresa = :empresa AND l.carona = 'S'
+        GROUP BY l.numero, l.discr, l.valor
+    """)
     try:
-        df = pd.read_sql_query(query, conn, params=(year, empresa_id))
+        df = pd.read_sql_query(query, conn, params={"ano": year, "empresa": empresa_id})
         total_value = float(_to_float(df["total_c_valor"]).sum()) if not df.empty else 0.0
-        # Add a column indicating if a contract is attached (has total_c_valor > 0)
         df["has_contract"] = df["total_c_valor"] > 0
         return df, total_value
     except Exception:
         return pd.DataFrame(), 0.0
 
 
-def _bidding_gaps(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
+def _bidding_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes FROM contratos WHERE ano = ? AND empresa = ?",
+        text(
+            "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes FROM contratos WHERE ano = :ano AND empresa = :empresa"
+        ),
         conn,
-        params=(year, empresa_id),
+        params={"ano": year, "empresa": empresa_id},
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
     df["valor_num"] = _to_float(df["valcon"])
     return df[df["valor_num"] > DISPENSATION_THRESHOLD].drop(columns=["valor_num", "licitacao_numero"])
 
 
-def _splitting(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
+def _splitting(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT ano, fornecedor, valcon, objeto, mes FROM contratos WHERE ano = ? AND empresa = ?",
+        text("SELECT ano, fornecedor, valcon, objeto, mes FROM contratos WHERE ano = :ano AND empresa = :empresa"),
         conn,
-        params=(year, empresa_id),
+        params={"ano": year, "empresa": empresa_id},
     )
     df["valor_num"] = _to_float(df["valcon"])
     lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
@@ -155,11 +155,13 @@ def _splitting(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataF
     return near[near["fornecedor"].isin(counts[counts >= 3].index)].copy()
 
 
-def _top_suppliers(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
+def _top_suppliers(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
     df = pd.read_sql_query(
-        "SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = ? AND empresa = ?",
+        text(
+            "SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = :ano AND empresa = :empresa"
+        ),
         conn,
-        params=(year, empresa_id),
+        params={"ano": year, "empresa": empresa_id},
     )
     df["empenhado"] = _to_float(df["empenhado"])
     df = df.groupby(["codigo", "descricao"], as_index=False)["empenhado"].sum()
@@ -171,15 +173,16 @@ def _top_suppliers(conn: sqlite3.Connection, year: int, empresa_id: str) -> tupl
     return top10, hhi
 
 
-def _transfers_to_health(conn: sqlite3.Connection, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
-    # Transfers only apply to the health fund (empresa '2'); other funds receive from different sources.
+def _transfers_to_health(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
     if empresa_id != SAUDE_EMPRESA:
         return pd.DataFrame(), 0.0
     df = pd.read_sql_query(
-        "SELECT mes, entidade_pagadora, entidade_recebedora, repasse, devolucao FROM transferencias "
-        "WHERE empresa = '7' AND ano = ? AND UPPER(entidade_recebedora) LIKE '%SAUDE%'",
+        text(
+            "SELECT mes, entidade_pagadora, entidade_recebedora, repasse, devolucao FROM transferencias "
+            "WHERE empresa = '7' AND ano = :ano AND UPPER(entidade_recebedora) LIKE '%SAUDE%'"
+        ),
         conn,
-        params=(year,),
+        params={"ano": year},
     )
     if df.empty:
         return df, 0.0
@@ -189,20 +192,20 @@ def _transfers_to_health(conn: sqlite3.Connection, year: int, empresa_id: str) -
     return df, total
 
 
-def _top_suppliers_services(conn: sqlite3.Connection, year: int, empresa_id: str) -> pd.DataFrame:
-    query = """
-        SELECT fornecedor, objeto, SUM(valcon) as total
+def _top_suppliers_services(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
+    query = text("""
+        SELECT fornecedor, objeto, SUM(CAST(NULLIF(REPLACE(valcon, ',', '.'), '') AS FLOAT)) as total
         FROM contratos
-        WHERE ano = ? AND empresa = ?
+        WHERE ano = :ano AND empresa = :empresa
         GROUP BY fornecedor, objeto
         ORDER BY total DESC
-    """
-    df = pd.read_sql_query(query, conn, params=(year, empresa_id))
+    """)
+    df = pd.read_sql_query(query, conn, params={"ano": year, "empresa": empresa_id})
     df["total"] = _to_float(df["total"])
     return df
 
 
-def run(conn: sqlite3.Connection, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
+def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     emendas_df, emendas_total = _emendas(conn, year, empresa_id)
     budget = _budget(conn, year, empresa_id)
     execution_trend = _execution_trend(conn, empresa_id)

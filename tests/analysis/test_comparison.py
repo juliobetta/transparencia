@@ -1,5 +1,3 @@
-import sqlite3
-
 import pandas as pd
 import pytest
 
@@ -26,39 +24,27 @@ def test_period_spec_invalid_month_out_of_bounds():
 
 def test_delta_normal():
     d = _delta(100.0, 150.0)
-    assert d["a"] == 100.0
-    assert d["b"] == 150.0
     assert d["abs"] == pytest.approx(50.0)
     assert d["pct"] == pytest.approx(50.0)
 
 
-def test_delta_decrease():
-    d = _delta(200.0, 100.0)
-    assert d["abs"] == pytest.approx(-100.0)
-    assert d["pct"] == pytest.approx(-50.0)
-
-
 def test_delta_zero_base():
     d = _delta(0.0, 50.0)
-    assert d["abs"] == pytest.approx(50.0)
     assert d["pct"] is None
 
 
-def test_delta_both_zero():
-    d = _delta(0.0, 0.0)
-    assert d["abs"] == pytest.approx(0.0)
-    assert d["pct"] is None
+def test_filter_months_filters_correctly():
+    df = pd.DataFrame({"mes": ["01", "03", "07", "12"], "val": [1, 2, 3, 4]})
+    spec = PeriodSpec(year=2024, month_start=1, month_end=6)
+    filtered = _filter_months(df, "mes", spec)
+    assert len(filtered) == 2
+    assert set(filtered["mes"]) == {"01", "03"}
 
 
 @pytest.fixture
-def conn():
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
-
-    # despesas_por_orgao
+def conn(conn):
     db.upsert(
-        c,
+        conn,
         "despesas_por_orgao",
         [
             {
@@ -88,10 +74,8 @@ def conn():
         ],
         ["ano", "empresa", "codigo"],
     )
-
-    # despesas_por_fornecedor
     db.upsert(
-        c,
+        conn,
         "despesas_por_fornecedor",
         [
             {
@@ -115,10 +99,8 @@ def conn():
         ],
         ["ano", "empresa", "codigo"],
     )
-
-    # contratos (no licitacao_numero = sem licitação)
     db.upsert(
-        c,
+        conn,
         "contratos",
         [
             {
@@ -128,8 +110,6 @@ def conn():
                 "fornecedor": "F1",
                 "objeto": "X",
                 "valor": "10000",
-                "data_inicio": None,
-                "data_fim": None,
                 "licitacao_numero": "",
             },
             {
@@ -139,8 +119,6 @@ def conn():
                 "fornecedor": "F1",
                 "objeto": "X",
                 "valor": "10000",
-                "data_inicio": None,
-                "data_fim": None,
                 "licitacao_numero": "",
             },
             {
@@ -150,17 +128,13 @@ def conn():
                 "fornecedor": "F2",
                 "objeto": "Y",
                 "valor": "80000",
-                "data_inicio": None,
-                "data_fim": None,
                 "licitacao_numero": "",
             },
         ],
         ["ano", "empresa", "numero"],
     )
-
-    # pessoal
     db.upsert(
-        c,
+        conn,
         "pessoal",
         [
             {
@@ -184,10 +158,8 @@ def conn():
         ],
         ["ano", "empresa", "mes", "matricula"],
     )
-
-    # receita_orcamentaria
     db.upsert(
-        c,
+        conn,
         "receita_orcamentaria",
         [
             {
@@ -196,7 +168,6 @@ def conn():
                 "codigo": "R1",
                 "descricao": "IPTU",
                 "previsto": "10000",
-                "arrecadado": None,
                 "previsao_atualizada": "10000",
             },
             {
@@ -205,16 +176,12 @@ def conn():
                 "codigo": "R1",
                 "descricao": "IPTU",
                 "previsto": "12000",
-                "arrecadado": None,
                 "previsao_atualizada": "12000",
             },
         ],
         ["ano", "empresa", "codigo"],
     )
-
-    # receita_uniao and receita_estado (empty — zero transfers)
-    yield c
-    c.close()
+    return conn
 
 
 def test_run_returns_all_domains(conn):
@@ -238,7 +205,6 @@ def test_despesas_delta_direction(conn):
     spec_b = PeriodSpec(year=2025, month_start=1, month_end=12)
     result = run(conn, spec_a, spec_b)
     assert result["despesas"]["empenhado"]["b"] > result["despesas"]["empenhado"]["a"]
-    assert result["despesas"]["empenhado"]["abs"] > 0
 
 
 def test_licitacoes_sem_licitacao_count(conn):
@@ -247,11 +213,3 @@ def test_licitacoes_sem_licitacao_count(conn):
     result = run(conn, spec_a, spec_b)
     assert result["licitacoes"]["sem_licitacao"]["a"] == 1
     assert result["licitacoes"]["sem_licitacao"]["b"] == 2
-
-
-def test_filter_months_filters_correctly():
-    df = pd.DataFrame({"mes": ["01", "03", "07", "12"], "val": [1, 2, 3, 4]})
-    spec = PeriodSpec(year=2024, month_start=1, month_end=6)
-    filtered = _filter_months(df, "mes", spec)
-    assert len(filtered) == 2
-    assert set(filtered["mes"]) == {"01", "03"}

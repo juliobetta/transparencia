@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import get_conn, render_sidebar
+from sqlalchemy import text
 
 import glossary
 from analysis import supplier_concentration
@@ -41,7 +42,9 @@ st.dataframe(
 
 # Pie chart
 # We need to fetch the total from despesas_por_fornecedor to calculate "Others"
-df_all = pd.read_sql_query("SELECT empenhado FROM despesas_por_fornecedor WHERE ano = ?", conn, params=(year,))
+df_all = pd.read_sql_query(
+    text("SELECT empenhado FROM despesas_por_fornecedor WHERE ano = :ano"), conn, params={"ano": year}
+)
 df_all["empenhado"] = pd.to_numeric(df_all["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
 total_all = df_all["empenhado"].sum()
 

@@ -1,11 +1,12 @@
-import sqlite3
+from typing import Any
 
 import pandas as pd
+from sqlalchemy import text
 
 
-def _sum_column(conn: sqlite3.Connection, table: str, col: str, year: int) -> float:
+def _sum_column(conn: Any, table: str, col: str, year: int) -> float:
     try:
-        df = pd.read_sql_query(f"SELECT {col} FROM {table} WHERE ano = ?", conn, params=(year,))
+        df = pd.read_sql_query(text(f"SELECT {col} FROM {table} WHERE ano = :ano"), conn, params={"ano": year})
         if df.empty:
             return 0.0
         return float(pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum())
@@ -13,10 +14,9 @@ def _sum_column(conn: sqlite3.Connection, table: str, col: str, year: int) -> fl
         return 0.0
 
 
-def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:
+def run(conn: Any, years: list[int]) -> pd.DataFrame:
     records = []
     for year in years:
-        # If we have arrecadado_total in the DB, sum it. Otherwise fallback to old arrecadado column.
         propria_previsto = _sum_column(conn, "receita_orcamentaria", "previsao_atualizada", year)
         propria_arrecadado = _sum_column(conn, "receita_orcamentaria", "arrecadado_total", year)
         if propria_arrecadado == 0:
@@ -35,8 +35,6 @@ def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:
         total_previsto = propria_previsto + uniao_previsto + estado_previsto
         total_arrecadado = propria_arrecadado + uniao_arrecadado + estado_arrecadado
 
-        # For backwards compatibility with other files (like comparison.py), keep old keys too:
-        # falling back to previsto if arrecadado is 0 to match old behavior for historical years
         propria_compat = propria_arrecadado if (propria_arrecadado > 0 or year == 2026) else propria_previsto
         uniao_compat = uniao_arrecadado if (uniao_arrecadado > 0 or year == 2026) else uniao_previsto
         estado_compat = estado_arrecadado if (estado_arrecadado > 0 or year == 2026) else estado_previsto
@@ -52,7 +50,6 @@ def run(conn: sqlite3.Connection, years: list[int]) -> pd.DataFrame:
                 "total": total_compat,
                 "pct_propria": pct,
                 "alerta_dependencia": bool(pct < 10),
-                # New fields for explicit planned vs collected:
                 "receita_propria_previsto": propria_previsto,
                 "receita_propria_arrecadado": propria_arrecadado,
                 "transferencias_uniao_previsto": uniao_previsto,

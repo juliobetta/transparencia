@@ -1,6 +1,6 @@
-SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard
+SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard extractors migrations
 
-.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant
 
 # SETUP TASKS
 
@@ -62,7 +62,7 @@ report/saude:
 ifndef YEAR
 	$(error YEAR is required. Usage: make report/saude YEAR=2025)
 endif
-	@uv run python -c "from report.saude import generate; import db; path = generate(db.get_connection(), $(YEAR)); print(f'Report written to {path}')"
+	@uv run python -c "from report.saude import generate; import db; path = generate(db.get_engine(), $(YEAR)); print(f'Report written to {path}')"
 
 report/compare:
 ifndef YEAR_A
@@ -72,6 +72,29 @@ ifndef YEAR_B
 	$(error YEAR_B is required. Usage: make report/compare YEAR_A=2023 MONTH_A_START=1 MONTH_A_END=12 YEAR_B=2024 MONTH_B_START=1 MONTH_B_END=12)
 endif
 	uv run python report/compare.py $(YEAR_A) $(or $(MONTH_A_START),1) $(or $(MONTH_A_END),12) $(YEAR_B) $(or $(MONTH_B_START),1) $(or $(MONTH_B_END),12)
+
+# MIGRATIONS
+
+migrate:
+	uv run alembic upgrade head
+	$(MAKE) migrate/grant
+
+
+
+migrate/revision:
+ifndef MSG
+	$(error MSG is required. Usage: make migrate/revision MSG="add some column")
+endif
+	uv run alembic revision --autogenerate -m "$(MSG)"
+
+migrate/downgrade:
+	uv run alembic downgrade $(or $(REV),-1)
+
+migrate/history:
+	uv run alembic history --verbose
+
+migrate/grant:
+	psql "$$DATABASE_URL" -f migrations/grant_readonly.sql
 
 # DASHBOARD
 

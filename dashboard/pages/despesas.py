@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import fmt_currency, get_conn, render_sidebar
+from sqlalchemy import text
 
 from analysis import expenses_analysis
 
@@ -163,25 +164,24 @@ with t3:
 
         search_dia = st.text_input("Buscar Diária (Nome do Servidor ou Unidade):", "")
         # Run dynamic query on SQL database for diarias
-        params: tuple[int | str, ...]
         if search_dia.strip():
-            dia_sql = """
+            dia_sql = text("""
                 SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
                 FROM diarias
-                WHERE ano = ? AND (favorecido LIKE ? OR unidade LIKE ? OR cargo LIKE ?)
+                WHERE ano = :ano AND (favorecido LIKE :search OR unidade LIKE :search OR cargo LIKE :search)
                 ORDER BY data DESC
-            """
-            params = (year, f"%{search_dia}%", f"%{search_dia}%", f"%{search_dia}%")
+            """)
+            dia_params = {"ano": year, "search": f"%{search_dia}%"}
         else:
-            dia_sql = """
+            dia_sql = text("""
                 SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
                 FROM diarias
-                WHERE ano = ?
+                WHERE ano = :ano
                 ORDER BY data DESC LIMIT 150
-            """
-            params = (year,)
+            """)
+            dia_params = {"ano": year}
 
-        df_dia_list = pd.read_sql_query(dia_sql, conn, params=params)
+        df_dia_list = pd.read_sql_query(dia_sql, conn, params=dia_params)
         if not df_dia_list.empty:
             df_dia_list["valor"] = pd.to_numeric(df_dia_list["valor"].str.replace(",", "."), errors="coerce").fillna(0)
             st.dataframe(

@@ -1,11 +1,12 @@
-import sqlite3
+from typing import Any
 
 import pandas as pd
+from sqlalchemy import text
 
 
-def _sum_col_where(conn: sqlite3.Connection, table: str, col: str, year: int) -> float:
+def _sum_col_where(conn: Any, table: str, col: str, year: int) -> float:
     try:
-        df = pd.read_sql_query(f"SELECT {col} FROM {table} WHERE ano = ?", conn, params=(year,))
+        df = pd.read_sql_query(text(f"SELECT {col} FROM {table} WHERE ano = :ano"), conn, params={"ano": year})
         if df.empty:
             return 0.0
         return float(pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum())
@@ -13,7 +14,7 @@ def _sum_col_where(conn: sqlite3.Connection, table: str, col: str, year: int) ->
         return 0.0
 
 
-def get_general_expense_metrics(conn: sqlite3.Connection, year: int) -> dict:
+def get_general_expense_metrics(conn: Any, year: int) -> dict:
     empenhado = _sum_col_where(conn, "despesas_por_unidade", "empenhado", year)
     liquidado = _sum_col_where(conn, "despesas_por_unidade", "liquidado", year)
     pago = _sum_col_where(conn, "despesas_por_unidade", "pago", year)
@@ -27,11 +28,13 @@ def get_general_expense_metrics(conn: sqlite3.Connection, year: int) -> dict:
     }
 
 
-def get_expenses_by_unit(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
+def get_expenses_by_unit(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_unidade WHERE ano = ?",
+        text(
+            "SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_unidade WHERE ano = :ano"
+        ),
         conn,
-        params=(year,),
+        params={"ano": year},
     )
     if df.empty:
         return pd.DataFrame(columns=["descricao", "empenhado", "liquidado", "pago", "dotacao_atualizada"])
@@ -48,11 +51,13 @@ def get_expenses_by_unit(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
     )
 
 
-def get_top_suppliers_detailed(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
+def get_top_suppliers_detailed(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
-        "SELECT descricao as fornecedor, insmf, cepci as cidade, empenhado, liquidado, pago FROM despesas_por_fornecedor WHERE ano = ?",
+        text(
+            "SELECT descricao as fornecedor, insmf, cepci as cidade, empenhado, liquidado, pago FROM despesas_por_fornecedor WHERE ano = :ano"
+        ),
         conn,
-        params=(year,),
+        params={"ano": year},
     )
     if df.empty:
         return pd.DataFrame(columns=["fornecedor", "insmf", "cidade", "empenhado", "liquidado", "pago"])
@@ -68,9 +73,11 @@ def get_top_suppliers_detailed(conn: sqlite3.Connection, year: int) -> pd.DataFr
     )
 
 
-def get_local_spending_impact(conn: sqlite3.Connection, year: int) -> dict:
+def get_local_spending_impact(conn: Any, year: int) -> dict:
     df = pd.read_sql_query(
-        "SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = ?", conn, params=(year,)
+        text("SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = :ano"),
+        conn,
+        params={"ano": year},
     )
     if df.empty:
         return {"local_pago": 0.0, "externo_pago": 0.0, "total_pago": 0.0, "pct_local": 0.0}
@@ -91,8 +98,8 @@ def get_local_spending_impact(conn: sqlite3.Connection, year: int) -> dict:
     }
 
 
-def get_diarias_summary(conn: sqlite3.Connection, year: int) -> dict:
-    df = pd.read_sql_query("SELECT valor, favorecido FROM diarias WHERE ano = ?", conn, params=(year,))
+def get_diarias_summary(conn: Any, year: int) -> dict:
+    df = pd.read_sql_query(text("SELECT valor, favorecido FROM diarias WHERE ano = :ano"), conn, params={"ano": year})
     if df.empty:
         return {"total_valor": 0.0, "total_viajantes": 0, "media_reembolso": 0.0}
 
@@ -107,8 +114,10 @@ def get_diarias_summary(conn: sqlite3.Connection, year: int) -> dict:
     }
 
 
-def get_top_diarias_beneficiaries(conn: sqlite3.Connection, year: int) -> pd.DataFrame:
-    df = pd.read_sql_query("SELECT favorecido, cargo, valor FROM diarias WHERE ano = ?", conn, params=(year,))
+def get_top_diarias_beneficiaries(conn: Any, year: int) -> pd.DataFrame:
+    df = pd.read_sql_query(
+        text("SELECT favorecido, cargo, valor FROM diarias WHERE ano = :ano"), conn, params={"ano": year}
+    )
     if df.empty:
         return pd.DataFrame(columns=["favorecido", "cargo", "valor", "viagens"])
 
@@ -120,28 +129,25 @@ def get_top_diarias_beneficiaries(conn: sqlite3.Connection, year: int) -> pd.Dat
     return summary.sort_values("valor", ascending=False).head(10)
 
 
-def get_searchable_transactions(conn: sqlite3.Connection, year: int, query: str, limit: int = 500) -> pd.DataFrame:
-    # Perform substring search across columns
-    params: tuple[int | str, ...]
+def get_searchable_transactions(conn: Any, year: int, query: str, limit: int = 500) -> pd.DataFrame:
     if query.strip():
-        sql = """
+        sql = text("""
             SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
             FROM despesas_gerais
-            WHERE ano = ? AND (nomefor LIKE ? OR produ LIKE ? OR nomeempresa LIKE ?)
-            ORDER BY CAST(pago AS REAL) DESC
-            LIMIT ?
-        """
-        param = f"%{query}%"
-        params = (year, param, param, param, limit)
+            WHERE ano = :ano AND (nomefor LIKE :search OR produ LIKE :search OR nomeempresa LIKE :search)
+            ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
+            LIMIT :lim
+        """)
+        params = {"ano": year, "search": f"%{query}%", "lim": limit}
     else:
-        sql = """
+        sql = text("""
             SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
             FROM despesas_gerais
-            WHERE ano = ?
-            ORDER BY CAST(pago AS REAL) DESC
-            LIMIT ?
-        """
-        params = (year, limit)
+            WHERE ano = :ano
+            ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
+            LIMIT :lim
+        """)
+        params = {"ano": year, "lim": limit}
 
     df = pd.read_sql_query(sql, conn, params=params)
     if df.empty:

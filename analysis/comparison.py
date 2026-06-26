@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 
@@ -54,7 +54,7 @@ def _get_revenue_row(df: pd.DataFrame, year: int) -> pd.Series | None:
     return rows.iloc[0] if not rows.empty else None
 
 
-def run(conn: sqlite3.Connection, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
+def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
     def _despesas(spec: PeriodSpec) -> dict:
         budget = budget_execution.run(conn, spec.year)
         return {

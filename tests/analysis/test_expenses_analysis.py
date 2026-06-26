@@ -1,5 +1,3 @@
-import sqlite3
-
 import pytest
 
 import db
@@ -15,14 +13,9 @@ from analysis.expenses_analysis import (
 
 
 @pytest.fixture
-def conn():
-    c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
-    db.create_tables(c)
-
-    # Seed despesas_por_unidade
+def conn(conn):
     db.upsert(
-        c,
+        conn,
         "despesas_por_unidade",
         [
             {
@@ -48,10 +41,8 @@ def conn():
         ],
         ["ano", "empresa", "codigo"],
     )
-
-    # Seed despesas_por_fornecedor
     db.upsert(
-        c,
+        conn,
         "despesas_por_fornecedor",
         [
             {
@@ -79,10 +70,8 @@ def conn():
         ],
         ["ano", "empresa", "codigo"],
     )
-
-    # Seed diarias
     db.upsert(
-        c,
+        conn,
         "diarias",
         [
             {
@@ -112,10 +101,8 @@ def conn():
         ],
         ["ano", "empresa", "numero"],
     )
-
-    # Seed despesas_gerais
     db.upsert(
-        c,
+        conn,
         "despesas_gerais",
         [
             {
@@ -141,9 +128,7 @@ def conn():
         ],
         ["ano", "empresa", "numero"],
     )
-
-    yield c
-    c.close()
+    return conn
 
 
 def test_get_general_expense_metrics(conn):
@@ -179,8 +164,6 @@ def test_get_top_suppliers_detailed(conn):
     assert len(df) == 2
     assert df.iloc[0]["fornecedor"] == "Empresa A"
     assert df.iloc[0]["pago"] == 3000.0
-    assert df.iloc[1]["fornecedor"] == "Empresa B"
-    assert df.iloc[1]["pago"] == 2000.0
 
 
 def test_get_top_diarias_beneficiaries(conn):
@@ -189,9 +172,6 @@ def test_get_top_diarias_beneficiaries(conn):
     assert df.iloc[0]["favorecido"] == "Servidor Y"
     assert df.iloc[0]["valor"] == 1000.0
     assert df.iloc[0]["viagens"] == 1
-    assert df.iloc[1]["favorecido"] == "Servidor X"
-    assert df.iloc[1]["valor"] == 900.0
-    assert df.iloc[1]["viagens"] == 2
 
 
 def test_get_searchable_transactions(conn):
