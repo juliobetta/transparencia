@@ -53,6 +53,6 @@ jobs:
         run: pip install uv && uv sync
 
       - name: Run migrations
-        run: uv run alembic upgrade head
+        run: make migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

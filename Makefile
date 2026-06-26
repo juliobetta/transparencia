@@ -1,6 +1,6 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard extractors migrations
 
-.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant
 
 # SETUP TASKS
 
@@ -77,6 +77,9 @@ endif
 
 migrate:
 	uv run alembic upgrade head
+	$(MAKE) migrate/grant
+
+
 
 migrate/revision:
 ifndef MSG
@@ -89,6 +92,9 @@ migrate/downgrade:
 
 migrate/history:
 	uv run alembic history --verbose
+
+migrate/grant:
+	psql "$$DATABASE_URL" -f migrations/grant_readonly.sql
 
 # DASHBOARD
 
