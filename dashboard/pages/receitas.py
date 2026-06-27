@@ -142,17 +142,24 @@ if year == 2026:
     fp = _fiscal_position(conn, year, _extracted_at)
 
     st.warning(
-        "⚠️ **Estimativa baseada em dados públicos.** Os valores abaixo são derivados do portal "
-        "de transparência municipal e **não constituem um balanço oficial**. Não incluem o saldo "
-        "inicial de caixa em 01/01/2026, receitas e despesas extra-orçamentárias, nem aplicações "
-        f"financeiras. Para o valor oficial, consulte o "
-        f"[RREO Anexo 5]({glossary.PORTAL_URL})."
+        "⚠️ **Estimativa baseada em dados públicos — não é um balanço oficial.** "
+        "**Fluxo Líquido do Período** = total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos). "
+        "Não representa o saldo de caixa disponível: não inclui saldo inicial em 01/01/2026, "
+        "receitas/despesas extra-orçamentárias nem aplicações financeiras. "
+        "**Obrigações Herdadas** = restos a pagar de exercícios anteriores a 2025 (dívida da administração anterior) ainda não quitados. "
+        f"Para o valor oficial, consulte o [RREO Anexo 5]({glossary.PORTAL_URL})."
     )
 
-    fc1, fc2, fc3 = st.columns(3)
+    fc1, fc2, fc3, fc4 = st.columns(4)
     fc1.metric("Receitas Arrecadadas", fmt_currency(fp["total_arrecadado"]))
     fc2.metric("Total Pago no Período", fmt_currency(fp["total_saidas"]))
-    fc3.metric("Saldo Estimado do Período", fmt_currency(fp["saldo_estimado"]))
+    fc3.metric("Fluxo Líquido do Período", fmt_currency(fp["saldo_estimado"]))
+    fc4.metric(
+        "Obrigações Herdadas (Adm. Anterior)",
+        fmt_currency(fp["restos_pendentes_anteriores"]),
+        delta=f"- {fmt_currency(fp['restos_pendentes_anteriores'])}",
+        delta_color="inverse",
+    )
 
     with st.expander("📋 Restos a Pagar pendentes por exercício"):
         if fp["restos_pendentes"]:
@@ -181,7 +188,11 @@ if year == 2026:
 
         st.markdown(
             """
-**Não incluído nesta estimativa:**
+**Legenda da tabela:**
+- **Adm. Anterior** (exercícios < 2025) — obrigações deixadas pela administração anterior, refletidas em "Obrigações Herdadas" acima
+- **Adm. Atual** (exercícios ≥ 2025) — obrigações da administração corrente em processamento normal
+
+**Não incluído no Fluxo Líquido:**
 - Saldo inicial de caixa em 01/01/2026
 - Receitas e despesas extra-orçamentárias
 - Aplicações financeiras e disponibilidades bancárias
