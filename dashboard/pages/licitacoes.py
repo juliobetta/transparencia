@@ -55,8 +55,7 @@ gaps_display = gaps.rename(
     columns={
         "fornecedor": "Fornecedor",
         "objeto": "Objeto",
-        "periodo": "Período",
-        "valor": "Valor",
+        "valcon": "Valor",
     }
 )
 
@@ -115,13 +114,12 @@ with st.expander("Ver licitações via Adesão de Ata"):
 if not acima.empty:
     st.subheader("Contratos acima do limite legal sem licitação")
     st.dataframe(
-        acima[["empresa", "fornecedor", "objeto", "valor", "orgao_saude", "periodo"]].rename(
+        acima[["empresa", "fornecedor", "objeto", "valcon", "orgao_saude", "Período"]].rename(
             columns={
                 "empresa": "Entidade",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
-                "valor": "Valor",
-                "periodo": "Período",
+                "valcon": "Valor",
                 "orgao_saude": "Saúde?",
             }
         ),
@@ -134,12 +132,11 @@ if not acima.empty:
 if not anomalies["splitting"].empty:
     st.subheader("⚠️ Possível fracionamento de contratos")
     st.dataframe(
-        anomalies["splitting"][["fornecedor", "valor", "objeto", "periodo"]].rename(
+        anomalies["splitting"][["fornecedor", "valcon", "objeto", "Período"]].rename(
             columns={
                 "fornecedor": "Fornecedor",
-                "valor": "Valor",
+                "valcon": "Valor",
                 "objeto": "Objeto",
-                "periodo": "Período",
             }
         ),
         column_config={
