@@ -88,9 +88,16 @@ with c1:
 
 with c2:
     contracts_no_bid = len(bidding)
+    _delta_contracts = (
+        (_contract_counts[-1] - _contract_counts[-2]) / _contract_counts[-2] * 100
+        if len(_contract_counts) > 1 and _contract_counts[-2] != 0
+        else None
+    )
     st.metric(
         "Contratos sem licitação",
         contracts_no_bid,
+        delta=f"{_delta_contracts:+.1f}%" if _delta_contracts is not None else None,
+        delta_color="inverse",
         help=glossary.tooltip("Licitação"),
     )
     st.plotly_chart(
