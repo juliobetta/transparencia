@@ -40,7 +40,8 @@ st.header("Licitações e Contratos")
 st.info(
     "Contratos sem processo licitatório são comuns e frequentemente legais — dispensas de baixo valor "
     "e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de R$ 62.725,59** "
-    "sem licitação, pois nesses casos a lei exige justificativa formal (Lei 14.133/21, Art. 75, I)."
+    "sem licitação, pois nesses casos a lei exige justificativa formal "
+    "([Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/))."
 )
 
 st.subheader("Resumo")

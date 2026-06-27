@@ -176,7 +176,10 @@ if not modality_df.empty and modality_df.notna().all().all():
         st.write(f"**Inexigibilidade:** {glossary.tooltip('Inexigibilidade')}")
         st.write(f"**Adesão de Ata:** {glossary.tooltip('Adesão de Ata (Carona)')}")
 
-st.subheader("Contratos sem Licitação acima de R$57k")
+st.subheader("Contratos sem Licitação acima de R$ 62.725,59")
+st.caption(
+    "[Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)"
+)
 gaps = data["bidding_gaps"]
 if not gaps.empty and gaps.notna().all().all():
     st.metric("Total de contratos", len(gaps))
