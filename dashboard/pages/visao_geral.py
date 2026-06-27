@@ -210,23 +210,18 @@ with col_pct:
     yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
     yoy_pct = yoy_pct.replace([float("inf"), float("-inf")], float("nan"))
     fig_pct = go.Figure()
-    for col_name, label, _ in [
-        ("total_gasto_pct_change", "Δ% Gasto", None),
-        ("total_receita_pct_change", "Δ% Receita", None),
-        ("total_folha_pct_change", "Δ% Folha", None),
-        ("restos_a_pagar_pct_change", "Δ% Restos", None),
+    for col_name, label, color in [
+        ("total_gasto_pct_change", "Δ% Gasto", "#2196F3"),
+        ("total_receita_pct_change", "Δ% Receita", "#4CAF50"),
+        ("total_folha_pct_change", "Δ% Folha", "#FF9800"),
+        ("restos_a_pagar_pct_change", "Δ% Restos", "#9C27B0"),
     ]:
-        values = yoy_pct[col_name].tolist()
-        colors = [
-            "#4CAF50" if (v is not None and not (isinstance(v, float) and (v != v)) and v >= 0) else "#F44336"
-            for v in values
-        ]
         fig_pct.add_trace(
             go.Bar(
                 x=yoy_pct["ano"].tolist(),
-                y=values,
+                y=yoy_pct[col_name].tolist(),
                 name=label,
-                marker_color=colors,
+                marker_color=color,
             )
         )
     fig_pct.update_layout(
