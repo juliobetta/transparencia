@@ -1,24 +1,49 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
 import streamlit as st
-from shared import get_conn, render_sidebar
+from shared import get_conn, get_extraction_date, render_sidebar
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import adesao_de_ata, bidding_gaps, contract_anomalies
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _gaps(conn, year, _extracted_at):
+    return bidding_gaps.run(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _adesao(conn, year, _extracted_at):
+    return adesao_de_ata.run(conn, year, "2")
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _adesao_externa(conn, year, _extracted_at):
+    return adesao_de_ata.run_external(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _anomalies(conn, year, _extracted_at):
+    return contract_anomalies.run(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
-# ... rest of file, wrap analysis runs:
-gaps = bidding_gaps.run(conn, year)
-adesao = adesao_de_ata.run(conn, year, "2")
-adesao_externa = adesao_de_ata.run_external(conn, year)
-anomalies = contract_anomalies.run(conn, year)
+gaps = _gaps(conn, year, _extracted_at)
+adesao = _adesao(conn, year, _extracted_at)
+adesao_externa = _adesao_externa(conn, year, _extracted_at)
+anomalies = _anomalies(conn, year, _extracted_at)
 
 # Create MM/YYYY column
 for df in [gaps, adesao["list"], anomalies["splitting"]]:
