@@ -133,33 +133,106 @@ with c5:
         config=_spark_cfg,
     )
 
-st.subheader("Tendências Ano a Ano")
-st.dataframe(
-    yoy.rename(
-        columns={
-            "ano": "Ano",
-            "total_gasto": "Total Pago",
-            "total_folha": "Total Folha",
-            "total_receita": "Total Receita",
-            "restos_a_pagar": "Restos Pago",
-            "total_gasto_pct_change": "Δ% Gasto",
-            "total_folha_pct_change": "Δ% Folha",
-            "total_receita_pct_change": "Δ% Receita",
-            "restos_a_pagar_pct_change": "Δ% Restos",
-        }
-    ),
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-        "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),
-        "Total Receita": st.column_config.NumberColumn(format="R$ %,.2f"),
-        "Restos Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-        "Δ% Gasto": st.column_config.NumberColumn(format="%.2f%%"),
-        "Δ% Folha": st.column_config.NumberColumn(format="%.2f%%"),
-        "Δ% Receita": st.column_config.NumberColumn(format="%.2f%%"),
-        "Δ% Restos": st.column_config.NumberColumn(format="%.2f%%"),
-    },
-)
+st.subheader("Tendências Históricas")
+col_trend, col_pct = st.columns([6, 4])
+
+with col_trend:
+    fig_trend = go.Figure()
+    fig_trend.add_trace(
+        go.Scatter(
+            x=anos,
+            y=yoy["total_gasto"].tolist(),
+            name="Total Pago",
+            mode="lines+markers",
+            line=dict(color="#2196F3", width=2),
+            fill="tozeroy",
+        )
+    )
+    fig_trend.add_trace(
+        go.Scatter(
+            x=anos,
+            y=yoy["total_receita"].tolist(),
+            name="Receita",
+            mode="lines+markers",
+            line=dict(color="#4CAF50", width=2),
+            fill="tozeroy",
+        )
+    )
+    fig_trend.add_trace(
+        go.Scatter(
+            x=anos,
+            y=yoy["total_folha"].tolist(),
+            name="Folha",
+            mode="lines+markers",
+            line=dict(color="#FF9800", width=2),
+            fill="tozeroy",
+        )
+    )
+    fig_trend.update_layout(
+        title="Evolução Anual (R$)",
+        xaxis=dict(dtick=1, tickformat="d"),
+        yaxis=dict(tickformat=",.0f", tickprefix="R$ "),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=0, r=0, t=40, b=0),
+    )
+    st.plotly_chart(fig_trend, use_container_width=True)
+
+with col_pct:
+    yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
+    fig_pct = go.Figure()
+    for col_name, label, color in [
+        ("total_gasto_pct_change", "Δ% Gasto", "#2196F3"),
+        ("total_receita_pct_change", "Δ% Receita", "#4CAF50"),
+        ("total_folha_pct_change", "Δ% Folha", "#FF9800"),
+        ("restos_a_pagar_pct_change", "Δ% Restos", "#9C27B0"),
+    ]:
+        fig_pct.add_trace(
+            go.Bar(
+                x=yoy_pct["ano"].tolist(),
+                y=yoy_pct[col_name].tolist(),
+                name=label,
+                marker_color=color,
+            )
+        )
+    fig_pct.update_layout(
+        title="Variação % Anual",
+        barmode="group",
+        xaxis=dict(dtick=1, tickformat="d"),
+        yaxis=dict(ticksuffix="%"),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=0, r=0, t=40, b=0),
+    )
+    st.plotly_chart(fig_pct, use_container_width=True)
+
+with st.expander("📊 Dados detalhados por ano"):
+    st.dataframe(
+        yoy.rename(
+            columns={
+                "ano": "Ano",
+                "total_gasto": "Total Pago",
+                "total_folha": "Total Folha",
+                "total_receita": "Total Receita",
+                "restos_a_pagar": "Restos Pago",
+                "total_gasto_pct_change": "Δ% Gasto",
+                "total_folha_pct_change": "Δ% Folha",
+                "total_receita_pct_change": "Δ% Receita",
+                "restos_a_pagar_pct_change": "Δ% Restos",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Total Receita": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Restos Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ% Gasto": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ% Folha": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ% Receita": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ% Restos": st.column_config.NumberColumn(format="%.2f%%"),
+        },
+    )
 
 st.info(f"🔗 Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})")
