@@ -60,7 +60,7 @@ st.header("Visão Geral")
 
 budget = budget_execution.run(conn, year)
 bidding = bidding_gaps.run(conn, year)
-revenue = revenue_sources.run(conn, [year])
+revenue = revenue_sources.run(conn, list(range(2022, year + 1)))
 payroll = payroll_vs_services.run(conn, [year])
 yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
 
@@ -108,7 +108,7 @@ with c2:
 
 with c3:
     if not revenue.empty:
-        row = revenue.iloc[0]
+        row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
         label = "Receita Arrecadada" if year == 2026 else "Receita Prevista"
         rev_val = row["total_arrecadado"] if year == 2026 else row["total_previsto"]
         delta_rec = yoy.iloc[-1]["total_receita_pct_change"] if len(yoy) > 1 else None
@@ -120,7 +120,7 @@ with c3:
             help=help_text,
         )
         st.plotly_chart(
-            _sparkline(anos, yoy["total_receita"].tolist(), "#4CAF50"),
+            _sparkline(anos, revenue["total"].tolist(), "#4CAF50"),
             use_container_width=True,
             config=_spark_cfg,
         )
@@ -240,7 +240,7 @@ col_donut, col_bar = st.columns([4, 6])
 
 with col_donut:
     if not revenue.empty:
-        row = revenue.iloc[0]
+        row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
         fig_donut = go.Figure(
             go.Pie(
                 labels=["Receita Própria", "Transferências União", "Transferências Estado"],
