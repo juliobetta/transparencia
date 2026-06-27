@@ -81,3 +81,24 @@ def comparison_table(domain: dict, rows: list[tuple[str, str]]):
             }
         )
     return pd.DataFrame(records)
+
+
+def render_revenue_methodology() -> None:
+    with st.expander("ℹ️ Como os valores de receita são calculados?"):
+        st.markdown(
+            """
+Os valores de receita são extraídos diretamente do portal de transparência municipal,
+que segue a classificação orçamentária padrão SICONFI. Nesse padrão, cada receita é
+registrada simultaneamente em múltiplos níveis hierárquicos — da categoria raiz até o
+item mais detalhado — e todos coexistem na mesma tabela.
+
+Para evitar dupla contagem, este painel considera apenas os **códigos de nível raiz**
+de cada fonte, que representam o total consolidado sem sobreposição entre níveis
+intermediários da hierarquia.
+
+**Fontes utilizadas:**
+- **Receita Própria** — tributos, taxas e outras receitas arrecadadas diretamente pelo município
+- **Transferências da União** — repasses federais (FPM, FUNDEB, SUS, CIDE, etc.)
+- **Transferências do Estado** — repasses estaduais (ICMS, IPVA, FECP, etc.)
+            """
+        )

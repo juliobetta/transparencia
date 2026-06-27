@@ -14,6 +14,7 @@ from shared import (
     fmt_percent,
     get_conn,
     get_extraction_date,
+    render_revenue_methodology,
     render_sidebar,
 )
 from sqlalchemy.engine import Engine
@@ -102,6 +103,28 @@ with st.expander("Pessoal"):
             "Período A": st.column_config.NumberColumn(format="%.2f%%"),
             "Período B": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ Absoluto": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
+        },
+        width="stretch",
+        hide_index=True,
+    )
+with st.expander("Receitas"):
+    render_revenue_methodology()
+    df_receitas = comparison_table(
+        result["receitas"],
+        [
+            ("Receita Própria", "receita_propria"),
+            ("Transferências da União", "transferencias_uniao"),
+            ("Transferências do Estado", "transferencias_estado"),
+            ("Total", "total"),
+        ],
+    )
+    st.dataframe(
+        df_receitas,
+        column_config={
+            "Período A": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Período B": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Δ Absoluto": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Δ %": st.column_config.NumberColumn(format="%.2f%%"),
         },
         width="stretch",

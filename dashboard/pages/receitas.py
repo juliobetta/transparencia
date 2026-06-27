@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from shared import fmt_currency, get_conn, get_extraction_date, render_revenue_methodology, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -40,6 +40,8 @@ else:
 with st.expander("ℹ️ Glossário de Termos"):
     st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
     st.write(f"**FPM:** {glossary.tooltip('FPM (Fundo de Participação dos Municípios)')}")
+
+render_revenue_methodology()
 
 df = _revenue(conn, year, _extracted_at)
 if not df.empty:
