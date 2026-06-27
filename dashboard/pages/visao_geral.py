@@ -12,8 +12,10 @@ from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import (
+    adesao_de_ata,
     bidding_gaps,
     budget_execution,
+    contract_anomalies,
     payroll_vs_services,
     revenue_sources,
     yoy_trends,
@@ -50,6 +52,21 @@ def _payroll(conn, years, _extracted_at):
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _yoy(conn, years, _extracted_at):
     return yoy_trends.run(conn, years)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _adesao_counts(conn, years, _extracted_at):
+    return adesao_de_ata.formal_counts_by_year(conn, years)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _adesao_externa_counts(conn, years, _extracted_at):
+    return adesao_de_ata.external_counts_by_year(conn, years)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _splitting_counts(conn, years, _extracted_at):
+    return contract_anomalies.splitting_counts_by_year(conn, years)
 
 
 def _fmt_compact(value: float) -> str:
@@ -99,13 +116,16 @@ with st.spinner("Carregando..."):
     revenue = _revenue(conn, _all_years, _extracted_at)
     payroll = _payroll(conn, [year], _extracted_at)
     yoy = _yoy(conn, _all_years, _extracted_at)
+    _adesao_map = _adesao_counts(conn, _all_years, _extracted_at)
+    _adesao_ext_map = _adesao_externa_counts(conn, _all_years, _extracted_at)
+    _splitting_map = _splitting_counts(conn, _all_years, _extracted_at)
 
 anos = yoy["ano"].tolist()
 _spark_cfg = {"displayModeBar": False, "staticPlot": True}
 _counts_map = _bidding_counts(conn, anos, _extracted_at)
 _contract_counts = [_counts_map[y] for y in anos]
 
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     total_gasto = float(yoy.iloc[-1]["total_gasto"]) if not yoy.empty else 0.0
@@ -121,29 +141,10 @@ with c1:
         _sparkline(anos, yoy["total_gasto"].tolist()),
         use_container_width=True,
         config=_spark_cfg,
+        key="spark_total_gasto",
     )
 
 with c2:
-    contracts_no_bid = int(bidding["acima_limite"].sum())
-    _delta_contracts = (
-        (_contract_counts[-1] - _contract_counts[-2]) / _contract_counts[-2] * 100
-        if len(_contract_counts) > 1 and _contract_counts[-2] != 0
-        else None
-    )
-    st.metric(
-        "Acima do limite s/ licitação",
-        contracts_no_bid,
-        delta=f"{_delta_contracts:+.1f}%" if _delta_contracts is not None else None,
-        delta_color="inverse",
-        help="Contratos sem licitação acima de R$ 62.725,59 (bens e serviços). [Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)",
-    )
-    st.plotly_chart(
-        _sparkline(anos, _contract_counts, "#E91E63"),
-        use_container_width=True,
-        config=_spark_cfg,
-    )
-
-with c3:
     if not revenue.empty:
         row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
         label = "Receita Arrecadada" if year == 2026 else "Receita Prevista"
@@ -165,9 +166,10 @@ with c3:
             _sparkline(anos, revenue["total"].tolist(), "#4CAF50"),
             use_container_width=True,
             config=_spark_cfg,
+            key="spark_receita",
         )
 
-with c4:
+with c3:
     if not payroll.empty:
         delta_folha = yoy.iloc[-1]["total_folha_pct_change"] if len(yoy) > 1 else None
         st.metric(
@@ -180,9 +182,10 @@ with c4:
             _sparkline(anos, yoy["total_folha"].tolist(), "#FF9800"),
             use_container_width=True,
             config=_spark_cfg,
+            key="spark_folha",
         )
 
-with c5:
+with c4:
     restos = float(yoy.iloc[-1]["restos_a_pagar"]) if not yoy.empty else 0.0
     delta_restos = yoy.iloc[-1]["restos_a_pagar_pct_change"] if len(yoy) > 1 else None
     st.metric(
@@ -196,6 +199,96 @@ with c5:
         _sparkline(anos, yoy["restos_a_pagar"].tolist(), "#9C27B0"),
         use_container_width=True,
         config=_spark_cfg,
+        key="spark_restos",
+    )
+
+st.subheader("Licitações e Contratos")
+_bidding_counts_list = [_counts_map[y] for y in anos]
+_adesao_counts_list = [_adesao_map[y] for y in anos]
+_adesao_ext_counts_list = [_adesao_ext_map[y] for y in anos]
+_splitting_counts_list = [_splitting_map[y] for y in anos]
+
+lc1, lc2, lc3, lc4 = st.columns(4)
+
+with lc1:
+    contracts_no_bid = int(bidding["acima_limite"].sum())
+    _delta_contracts = (
+        (_contract_counts[-1] - _contract_counts[-2]) / _contract_counts[-2] * 100
+        if len(_contract_counts) > 1 and _contract_counts[-2] != 0
+        else None
+    )
+    st.metric(
+        "Acima do limite s/ licitação",
+        contracts_no_bid,
+        delta=f"{_delta_contracts:+.1f}%" if _delta_contracts is not None else None,
+        delta_color="inverse",
+        help="Contratos sem licitação acima de R$ 62.725,59 (bens e serviços). [Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)",
+    )
+    st.plotly_chart(
+        _sparkline(anos, _bidding_counts_list, "#E91E63"),
+        use_container_width=True,
+        config=_spark_cfg,
+        key="spark_lc_acima",
+    )
+
+with lc2:
+    _delta_adesao = (
+        (_adesao_counts_list[-1] - _adesao_counts_list[-2]) / _adesao_counts_list[-2] * 100
+        if len(_adesao_counts_list) > 1 and _adesao_counts_list[-2] != 0
+        else None
+    )
+    st.metric(
+        "Adesões de Ata (formal)",
+        _adesao_map[year],
+        delta=f"{_delta_adesao:+.1f}%" if _delta_adesao is not None else None,
+        delta_color="inverse",
+        help=glossary.tooltip("Adesão de Ata (Carona)"),
+    )
+    st.plotly_chart(
+        _sparkline(anos, _adesao_counts_list, "#FF9800"),
+        use_container_width=True,
+        config=_spark_cfg,
+        key="spark_lc_adesao",
+    )
+
+with lc3:
+    _delta_ext = (
+        (_adesao_ext_counts_list[-1] - _adesao_ext_counts_list[-2]) / _adesao_ext_counts_list[-2] * 100
+        if len(_adesao_ext_counts_list) > 1 and _adesao_ext_counts_list[-2] != 0
+        else None
+    )
+    st.metric(
+        "Empenhos via Ata Externa",
+        _adesao_ext_map[year],
+        delta=f"{_delta_ext:+.1f}%" if _delta_ext is not None else None,
+        delta_color="inverse",
+        help="Empenhos cuja justificativa contábil referencia um Termo de Adesão Externa a Ata de Registro de Preços de outro ente.",
+    )
+    st.plotly_chart(
+        _sparkline(anos, _adesao_ext_counts_list, "#9C27B0"),
+        use_container_width=True,
+        config=_spark_cfg,
+        key="spark_lc_ext",
+    )
+
+with lc4:
+    _delta_split = (
+        (_splitting_counts_list[-1] - _splitting_counts_list[-2]) / _splitting_counts_list[-2] * 100
+        if len(_splitting_counts_list) > 1 and _splitting_counts_list[-2] != 0
+        else None
+    )
+    st.metric(
+        "Possível fracionamento",
+        _splitting_map[year],
+        delta=f"{_delta_split:+.1f}%" if _delta_split is not None else None,
+        delta_color="inverse",
+        help="Contratos do mesmo fornecedor com valores próximos ao limite de dispensa (R$ 62.725,59), sugerindo possível fracionamento.",
+    )
+    st.plotly_chart(
+        _sparkline(anos, _splitting_counts_list, "#F44336"),
+        use_container_width=True,
+        config=_spark_cfg,
+        key="spark_lc_split",
     )
 
 st.subheader("Tendências Históricas")

@@ -11,7 +11,7 @@ import streamlit as st
 from shared import fmt_currency, get_conn, render_sidebar
 
 import glossary
-from analysis import health_story
+from analysis import adesao_de_ata, health_story
 
 conn = get_conn()
 year = render_sidebar()
@@ -20,6 +20,7 @@ st.title("Fundo Municipal de Saúde")
 st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
 
 data = health_story.run(conn, year)
+adesao_externa = adesao_de_ata.run_external(conn, year, empresa_id="2")
 # Create MM/YYYY column for display
 for key, val in data.items():
     if isinstance(val, pd.DataFrame) and "mes" in val.columns:
@@ -145,6 +146,36 @@ if not data["adesao_de_ata_list"].empty:
                 }
             )
             .drop(columns=["mes", "ano"], errors="ignore"),
+            width="stretch",
+            hide_index=True,
+        )
+
+c1, c2 = st.columns(2)
+c1.metric(
+    "Empenhos via Ata Externa",
+    adesao_externa["count"],
+    help="Empenhos cuja justificativa contábil referencia uma Ata de Registro de Preços de outro ente (Termo de Adesão Externa).",
+)
+c2.metric("Valor Total Pago via Ata Externa", fmt_currency(adesao_externa["total_pago"]))
+
+if not adesao_externa["list"].empty:
+    with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
+        st.caption(
+            "Registros extraídos da justificativa contábil dos empenhos do Fundo Municipal de Saúde "
+            "que referenciam explicitamente um Termo de Adesão Externa a Ata de Registro de Preços."
+        )
+        st.dataframe(
+            adesao_externa["list"].rename(
+                columns={
+                    "data": "Data",
+                    "fornecedor": "Fornecedor",
+                    "pago": "Valor Pago",
+                    "unidade": "Unidade",
+                    "justificativa": "Justificativa Contábil",
+                    "num_licitacao": "Nº Licitação",
+                }
+            ),
+            column_config={"Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f")},
             width="stretch",
             hide_index=True,
         )
