@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -7,13 +8,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, render_sidebar
+from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import revenue_sources
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _revenue(conn, year, _extracted_at):
+    return revenue_sources.run(conn, [year])
+
+
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
 st.header("Fontes de Receita")
 
@@ -30,7 +41,7 @@ with st.expander("ℹ️ Glossário de Termos"):
     st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
     st.write(f"**FPM:** {glossary.tooltip('FPM (Fundo de Participação dos Municípios)')}")
 
-df = revenue_sources.run(conn, [year])
+df = _revenue(conn, year, _extracted_at)
 if not df.empty:
     row = df.iloc[0]
 
