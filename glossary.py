@@ -7,7 +7,7 @@ TERMS: dict[str, str] = {
     "Liquidação": "A prefeitura confirma que o serviço ou produto foi entregue. O pagamento está agora autorizado.",
     "Pagamento": "O dinheiro efetivamente saiu da conta da prefeitura.",
     "Resto a Pagar": "Valores empenhados ou liquidados que não foram pagos até o fim do ano — passam para o ano seguinte.",
-    "Licitação": "Processo de concorrência pública onde fornecedores disputam um contrato. Obrigatório por lei acima de certos valores.",
+    "Licitação": "Processo de concorrência pública onde fornecedores disputam um contrato. Obrigatório por lei (Lei 14.133/21) acima de R$ 57.000 para bens e serviços.",
     "Dispensa de Licitação": "Isenção legal da licitação — permitida apenas em situações específicas (emergências, contratos de baixo valor). O uso excessivo é um sinal de alerta.",
     "Inexigibilidade": "Contratação direta sem licitação quando há fornecedor exclusivo ou notória especialização. Deve ser justificada.",
     "Fornecedor": "Empresa ou pessoa física que presta serviços ou fornece produtos à prefeitura.",
