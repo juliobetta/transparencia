@@ -111,7 +111,12 @@ with c3:
         row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
         label = "Receita Arrecadada" if year == 2026 else "Receita Prevista"
         rev_val = row["total_arrecadado"] if year == 2026 else row["total_previsto"]
-        delta_rec = yoy.iloc[-1]["total_receita_pct_change"] if len(yoy) > 1 else None
+        _rev_totals = revenue["total"].tolist()
+        delta_rec = (
+            (_rev_totals[-1] - _rev_totals[-2]) / _rev_totals[-2] * 100
+            if len(_rev_totals) > 1 and _rev_totals[-2] != 0
+            else None
+        )
         help_text = "Total efetivamente arrecadado." if year == 2026 else "Previsão orçamentária do ano."
         st.metric(
             label,
