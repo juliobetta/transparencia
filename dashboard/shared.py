@@ -29,7 +29,7 @@ def render_sidebar() -> int:
         unsafe_allow_html=True,
     )
     if "sidebar_year" not in st.session_state:
-        st.session_state["sidebar_year"] = YEARS[len(YEARS) - 2]
+        st.session_state["sidebar_year"] = YEARS[-1]
 
     selected_year = st.sidebar.selectbox(
         "Ano",
