@@ -13,7 +13,7 @@ def conn(conn):
             "numero": str(i),
             "fornecedor": "ALFA LTDA",
             "objeto": "SERVICO",
-            "valor": "55000",
+            "valcon": "55000",
             "data_inicio": "2025-01-01",
             "data_fim": "2025-03-31",
             "licitacao_numero": "",

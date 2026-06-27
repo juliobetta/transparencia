@@ -87,30 +87,6 @@ with c1:
     )
 
 with c2:
-    contracts_no_bid = int(bidding["acima_limite"].sum())
-    _delta_contracts = (
-        (_contract_counts[-1] - _contract_counts[-2]) / _contract_counts[-2] * 100
-        if len(_contract_counts) > 1 and _contract_counts[-2] != 0
-        else None
-    )
-    st.metric(
-        "Acima do limite s/ licitação",
-        contracts_no_bid,
-        delta=f"{_delta_contracts:+.1f}%" if _delta_contracts is not None else None,
-        delta_color="inverse",
-        help=(
-            "Contratos sem licitação acima de R$ 62.725,59 — limiar mais conservador "
-            "(bens e serviços). Obras podem ter limite até R$ 125.451,15. "
-            "[Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)"
-        ),
-    )
-    st.plotly_chart(
-        _sparkline(anos, _contract_counts, "#E91E63"),
-        use_container_width=True,
-        config=_spark_cfg,
-    )
-
-with c3:
     if not revenue.empty:
         row = revenue.iloc[0]
         label = "Receita Arrecadada" if year == 2026 else "Receita Prevista"
@@ -129,7 +105,7 @@ with c3:
             config=_spark_cfg,
         )
 
-with c4:
+with c3:
     if not payroll.empty:
         delta_folha = yoy.iloc[-1]["total_folha_pct_change"] if len(yoy) > 1 else None
         st.metric(
@@ -144,7 +120,7 @@ with c4:
             config=_spark_cfg,
         )
 
-with c5:
+with c4:
     restos = float(yoy.iloc[-1]["restos_a_pagar"]) if not yoy.empty else 0.0
     delta_restos = yoy.iloc[-1]["restos_a_pagar_pct_change"] if len(yoy) > 1 else None
     st.metric(
@@ -156,6 +132,26 @@ with c5:
     )
     st.plotly_chart(
         _sparkline(anos, yoy["restos_a_pagar"].tolist(), "#9C27B0"),
+        use_container_width=True,
+        config=_spark_cfg,
+    )
+
+with c5:
+    contracts_no_bid = int(bidding["acima_limite"].sum())
+    _delta_contracts = (
+        (_contract_counts[-1] - _contract_counts[-2]) / _contract_counts[-2] * 100
+        if len(_contract_counts) > 1 and _contract_counts[-2] != 0
+        else None
+    )
+    st.metric(
+        "Acima do limite s/ licitação",
+        contracts_no_bid,
+        delta=f"{_delta_contracts:+.1f}%" if _delta_contracts is not None else None,
+        delta_color="inverse",
+        help="Contratos sem licitação acima de R$ 62.725,59 (bens e serviços). Lei 14.133/21, Art. 75, I.",
+    )
+    st.plotly_chart(
+        _sparkline(anos, _contract_counts, "#E91E63"),
         use_container_width=True,
         config=_spark_cfg,
     )
