@@ -23,22 +23,17 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
         propria = _sum_col(conn, "receita_orcamentaria", "arrecadado_total", year)
         if propria == 0:
             propria = _sum_col(conn, "receita_orcamentaria", "arrecadado", year)
-        if propria == 0:
-            propria = _sum_col(conn, "receita_orcamentaria", "previsao_atualizada", year)
 
         uniao = _sum_col(conn, "receita_uniao", "arrecadado_total", year)
         if uniao == 0:
             uniao = _sum_col(conn, "receita_uniao", "arrecadado", year)
-        if uniao == 0:
-            uniao = _sum_col(conn, "receita_uniao", "previsao_atualizada", year)
 
         estado = _sum_col(conn, "receita_estado", "arrecadado_total", year)
         if estado == 0:
             estado = _sum_col(conn, "receita_estado", "arrecadado", year)
-        if estado == 0:
-            estado = _sum_col(conn, "receita_estado", "previsao_atualizada", year)
 
-        receita = propria + uniao + estado
+        total = propria + uniao + estado
+        receita = total if total > 0 else None
         restos = _sum_col(conn, "despesas_restos_pagar", "pago", year)
         if restos == 0:
             restos = _sum_col(conn, "despesas_restos_pagar", "valor", year)
