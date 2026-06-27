@@ -66,7 +66,7 @@ yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
 
 anos = yoy["ano"].tolist()
 _spark_cfg = {"displayModeBar": False, "staticPlot": True}
-_contract_counts = [len(bidding_gaps.run(conn, y)) for y in anos]
+_contract_counts = [int(bidding_gaps.run(conn, y)["acima_limite"].sum()) for y in anos]
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -87,18 +87,22 @@ with c1:
     )
 
 with c2:
-    contracts_no_bid = len(bidding)
+    contracts_no_bid = int(bidding["acima_limite"].sum())
     _delta_contracts = (
         (_contract_counts[-1] - _contract_counts[-2]) / _contract_counts[-2] * 100
         if len(_contract_counts) > 1 and _contract_counts[-2] != 0
         else None
     )
     st.metric(
-        "Contratos sem licitação",
+        "Acima do limite s/ licitação",
         contracts_no_bid,
         delta=f"{_delta_contracts:+.1f}%" if _delta_contracts is not None else None,
         delta_color="inverse",
-        help=glossary.tooltip("Licitação"),
+        help=(
+            "Contratos sem licitação acima de R$ 62.725,59 — limiar mais conservador "
+            "(bens e serviços). Obras podem ter limite até R$ 125.451,15. "
+            "[Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)"
+        ),
     )
     st.plotly_chart(
         _sparkline(anos, _contract_counts, "#E91E63"),
