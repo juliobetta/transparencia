@@ -1,7 +1,7 @@
 [project]
 name = "transparencia"
-version = "0.3.1"
-description = "Add your description here"
+version = "0.4.0"
+description = "Transparência fiscal e gestão orçamentária"
 requires-python = ">=3.12"
 dependencies = [
     "requests>=2.32.0",
