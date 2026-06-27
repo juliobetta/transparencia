@@ -151,6 +151,7 @@ if not acima.empty:
         ),
         column_config={
             "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Entidade": None,
         },
         width="stretch",
         hide_index=True,
