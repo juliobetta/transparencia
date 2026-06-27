@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from shared import fmt_currency, fmt_percent, get_conn, render_sidebar
+from shared import fmt_percent, get_conn, render_sidebar
 
 import glossary
 from analysis import (
@@ -17,6 +17,16 @@ from analysis import (
     revenue_sources,
     yoy_trends,
 )
+
+
+def _fmt_compact(value: float) -> str:
+    if abs(value) >= 1_000_000_000:
+        return f"R$ {value / 1_000_000_000:.1f}B"
+    if abs(value) >= 1_000_000:
+        return f"R$ {value / 1_000_000:.1f}M"
+    if abs(value) >= 1_000:
+        return f"R$ {value / 1_000:.1f}K"
+    return f"R$ {value:.0f}"
 
 
 def _sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
@@ -56,6 +66,7 @@ yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
 
 anos = yoy["ano"].tolist()
 _spark_cfg = {"displayModeBar": False, "staticPlot": True}
+_contract_counts = [len(bidding_gaps.run(conn, y)) for y in anos]
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -64,7 +75,7 @@ with c1:
     delta_gasto = yoy.iloc[-1]["total_gasto_pct_change"] if len(yoy) > 1 else None
     st.metric(
         "Total Pago",
-        fmt_currency(total_gasto),
+        _fmt_compact(total_gasto),
         delta=f"{delta_gasto:+.1f}%" if delta_gasto is not None and not pd.isna(delta_gasto) else None,
         delta_color="off",
         help="Valor total liquidado e pago.",
@@ -76,11 +87,16 @@ with c1:
     )
 
 with c2:
-    contracts_no_bid = int((bidding["licitacao_numero"].fillna("").str.strip() == "").sum())
+    contracts_no_bid = len(bidding)
     st.metric(
         "Contratos sem licitação",
         contracts_no_bid,
         help=glossary.tooltip("Licitação"),
+    )
+    st.plotly_chart(
+        _sparkline(anos, _contract_counts, "#E91E63"),
+        use_container_width=True,
+        config=_spark_cfg,
     )
 
 with c3:
@@ -92,7 +108,7 @@ with c3:
         help_text = "Total efetivamente arrecadado." if year == 2026 else "Previsão orçamentária do ano."
         st.metric(
             label,
-            fmt_currency(float(rev_val)),
+            _fmt_compact(float(rev_val)),
             delta=f"{delta_rec:+.1f}%" if delta_rec is not None and not pd.isna(delta_rec) else None,
             help=help_text,
         )
@@ -122,7 +138,7 @@ with c5:
     delta_restos = yoy.iloc[-1]["restos_a_pagar_pct_change"] if len(yoy) > 1 else None
     st.metric(
         "Restos a Pagar",
-        fmt_currency(restos),
+        _fmt_compact(restos),
         delta=f"{delta_restos:+.1f}%" if delta_restos is not None and not pd.isna(delta_restos) else None,
         delta_color="off",
         help="Restos a pagar efetivamente pagos no ano.",
@@ -173,8 +189,8 @@ with col_trend:
         xaxis=dict(dtick=1, tickformat="d"),
         yaxis=dict(tickformat=",.0f", tickprefix="R$ "),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=0, r=0, t=40, b=0),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -207,8 +223,8 @@ with col_pct:
         xaxis=dict(dtick=1, tickformat="d"),
         yaxis=dict(ticksuffix="%"),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=0, r=0, t=40, b=0),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_pct, use_container_width=True)
 
@@ -291,8 +307,8 @@ with col_bar:
         barmode="overlay",
         xaxis=dict(tickformat=",.0f", tickprefix="R$ "),
         yaxis=dict(autorange="reversed"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=0, r=0, t=40, b=0),
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
