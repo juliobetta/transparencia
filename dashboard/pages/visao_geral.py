@@ -93,11 +93,12 @@ st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL
 st.header("Visão Geral")
 
 _all_years = list(range(2022, year + 1))
-budget = _budget(conn, year, _extracted_at)
-bidding = _bidding(conn, year, _extracted_at)
-revenue = _revenue(conn, _all_years, _extracted_at)
-payroll = _payroll(conn, [year], _extracted_at)
-yoy = _yoy(conn, _all_years, _extracted_at)
+with st.spinner("Carregando..."):
+    budget = _budget(conn, year, _extracted_at)
+    bidding = _bidding(conn, year, _extracted_at)
+    revenue = _revenue(conn, _all_years, _extracted_at)
+    payroll = _payroll(conn, [year], _extracted_at)
+    yoy = _yoy(conn, _all_years, _extracted_at)
 
 anos = yoy["ano"].tolist()
 _spark_cfg = {"displayModeBar": False, "staticPlot": True}

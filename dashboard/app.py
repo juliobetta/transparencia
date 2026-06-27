@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import streamlit as st
 
 st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
+st.html("<style>[data-testid='stStatusWidget'] { display: none; }</style>")
 
 pages = [
     st.Page("pages/visao_geral.py", title="Visão Geral"),
