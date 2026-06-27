@@ -28,7 +28,7 @@ def run(conn: Any, year: int) -> dict:
     # 2. Current-year budget paid
     despesas_pagas = _sum_varchar_col(conn, "despesas_por_orgao", "pago", year)
 
-    # 3. Restos a pagar paid in this year (debt serviced by current admin)
+    # 3. Sum of pago for restos whose exercise year matches the given year
     restos_pagos_no_ano = _sum_varchar_col(conn, "despesas_restos_pagar", "pago", year)
 
     # 4. Outstanding restos by exercise year
