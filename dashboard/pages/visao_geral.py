@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from shared import fmt_percent, get_conn, get_extraction_date, render_sidebar
+from shared import fmt_percent, get_conn, get_extraction_date, render_revenue_methodology, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -372,6 +372,8 @@ with col_pct:
     st.caption(
         "Variações bruscas no gasto sem crescimento proporcional da receita merecem atenção. Alta acumulada em Restos a Pagar pode indicar dívidas represadas com fornecedores."
     )
+
+render_revenue_methodology()
 
 st.subheader(f"Composição e Execução ({year})")
 col_donut, col_bar = st.columns([4, 6])

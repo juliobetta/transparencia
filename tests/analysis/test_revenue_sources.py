@@ -108,3 +108,49 @@ def test_flags_high_dependency(conn):
     )
     df = run(conn, [2020])
     assert df[df["ano"] == 2020].iloc[0]["alerta_dependencia"] is True
+
+
+def test_root_only_excludes_intermediate_hierarchy(conn):
+    """Hierarchical parent codes must not be double-counted with their children."""
+    db.upsert(
+        conn,
+        "receita_orcamentaria",
+        [
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "codigo": "1000.00.0.0.00.00",
+                "descricao": "Receitas Correntes",
+                "previsto": "100000",
+                "arrecadado": "90000",
+                "previsao_atualizada": "100000",
+                "arrecadado_total": "90000",
+            },
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "codigo": "1100.00.0.0.00.00",
+                "descricao": "Receita Tributária",
+                "previsto": "40000",
+                "arrecadado": "36000",
+                "previsao_atualizada": "40000",
+                "arrecadado_total": "36000",
+            },
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "codigo": "1700.00.0.0.00.00",
+                "descricao": "Transferências",
+                "previsto": "60000",
+                "arrecadado": "54000",
+                "previsao_atualizada": "60000",
+                "arrecadado_total": "54000",
+            },
+        ],
+        ["ano", "empresa", "codigo"],
+    )
+    df = run(conn, [2025])
+    row = df[df["ano"] == 2025].iloc[0]
+    # Root code (90000) only — not root + children (90000 + 36000 + 54000 = 180000)
+    assert row["receita_propria_arrecadado"] == pytest.approx(90000, rel=0.01)
+    assert row["receita_propria_previsto"] == pytest.approx(100000, rel=0.01)

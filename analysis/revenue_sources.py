@@ -4,9 +4,20 @@ import pandas as pd
 from sqlalchemy import text
 
 
-def _sum_column(conn: Any, table: str, col: str, year: int) -> float:
+def _sum_column(conn: Any, table: str, col: str, year: int, root_only: bool = False) -> float:
     try:
-        df = pd.read_sql_query(text(f"SELECT {col} FROM {table} WHERE ano = :ano"), conn, params={"ano": year})
+        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano"
+        if root_only:
+            sql += (
+                f" AND NOT EXISTS ("
+                f"SELECT 1 FROM {table} t2"
+                f" WHERE t2.ano = :ano"
+                f" AND t2.codigo != t.codigo"
+                f" AND t.codigo LIKE RTRIM(t2.codigo, '0.') || '%%'"
+                f" AND LENGTH(RTRIM(t2.codigo, '0.')) < LENGTH(RTRIM(t.codigo, '0.'))"
+                f")"
+            )
+        df = pd.read_sql_query(text(sql), conn, params={"ano": year})
         if df.empty:
             return 0.0
         return float(pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum())
@@ -17,20 +28,20 @@ def _sum_column(conn: Any, table: str, col: str, year: int) -> float:
 def run(conn: Any, years: list[int]) -> pd.DataFrame:
     records = []
     for year in years:
-        propria_previsto = _sum_column(conn, "receita_orcamentaria", "previsao_atualizada", year)
-        propria_arrecadado = _sum_column(conn, "receita_orcamentaria", "arrecadado_total", year)
+        propria_previsto = _sum_column(conn, "receita_orcamentaria", "previsao_atualizada", year, root_only=True)
+        propria_arrecadado = _sum_column(conn, "receita_orcamentaria", "arrecadado_total", year, root_only=True)
         if propria_arrecadado == 0:
-            propria_arrecadado = _sum_column(conn, "receita_orcamentaria", "arrecadado", year)
+            propria_arrecadado = _sum_column(conn, "receita_orcamentaria", "arrecadado", year, root_only=True)
 
-        uniao_previsto = _sum_column(conn, "receita_uniao", "previsao_atualizada", year)
-        uniao_arrecadado = _sum_column(conn, "receita_uniao", "arrecadado_total", year)
+        uniao_previsto = _sum_column(conn, "receita_uniao", "previsao_atualizada", year, root_only=True)
+        uniao_arrecadado = _sum_column(conn, "receita_uniao", "arrecadado_total", year, root_only=True)
         if uniao_arrecadado == 0:
-            uniao_arrecadado = _sum_column(conn, "receita_uniao", "arrecadado", year)
+            uniao_arrecadado = _sum_column(conn, "receita_uniao", "arrecadado", year, root_only=True)
 
-        estado_previsto = _sum_column(conn, "receita_estado", "previsao_atualizada", year)
-        estado_arrecadado = _sum_column(conn, "receita_estado", "arrecadado_total", year)
+        estado_previsto = _sum_column(conn, "receita_estado", "previsao_atualizada", year, root_only=True)
+        estado_arrecadado = _sum_column(conn, "receita_estado", "arrecadado_total", year, root_only=True)
         if estado_arrecadado == 0:
-            estado_arrecadado = _sum_column(conn, "receita_estado", "arrecadado", year)
+            estado_arrecadado = _sum_column(conn, "receita_estado", "arrecadado", year, root_only=True)
 
         total_previsto = propria_previsto + uniao_previsto + estado_previsto
         total_arrecadado = propria_arrecadado + uniao_arrecadado + estado_arrecadado
