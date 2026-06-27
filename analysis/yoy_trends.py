@@ -4,9 +4,20 @@ import pandas as pd
 from sqlalchemy import text
 
 
-def _sum_col(conn: Any, table: str, col: str, year: int) -> float:
+def _sum_col(conn: Any, table: str, col: str, year: int, root_only: bool = False) -> float:
     try:
-        df = pd.read_sql_query(text(f"SELECT {col} FROM {table} WHERE ano = :ano"), conn, params={"ano": year})
+        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano"
+        if root_only:
+            sql += (
+                f" AND NOT EXISTS ("
+                f"SELECT 1 FROM {table} t2"
+                f" WHERE t2.ano = :ano"
+                f" AND t2.codigo != t.codigo"
+                f" AND t.codigo LIKE RTRIM(t2.codigo, '0.') || '%%'"
+                f" AND LENGTH(RTRIM(t2.codigo, '0.')) < LENGTH(RTRIM(t.codigo, '0.'))"
+                f")"
+            )
+        df = pd.read_sql_query(text(sql), conn, params={"ano": year})
         if df.empty:
             return 0.0
         return float(pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum())
@@ -20,17 +31,17 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
         total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year)
         total_folha = _sum_col(conn, "pessoal", "proventos", year)
 
-        propria = _sum_col(conn, "receita_orcamentaria", "arrecadado_total", year)
+        propria = _sum_col(conn, "receita_orcamentaria", "arrecadado_total", year, root_only=True)
         if propria == 0:
-            propria = _sum_col(conn, "receita_orcamentaria", "arrecadado", year)
+            propria = _sum_col(conn, "receita_orcamentaria", "arrecadado", year, root_only=True)
 
-        uniao = _sum_col(conn, "receita_uniao", "arrecadado_total", year)
+        uniao = _sum_col(conn, "receita_uniao", "arrecadado_total", year, root_only=True)
         if uniao == 0:
-            uniao = _sum_col(conn, "receita_uniao", "arrecadado", year)
+            uniao = _sum_col(conn, "receita_uniao", "arrecadado", year, root_only=True)
 
-        estado = _sum_col(conn, "receita_estado", "arrecadado_total", year)
+        estado = _sum_col(conn, "receita_estado", "arrecadado_total", year, root_only=True)
         if estado == 0:
-            estado = _sum_col(conn, "receita_estado", "arrecadado", year)
+            estado = _sum_col(conn, "receita_estado", "arrecadado", year, root_only=True)
 
         total = propria + uniao + estado
         receita = total if total > 0 else None
