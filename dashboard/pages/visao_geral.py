@@ -22,32 +22,32 @@ from analysis import (
 _hash = {Engine: lambda e: str(e.url)}
 
 
-@st.cache_data(hash_funcs=_hash)
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _budget(conn, year, _extracted_at):
     return budget_execution.run(conn, year)
 
 
-@st.cache_data(hash_funcs=_hash)
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _bidding(conn, year, _extracted_at):
     return bidding_gaps.run(conn, year)
 
 
-@st.cache_data(hash_funcs=_hash)
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _bidding_counts(conn, years, _extracted_at):
     return bidding_gaps.counts_by_year(conn, years)
 
 
-@st.cache_data(hash_funcs=_hash)
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _revenue(conn, years, _extracted_at):
     return revenue_sources.run(conn, years)
 
 
-@st.cache_data(hash_funcs=_hash)
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _payroll(conn, years, _extracted_at):
     return payroll_vs_services.run(conn, years)
 
 
-@st.cache_data(hash_funcs=_hash)
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _yoy(conn, years, _extracted_at):
     return yoy_trends.run(conn, years)
 
