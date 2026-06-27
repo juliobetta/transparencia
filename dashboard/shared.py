@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
+from streamlit.connections import SQLConnection
 
 import db
 import glossary
@@ -12,9 +13,9 @@ import glossary
 YEARS = list(range(2022, date.today().year + 1))
 
 
-@st.cache_resource
 def get_conn():
-    return db.get_engine()
+    conn: SQLConnection = st.connection("postgresql", type="sql")
+    return conn.engine
 
 
 def render_sidebar() -> int:
