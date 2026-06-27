@@ -205,6 +205,9 @@ with col_trend:
         margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_trend, use_container_width=True)
+    st.caption(
+        "Evolução do gasto total, receita arrecadada e folha de pagamento. Receita exibida apenas nos anos com dados efetivamente arrecadados."
+    )
 
 with col_pct:
     yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
@@ -234,6 +237,7 @@ with col_pct:
         margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_pct, use_container_width=True)
+    st.caption("Variação percentual de cada indicador em relação ao ano anterior.")
 
 st.subheader(f"Composição e Execução ({year})")
 col_donut, col_bar = st.columns([4, 6])
@@ -261,6 +265,7 @@ with col_donut:
             margin=dict(l=0, r=0, t=40, b=0),
         )
         st.plotly_chart(fig_donut, use_container_width=True)
+        st.caption("Distribuição da receita entre fontes próprias e transferências intergovernamentais.")
     else:
         st.info("Dados de receita não disponíveis.")
 
@@ -318,6 +323,9 @@ with col_bar:
         margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_bar, use_container_width=True)
+    st.caption(
+        "Dotação orçamentária vs. valor empenhado por órgão. Cores: azul = execução normal, laranja = baixa (<30%), vermelho = excesso (>100%)."
+    )
 
 with st.expander("📊 Dados detalhados por ano"):
     st.dataframe(
