@@ -206,7 +206,7 @@ with col_trend:
     )
     st.plotly_chart(fig_trend, use_container_width=True)
     st.caption(
-        "Evolução do gasto total, receita arrecadada e folha de pagamento. Receita exibida apenas nos anos com dados efetivamente arrecadados."
+        "Gasto crescendo acima da receita é sinal de desequilíbrio fiscal. Folha persistente acima de 60% do gasto total indica rigidez orçamentária — pouco sobra para investimentos."
     )
 
 with col_pct:
@@ -237,7 +237,9 @@ with col_pct:
         margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_pct, use_container_width=True)
-    st.caption("Variação percentual de cada indicador em relação ao ano anterior.")
+    st.caption(
+        "Variações bruscas no gasto sem crescimento proporcional da receita merecem atenção. Alta acumulada em Restos a Pagar pode indicar dívidas represadas com fornecedores."
+    )
 
 st.subheader(f"Composição e Execução ({year})")
 col_donut, col_bar = st.columns([4, 6])
@@ -265,7 +267,9 @@ with col_donut:
             margin=dict(l=0, r=0, t=40, b=0),
         )
         st.plotly_chart(fig_donut, use_container_width=True)
-        st.caption("Distribuição da receita entre fontes próprias e transferências intergovernamentais.")
+        st.caption(
+            "Alta dependência de transferências federais e estaduais fragiliza o município diante de mudanças na política fiscal nacional. Receita própria elevada indica maior autonomia."
+        )
     else:
         st.info("Dados de receita não disponíveis.")
 
@@ -324,7 +328,7 @@ with col_bar:
     )
     st.plotly_chart(fig_bar, use_container_width=True)
     st.caption(
-        "Dotação orçamentária vs. valor empenhado por órgão. Cores: azul = execução normal, laranja = baixa (<30%), vermelho = excesso (>100%)."
+        "Execução abaixo de 30% pode indicar planejamento deficiente ou projetos paralisados. Acima de 100% aponta dotação insuficiente — ambos são alertas de gestão orçamentária."
     )
 
 with st.expander("📊 Dados detalhados por ano"):
