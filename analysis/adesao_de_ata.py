@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 from sqlalchemy import text
@@ -59,3 +59,88 @@ def run(conn: Any, year: int, empresa_id: str) -> dict:
     except Exception as e:
         print(f"DEBUG: Exception in Adesao: {e}")
         return {"list": pd.DataFrame(), "count": 0, "value": 0.0, "total_licitacao": 0.0, "contracts_linked_count": 0}
+
+
+def formal_counts_by_year(conn: Any, years: list[int], empresa_id: str = "2") -> dict[int, int]:
+    placeholders = ", ".join(str(y) for y in years)
+    df = pd.read_sql_query(
+        text(f"SELECT ano FROM licitacoes WHERE ano IN ({placeholders}) AND empresa = :empresa AND carona = 'S'"),
+        conn,
+        params={"empresa": empresa_id},
+    )
+    counts = df.groupby("ano").size()
+    return {y: int(counts.get(y, 0)) for y in years}
+
+
+def external_counts_by_year(conn: Any, years: list[int], empresa_id: Optional[str] = None) -> dict[int, int]:
+    placeholders = ", ".join(str(y) for y in years)
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {}
+    if empresa_id:
+        params["empresa"] = empresa_id
+    df = pd.read_sql_query(
+        text(f"""
+            SELECT ano FROM despesas_gerais
+            WHERE ano IN ({placeholders})
+              {empresa_clause}
+              AND (
+                  UPPER(produ) LIKE '%ATA DE REGISTRO DE PRE%'
+                  OR UPPER(produ) LIKE '%ADESAO%ATA%'
+                  OR UPPER(produ) LIKE '%ADESÃO%ATA%'
+                  OR UPPER(produ) LIKE '%TERMO DE ADESÃO%'
+                  OR UPPER(produ) LIKE '%TERMO DE ADESAO%'
+              )
+        """),
+        conn,
+        params=params,
+    )
+    counts = df.groupby("ano").size()
+    return {y: int(counts.get(y, 0)) for y in years}
+
+
+def run_external(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
+    """Find empenhos whose justification text references an external ata de adesão.
+
+    These are spending records where the municipality joined another entity's
+    Ata de Registro de Preços (TERMO DE ADESÃO EXTERNA), which may not appear
+    in the licitacoes table with carona='S'.
+    """
+    empresa_clause = "AND dg.empresa = :empresa" if empresa_id else ""
+    params: dict = {"ano": year}
+    if empresa_id:
+        params["empresa"] = empresa_id
+
+    query = text(f"""
+        SELECT
+            dg.datae      AS data,
+            dg.nomefor    AS fornecedor,
+            dg.pago       AS pago,
+            dg.nomeempresa AS unidade,
+            dg.produ      AS justificativa,
+            dg.numlicit   AS num_licitacao
+        FROM despesas_gerais dg
+        WHERE dg.ano = :ano
+          {empresa_clause}
+          AND (
+              UPPER(dg.produ) LIKE '%ATA DE REGISTRO DE PRE%'
+              OR UPPER(dg.produ) LIKE '%ADESAO%ATA%'
+              OR UPPER(dg.produ) LIKE '%ADESÃO%ATA%'
+              OR UPPER(dg.produ) LIKE '%TERMO DE ADESÃO%'
+              OR UPPER(dg.produ) LIKE '%TERMO DE ADESAO%'
+          )
+        ORDER BY CAST(NULLIF(REPLACE(dg.pago, ',', '.'), '') AS FLOAT) DESC
+    """)
+
+    try:
+        df = pd.read_sql_query(query, conn, params=params)
+        if df.empty:
+            return {"list": pd.DataFrame(), "count": 0, "total_pago": 0.0}
+        df["pago"] = _to_float(df["pago"])
+        return {
+            "list": df,
+            "count": len(df),
+            "total_pago": float(df["pago"].sum()),
+        }
+    except Exception as e:
+        print(f"DEBUG: Exception in Adesao Externa: {e}")
+        return {"list": pd.DataFrame(), "count": 0, "total_pago": 0.0}
