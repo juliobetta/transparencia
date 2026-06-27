@@ -7,7 +7,7 @@ TERMS: dict[str, str] = {
     "Liquidação": "A prefeitura confirma que o serviço ou produto foi entregue. O pagamento está agora autorizado.",
     "Pagamento": "O dinheiro efetivamente saiu da conta da prefeitura.",
     "Resto a Pagar": "Valores empenhados ou liquidados que não foram pagos até o fim do ano — passam para o ano seguinte.",
-    "Licitação": "Processo de concorrência pública onde fornecedores disputam um contrato. Obrigatório por [Lei 14.133/21](https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm) acima de R$ 62.725,59 para bens e serviços (Art. 75, I).",
+    "Licitação": "Processo de concorrência pública onde fornecedores disputam um contrato. Obrigatório por [Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/) acima de R$ 62.725,59 para bens e serviços.",
     "Dispensa de Licitação": "Isenção legal da licitação permitida para contratos de baixo valor (até R$ 62.725,59 para bens e serviços, conforme [Lei 14.133/21, Art. 75, I](https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm)) ou situações específicas como emergências. O uso excessivo acima desse limite é um sinal de alerta.",
     "Inexigibilidade": "Contratação direta sem licitação quando há fornecedor exclusivo ou notória especialização. Deve ser justificada.",
     "Fornecedor": "Empresa ou pessoa física que presta serviços ou fornece produtos à prefeitura.",
