@@ -3,19 +3,21 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
-THRESHOLD = 57_000
+THRESHOLD = 62_725.59
 NEAR_THRESHOLD_PCT = 0.20
 
 
 def run(conn: Any, year: int) -> dict:
     contratos = pd.read_sql_query(
         text(
-            "SELECT ano, empresa, numero, fornecedor, objeto, valor, licitacao_numero, mes FROM contratos WHERE ano = :ano"
+            "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes FROM contratos WHERE ano = :ano"
         ),
         conn,
         params={"ano": year},
     )
-    contratos["valor_num"] = pd.to_numeric(contratos["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    contratos["valor_num"] = pd.to_numeric(
+        contratos["valcon"].astype(str).str.replace(",", "."), errors="coerce"
+    ).fillna(0)
 
     lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
     near = contratos[(contratos["valor_num"] >= lower) & (contratos["valor_num"] < THRESHOLD)]
