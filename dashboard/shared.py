@@ -18,6 +18,10 @@ def get_conn():
     return conn.engine
 
 
+def get_extraction_date(engine) -> str | None:
+    return db.get_metadata(engine, "last_extracted_at")
+
+
 def render_sidebar() -> int:
     engine = get_conn()
     st.sidebar.markdown(

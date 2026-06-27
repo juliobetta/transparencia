@@ -7,7 +7,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from shared import fmt_percent, get_conn, render_sidebar
+from shared import fmt_percent, get_conn, get_extraction_date, render_sidebar
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import (
@@ -17,6 +18,38 @@ from analysis import (
     revenue_sources,
     yoy_trends,
 )
+
+_hash = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash)
+def _budget(conn, year, _extracted_at):
+    return budget_execution.run(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash)
+def _bidding(conn, year, _extracted_at):
+    return bidding_gaps.run(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash)
+def _bidding_counts(conn, years, _extracted_at):
+    return bidding_gaps.counts_by_year(conn, years)
+
+
+@st.cache_data(hash_funcs=_hash)
+def _revenue(conn, years, _extracted_at):
+    return revenue_sources.run(conn, years)
+
+
+@st.cache_data(hash_funcs=_hash)
+def _payroll(conn, years, _extracted_at):
+    return payroll_vs_services.run(conn, years)
+
+
+@st.cache_data(hash_funcs=_hash)
+def _yoy(conn, years, _extracted_at):
+    return yoy_trends.run(conn, years)
 
 
 def _fmt_compact(value: float) -> str:
@@ -53,20 +86,23 @@ def _sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
 
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
 st.title("Transparência Porciúncula / RJ")
 st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL}) do município.")
 st.header("Visão Geral")
 
-budget = budget_execution.run(conn, year)
-bidding = bidding_gaps.run(conn, year)
-revenue = revenue_sources.run(conn, list(range(2022, year + 1)))
-payroll = payroll_vs_services.run(conn, [year])
-yoy = yoy_trends.run(conn, list(range(2022, year + 1)))
+_all_years = list(range(2022, year + 1))
+budget = _budget(conn, year, _extracted_at)
+bidding = _bidding(conn, year, _extracted_at)
+revenue = _revenue(conn, _all_years, _extracted_at)
+payroll = _payroll(conn, [year], _extracted_at)
+yoy = _yoy(conn, _all_years, _extracted_at)
 
 anos = yoy["ano"].tolist()
 _spark_cfg = {"displayModeBar": False, "staticPlot": True}
-_contract_counts = [int(bidding_gaps.run(conn, y)["acima_limite"].sum()) for y in anos]
+_counts_map = _bidding_counts(conn, anos, _extracted_at)
+_contract_counts = [_counts_map[y] for y in anos]
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
