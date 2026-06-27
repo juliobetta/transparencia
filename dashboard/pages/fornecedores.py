@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -7,20 +8,30 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import get_conn, render_sidebar
+from shared import get_conn, get_extraction_date, render_sidebar
 from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import supplier_concentration
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _suppliers(conn, year, _extracted_at):
+    return supplier_concentration.run(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
 st.header("Concentração de Fornecedores")
 with st.expander("ℹ️ O que isso significa?"):
     st.write(f"**Fornecedor:** {glossary.tooltip('Fornecedor')}")
     st.write("**HHI:** Índice de concentração de mercado. Acima de 2.500 indica alta concentração.")
-result = supplier_concentration.run(conn, year)
+result = _suppliers(conn, year, _extracted_at)
 if result["dominante"]:
     st.warning(f"⚠️ {result['dominante']} recebeu mais de 40% do total pago a fornecedores.")
 st.metric(

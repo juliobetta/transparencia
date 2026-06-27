@@ -1,23 +1,34 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import fmt_currency, get_conn, render_sidebar
+from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import caprem_story
 from report.caprem import generate
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _caprem(conn, year, _extracted_at):
+    return caprem_story.run(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
 st.title("CAPREM (Caixa de Previdência Municipal)")
 st.caption(f"Dados do CAPREM extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
 
-data = caprem_story.run(conn, year)
+data = _caprem(conn, year, _extracted_at)
 
 # Section 1: Repasses
 st.header("① Repasses")

@@ -1,17 +1,37 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import YEARS, comparison_table, fmt_currency, fmt_delta, fmt_percent, get_conn, render_sidebar
+from shared import (
+    YEARS,
+    comparison_table,
+    fmt_currency,
+    fmt_delta,
+    fmt_percent,
+    get_conn,
+    get_extraction_date,
+    render_sidebar,
+)
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import comparison
 from analysis.comparison import PeriodSpec
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _comparison(conn, spec_a, spec_b, _extracted_at):
+    return comparison.run(conn, spec_a, spec_b)
+
+
 conn = get_conn()
+_extracted_at = get_extraction_date(conn)
 render_sidebar()  # sidebar portal link + metadata; year value not used on this page
 
 st.header("Comparação de Períodos")
@@ -34,7 +54,7 @@ with col_b:
 
 spec_a = PeriodSpec(year=year_a, month_start=m_start_a, month_end=m_end_a)
 spec_b = PeriodSpec(year=year_b, month_start=m_start_b, month_end=m_end_b)
-result = comparison.run(conn, spec_a, spec_b)
+result = _comparison(conn, spec_a, spec_b, _extracted_at)
 
 st.subheader("Resumo")
 m1, m2, m3, m4, m5 = st.columns(5)

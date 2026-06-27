@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -8,19 +9,34 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, render_sidebar
+from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import adesao_de_ata, health_story
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _health(conn, year, _extracted_at):
+    return health_story.run(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _adesao_externa(conn, year, _extracted_at):
+    return adesao_de_ata.run_external(conn, year, empresa_id="2")
+
+
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
 st.title("Fundo Municipal de Saúde")
 st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
 
-data = health_story.run(conn, year)
-adesao_externa = adesao_de_ata.run_external(conn, year, empresa_id="2")
+data = _health(conn, year, _extracted_at)
+adesao_externa = _adesao_externa(conn, year, _extracted_at)
 # Create MM/YYYY column for display
 for key, val in data.items():
     if isinstance(val, pd.DataFrame) and "mes" in val.columns:
