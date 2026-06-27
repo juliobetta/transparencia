@@ -206,6 +206,89 @@ with col_pct:
     )
     st.plotly_chart(fig_pct, use_container_width=True)
 
+st.subheader(f"Composição e Execução ({year})")
+col_donut, col_bar = st.columns([4, 6])
+
+with col_donut:
+    if not revenue.empty:
+        row = revenue.iloc[0]
+        fig_donut = go.Figure(
+            go.Pie(
+                labels=["Receita Própria", "Transferências União", "Transferências Estado"],
+                values=[
+                    float(row["receita_propria"]),
+                    float(row["transferencias_uniao"]),
+                    float(row["transferencias_estado"]),
+                ],
+                hole=0.5,
+                marker=dict(colors=["#2196F3", "#4CAF50", "#FF9800"]),
+                textinfo="percent+label",
+            )
+        )
+        fig_donut.update_layout(
+            title=f"Fontes de Receita ({year})",
+            showlegend=False,
+            margin=dict(l=0, r=0, t=40, b=0),
+        )
+        st.plotly_chart(fig_donut, use_container_width=True)
+    else:
+        st.info("Dados de receita não disponíveis.")
+
+with col_bar:
+    _alerta_colors = {
+        "normal": "#2196F3",
+        "baixa": "#FF9800",
+        "excesso": "#F44336",
+        "N/D": "#9E9E9E",
+    }
+    by_organ = budget.groupby(["empresa", "descricao"], as_index=False).agg(
+        empenhado=("empenhado", "sum"), dotacao_atualizada=("dotacao_atualizada", "sum")
+    )
+    by_organ["taxa_execucao"] = by_organ.apply(
+        lambda r: r["empenhado"] / r["dotacao_atualizada"] if r["dotacao_atualizada"] > 0 else 0.0,
+        axis=1,
+    )
+    by_organ["alerta"] = by_organ.apply(
+        lambda r: (
+            "N/D"
+            if r["empenhado"] == 0 and r["dotacao_atualizada"] == 0
+            else ("baixa" if r["taxa_execucao"] < 0.3 else ("excesso" if r["taxa_execucao"] > 1.0 else "normal"))
+        ),
+        axis=1,
+    )
+    top10 = by_organ.nlargest(10, "dotacao_atualizada").copy()
+    top10["descricao_short"] = top10["descricao"].str[:30]
+    top10["bar_color"] = top10["alerta"].map(_alerta_colors).fillna("#9E9E9E")
+
+    fig_bar = go.Figure()
+    fig_bar.add_trace(
+        go.Bar(
+            y=top10["descricao_short"].tolist(),
+            x=top10["dotacao_atualizada"].tolist(),
+            name="Dotação Atualizada",
+            orientation="h",
+            marker_color="#E0E0E0",
+        )
+    )
+    fig_bar.add_trace(
+        go.Bar(
+            y=top10["descricao_short"].tolist(),
+            x=top10["empenhado"].tolist(),
+            name="Empenhado",
+            orientation="h",
+            marker_color=top10["bar_color"].tolist(),
+        )
+    )
+    fig_bar.update_layout(
+        title=f"Execução Orçamentária — Top 10 Órgãos ({year})",
+        barmode="overlay",
+        xaxis=dict(tickformat=",.0f", tickprefix="R$ "),
+        yaxis=dict(autorange="reversed"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=0, r=0, t=40, b=0),
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
+
 with st.expander("📊 Dados detalhados por ano"):
     st.dataframe(
         yoy.rename(
