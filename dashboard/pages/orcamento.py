@@ -1,24 +1,35 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, render_sidebar
+from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import budget_execution
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _budget(conn, year, _extracted_at):
+    return budget_execution.run(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
 st.header("Execução Orçamentária por Órgão")
 with st.expander("ℹ️ O que isso significa?"):
     st.write(f"**Dotação Atualizada:** {glossary.tooltip('Dotação Atualizada')}")
     st.write(f"**Empenho:** {glossary.tooltip('Empenho')}")
-df = budget_execution.run(conn, year)
+df = _budget(conn, year, _extracted_at)
 
 # Summary Metrics
 total_empenhado = df["empenhado"].sum()
