@@ -39,13 +39,13 @@ st.header("Licitações e Contratos")
 
 st.info(
     "Contratos sem processo licitatório são comuns e frequentemente legais — dispensas de baixo valor "
-    "e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de R$57k** "
-    "sem licitação, pois nesses casos a lei exige justificativa formal."
+    "e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de R$ 62.725,59** "
+    "sem licitação, pois nesses casos a lei exige justificativa formal (Lei 14.133/21, Art. 75, I)."
 )
 
 st.subheader("Resumo")
 c1, c2, c3 = st.columns(3)
-c1.metric("Acima do limite legal (R$57k)", len(acima))
+c1.metric("Acima do limite legal (R$ 62.725,59)", len(acima))
 c2.metric("Total sem processo licitatório", len(gaps))
 c3.metric("Adesões de Ata", adesao["count"])
 

@@ -3,7 +3,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
-DISPENSATION_THRESHOLD = 57_000
+DISPENSATION_THRESHOLD = 62_725.59
 SAUDE_EMPRESA = "2"
 
 

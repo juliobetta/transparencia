@@ -6,7 +6,7 @@ from sqlalchemy import text
 
 from analysis.contract_anomalies import NEAR_THRESHOLD_PCT, THRESHOLD
 
-DISPENSATION_THRESHOLD = 57_000
+DISPENSATION_THRESHOLD = 62_725.59
 SAUDE_EMPRESA = "2"
 
 

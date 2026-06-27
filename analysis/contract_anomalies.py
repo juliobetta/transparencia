@@ -3,7 +3,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
-THRESHOLD = 57_000
+THRESHOLD = 62_725.59
 NEAR_THRESHOLD_PCT = 0.20
 
 
