@@ -122,6 +122,12 @@ class DatabaseLoader:
         engine = get_engine()
         create_tables(engine)
 
+        try:
+            extraction_dt = datetime.strptime(run_dir.name, "%Y%m%d_%H%M%S")
+            extraction_date = extraction_dt.isoformat(sep=" ")
+        except ValueError:
+            extraction_date = None
+
         for json_file in run_dir.rglob("*.json"):
             table = json_file.parent.name
             config = next((c for c in ENDPOINT_CONFIGS if c[2] == table), None)
@@ -140,6 +146,10 @@ class DatabaseLoader:
             normalised = PipelineHelper.normalize(rows, year, str(empresa_id), post_process)
             count = upsert(engine, table, normalised, key_cols)  # type: ignore
             logger.info("Loaded %s / %s / %d → %d rows", table, empresa_id, year, count)
+
+        if extraction_date:
+            set_metadata(engine, "last_extracted_at", extraction_date)
+            logger.info("Set extraction date: %s", extraction_date)
 
         logger.info("Loading complete.")
 
@@ -340,7 +350,7 @@ class PipelineRunner:
                         DataExtractor.log_failed_request(listagem, empresa_name, year, exc)
                     done += 1
 
-        set_metadata(engine, "last_extracted_at", date.today().isoformat())
+        set_metadata(engine, "last_extracted_at", datetime.now().isoformat(sep=" ", timespec="seconds"))
         logger.info("Pipeline complete.")
 
 

@@ -38,7 +38,8 @@ def render_sidebar() -> int:
     _last_extracted = db.get_metadata(engine, "last_extracted_at")
 
     if _last_extracted:
-        _last_extracted = datetime.strptime(_last_extracted, "%Y-%m-%d").strftime("%m/%d/%Y")
+        fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
+        _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
     st.sidebar.markdown("---")
     st.sidebar.caption(
         f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
