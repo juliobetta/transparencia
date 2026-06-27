@@ -23,7 +23,7 @@ def _revenue(conn, year, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _fiscal_position(conn, year, _extracted_at):
+def _fiscal_position(conn, year, _extracted_at, _v=2):
     return fiscal_position.run(conn, year)
 
 
@@ -154,10 +154,11 @@ if year == 2026:
     fc1.metric("Receitas Arrecadadas", fmt_currency(fp["total_arrecadado"]))
     fc2.metric("Total Pago no Período", fmt_currency(fp["total_saidas"]))
     fc3.metric("Fluxo Líquido do Período", fmt_currency(fp["saldo_estimado"]))
+    herdadas = fp.get("restos_pendentes_anteriores", 0.0)
     fc4.metric(
         "Obrigações Herdadas (Adm. Anterior)",
-        fmt_currency(fp["restos_pendentes_anteriores"]),
-        delta=f"- {fmt_currency(fp['restos_pendentes_anteriores'])}",
+        fmt_currency(herdadas),
+        delta=f"- {fmt_currency(herdadas)}",
         delta_color="inverse",
     )
 
