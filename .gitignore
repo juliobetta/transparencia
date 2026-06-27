@@ -34,4 +34,4 @@ reports/
 docs/superpowers
 opencode.json
 .worktrees
-docker/
+.streamlit/secrets.toml
