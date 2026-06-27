@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -7,13 +8,48 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, render_sidebar
+from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy import text
+from sqlalchemy.engine import Engine
 
 from analysis import expenses_analysis
 
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _metrics(conn, year, _extracted_at):
+    return expenses_analysis.get_general_expense_metrics(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _by_unit(conn, year, _extracted_at):
+    return expenses_analysis.get_expenses_by_unit(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _impact(conn, year, _extracted_at):
+    return expenses_analysis.get_local_spending_impact(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _top_suppliers(conn, year, _extracted_at):
+    return expenses_analysis.get_top_suppliers_detailed(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _diarias_summary(conn, year, _extracted_at):
+    return expenses_analysis.get_diarias_summary(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _top_diarias(conn, year, _extracted_at):
+    return expenses_analysis.get_top_diarias_beneficiaries(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
+_extracted_at = get_extraction_date(conn)
 
 st.title("Portal de Despesas Detalhadas")
 st.caption("Acompanhe em tempo real como e onde os recursos públicos estão sendo aplicados.")
@@ -32,14 +68,14 @@ t1, t2, t3, t4 = st.tabs(
 with t1:
     st.subheader("Análise de Gastos por Unidade do Governo")
 
-    metrics = expenses_analysis.get_general_expense_metrics(conn, year)
+    metrics = _metrics(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Total Empenhado", fmt_currency(metrics["empenhado"]))
     c2.metric("Total Liquidado", fmt_currency(metrics["liquidado"]), f"Executado: {metrics['taxa_liquidacao']:.1f}%")
     c3.metric("Total Pago Real", fmt_currency(metrics["pago"]), f"Pago: {metrics['taxa_pagamento']:.1f}%")
 
-    df_unit = expenses_analysis.get_expenses_by_unit(conn, year)
+    df_unit = _by_unit(conn, year, _extracted_at)
     if not df_unit.empty:
         st.markdown("---")
         fig = px.bar(
@@ -79,7 +115,7 @@ with t1:
 with t2:
     st.subheader("Concentração e Impacto Econômico de Fornecedores")
 
-    impact = expenses_analysis.get_local_spending_impact(conn, year)
+    impact = _impact(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Gasto com Empresas Locais", fmt_currency(impact["local_pago"]))
@@ -108,7 +144,7 @@ with t2:
         st.plotly_chart(fig_pie, use_container_width=True)
 
     st.markdown("### Top 10 Maiores Prestadores de Serviços / Fornecedores")
-    df_sup = expenses_analysis.get_top_suppliers_detailed(conn, year)
+    df_sup = _top_suppliers(conn, year, _extracted_at)
     if not df_sup.empty:
         fig_sup = px.bar(
             df_sup.head(10),
@@ -134,7 +170,7 @@ with t2:
 with t3:
     st.subheader("Diárias e Auxílios de Viagem a Serviço")
 
-    dia_sum = expenses_analysis.get_diarias_summary(conn, year)
+    dia_sum = _diarias_summary(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Gasto Total com Diárias", fmt_currency(dia_sum["total_valor"]))
@@ -142,7 +178,7 @@ with t3:
     c3.metric("Média de Reembolso por Viagem", fmt_currency(dia_sum["media_reembolso"]))
 
     st.markdown("---")
-    df_dia_top = expenses_analysis.get_top_diarias_beneficiaries(conn, year)
+    df_dia_top = _top_diarias(conn, year, _extracted_at)
     if not df_dia_top.empty:
         st.markdown("### Top 10 Servidores que Receberam Diárias")
         st.dataframe(
