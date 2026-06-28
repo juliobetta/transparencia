@@ -188,7 +188,9 @@ with t2:
 
     st.markdown("### Concentração de Fornecedores")
     if conc["dominante"]:
-        st.warning(f"⚠️ {conc['dominante']} recebeu mais de 40% do total empenhado a fornecedores.")
+        st.warning(
+            f"{conc['dominante']} recebeu mais de 40% do total empenhado a fornecedores.", icon=":material/warning:"
+        )
 
     top10_conc = conc["top10"].copy()
     outros_emp = (

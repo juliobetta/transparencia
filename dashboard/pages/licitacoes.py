@@ -185,7 +185,7 @@ if not acima.empty:
         hide_index=True,
     )
 if not anomalies["splitting"].empty:
-    st.subheader("⚠️ Possível fracionamento de contratos")
+    st.subheader(":material/warning: Possível fracionamento de contratos")
     st.dataframe(
         anomalies["splitting"][["fornecedor", "valcon", "objeto", "Período"]].rename(
             columns={
