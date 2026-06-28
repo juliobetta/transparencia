@@ -14,6 +14,7 @@ from shared import (
     fmt_percent,
     get_conn,
     get_extraction_date,
+    render_partial_year_notice,
     render_revenue_methodology,
     render_sidebar,
 )
@@ -110,6 +111,8 @@ with st.expander("Pessoal"):
     )
 with st.expander("Receitas"):
     render_revenue_methodology()
+    if year_a == 2026 or year_b == 2026:
+        render_partial_year_notice(2026, _extracted_at)
     df_receitas = comparison_table(
         result["receitas"],
         [

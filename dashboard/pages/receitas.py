@@ -8,7 +8,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_revenue_methodology, render_sidebar
+from shared import (
+    fmt_currency,
+    get_conn,
+    get_extraction_date,
+    render_partial_year_notice,
+    render_revenue_methodology,
+    render_sidebar,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -40,7 +47,7 @@ if year < 2026:
         "mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de 2026."
     )
 else:
-    st.success("✅ Dados de Arrecadação Realizados disponíveis para o exercício corrente (2026).")
+    render_partial_year_notice(year, _extracted_at)
 
 with st.expander("ℹ️ Glossário de Termos"):
     st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
