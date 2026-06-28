@@ -59,9 +59,9 @@ def run(conn: Any, year: int) -> dict:
 
     total_saidas = despesas_pagas + restos_pagos_no_ano
     saldo_estimado = total_arrecadado - total_saidas
-    restos_pendentes_total = sum(r["pendente"] for r in restos_pendentes)
+    restos_pendentes_total = sum(float(r["pendente"]) for r in restos_pendentes)
     # Only pre-2025 obligations represent inherited debt from the previous administration
-    restos_pendentes_anteriores = sum(r["pendente"] for r in restos_pendentes if r["ano"] < 2025)
+    restos_pendentes_anteriores = sum(float(r["pendente"]) for r in restos_pendentes if int(r["ano"]) < 2025)
 
     return {
         "total_arrecadado": total_arrecadado,
