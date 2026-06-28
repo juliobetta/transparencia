@@ -8,6 +8,9 @@ def _post_process_contratos(row: dict) -> dict:
     row.setdefault("numero", row.get("codigo", ""))
     proclic = row.get("proclic", "")
     row["licitacao_numero"] = proclic.split("/")[0] if proclic else ""
+    row.setdefault("valor", row.get("valcon", ""))
+    row.setdefault("data_inicio", row.get("vigeni", ""))
+    row.setdefault("data_fim", row.get("vigenf", ""))
     return row
 
 
