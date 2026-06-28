@@ -265,7 +265,10 @@ with t4:
                         "descricao": "Justificativa Contábil (Histórico)",
                     }
                 ),
-                column_config={"Valor Pago (R$)": st.column_config.NumberColumn(format="R$ %,.2f")},
+                column_config={
+                    "Valor Pago (R$)": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Data Empenho": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                },
                 use_container_width=True,
                 hide_index=True,
             )

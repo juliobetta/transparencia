@@ -154,4 +154,5 @@ def get_searchable_transactions(conn: Any, year: int, query: str, limit: int = 5
         return pd.DataFrame(columns=["data", "fornecedor", "pago", "unidade", "descricao"])
 
     df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     return df

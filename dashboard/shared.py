@@ -72,7 +72,7 @@ def comparison_table(domain: dict, rows: list[tuple[str, str]]):
 
 
 def render_revenue_methodology() -> None:
-    with st.expander("ℹ️ Como os valores de receita são calculados?"):
+    with st.expander(":material/info: Como os valores de receita são calculados?"):
         st.markdown(
             """
 Os valores de receita são extraídos diretamente do portal de transparência municipal,

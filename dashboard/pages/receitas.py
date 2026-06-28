@@ -36,13 +36,14 @@ st.header("Fontes de Receita")
 # Informative historical limitations notice
 if year < 2026:
     st.info(
-        "ℹ️ O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
-        "mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de 2026."
+        "O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
+        "mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de 2026.",
+        icon=":material/info:",
     )
 else:
-    st.success("✅ Dados de Arrecadação Realizados disponíveis para o exercício corrente (2026).")
+    st.success(":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente (2026).")
 
-with st.expander("ℹ️ Glossário de Termos"):
+with st.expander(":material/info: Glossário de Termos"):
     st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
     st.write(f"**FPM:** {glossary.tooltip('FPM (Fundo de Participação dos Municípios)')}")
 
@@ -142,12 +143,14 @@ if year == 2026:
     fp = _fiscal_position(conn, year, _extracted_at)
 
     st.warning(
-        "⚠️ **Estimativa baseada em dados públicos — não é um balanço oficial.** "
-        "**Fluxo Líquido do Período** = total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos). "
-        "Não representa o saldo de caixa disponível: não inclui saldo inicial em 01/01/2026, "
-        "receitas/despesas extra-orçamentárias nem aplicações financeiras. "
-        "**Obrigações Herdadas** = restos a pagar de exercícios anteriores a 2025 (dívida da administração anterior) ainda não quitados. "
-        f"Para o valor oficial, consulte o [RREO Anexo 5]({glossary.PORTAL_URL})."
+        f"""
+        **Estimativa baseada em dados públicos — não é um balanço oficial.**\n\n
+        * **Fluxo Líquido do Período**: total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos).
+        Não representa o saldo de caixa disponível — não inclui saldo inicial em 01/01/2026, receitas/despesas extra-orçamentárias nem aplicações financeiras.
+        * **Obrigações Herdadas**: restos a pagar de exercícios anteriores a 2025 (dívida da administração anterior) ainda não quitados. \n\n
+        Para o valor oficial, consulte Prestação de Contas > Responsabilidade Fiscal - RREO no [portal da transparência]({glossary.PORTAL_URL}).
+        """,
+        icon=":material/warning:",
     )
 
     fc1, fc2 = st.columns(2)
