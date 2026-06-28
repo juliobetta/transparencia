@@ -74,5 +74,3 @@ fig = px.pie(pie_data, values="empenhado", names="Fornecedor", title="Distribui�
 st.plotly_chart(fig, width="stretch")
 
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
-
-st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")

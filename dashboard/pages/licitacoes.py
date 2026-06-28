@@ -155,7 +155,10 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
                     "num_licitacao": "Nº Licitação",
                 }
             ),
-            column_config={"Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f")},
+            column_config={
+                "Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
+            },
             width="stretch",
             hide_index=True,
         )

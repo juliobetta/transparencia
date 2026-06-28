@@ -161,6 +161,7 @@ def run_external(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict
         if df.empty:
             return {"list": pd.DataFrame(), "count": 0, "total_pago": 0.0}
         df["pago"] = _to_float(df["pago"])
+        df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
         return {
             "list": df,
             "count": len(df),
