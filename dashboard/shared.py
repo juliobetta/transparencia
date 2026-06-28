@@ -24,31 +24,19 @@ def get_extraction_date(engine) -> str | None:
 
 def render_sidebar() -> int:
     engine = get_conn()
+    _last_extracted = db.get_metadata(engine, "last_extracted_at")
+    if _last_extracted:
+        fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
+        _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
     st.sidebar.markdown(
         f"### 🔗 Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
         unsafe_allow_html=True,
     )
-    if "sidebar_year" not in st.session_state:
-        st.session_state["sidebar_year"] = YEARS[-1]
-
-    selected_year = st.sidebar.selectbox(
-        "Ano",
-        YEARS,
-        key="sidebar_year_selector",
-        index=YEARS.index(st.session_state["sidebar_year"]),
-    )
-    st.session_state["sidebar_year"] = selected_year
-
-    _last_extracted = db.get_metadata(engine, "last_extracted_at")
-
-    if _last_extracted:
-        fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
-        _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
     st.sidebar.markdown("---")
     st.sidebar.caption(
         f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
     )
-    return int(st.session_state["sidebar_year"])
+    return int(st.session_state.get("sidebar_year", YEARS[-1]))
 
 
 def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
