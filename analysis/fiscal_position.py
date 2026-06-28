@@ -63,6 +63,32 @@ def run(conn: Any, year: int) -> dict:
     # Only pre-2025 obligations represent inherited debt from the previous administration
     restos_pendentes_anteriores = sum(float(r["pendente"]) for r in restos_pendentes if int(r["ano"]) < 2025)
 
+    # 5. Top 5 creditors with pending restos from current administration (2025+)
+    top_credores_adm_atual = []
+    try:
+        df_cred = pd.read_sql_query(
+            text("SELECT descricao, empenhado, pago FROM despesas_restos_pagar WHERE ano >= 2025"),
+            conn,
+        )
+        df_cred["emp_f"] = pd.to_numeric(
+            df_cred["empenhado"].astype(str).str.replace(",", "."), errors="coerce"
+        ).fillna(0)
+        df_cred["pago_f"] = pd.to_numeric(df_cred["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+        df_cred["pendente"] = df_cred["emp_f"] - df_cred["pago_f"]
+        df_cred["descricao"] = df_cred["descricao"].fillna("Sem identificação")
+        top = (
+            df_cred.groupby("descricao")["pendente"]
+            .sum()
+            .reset_index()
+            .sort_values("pendente", ascending=False)
+            .head(5)
+        )
+        top_credores_adm_atual = top.rename(columns={"descricao": "Fornecedor", "pendente": "Pendente"}).to_dict(
+            "records"
+        )
+    except Exception:
+        pass
+
     return {
         "total_arrecadado": total_arrecadado,
         "despesas_pagas": despesas_pagas,
@@ -72,4 +98,5 @@ def run(conn: Any, year: int) -> dict:
         "restos_pendentes": restos_pendentes,
         "restos_pendentes_total": restos_pendentes_total,
         "restos_pendentes_anteriores": restos_pendentes_anteriores,
+        "top_credores_adm_atual": top_credores_adm_atual,
     }
