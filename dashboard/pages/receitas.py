@@ -163,6 +163,13 @@ if year == 2026:
         delta=f"-{fmt_currency(herdadas)}",
     )
 
+    saldo_apos_restos = fp["saldo_estimado"] - fp["restos_pendentes_total"]
+    st.metric(
+        "Saldo após Restos Pendentes (2026)",
+        fmt_currency(saldo_apos_restos),
+        delta=fmt_currency(saldo_apos_restos) if saldo_apos_restos >= 0 else f"-{fmt_currency(abs(saldo_apos_restos))}",
+    )
+
     with st.expander(":material/table_chart: Restos a Pagar pendentes por exercício"):
         if fp["restos_pendentes"]:
             restos_df = pd.DataFrame(fp["restos_pendentes"]).rename(
