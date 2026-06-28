@@ -9,7 +9,14 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from shared import fmt_percent, get_conn, get_extraction_date, render_revenue_methodology, render_sidebar
+from shared import (
+    fmt_percent,
+    get_conn,
+    get_extraction_date,
+    render_partial_year_notice,
+    render_revenue_methodology,
+    render_sidebar,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -381,6 +388,12 @@ col_donut, col_bar = st.columns([4, 6])
 with col_donut:
     if not revenue.empty:
         row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
+        is_partial = year == 2026
+        donut_title = (
+            f"Fontes de Receita ({year} — Arrecadado Parcial)"
+            if is_partial
+            else f"Fontes de Receita ({year} — Previsão Orçamentária)"
+        )
         fig_donut = go.Figure(
             go.Pie(
                 labels=["Receita Própria", "Transferências União", "Transferências Estado"],
@@ -396,14 +409,31 @@ with col_donut:
             )
         )
         fig_donut.update_layout(
-            title=f"Fontes de Receita ({year})",
+            title=donut_title,
             showlegend=False,
             margin=dict(l=0, r=0, t=40, b=0),
         )
         st.plotly_chart(fig_donut, use_container_width=True)
-        st.caption(
-            "Alta dependência de transferências federais e estaduais fragiliza o município diante de mudanças na política fiscal nacional. Receita própria elevada indica maior autonomia."
-        )
+        if is_partial:
+            _prev_rows = revenue[revenue["ano"] == year - 1]
+            _propria_cur = _fmt_compact(float(row["receita_propria_previsto"]))
+            _propria_prev = (
+                _fmt_compact(float(_prev_rows.iloc[0]["receita_propria_previsto"])) if not _prev_rows.empty else "N/D"
+            )
+            _pct_cur = float(row["pct_propria"])
+            _pct_prev = float(_prev_rows.iloc[0]["pct_propria"]) if not _prev_rows.empty else 0
+            render_partial_year_notice(
+                year,
+                _extracted_at,
+                extra_html=(
+                    f"O salto de ~{_pct_prev:.0f}% ({year - 1}) para ~{_pct_cur:.0f}% ({year}) reflete também uma mudança na "
+                    f"previsão orçamentária: a receita própria foi orçada em {_propria_cur} em {year}, frente a {_propria_prev} em {year - 1}."
+                ),
+            )
+        else:
+            st.caption(
+                "Alta dependência de transferências federais e estaduais fragiliza o município diante de mudanças na política fiscal nacional. Receita própria elevada indica maior autonomia."
+            )
     else:
         st.info("Dados de receita não disponíveis.")
 
@@ -465,7 +495,7 @@ with col_bar:
         "Execução abaixo de 30% pode indicar planejamento deficiente ou projetos paralisados. Acima de 100% aponta dotação insuficiente — ambos são alertas de gestão orçamentária."
     )
 
-with st.expander("📊 Dados detalhados por ano"):
+with st.expander(":material/bar_chart: Dados detalhados por ano"):
     st.dataframe(
         yoy.rename(
             columns={
@@ -494,4 +524,6 @@ with st.expander("📊 Dados detalhados por ano"):
         },
     )
 
-st.info(f"🔗 Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})")
+st.info(
+    f":material/link: Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})"
+)

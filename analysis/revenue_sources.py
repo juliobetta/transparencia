@@ -51,6 +51,7 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
         estado_compat = estado_arrecadado if (estado_arrecadado > 0 or year == 2026) else estado_previsto
         total_compat = propria_compat + uniao_compat + estado_compat
         pct = propria_compat / total_compat * 100 if total_compat > 0 else 0
+        pct_previsto = propria_previsto / total_previsto * 100 if total_previsto > 0 else 0
 
         records.append(
             {
@@ -60,6 +61,7 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
                 "transferencias_estado": estado_compat,
                 "total": total_compat,
                 "pct_propria": pct,
+                "pct_propria_previsto": pct_previsto,
                 "alerta_dependencia": bool(pct < 10),
                 "receita_propria_previsto": propria_previsto,
                 "receita_propria_arrecadado": propria_arrecadado,
