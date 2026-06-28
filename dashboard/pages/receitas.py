@@ -8,7 +8,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_revenue_methodology, render_sidebar
+from shared import (
+    fmt_currency,
+    get_conn,
+    get_extraction_date,
+    render_partial_year_notice,
+    render_revenue_methodology,
+    render_sidebar,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -42,6 +49,7 @@ if year < 2026:
     )
 else:
     st.success(":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente (2026).")
+    render_partial_year_notice(year, _extracted_at)
 
 with st.expander(":material/info: Glossário de Termos"):
     st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
@@ -133,7 +141,7 @@ if not df.empty:
 
     if row["alerta_dependencia"]:
         st.warning(
-            "⚠️ Alerta: Receita própria municipal está abaixo de 10% do total. Alta dependência fiscal de repasses federais e estaduais."
+            ":material/warning: Alerta: Receita própria municipal está abaixo de 10% do total. Alta dependência fiscal de repasses federais e estaduais."
         )
 
 if year == 2026:

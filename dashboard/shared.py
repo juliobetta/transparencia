@@ -80,6 +80,36 @@ def comparison_table(domain: dict, rows: list[tuple[str, str]]):
     return pd.DataFrame(records)
 
 
+_PT_MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+
+
+def partial_year_month(extracted_at: str | None) -> str:
+    """Return the Portuguese month abbreviation of the extraction date, or '?' on failure."""
+    try:
+        from pandas import Timestamp
+
+        return _PT_MONTHS[Timestamp(extracted_at).month - 1]
+    except Exception:
+        return "?"
+
+
+def render_partial_year_notice(year: int, extracted_at: str | None, extra_html: str = "") -> None:
+    """Render a small styled notice explaining that `year` shows partial arrecadado data."""
+    last_month = partial_year_month(extracted_at)
+    body = (
+        f"<strong>{year} exibe arrecadação real (parcial, Jan–{last_month}).</strong> "
+        "Não é diretamente comparável aos anos anteriores, que mostram previsão orçamentária anual."
+    )
+    if extra_html:
+        body += " " + extra_html
+    st.markdown(
+        "<div style='background:#dbeafe;border-left:4px solid #3b82f6;padding:0.4rem 0.75rem;"
+        f"border-radius:4px;font-size:0.78rem;line-height:1.4;color:#1e3a5f;margin-bottom:0.5rem;'>"
+        f"{body}</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_revenue_methodology() -> None:
     with st.expander(":material/info: Como os valores de receita são calculados?"):
         st.markdown(
