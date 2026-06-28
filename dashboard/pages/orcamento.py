@@ -26,7 +26,7 @@ year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
 st.header("Execução Orçamentária por Órgão")
-with st.expander("ℹ️ O que isso significa?"):
+with st.expander(":material/info: O que isso significa?"):
     st.write(f"**Dotação Atualizada:** {glossary.tooltip('Dotação Atualizada')}")
     st.write(f"**Empenho:** {glossary.tooltip('Empenho')}")
 df = _budget(conn, year, _extracted_at)

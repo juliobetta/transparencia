@@ -28,7 +28,7 @@ year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
 st.header("Folha de Pagamento")
-with st.expander("ℹ️ O que isso significa?"):
+with st.expander(":material/info: O que isso significa?"):
     st.write("Percentual dos gastos pagos que corresponde à folha de pessoal (servidores municipais).")
 df = _payroll(conn, year, _extracted_at)
 if not df.empty:

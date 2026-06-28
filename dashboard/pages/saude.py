@@ -78,7 +78,7 @@ if data["emendas_total"] > 0:
             },
             hide_index=True,
         )
-    with st.expander("ℹ️ O que é uma emenda parlamentar?"):
+    with st.expander(":material/info: O que é uma emenda parlamentar?"):
         st.write(glossary.tooltip("Emenda Impositiva"))
 else:
     st.info("Sem emendas parlamentares registradas para este ano.")
@@ -90,7 +90,7 @@ c1.metric("Dotação Atualizada", fmt_currency(budget["dotacao"]), help=glossary
 c2.metric("Total Empenhado", fmt_currency(budget["empenhado"]), help=glossary.tooltip("Empenho"))
 c3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
 if budget["flag_under_execution"]:
-    st.warning(f"⚠️ Taxa de execução abaixo de 70% ao final do ano {year}.")
+    st.warning(f"Taxa de execução abaixo de 70% ao final do ano {year}.", icon=":material/warning:")
 
 st.subheader("Repasses da Prefeitura")
 transfers_total = data["transfers_to_health_total"]
@@ -215,7 +215,7 @@ if not modality_df.empty and modality_df.notna().all().all():
         hide_index=True,
         column_order=["Período", "Modalidade", "Qtd", "Valor Total"],
     )
-    with st.expander("ℹ️ O que são essas modalidades?"):
+    with st.expander(":material/info: O que são essas modalidades?"):
         st.write(f"**Licitação:** {glossary.tooltip('Licitação')}")
         st.write(f"**Pregão Eletrônico:** {glossary.tooltip('Pregão Eletrônico')}")
         st.write(f"**Pregão Presencial:** {glossary.tooltip('Pregão Presencial')}")
@@ -252,7 +252,7 @@ else:
     st.success("Nenhum contrato acima do limite legal sem processo licitatório.")
 
 if not data["splitting"].empty and data["splitting"].notna().all().all():
-    st.subheader("⚠️ Possível fracionamento de contratos")
+    st.subheader(":material/warning: Possível fracionamento de contratos")
     st.dataframe(
         data["splitting"].rename(columns={"periodo": "Período"}).drop(columns=["mes", "ano"], errors="ignore"),
         width="stretch",

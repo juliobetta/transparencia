@@ -30,7 +30,7 @@ def render_sidebar() -> int:
         fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
         _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
     st.sidebar.markdown(
-        f"### 🔗 Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
+        f"### :material/link: Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
         unsafe_allow_html=True,
     )
     st.sidebar.markdown("---")
