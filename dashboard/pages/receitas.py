@@ -23,7 +23,7 @@ def _revenue(conn, year, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _fiscal_position(conn, year, _extracted_at, _v=3):
+def _fiscal_position(conn, year, _extracted_at, _v=6):
     return fiscal_position.run(conn, year)
 
 
@@ -160,11 +160,17 @@ if year == 2026:
     fc4.metric(
         "Obrigações Herdadas (Adm. Anterior)",
         fmt_currency(herdadas),
-        delta=f"- {fmt_currency(herdadas)}",
-        delta_color="inverse",
+        delta=f"-{fmt_currency(herdadas)}",
     )
 
-    with st.expander("📋 Restos a Pagar pendentes por exercício"):
+    saldo_apos_restos = fp["saldo_estimado"] - fp["restos_pendentes_total"]
+    st.metric(
+        "Saldo após Restos Pendentes (2026)",
+        fmt_currency(saldo_apos_restos),
+        delta=fmt_currency(saldo_apos_restos) if saldo_apos_restos >= 0 else f"-{fmt_currency(abs(saldo_apos_restos))}",
+    )
+
+    with st.expander(":material/table_chart: Restos a Pagar pendentes por exercício"):
         if fp["restos_pendentes"]:
             restos_df = pd.DataFrame(fp["restos_pendentes"]).rename(
                 columns={
@@ -185,7 +191,7 @@ if year == 2026:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.metric("Total Pendente", fmt_currency(fp["restos_pendentes_total"]))
+            st.metric("Total Pendente (2026)", fmt_currency(fp["restos_pendentes_total"]))
         else:
             st.info("Sem dados de Restos a Pagar disponíveis.")
 
@@ -203,5 +209,19 @@ if year == 2026:
 Para o valor oficial, consulte o **RREO Anexo 5** no portal de transparência.
             """
         )
+
+    top_credores = fp.get("top_credores_adm_atual", [])
+    if top_credores:
+        with st.expander(":material/store: Top 5 credores com restos pendentes (Adm. Atual — 2025+)"):
+            credores_df = pd.DataFrame(top_credores)
+            st.dataframe(
+                credores_df,
+                column_config={
+                    "Fornecedor": st.column_config.TextColumn(),
+                    "Pendente": st.column_config.NumberColumn(format="R$ %,.2f"),
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
 
 st.caption(f"[Ver portal oficial de transparência →]({glossary.PORTAL_URL})")
