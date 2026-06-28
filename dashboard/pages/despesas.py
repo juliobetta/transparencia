@@ -8,11 +8,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from shared import fmt_currency, fmt_currency_short, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-from analysis import expenses_analysis
+from analysis import expenses_analysis, supplier_concentration
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -38,6 +38,16 @@ def _top_suppliers(conn, year, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _concentration(conn, year, _extracted_at):
+    return supplier_concentration.run(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _spending_by_city(conn, year, _extracted_at):
+    return expenses_analysis.get_spending_by_city(conn, year, top_n=5)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _diarias_summary(conn, year, _extracted_at):
     return expenses_analysis.get_diarias_summary(conn, year)
 
@@ -52,15 +62,15 @@ year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
 st.title("Portal de Despesas Detalhadas")
-st.caption("Acompanhe em tempo real como e onde os recursos públicos estão sendo aplicados.")
+st.caption("Detalhes sobre onde e como os recursos públicos estão sendo aplicados.")
 
 # Tabs layout
 t1, t2, t3, t4 = st.tabs(
     [
-        "🏢 Unidades Administrativas",
-        "🤝 Fornecedores e Compras Locais",
-        "✈️ Diárias e Viagens",
-        "🔍 Consulta de Transações",
+        ":material/corporate_fare: Unidades Administrativas",
+        ":material/handshake: Fornecedores e Compras Locais",
+        ":material/flight_takeoff: Diárias e Viagens",
+        ":material/manage_search: Consulta de Transações",
     ]
 )
 
@@ -116,14 +126,20 @@ with t2:
     st.subheader("Concentração e Impacto Econômico de Fornecedores")
 
     impact = _impact(conn, year, _extracted_at)
+    conc = _concentration(conn, year, _extracted_at)
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Gasto com Empresas Locais", fmt_currency(impact["local_pago"]))
-    c2.metric("Gasto com Empresas Externas", fmt_currency(impact["externo_pago"]))
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Gasto com Empresas Locais", fmt_currency_short(impact["local_pago"]))
+    c2.metric("Gasto com Empresas Externas", fmt_currency_short(impact["externo_pago"]))
     c3.metric(
         "Índice de Compras Locais",
         f"{impact['pct_local']:.2f}%",
         help="Percentual de recursos mantidos na economia local de Porciúncula.",
+    )
+    c4.metric(
+        "HHI (concentração)",
+        f"{conc['hhi']:,.0f}",
+        help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
     )
 
     if impact["total_pago"] > 0:
@@ -141,7 +157,59 @@ with t2:
             color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f", "Prestadores Externos": "#a12c2c"},
             title="Destino Geográfico dos Recursos Públicos Pagos",
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
+
+        df_cities = _spending_by_city(conn, year, _extracted_at)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.plotly_chart(fig_pie, use_container_width=True)
+        with col2:
+            if not df_cities.empty:
+                fig_cities = px.pie(
+                    df_cities,
+                    values="pago",
+                    names="cidade",
+                    color="cidade",
+                    color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
+                    title="Top 5 Cidades Externas + Outros",
+                )
+                st.plotly_chart(fig_cities, use_container_width=True)
+    else:
+        df_cities = _spending_by_city(conn, year, _extracted_at)
+        if not df_cities.empty:
+            fig_cities = px.pie(
+                df_cities,
+                values="pago",
+                names="cidade",
+                color="cidade",
+                color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
+                title="Top 5 Cidades Externas + Outros",
+            )
+            st.plotly_chart(fig_cities, use_container_width=True)
+
+    st.markdown("### Concentração de Fornecedores")
+    if conc["dominante"]:
+        st.warning(f"⚠️ {conc['dominante']} recebeu mais de 40% do total empenhado a fornecedores.")
+
+    top10_conc = conc["top10"].copy()
+    outros_emp = (
+        pd.read_sql_query(
+            text("SELECT empenhado FROM despesas_por_fornecedor WHERE ano = :ano"), conn, params={"ano": year}
+        )
+        .assign(empenhado=lambda d: pd.to_numeric(d["empenhado"].str.replace(",", "."), errors="coerce").fillna(0))[
+            "empenhado"
+        ]
+        .sum()
+    ) - top10_conc["empenhado"].sum()
+    pie_conc = pd.concat(
+        [
+            top10_conc[["descricao", "empenhado"]].rename(columns={"descricao": "Fornecedor"}),
+            pd.DataFrame({"Fornecedor": ["Outros"], "empenhado": [outros_emp]}),
+        ]
+    )
+    fig_conc = px.pie(
+        pie_conc, values="empenhado", names="Fornecedor", title="Distribuição do Empenhado — Top 10 Fornecedores"
+    )
+    st.plotly_chart(fig_conc, use_container_width=True)
 
     st.markdown("### Top 10 Maiores Prestadores de Serviços / Fornecedores")
     df_sup = _top_suppliers(conn, year, _extracted_at)

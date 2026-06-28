@@ -28,7 +28,6 @@ pages = {
         st.Page("pages/receitas.py", title="Receitas", icon=":material/payments:"),
         st.Page("pages/orcamento.py", title="Execução Orçamentária", icon=":material/account_balance_wallet:"),
         st.Page("pages/despesas.py", title="Despesas Detalhadas", icon=":material/receipt_long:"),
-        st.Page("pages/fornecedores.py", title="Fornecedores", icon=":material/store:"),
         st.Page("pages/licitacoes.py", title="Licitações e Contratos", icon=":material/gavel:"),
         st.Page("pages/pessoal.py", title="Pessoal", icon=":material/group:"),
         st.Page("pages/comparacao.py", title="Comparação", icon=":material/compare_arrows:"),
