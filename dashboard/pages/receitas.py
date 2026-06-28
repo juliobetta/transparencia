@@ -160,8 +160,7 @@ if year == 2026:
     fc4.metric(
         "Obrigações Herdadas (Adm. Anterior)",
         fmt_currency(herdadas),
-        delta=f"- {fmt_currency(herdadas)}",
-        delta_color="inverse",
+        delta=f"-{fmt_currency(herdadas)}",
     )
 
     with st.expander("📋 Restos a Pagar pendentes por exercício"):
