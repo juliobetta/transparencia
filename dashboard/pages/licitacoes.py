@@ -23,7 +23,7 @@ def _gaps(conn, year, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _adesao(conn, year, _extracted_at):
-    return adesao_de_ata.run(conn, year, "2")
+    return adesao_de_ata.run(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)

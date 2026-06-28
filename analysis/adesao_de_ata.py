@@ -8,35 +8,54 @@ def _to_float(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series.astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
 
-def run(conn: Any, year: int, empresa_id: str) -> dict:
-    query = text("""
+def run(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
+    empresa_clause_c = "AND c.empresa = :empresa" if empresa_id else ""
+    empresa_clause_l = "AND l.empresa = :empresa" if empresa_id else ""
+    # Two-part union:
+    # 1. Contracts signed this year whose licitação has carona='S' (any licitação year)
+    # 2. Carona licitações created this year with no contracts yet
+    query = text(f"""
         SELECT
             l.numero,
-            :ano as ano,
-            l.discr as objeto,
-            l.valor as licitacao_valor,
-            SUM(CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)) as total_c_valor,
-            SUM(CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT)) as total_c_empenhado,
+            l.discr AS objeto,
+            l.valor AS licitacao_valor,
             l.carona,
-            c.mes
+            c.mes,
+            CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)    AS c_valor,
+            CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT) AS c_empenhado
+        FROM contratos c
+        JOIN licitacoes l
+            ON l.numero = c.licitacao_numero
+            AND l.empresa = c.empresa
+            AND l.carona = 'S'
+        WHERE c.ano = :ano
+          {empresa_clause_c}
+
+        UNION ALL
+
+        SELECT
+            l.numero,
+            l.discr AS objeto,
+            l.valor AS licitacao_valor,
+            l.carona,
+            NULL    AS mes,
+            0       AS c_valor,
+            0       AS c_empenhado
         FROM licitacoes l
-        LEFT JOIN contratos c
-            ON c.licitacao_numero = l.numero
-            AND c.ano = l.ano
-            AND c.empresa = l.empresa
-        WHERE l.ano = :ano AND l.empresa = :empresa
-        GROUP BY l.numero, l.discr, l.valor, l.carona, c.mes
+        WHERE l.ano = :ano AND l.carona = 'S'
+          {empresa_clause_l}
+          AND NOT EXISTS (
+              SELECT 1 FROM contratos c2
+              WHERE c2.licitacao_numero = l.numero AND c2.empresa = l.empresa
+          )
     """)
+    params: dict = {"ano": year}
+    if empresa_id:
+        params["empresa"] = empresa_id
     try:
-        df = pd.read_sql_query(query, conn, params={"ano": year, "empresa": empresa_id})
+        raw = pd.read_sql_query(query, conn, params=params)
 
-        if "total_c_valor" in df.columns:
-            df["total_c_valor"] = df["total_c_valor"].fillna(0)
-
-        df["carona_clean"] = df["carona"].fillna("").astype(str).str.strip().str.upper()
-        df = df[df["carona_clean"] == "S"]
-
-        if df.empty:
+        if raw.empty:
             return {
                 "list": pd.DataFrame(),
                 "count": 0,
@@ -45,9 +64,13 @@ def run(conn: Any, year: int, empresa_id: str) -> dict:
                 "contracts_linked_count": 0,
             }
 
-        total_value = float(_to_float(df["total_c_valor"]).sum())
+        df = raw.groupby(["numero", "objeto", "licitacao_valor", "carona"], as_index=False).agg(
+            total_c_valor=("c_valor", "sum"), total_c_empenhado=("c_empenhado", "sum"), mes=("mes", "first")
+        )
+
+        total_value = float(df["total_c_valor"].sum())
         total_licitacao = float(_to_float(df["licitacao_valor"]).sum())
-        df["has_contract"] = _to_float(df["total_c_valor"]) > 0
+        df["has_contract"] = df["total_c_valor"] > 0
 
         return {
             "list": df,
@@ -61,12 +84,14 @@ def run(conn: Any, year: int, empresa_id: str) -> dict:
         return {"list": pd.DataFrame(), "count": 0, "value": 0.0, "total_licitacao": 0.0, "contracts_linked_count": 0}
 
 
-def formal_counts_by_year(conn: Any, years: list[int], empresa_id: str = "2") -> dict[int, int]:
+def formal_counts_by_year(conn: Any, years: list[int], empresa_id: Optional[str] = None) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {"empresa": empresa_id} if empresa_id else {}
     df = pd.read_sql_query(
-        text(f"SELECT ano FROM licitacoes WHERE ano IN ({placeholders}) AND empresa = :empresa AND carona = 'S'"),
+        text(f"SELECT ano FROM licitacoes WHERE ano IN ({placeholders}) AND carona = 'S' {empresa_clause}"),
         conn,
-        params={"empresa": empresa_id},
+        params=params,
     )
     counts = df.groupby("ano").size()
     return {y: int(counts.get(y, 0)) for y in years}
