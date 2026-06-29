@@ -84,6 +84,17 @@ def _unpaid_suppliers(conn, year, _extracted_at):
     return fiscal_position.get_unpaid_suppliers(conn, year)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _unpaid_trend(conn, years, _extracted_at):
+    return fiscal_position.get_unpaid_suppliers_trend(conn, years)
+
+
+def _pct_delta(series: list) -> str | None:
+    if len(series) >= 2 and series[-2] != 0:
+        return f"{(series[-1] - series[-2]) / series[-2] * 100:+.1f}%"
+    return None
+
+
 def _fmt_compact(value: float) -> str:
     if abs(value) >= 1_000_000_000:
         return f"R$ {value / 1_000_000_000:.1f}B"
@@ -135,6 +146,7 @@ with st.spinner("Carregando..."):
     _adesao_ext_map = _adesao_externa_counts(conn, _all_years, _extracted_at)
     _splitting_map = _splitting_counts(conn, _all_years, _extracted_at)
     unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
+    unpaid_trend = _unpaid_trend(conn, tuple(_all_years), _extracted_at)
 
 anos = yoy["ano"].tolist()
 _spark_cfg = {"displayModeBar": False, "staticPlot": True}
@@ -312,24 +324,56 @@ if not unpaid_df.empty:
     num_fornecedores = len(unpaid_df)
     ano_mais_antigo = int(unpaid_df["aguardando_desde"].min())
 
+    _trend_vals = unpaid_trend["total_pendente"].tolist() if not unpaid_trend.empty else []
+    _trend_count = unpaid_trend["num_fornecedores"].tolist() if not unpaid_trend.empty else []
+    _trend_anos = unpaid_trend["ano"].tolist() if not unpaid_trend.empty else []
+
     st.subheader("Restos a Pagar — Obrigações Pendentes")
     rp1, rp2, rp3 = st.columns(3)
-    rp1.metric(
-        "Total a Pagar a Fornecedores",
-        _fmt_compact(total_pendente),
-        help="Soma de todos os empenhos ainda não quitados na tabela de Restos a Pagar.",
+
+    with rp1:
+        st.metric(
+            "Total a Pagar a Fornecedores",
+            _fmt_compact(total_pendente),
+            delta=_pct_delta(_trend_vals),
+            delta_color="inverse",
+            help="Soma de todos os empenhos ainda não quitados na tabela de Restos a Pagar.",
+        )
+        if _trend_vals:
+            st.plotly_chart(
+                _sparkline(_trend_anos, _trend_vals, "#E91E63"),
+                use_container_width=True,
+                config=_spark_cfg,
+                key="spark_rp_total",
+            )
+
+    with rp2:
+        st.metric(
+            "Fornecedores aguardando",
+            num_fornecedores,
+            delta=_pct_delta(_trend_count),
+            delta_color="inverse",
+            help="Número de fornecedores com pelo menos um empenho não totalmente pago.",
+        )
+        if _trend_count:
+            st.plotly_chart(
+                _sparkline(_trend_anos, _trend_count, "#FF5722"),
+                use_container_width=True,
+                config=_spark_cfg,
+                key="spark_rp_count",
+            )
+
+    with rp3:
+        st.metric(
+            "Dívida mais antiga desde",
+            str(ano_mais_antigo),
+            help="Exercício do empenho mais antigo ainda com saldo pendente.",
+        )
+
+    st.info(
+        "Detalhamento completo por fornecedor disponível em **Receitas → Situação Fiscal Estimada**.",
+        icon=":material/info:",
     )
-    rp2.metric(
-        "Fornecedores aguardando",
-        num_fornecedores,
-        help="Número de fornecedores com pelo menos um empenho não totalmente pago.",
-    )
-    rp3.metric(
-        "Dívida mais antiga desde",
-        str(ano_mais_antigo),
-        help="Exercício do empenho mais antigo ainda com saldo pendente.",
-    )
-    st.caption("Detalhamento completo por fornecedor disponível em Receitas → Situação Fiscal Estimada.")
 
 st.subheader("Tendências Históricas")
 col_trend, col_pct = st.columns([6, 4])

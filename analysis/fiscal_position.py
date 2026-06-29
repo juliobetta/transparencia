@@ -142,6 +142,33 @@ def get_unpaid_suppliers(conn: Any, year: int | None = None) -> pd.DataFrame:
     )
 
 
+def get_unpaid_suppliers_trend(conn: Any, years: list[int]) -> pd.DataFrame:
+    try:
+        df = pd.read_sql_query(
+            text("SELECT ano, descricao, empenhado, pago FROM despesas_restos_pagar"),
+            conn,
+        )
+    except Exception:
+        return pd.DataFrame()
+
+    df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pendente"] = df["emp_f"] - df["pago_f"]
+    df = df[(df["emp_f"] > 0) & (df["pendente"] > 0)]
+
+    rows = []
+    for year in years:
+        snapshot = df[df["ano"] <= year]
+        rows.append(
+            {
+                "ano": year,
+                "total_pendente": float(snapshot["pendente"].sum()),
+                "num_fornecedores": int(snapshot["descricao"].nunique()),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def get_low_value_restos(conn: Any, threshold: float = 10.0) -> pd.DataFrame:
     try:
         df = pd.read_sql_query(
