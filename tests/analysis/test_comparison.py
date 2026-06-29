@@ -213,3 +213,17 @@ def test_licitacoes_sem_licitacao_count(conn):
     result = run(conn, spec_a, spec_b)
     assert result["licitacoes"]["sem_licitacao"]["a"] == 1
     assert result["licitacoes"]["sem_licitacao"]["b"] == 2
+
+
+def test_domain_subkeys_match_page_expectations(conn):
+    """Ensure every key the dashboard pages access is present in the comparison result."""
+    spec_a = PeriodSpec(year=2024, month_start=1, month_end=12)
+    spec_b = PeriodSpec(year=2025, month_start=1, month_end=12)
+    result = run(conn, spec_a, spec_b)
+
+    assert {"empenhado", "dotacao"} <= result["despesas"].keys()
+    assert {"total_folha", "percentual_folha"} <= result["pessoal"].keys()
+    assert {"receita_propria", "transferencias_uniao", "transferencias_estado", "total"} <= result["receitas"].keys()
+    assert {"sem_licitacao", "acima_limite", "saude"} <= result["licitacoes"].keys()
+    assert {"hhi"} <= result["fornecedores"].keys()
+    assert {"count", "valor_licitacao", "valor_contratos"} <= result["adesao"].keys()
