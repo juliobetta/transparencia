@@ -217,7 +217,7 @@ with c4:
     restos = float(yoy.iloc[-1]["restos_a_pagar"]) if not yoy.empty else 0.0
     delta_restos = yoy.iloc[-1]["restos_a_pagar_pct_change"] if len(yoy) > 1 else None
     st.metric(
-        "Restos a Pagar",
+        "Restos Pagos",
         _fmt_compact(restos),
         delta=f"{delta_restos:+.1f}%" if delta_restos is not None and not pd.isna(delta_restos) else None,
         delta_color="off",
