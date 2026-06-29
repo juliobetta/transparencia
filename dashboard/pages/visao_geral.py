@@ -371,7 +371,7 @@ if not unpaid_df.empty:
         )
 
     st.info(
-        "Detalhamento completo por fornecedor disponível em **Receitas → Situação Fiscal Estimada**.",
+        "Detalhamento completo por fornecedor disponível em **Despesas → Restos a Pagar**.",
         icon=":material/info:",
     )
 
