@@ -45,17 +45,26 @@ if not df.empty:
 
 # Granular Salary Analysis
 st.subheader("Distribuição de Remuneração")
-df_pessoal = pd.read_sql_query(text("SELECT remuneracao FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
-df_pessoal["remuneracao"] = pd.to_numeric(df_pessoal["remuneracao"].str.replace(",", "."), errors="coerce").fillna(0)
+st.info(
+    "O portal não disponibiliza a remuneração líquida individual. "
+    "O gráfico abaixo usa **Proventos** (remuneração bruta) como aproximação.",
+    icon=":material/info:",
+)
+df_pessoal = pd.read_sql_query(text("SELECT proventos FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
+df_pessoal["proventos"] = pd.to_numeric(df_pessoal["proventos"].str.replace(",", "."), errors="coerce")
+df_pessoal = df_pessoal[df_pessoal["proventos"] > 0].dropna()
 
 if not df_pessoal.empty:
     fig_hist = px.histogram(
         df_pessoal,
-        x="remuneracao",
-        nbins=20,
-        title="Distribuição das Remunerações",
-        labels={"remuneracao": "Remuneração"},
+        x="proventos",
+        nbins=30,
+        title="Distribuição dos Proventos Brutos",
+        labels={"proventos": "Proventos (R$)"},
     )
-    fig_hist.update_traces(hovertemplate="Remuneração: R$ %{x:,.2f}<br>Contagem: %{y}")
+    fig_hist.update_traces(hovertemplate="Proventos: R$ %{x:,.2f}<br>Servidores: %{y}")
+    fig_hist.update_layout(yaxis_title="Nº de Servidores", xaxis_tickprefix="R$ ", xaxis_tickformat=",.0f")
     st.plotly_chart(fig_hist, width="stretch")
+else:
+    st.info("Dados de proventos não disponíveis para este exercício.")
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
