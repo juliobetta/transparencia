@@ -427,17 +427,31 @@ with col_pct:
     yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
     yoy_pct = yoy_pct.replace([float("inf"), float("-inf")], float("nan"))
     yoy_pct = yoy_pct.dropna(subset=["total_gasto_pct_change"])
+    _current_year = 2026
+    anos_pct = yoy_pct["ano"].tolist()
     gap = (yoy_pct["total_gasto_pct_change"] - yoy_pct["total_receita_pct_change"].fillna(0)).tolist()
     colors = ["#F44336" if v > 0 else "#4CAF50" for v in gap]
+    opacity = [0.4 if a == _current_year else 1.0 for a in anos_pct]
     fig_pct = go.Figure(
         go.Bar(
-            x=yoy_pct["ano"].tolist(),
+            x=anos_pct,
             y=gap,
             marker_color=colors,
+            marker_opacity=opacity,
             hovertemplate="%{x}<br>Pressão: %{y:+.1f}%<extra></extra>",
         )
     )
     fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
+    if _current_year in anos_pct:
+        partial_gap = gap[anos_pct.index(_current_year)]
+        fig_pct.add_annotation(
+            x=_current_year,
+            y=partial_gap,
+            text="ano parcial",
+            showarrow=False,
+            yshift=10 if partial_gap >= 0 else -16,
+            font=dict(size=10, color="rgba(0,0,0,0.45)"),
+        )
     fig_pct.update_layout(
         title="Pressão Fiscal Anual",
         xaxis=dict(dtick=1, tickformat="d"),
