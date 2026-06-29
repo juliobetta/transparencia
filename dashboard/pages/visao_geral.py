@@ -390,16 +390,17 @@ with col_trend:
             fill="tozeroy",
         )
     )
-    fig_trend.add_trace(
-        go.Scatter(
-            x=anos,
-            y=yoy["total_receita"].tolist(),
-            name="Receita",
-            mode="lines+markers",
-            line=dict(color="#4CAF50", width=2),
-            fill="tozeroy",
+    if yoy["total_receita"].notna().sum() >= 2:
+        fig_trend.add_trace(
+            go.Scatter(
+                x=anos,
+                y=yoy["total_receita"].tolist(),
+                name="Receita",
+                mode="lines+markers",
+                line=dict(color="#4CAF50", width=2),
+                fill="tozeroy",
+            )
         )
-    )
     fig_trend.add_trace(
         go.Scatter(
             x=anos,
