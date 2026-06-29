@@ -51,10 +51,6 @@ else:
     st.success(":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente (2026).")
     render_partial_year_notice(year, _extracted_at)
 
-with st.expander(":material/info: Glossário de Termos"):
-    st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
-    st.write(f"**FPM:** {glossary.tooltip('FPM (Fundo de Participação dos Municípios)')}")
-
 render_revenue_methodology()
 
 df = _revenue(conn, year, _extracted_at)
@@ -118,8 +114,11 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(
-            resumo_df,
+            resumo_df.rename(columns={"Fonte": "Fonte ⓘ"}),
             column_config={
+                "Fonte ⓘ": st.column_config.TextColumn(
+                    help="Receita Própria: impostos e taxas municipais. Transferências da União: FPM, SUS, FUNDEB, etc. Transferências do Estado: ICMS, IPVA, etc."
+                ),
                 "Previsto": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Arrecadado": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Diferença (Previsto − Arrecadado)": st.column_config.NumberColumn(format="R$ %,.2f"),
