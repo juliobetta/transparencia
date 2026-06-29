@@ -129,9 +129,6 @@ class DespesaRestoPagar(SQLModel, table=True):
     empresa: str = Field(primary_key=True)
     numero: str = Field(primary_key=True)
     descricao: Optional[str] = None
-    fornecedor: Optional[str] = None
-    valor: Optional[str] = None
-    situacao: Optional[str] = None
     codigo: Optional[str] = None
     empenhado: Optional[str] = None
     liquidado: Optional[str] = None
