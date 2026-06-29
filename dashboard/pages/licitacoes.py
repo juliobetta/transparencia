@@ -155,7 +155,10 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
                     "num_licitacao": "Nº Licitação",
                 }
             ),
-            column_config={"Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f")},
+            column_config={
+                "Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
+            },
             width="stretch",
             hide_index=True,
         )
@@ -182,7 +185,7 @@ if not acima.empty:
         hide_index=True,
     )
 if not anomalies["splitting"].empty:
-    st.subheader("⚠️ Possível fracionamento de contratos")
+    st.subheader(":material/warning: Possível fracionamento de contratos")
     st.dataframe(
         anomalies["splitting"][["fornecedor", "valcon", "objeto", "Período"]].rename(
             columns={

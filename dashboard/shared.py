@@ -11,6 +11,7 @@ import db
 import glossary
 
 YEARS = list(range(2022, date.today().year + 1))
+CIDADE_CLEAN = "PORCIUNCULA"  # TODO: move this to .env, keeping a default value
 
 
 def get_conn():
@@ -29,7 +30,7 @@ def render_sidebar() -> int:
         fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
         _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
     st.sidebar.markdown(
-        f"### 🔗 Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
+        f"### :material/link: Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
         unsafe_allow_html=True,
     )
     st.sidebar.markdown("---")
@@ -46,6 +47,14 @@ def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
 
 
 def fmt_currency(value: float) -> str:
+    return f"R$ {value:,.2f}"
+
+
+def fmt_currency_short(value: float) -> str:
+    if abs(value) >= 1_000_000:
+        return f"R$ {value / 1_000_000:,.1f}M"
+    if abs(value) >= 1_000:
+        return f"R$ {value / 1_000:,.1f}K"
     return f"R$ {value:,.2f}"
 
 

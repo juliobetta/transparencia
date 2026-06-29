@@ -46,8 +46,6 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
         total = propria + uniao + estado
         receita = total if total > 0 else None
         restos = _sum_col(conn, "despesas_restos_pagar", "pago", year)
-        if restos == 0:
-            restos = _sum_col(conn, "despesas_restos_pagar", "valor", year)
 
         records.append(
             {

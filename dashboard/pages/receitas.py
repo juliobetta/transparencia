@@ -43,15 +43,13 @@ st.header("Fontes de Receita")
 # Informative historical limitations notice
 if year < 2026:
     st.info(
-        "ℹ️ O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
-        "mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de 2026."
+        "O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
+        "mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de 2026.",
+        icon=":material/info:",
     )
 else:
+    st.success(":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente (2026).")
     render_partial_year_notice(year, _extracted_at)
-
-with st.expander("ℹ️ Glossário de Termos"):
-    st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
-    st.write(f"**FPM:** {glossary.tooltip('FPM (Fundo de Participação dos Municípios)')}")
 
 render_revenue_methodology()
 
@@ -96,7 +94,7 @@ if not df.empty:
     resumo_df = pd.DataFrame(resumo_data)
 
     if year == 2026:
-        resumo_df["Desvio/Falta"] = resumo_df["Previsto"] - resumo_df["Arrecadado"]
+        resumo_df["Diferença (Previsto − Arrecadado)"] = resumo_df["Previsto"] - resumo_df["Arrecadado"]
         resumo_df["Realização (%)"] = (resumo_df["Arrecadado"] / resumo_df["Previsto"]) * 100
 
         # Bar chart comparing predicted vs collected
@@ -116,11 +114,14 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(
-            resumo_df,
+            resumo_df.rename(columns={"Fonte": "Fonte ⓘ"}),
             column_config={
+                "Fonte ⓘ": st.column_config.TextColumn(
+                    help="Receita Própria: impostos e taxas municipais. Transferências da União: FPM, SUS, FUNDEB, etc. Transferências do Estado: ICMS, IPVA, etc."
+                ),
                 "Previsto": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Arrecadado": st.column_config.NumberColumn(format="R$ %,.2f"),
-                "Desvio/Falta": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Diferença (Previsto − Arrecadado)": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Realização (%)": st.column_config.NumberColumn(format="%.2f%%"),
             },
             use_container_width=True,
@@ -139,7 +140,7 @@ if not df.empty:
 
     if row["alerta_dependencia"]:
         st.warning(
-            "⚠️ Alerta: Receita própria municipal está abaixo de 10% do total. Alta dependência fiscal de repasses federais e estaduais."
+            ":material/warning: Alerta: Receita própria municipal está abaixo de 10% do total. Alta dependência fiscal de repasses federais e estaduais."
         )
 
 if year == 2026:
@@ -149,12 +150,14 @@ if year == 2026:
     fp = _fiscal_position(conn, year, _extracted_at)
 
     st.warning(
-        "⚠️ **Estimativa baseada em dados públicos — não é um balanço oficial.** "
-        "**Fluxo Líquido do Período** = total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos). "
-        "Não representa o saldo de caixa disponível: não inclui saldo inicial em 01/01/2026, "
-        "receitas/despesas extra-orçamentárias nem aplicações financeiras. "
-        "**Obrigações Herdadas** = restos a pagar de exercícios anteriores a 2025 (dívida da administração anterior) ainda não quitados. "
-        f"Para o valor oficial, consulte o [RREO Anexo 5]({glossary.PORTAL_URL})."
+        f"""
+        **Estimativa baseada em dados públicos — não é um balanço oficial.**\n\n
+        * **Fluxo Líquido do Período**: total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos).
+        Não representa o saldo de caixa disponível — não inclui saldo inicial em 01/01/2026, receitas/despesas extra-orçamentárias nem aplicações financeiras.
+        * **Obrigações Herdadas**: restos a pagar de exercícios anteriores a 2025 (dívida da administração anterior) ainda não quitados. \n\n
+        Para o valor oficial, consulte Prestação de Contas > Responsabilidade Fiscal - RREO no [portal da transparência]({glossary.PORTAL_URL}).
+        """,
+        icon=":material/warning:",
     )
 
     fc1, fc2 = st.columns(2)
@@ -198,7 +201,7 @@ if year == 2026:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.metric("Total Pendente (2026)", fmt_currency(fp["restos_pendentes_total"]))
+            st.metric("Total Pendente (todos os exercícios)", fmt_currency(fp["restos_pendentes_total"]))
         else:
             st.info("Sem dados de Restos a Pagar disponíveis.")
 
@@ -217,18 +220,6 @@ Para o valor oficial, consulte o **RREO Anexo 5** no portal de transparência.
             """
         )
 
-    top_credores = fp.get("top_credores_adm_atual", [])
-    if top_credores:
-        with st.expander(":material/store: Top 5 credores com restos pendentes (Adm. Atual — 2025+)"):
-            credores_df = pd.DataFrame(top_credores)
-            st.dataframe(
-                credores_df,
-                column_config={
-                    "Fornecedor": st.column_config.TextColumn(),
-                    "Pendente": st.column_config.NumberColumn(format="R$ %,.2f"),
-                },
-                use_container_width=True,
-                hide_index=True,
-            )
+    st.info("Detalhamento completo por fornecedor disponível em **Despesas → Restos a Pagar**.", icon=":material/info:")
 
 st.caption(f"[Ver portal oficial de transparência →]({glossary.PORTAL_URL})")
