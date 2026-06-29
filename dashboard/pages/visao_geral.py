@@ -25,6 +25,7 @@ from analysis import (
     bidding_gaps,
     budget_execution,
     contract_anomalies,
+    fiscal_position,
     payroll_vs_services,
     revenue_sources,
     yoy_trends,
@@ -78,6 +79,11 @@ def _splitting_counts(conn, years, _extracted_at):
     return contract_anomalies.splitting_counts_by_year(conn, years)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _unpaid_suppliers(conn, year, _extracted_at):
+    return fiscal_position.get_unpaid_suppliers(conn, year)
+
+
 def _fmt_compact(value: float) -> str:
     if abs(value) >= 1_000_000_000:
         return f"R$ {value / 1_000_000_000:.1f}B"
@@ -128,6 +134,7 @@ with st.spinner("Carregando..."):
     _adesao_map = _adesao_counts(conn, _all_years, _extracted_at)
     _adesao_ext_map = _adesao_externa_counts(conn, _all_years, _extracted_at)
     _splitting_map = _splitting_counts(conn, _all_years, _extracted_at)
+    unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
 
 anos = yoy["ano"].tolist()
 _spark_cfg = {"displayModeBar": False, "staticPlot": True}
@@ -299,6 +306,30 @@ with lc4:
         config=_spark_cfg,
         key="spark_lc_split",
     )
+
+if not unpaid_df.empty:
+    total_pendente = unpaid_df["pendente"].sum()
+    num_fornecedores = len(unpaid_df)
+    ano_mais_antigo = int(unpaid_df["aguardando_desde"].min())
+
+    st.subheader("Restos a Pagar — Obrigações Pendentes")
+    rp1, rp2, rp3 = st.columns(3)
+    rp1.metric(
+        "Total a Pagar a Fornecedores",
+        _fmt_compact(total_pendente),
+        help="Soma de todos os empenhos ainda não quitados na tabela de Restos a Pagar.",
+    )
+    rp2.metric(
+        "Fornecedores aguardando",
+        num_fornecedores,
+        help="Número de fornecedores com pelo menos um empenho não totalmente pago.",
+    )
+    rp3.metric(
+        "Dívida mais antiga desde",
+        str(ano_mais_antigo),
+        help="Exercício do empenho mais antigo ainda com saldo pendente.",
+    )
+    st.caption("Detalhamento completo por fornecedor disponível em Receitas → Situação Fiscal Estimada.")
 
 st.subheader("Tendências Históricas")
 col_trend, col_pct = st.columns([6, 4])

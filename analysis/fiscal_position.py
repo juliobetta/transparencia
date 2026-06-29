@@ -1,9 +1,17 @@
+import re
 from typing import Any
 
 import pandas as pd
 from sqlalchemy import text
 
 from analysis import revenue_sources
+
+
+def _sanitize_descricao(s: str) -> str:
+    s = s.strip()
+    # Remove leading document-number prefix (e.g. "03.163.892 NOME" → "NOME")
+    s = re.sub(r"^\d{2}\.\d{3}\.\d{3}\s+", "", s)
+    return s
 
 
 def _sum_varchar_col(conn: Any, table: str, col: str, year: int) -> float:
@@ -59,7 +67,7 @@ def run(conn: Any, year: int) -> dict:
 
     total_saidas = despesas_pagas + restos_pagos_no_ano
     saldo_estimado = total_arrecadado - total_saidas
-    restos_pendentes_total = sum(float(r["pendente"]) for r in restos_pendentes if int(r["ano"]) == year)
+    restos_pendentes_total = sum(float(r["pendente"]) for r in restos_pendentes)
     # Only pre-2025 obligations represent inherited debt from the previous administration
     restos_pendentes_anteriores = sum(float(r["pendente"]) for r in restos_pendentes if int(r["ano"]) < 2025)
 
@@ -100,3 +108,65 @@ def run(conn: Any, year: int) -> dict:
         "restos_pendentes_anteriores": restos_pendentes_anteriores,
         "top_credores_adm_atual": top_credores_adm_atual,
     }
+
+
+def get_unpaid_suppliers(conn: Any, year: int | None = None) -> pd.DataFrame:
+    try:
+        df = pd.read_sql_query(
+            text("SELECT descricao, ano, empenhado, pago FROM despesas_restos_pagar"),
+            conn,
+        )
+    except Exception:
+        return pd.DataFrame()
+
+    if year is not None:
+        df = df[df["ano"] <= year]
+
+    df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pendente"] = df["emp_f"] - df["pago_f"]
+    df = df[(df["emp_f"] > 0) & (df["pendente"] > 0)].copy()
+    df["descricao"] = df["descricao"].fillna("Sem identificação").apply(_sanitize_descricao)
+
+    return (
+        df.groupby("descricao")
+        .agg(
+            aguardando_desde=("ano", "min"),
+            num_registros=("ano", "count"),
+            total_empenhado=("emp_f", "sum"),
+            total_pago=("pago_f", "sum"),
+            pendente=("pendente", "sum"),
+        )
+        .reset_index()
+        .sort_values("pendente", ascending=False)
+    )
+
+
+def get_low_value_restos(conn: Any, threshold: float = 10.0) -> pd.DataFrame:
+    try:
+        df = pd.read_sql_query(
+            text("SELECT descricao, fornecedor, ano, numero, empenhado, pago FROM despesas_restos_pagar"),
+            conn,
+        )
+    except Exception:
+        return pd.DataFrame()
+
+    df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    return (
+        df[(df["emp_f"] > 0) & (df["emp_f"] < threshold)]
+        .assign(descricao=df["descricao"].fillna("Sem identificação").apply(_sanitize_descricao))[
+            ["ano", "numero", "descricao", "fornecedor", "emp_f", "pago_f"]
+        ]
+        .rename(
+            columns={
+                "ano": "Ano",
+                "numero": "Nº",
+                "descricao": "Descrição",
+                "fornecedor": "Fornecedor",
+                "emp_f": "Empenhado",
+                "pago_f": "Pago",
+            }
+        )
+        .sort_values("Empenhado")
+    )

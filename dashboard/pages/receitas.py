@@ -34,6 +34,16 @@ def _fiscal_position(conn, year, _extracted_at, _v=6):
     return fiscal_position.run(conn, year)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _unpaid_suppliers(conn, year, _extracted_at):
+    return fiscal_position.get_unpaid_suppliers(conn, year)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _low_value_restos(conn, _extracted_at):
+    return fiscal_position.get_low_value_restos(conn)
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
@@ -202,7 +212,7 @@ if year == 2026:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.metric("Total Pendente (2026)", fmt_currency(fp["restos_pendentes_total"]))
+            st.metric("Total Pendente (todos os exercícios)", fmt_currency(fp["restos_pendentes_total"]))
         else:
             st.info("Sem dados de Restos a Pagar disponíveis.")
 
@@ -229,6 +239,47 @@ Para o valor oficial, consulte o **RREO Anexo 5** no portal de transparência.
                 credores_df,
                 column_config={
                     "Fornecedor": st.column_config.TextColumn(),
+                    "Pendente": st.column_config.NumberColumn(format="R$ %,.2f"),
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    low_value_df = _low_value_restos(conn, _extracted_at)
+    if not low_value_df.empty:
+        with st.expander(
+            f":material/warning: {len(low_value_df)} registro(s) com empenhado abaixo de R$ 10,00 — verificar"
+        ):
+            st.warning(
+                "Estes registros possuem valores empenhados muito baixos e podem indicar erros de lançamento ou dados inconsistentes na fonte."
+            )
+            st.dataframe(
+                low_value_df,
+                column_config={
+                    "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
+    if not unpaid_df.empty:
+        with st.expander(":material/hourglass: Fornecedores aguardando pagamento"):
+            st.dataframe(
+                unpaid_df.rename(
+                    columns={
+                        "descricao": "Fornecedor",
+                        "aguardando_desde": "Aguardando desde",
+                        "num_registros": "Nº registros",
+                        "total_empenhado": "Total Empenhado",
+                        "total_pago": "Total Pago",
+                        "pendente": "Pendente",
+                    }
+                )[["Fornecedor", "Aguardando desde", "Nº registros", "Total Empenhado", "Total Pago", "Pendente"]],
+                column_config={
+                    "Total Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
                     "Pendente": st.column_config.NumberColumn(format="R$ %,.2f"),
                 },
                 use_container_width=True,
