@@ -135,6 +135,12 @@ with t1:
 # Tab 2: Fornecedores
 with t2:
     st.subheader("Concentração e Impacto Econômico de Fornecedores")
+    st.caption(
+        "Analisa para onde vai o dinheiro público: quanto fica na economia local, "
+        "quanto vai para empresas de fora e se há concentração excessiva em poucos fornecedores. "
+        "Compras locais acima de 30% e HHI abaixo de 2.500 são referências saudáveis. "
+        'Pagamentos distribuídos via responsáveis de secretaria ("E OUTROS") são excluídos desta análise.'
+    )
 
     impact = _impact(conn, year, _extracted_at)
     conc = _concentration(conn, year, _extracted_at)
