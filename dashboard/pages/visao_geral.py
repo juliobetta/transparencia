@@ -424,10 +424,10 @@ with col_trend:
     )
 
 with col_pct:
-    yoy_pct = yoy.dropna(subset=["total_gasto_pct_change", "total_receita_pct_change"]).copy()
+    yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
     yoy_pct = yoy_pct.replace([float("inf"), float("-inf")], float("nan"))
-    yoy_pct = yoy_pct.dropna(subset=["total_gasto_pct_change", "total_receita_pct_change"])
-    gap = (yoy_pct["total_gasto_pct_change"] - yoy_pct["total_receita_pct_change"]).tolist()
+    yoy_pct = yoy_pct.dropna(subset=["total_gasto_pct_change"])
+    gap = (yoy_pct["total_gasto_pct_change"] - yoy_pct["total_receita_pct_change"].fillna(0)).tolist()
     colors = ["#F44336" if v > 0 else "#4CAF50" for v in gap]
     fig_pct = go.Figure(
         go.Bar(
