@@ -8,12 +8,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import get_conn, get_extraction_date, render_sidebar
+from shared import fmt_currency, get_conn, get_extraction_date, render_partial_year_notice, render_sidebar
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import payroll_vs_services
+from analysis import expenses_analysis, payroll_vs_services
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -23,13 +23,18 @@ def _payroll(conn, year, _extracted_at):
     return payroll_vs_services.run(conn, list(range(2022, year + 1)))
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _departmental_payroll(conn, year, _extracted_at):
+    return expenses_analysis.get_departmental_payroll(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
 st.header("Folha de Pagamento")
-with st.expander(":material/info: O que isso significa?"):
-    st.write("Percentual dos gastos pagos que corresponde à folha de pessoal (servidores municipais).")
+st.caption("Percentual dos gastos pagos que corresponde à folha de pessoal (servidores municipais).")
+render_partial_year_notice(year, _extracted_at)
 df = _payroll(conn, year, _extracted_at)
 if not df.empty:
     fig = px.bar(
@@ -45,17 +50,61 @@ if not df.empty:
 
 # Granular Salary Analysis
 st.subheader("Distribuição de Remuneração")
-df_pessoal = pd.read_sql_query(text("SELECT remuneracao FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
-df_pessoal["remuneracao"] = pd.to_numeric(df_pessoal["remuneracao"].str.replace(",", "."), errors="coerce").fillna(0)
+st.info(
+    "O portal não disponibiliza a remuneração líquida individual. "
+    "O gráfico abaixo usa **Proventos** (remuneração bruta) como aproximação.",
+    icon=":material/info:",
+)
+df_pessoal = pd.read_sql_query(text("SELECT proventos FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
+df_pessoal["proventos"] = pd.to_numeric(df_pessoal["proventos"].str.replace(",", "."), errors="coerce")
+df_pessoal = df_pessoal[df_pessoal["proventos"] > 0].dropna()
 
 if not df_pessoal.empty:
     fig_hist = px.histogram(
         df_pessoal,
-        x="remuneracao",
-        nbins=20,
-        title="Distribuição das Remunerações",
-        labels={"remuneracao": "Remuneração"},
+        x="proventos",
+        nbins=30,
+        title="Distribuição dos Proventos Brutos",
+        labels={"proventos": "Proventos (R$)"},
     )
-    fig_hist.update_traces(hovertemplate="Remuneração: R$ %{x:,.2f}<br>Contagem: %{y}")
+    fig_hist.update_traces(hovertemplate="Proventos: R$ %{x:,.2f}<br>Servidores: %{y}")
+    fig_hist.update_layout(yaxis_title="Nº de Servidores", xaxis_tickprefix="R$ ", xaxis_tickformat=",.0f")
     st.plotly_chart(fig_hist, width="stretch")
+else:
+    st.info("Dados de proventos não disponíveis para este exercício.")
+st.divider()
+st.subheader("Pagamentos via Responsáveis de Secretaria")
+st.info(
+    """
+    **Por que uma pessoa aparece recebendo milhões de reais?**
+
+    No Brasil, é prática comum em municípios que o ordenador de despesas de cada secretaria
+    (o responsável pelo departamento) receba o montante total da folha de pagamento em seu CPF
+    e o distribua entre os servidores da unidade. O sufixo **"E OUTROS"** no nome indica
+    exatamente isso: o valor não é de uso pessoal — representa salários de toda a equipe.
+
+    Esses pagamentos são **excluídos da análise de Fornecedores e Compras Locais** para não
+    distorcer os índices de concentração e compras locais.
+    """,
+    icon=":material/info:",
+)
+
+df_dept = _departmental_payroll(conn, year, _extracted_at)
+if not df_dept.empty:
+    total_dept = df_dept["pago"].sum()
+    st.metric("Total distribuído via responsáveis", fmt_currency(total_dept))
+
+    fig_dept = px.bar(
+        df_dept,
+        x="pago",
+        y="descricao",
+        orientation="h",
+        title=f"Folha distribuída por responsável ({year})",
+        labels={"pago": "Total Pago (R$)", "descricao": "Responsável"},
+    )
+    fig_dept.update_layout(yaxis={"categoryorder": "total ascending"})
+    st.plotly_chart(fig_dept, use_container_width=True)
+else:
+    st.info("Nenhum pagamento deste tipo registrado para este exercício.")
+
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")

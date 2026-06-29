@@ -3,10 +3,12 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
+_EXCLUDE_E_OUTROS = "AND descricao !~* ' E OUT(ROS?|\\.)'  "
+
 
 def run(conn: Any, year: int) -> dict:
     df = pd.read_sql_query(
-        text("SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = :ano"),
+        text(f"SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"),
         conn,
         params={"ano": year},
     )

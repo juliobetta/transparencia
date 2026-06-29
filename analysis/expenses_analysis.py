@@ -6,6 +6,10 @@ from sqlalchemy import text
 
 from dashboard.shared import CIDADE_CLEAN
 
+# Payroll disbursed through department heads — not individual suppliers
+# Covers: "E OUTROS", "E OUTRO", "E OUT.", "e OUTROS", etc.
+_EXCLUDE_E_OUTROS = "AND descricao !~* ' E OUT(ROS?|\\.)'  "
+
 
 def _sum_col_where(conn: Any, table: str, col: str, year: int) -> float:
     try:
@@ -57,7 +61,7 @@ def get_expenses_by_unit(conn: Any, year: int) -> pd.DataFrame:
 def get_top_suppliers_detailed(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
-            "SELECT descricao as fornecedor, insmf, cepci as cidade, empenhado, liquidado, pago FROM despesas_por_fornecedor WHERE ano = :ano"
+            f"SELECT descricao as fornecedor, insmf, cepci as cidade, empenhado, liquidado, pago FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"
         ),
         conn,
         params={"ano": year},
@@ -78,7 +82,7 @@ def get_top_suppliers_detailed(conn: Any, year: int) -> pd.DataFrame:
 
 def get_local_spending_impact(conn: Any, year: int) -> dict:
     df = pd.read_sql_query(
-        text("SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = :ano"),
+        text(f"SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"),
         conn,
         params={"ano": year},
     )
@@ -110,7 +114,7 @@ def get_local_spending_impact(conn: Any, year: int) -> dict:
 
 def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
     df = pd.read_sql_query(
-        text("SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = :ano"),
+        text(f"SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"),
         conn,
         params={"ano": year},
     )
@@ -150,6 +154,21 @@ def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
     result = pd.concat(rows, ignore_index=True)
     result = result.rename(columns={"cidade_label": "cidade"})
     return result
+
+
+def get_departmental_payroll(conn: Any, year: int) -> pd.DataFrame:
+    df = pd.read_sql_query(
+        text(
+            "SELECT descricao, pago FROM despesas_por_fornecedor WHERE ano = :ano AND descricao ~* ' E OUT(ROS?|\\.)'"
+        ),
+        conn,
+        params={"ano": year},
+    )
+    if df.empty:
+        return pd.DataFrame(columns=["descricao", "pago"])
+
+    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    return df.groupby("descricao", as_index=False)["pago"].sum().sort_values("pago", ascending=False)
 
 
 def get_diarias_summary(conn: Any, year: int) -> dict:

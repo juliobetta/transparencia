@@ -51,10 +51,6 @@ else:
     st.success(":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente (2026).")
     render_partial_year_notice(year, _extracted_at)
 
-with st.expander(":material/info: Glossário de Termos"):
-    st.write(f"**Receita Própria:** {glossary.tooltip('Receita Própria')}")
-    st.write(f"**FPM:** {glossary.tooltip('FPM (Fundo de Participação dos Municípios)')}")
-
 render_revenue_methodology()
 
 df = _revenue(conn, year, _extracted_at)
@@ -98,7 +94,7 @@ if not df.empty:
     resumo_df = pd.DataFrame(resumo_data)
 
     if year == 2026:
-        resumo_df["Desvio/Falta"] = resumo_df["Previsto"] - resumo_df["Arrecadado"]
+        resumo_df["Diferença (Previsto − Arrecadado)"] = resumo_df["Previsto"] - resumo_df["Arrecadado"]
         resumo_df["Realização (%)"] = (resumo_df["Arrecadado"] / resumo_df["Previsto"]) * 100
 
         # Bar chart comparing predicted vs collected
@@ -118,11 +114,14 @@ if not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(
-            resumo_df,
+            resumo_df.rename(columns={"Fonte": "Fonte ⓘ"}),
             column_config={
+                "Fonte ⓘ": st.column_config.TextColumn(
+                    help="Receita Própria: impostos e taxas municipais. Transferências da União: FPM, SUS, FUNDEB, etc. Transferências do Estado: ICMS, IPVA, etc."
+                ),
                 "Previsto": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Arrecadado": st.column_config.NumberColumn(format="R$ %,.2f"),
-                "Desvio/Falta": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Diferença (Previsto − Arrecadado)": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Realização (%)": st.column_config.NumberColumn(format="%.2f%%"),
             },
             use_container_width=True,
@@ -202,7 +201,7 @@ if year == 2026:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.metric("Total Pendente (2026)", fmt_currency(fp["restos_pendentes_total"]))
+            st.metric("Total Pendente (todos os exercícios)", fmt_currency(fp["restos_pendentes_total"]))
         else:
             st.info("Sem dados de Restos a Pagar disponíveis.")
 
@@ -221,18 +220,6 @@ Para o valor oficial, consulte o **RREO Anexo 5** no portal de transparência.
             """
         )
 
-    top_credores = fp.get("top_credores_adm_atual", [])
-    if top_credores:
-        with st.expander(":material/store: Top 5 credores com restos pendentes (Adm. Atual — 2025+)"):
-            credores_df = pd.DataFrame(top_credores)
-            st.dataframe(
-                credores_df,
-                column_config={
-                    "Fornecedor": st.column_config.TextColumn(),
-                    "Pendente": st.column_config.NumberColumn(format="R$ %,.2f"),
-                },
-                use_container_width=True,
-                hide_index=True,
-            )
+    st.info("Detalhamento completo por fornecedor disponível em **Despesas → Restos a Pagar**.", icon=":material/info:")
 
 st.caption(f"[Ver portal oficial de transparência →]({glossary.PORTAL_URL})")
