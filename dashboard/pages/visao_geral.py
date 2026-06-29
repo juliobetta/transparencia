@@ -424,35 +424,31 @@ with col_trend:
     )
 
 with col_pct:
-    yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
+    yoy_pct = yoy.dropna(subset=["total_gasto_pct_change", "total_receita_pct_change"]).copy()
     yoy_pct = yoy_pct.replace([float("inf"), float("-inf")], float("nan"))
-    fig_pct = go.Figure()
-    for col_name, label, color in [
-        ("total_gasto_pct_change", "Δ% Gasto", "#2196F3"),
-        ("total_receita_pct_change", "Δ% Receita", "#4CAF50"),
-        ("total_folha_pct_change", "Δ% Folha", "#FF9800"),
-        ("restos_a_pagar_pct_change", "Δ% Restos", "#9C27B0"),
-    ]:
-        fig_pct.add_trace(
-            go.Bar(
-                x=yoy_pct["ano"].tolist(),
-                y=yoy_pct[col_name].tolist(),
-                name=label,
-                marker_color=color,
-            )
+    yoy_pct = yoy_pct.dropna(subset=["total_gasto_pct_change", "total_receita_pct_change"])
+    gap = (yoy_pct["total_gasto_pct_change"] - yoy_pct["total_receita_pct_change"]).tolist()
+    colors = ["#F44336" if v > 0 else "#4CAF50" for v in gap]
+    fig_pct = go.Figure(
+        go.Bar(
+            x=yoy_pct["ano"].tolist(),
+            y=gap,
+            marker_color=colors,
+            hovertemplate="%{x}<br>Pressão: %{y:+.1f}%<extra></extra>",
         )
+    )
+    fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
     fig_pct.update_layout(
-        title="Variação % Anual",
-        barmode="group",
+        title="Pressão Fiscal Anual",
         xaxis=dict(dtick=1, tickformat="d"),
         yaxis=dict(ticksuffix="%"),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        showlegend=False,
         margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_pct, use_container_width=True)
     st.caption(
-        "Variações bruscas no gasto sem crescimento proporcional da receita merecem atenção. Alta acumulada em Restos a Pagar pode indicar dívidas represadas com fornecedores."
+        "Barras acima do zero indicam que o gasto cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
     )
 
 render_revenue_methodology()
