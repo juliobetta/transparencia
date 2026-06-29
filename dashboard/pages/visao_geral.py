@@ -390,16 +390,30 @@ with col_trend:
             fill="tozeroy",
         )
     )
-    fig_trend.add_trace(
-        go.Scatter(
-            x=anos,
-            y=yoy["total_receita"].tolist(),
-            name="Receita",
-            mode="lines+markers",
-            line=dict(color="#4CAF50", width=2),
-            fill="tozeroy",
+    _receita_notna = yoy["total_receita"].dropna()
+    if len(_receita_notna) >= 2:
+        fig_trend.add_trace(
+            go.Scatter(
+                x=anos,
+                y=yoy["total_receita"].tolist(),
+                name="Receita",
+                mode="lines+markers",
+                line=dict(color="#4CAF50", width=2),
+                fill="tozeroy",
+            )
         )
-    )
+    elif len(_receita_notna) == 1:
+        _receita_val = float(_receita_notna.iloc[0])
+        _receita_ano = int(yoy.loc[_receita_notna.index[0], "ano"])
+        fig_trend.add_hline(
+            y=_receita_val,
+            line_dash="dash",
+            line_color="#4CAF50",
+            line_width=1.5,
+            annotation_text=f"Receita {_receita_ano} (parcial)",
+            annotation_position="top left",
+            annotation_font=dict(color="#4CAF50", size=11),
+        )
     fig_trend.add_trace(
         go.Scatter(
             x=anos,
@@ -426,33 +440,46 @@ with col_trend:
 with col_pct:
     yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
     yoy_pct = yoy_pct.replace([float("inf"), float("-inf")], float("nan"))
-    fig_pct = go.Figure()
-    for col_name, label, color in [
-        ("total_gasto_pct_change", "Δ% Gasto", "#2196F3"),
-        ("total_receita_pct_change", "Δ% Receita", "#4CAF50"),
-        ("total_folha_pct_change", "Δ% Folha", "#FF9800"),
-        ("restos_a_pagar_pct_change", "Δ% Restos", "#9C27B0"),
-    ]:
-        fig_pct.add_trace(
-            go.Bar(
-                x=yoy_pct["ano"].tolist(),
-                y=yoy_pct[col_name].tolist(),
-                name=label,
-                marker_color=color,
-            )
+    yoy_pct = yoy_pct.dropna(subset=["total_gasto_pct_change"])
+    _current_year = 2026
+    anos_pct = yoy_pct["ano"].tolist()
+    gap = [
+        round(v, 2)
+        for v in (yoy_pct["total_gasto_pct_change"] - yoy_pct["total_receita_pct_change"].fillna(0)).tolist()
+    ]
+    colors = ["#F44336" if v > 0 else "#4CAF50" for v in gap]
+    opacity = [0.4 if a == _current_year else 1.0 for a in anos_pct]
+    fig_pct = go.Figure(
+        go.Bar(
+            x=anos_pct,
+            y=gap,
+            marker_color=colors,
+            marker_opacity=opacity,
+            hovertemplate="%{x}<br>Pressão: %{y:+.2f}%<extra></extra>",
+        )
+    )
+    fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
+    if _current_year in anos_pct:
+        partial_gap = gap[anos_pct.index(_current_year)]
+        fig_pct.add_annotation(
+            x=_current_year,
+            y=partial_gap,
+            text="ano parcial",
+            showarrow=False,
+            yshift=10 if partial_gap >= 0 else -16,
+            font=dict(size=10, color="rgba(0,0,0,0.45)"),
         )
     fig_pct.update_layout(
-        title="Variação % Anual",
-        barmode="group",
+        title="Pressão Fiscal Anual",
         xaxis=dict(dtick=1, tickformat="d"),
         yaxis=dict(ticksuffix="%"),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        showlegend=False,
         margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_pct, use_container_width=True)
     st.caption(
-        "Variações bruscas no gasto sem crescimento proporcional da receita merecem atenção. Alta acumulada em Restos a Pagar pode indicar dívidas represadas com fornecedores."
+        "Barras acima do zero indicam que o gasto cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
     )
 
 render_revenue_methodology()
