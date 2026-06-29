@@ -438,7 +438,7 @@ with col_pct:
             y=gap,
             marker_color=colors,
             marker_opacity=opacity,
-            hovertemplate="%{x}<br>Pressão: %{y:+.1f}%<extra></extra>",
+            hovertemplate="%{x}<br>Pressão: %{y:+.2f}%<extra></extra>",
         )
     )
     fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
