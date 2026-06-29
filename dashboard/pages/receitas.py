@@ -108,7 +108,7 @@ if not df.empty:
     resumo_df = pd.DataFrame(resumo_data)
 
     if year == 2026:
-        resumo_df["Desvio/Falta"] = resumo_df["Previsto"] - resumo_df["Arrecadado"]
+        resumo_df["Diferença (Previsto − Arrecadado)"] = resumo_df["Previsto"] - resumo_df["Arrecadado"]
         resumo_df["Realização (%)"] = (resumo_df["Arrecadado"] / resumo_df["Previsto"]) * 100
 
         # Bar chart comparing predicted vs collected
@@ -132,7 +132,7 @@ if not df.empty:
             column_config={
                 "Previsto": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Arrecadado": st.column_config.NumberColumn(format="R$ %,.2f"),
-                "Desvio/Falta": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Diferença (Previsto − Arrecadado)": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Realização (%)": st.column_config.NumberColumn(format="%.2f%%"),
             },
             use_container_width=True,
