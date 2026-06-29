@@ -80,7 +80,7 @@ def comparison_table(domain: dict, rows: list[tuple[str, str]]):
     return pd.DataFrame(records)
 
 
-_PT_MONTHS: list[str] = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+_PT_MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
 
 
 def partial_year_month(extracted_at: str | None) -> str:
@@ -88,7 +88,7 @@ def partial_year_month(extracted_at: str | None) -> str:
     try:
         from pandas import Timestamp
 
-        return _PT_MONTHS[int(Timestamp(extracted_at).month) - 1]
+        return _PT_MONTHS[Timestamp(extracted_at).month - 1]
     except Exception:
         return "?"
 
