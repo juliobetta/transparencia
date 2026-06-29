@@ -77,12 +77,14 @@ def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
                 "receita_propria": 0.0,
                 "transferencias_uniao": 0.0,
                 "transferencias_estado": 0.0,
+                "total": 0.0,
                 "pct_propria": 0.0,
             }
         return {
             "receita_propria": float(row["receita_propria"]),
             "transferencias_uniao": float(row["transferencias_uniao"]),
             "transferencias_estado": float(row["transferencias_estado"]),
+            "total": float(row["total"]),
             "pct_propria": float(row["pct_propria"]),
         }
 
