@@ -390,7 +390,8 @@ with col_trend:
             fill="tozeroy",
         )
     )
-    if yoy["total_receita"].notna().sum() >= 2:
+    _receita_notna = yoy["total_receita"].dropna()
+    if len(_receita_notna) >= 2:
         fig_trend.add_trace(
             go.Scatter(
                 x=anos,
@@ -400,6 +401,18 @@ with col_trend:
                 line=dict(color="#4CAF50", width=2),
                 fill="tozeroy",
             )
+        )
+    elif len(_receita_notna) == 1:
+        _receita_val = float(_receita_notna.iloc[0])
+        _receita_ano = int(yoy.loc[_receita_notna.index[0], "ano"])
+        fig_trend.add_hline(
+            y=_receita_val,
+            line_dash="dash",
+            line_color="#4CAF50",
+            line_width=1.5,
+            annotation_text=f"Receita {_receita_ano} (parcial)",
+            annotation_position="top left",
+            annotation_font=dict(color="#4CAF50", size=11),
         )
     fig_trend.add_trace(
         go.Scatter(
