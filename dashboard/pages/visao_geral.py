@@ -201,7 +201,7 @@ with c3:
     if not payroll.empty:
         delta_folha = yoy.iloc[-1]["total_folha_pct_change"] if len(yoy) > 1 else None
         st.metric(
-            "Folha / Gastos Totais",
+            "Folha / Total Pago",
             fmt_percent(payroll.iloc[0]["percentual_folha"]),
             delta=f"{delta_folha:+.1f}%" if delta_folha is not None and not pd.isna(delta_folha) else None,
             delta_color="inverse",
@@ -434,7 +434,7 @@ with col_trend:
     )
     st.plotly_chart(fig_trend, use_container_width=True)
     st.caption(
-        "Gasto crescendo acima da receita é sinal de desequilíbrio fiscal. Folha persistente acima de 60% do gasto total indica rigidez orçamentária — pouco sobra para investimentos."
+        "Total pago crescendo acima da receita é sinal de desequilíbrio fiscal. Folha persistente acima de 60% do total pago indica rigidez orçamentária — pouco sobra para investimentos."
     )
 
 with col_pct:
@@ -473,7 +473,7 @@ with col_pct:
     )
     st.plotly_chart(fig_pct, use_container_width=True)
     st.caption(
-        "Barras acima do zero indicam que o gasto cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
+        "Barras acima do zero indicam que o total pago cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
     )
 
 render_revenue_methodology()
@@ -585,7 +585,7 @@ with st.expander(":material/bar_chart: Dados detalhados por ano"):
                 "total_folha": "Total Folha",
                 "total_receita": "Total Receita",
                 "restos_a_pagar": "Restos Pago",
-                "total_gasto_pct_change": "Δ% Gasto",
+                "total_gasto_pct_change": "Δ% Total Pago",
                 "total_folha_pct_change": "Δ% Folha",
                 "total_receita_pct_change": "Δ% Receita",
                 "restos_a_pagar_pct_change": "Δ% Restos",
@@ -598,7 +598,7 @@ with st.expander(":material/bar_chart: Dados detalhados por ano"):
             "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Total Receita": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Restos Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Δ% Gasto": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ% Total Pago": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ% Folha": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ% Receita": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ% Restos": st.column_config.NumberColumn(format="%.2f%%"),

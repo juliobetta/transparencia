@@ -140,9 +140,18 @@ if year == 2026:
         icon=":material/warning:",
     )
 
-    fc1, fc2 = st.columns(2)
+    fc1, fc2, fc3 = st.columns(3)
     fc1.metric("Receitas Arrecadadas", fmt_currency(fp["total_arrecadado"]))
-    fc2.metric("Total Pago no Período", fmt_currency(fp["total_saidas"]))
+    fc2.metric(
+        "Efetivamente Pago — Exercício Corrente",
+        fmt_currency(fp["despesas_pagas"]),
+        help="Despesas do orçamento de 2026 pagas no ano.",
+    )
+    fc3.metric(
+        "Restos a Pagar Quitados",
+        fmt_currency(fp["restos_pagos_no_ano"]),
+        help="Pagamentos de empenhos de anos anteriores (Restos a Pagar) realizados em 2026.",
+    )
 
     fc3, fc4 = st.columns(2)
     fc3.metric("Fluxo Líquido do Período", fmt_currency(fp["saldo_estimado"]))

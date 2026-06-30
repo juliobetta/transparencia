@@ -63,7 +63,7 @@ m1, m2, m3, m4, m5 = st.columns(5)
 d = result["despesas"]["empenhado"]
 m1.metric("Empenhado", fmt_currency(d["b"]), delta=fmt_delta(d), delta_color="inverse")
 d = result["pessoal"]["percentual_folha"]
-m2.metric("Folha / Gastos", fmt_percent(d["b"]), delta=fmt_delta(d, "{:+.1f}%"), delta_color="inverse")
+m2.metric("Folha / Total Pago", fmt_percent(d["b"]), delta=fmt_delta(d, "{:+.1f}%"), delta_color="inverse")
 d = result["licitacoes"]["sem_licitacao"]
 m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 d = result["fornecedores"]["hhi"]
@@ -97,7 +97,7 @@ with st.expander("Pessoal"):
         width="stretch",
         hide_index=True,
     )
-    df_percent = comparison_table(result["pessoal"], [("% dos Gastos", "percentual_folha")])
+    df_percent = comparison_table(result["pessoal"], [("% do Total Pago", "percentual_folha")])
     st.dataframe(
         df_percent,
         column_config={

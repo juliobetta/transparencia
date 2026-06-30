@@ -190,7 +190,37 @@ def unpaid_pie(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return slices
 
 
-def get_low_value_restos(conn: Any, threshold: float = 10.0) -> pd.DataFrame:
+def get_unpaid_by_exercise(conn: Any) -> pd.DataFrame:
+    """Return pending RAP totals broken down by exercise year (for segregation display per Seção 3)."""
+    try:
+        df = pd.read_sql_query(
+            text("SELECT ano, empenhado, pago FROM despesas_restos_pagar"),
+            conn,
+        )
+    except Exception:
+        return pd.DataFrame()
+
+    df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pendente"] = df["emp_f"] - df["pago_f"]
+    return (
+        df.groupby("ano")
+        .agg(total_empenhado=("emp_f", "sum"), total_pago=("pago_f", "sum"), total_pendente=("pendente", "sum"))
+        .reset_index()
+        .query("total_pendente > 0")
+        .sort_values("ano")
+        .rename(
+            columns={
+                "ano": "Exercício",
+                "total_empenhado": "Empenhado",
+                "total_pago": "Pago",
+                "total_pendente": "Pendente",
+            }
+        )
+    )
+
+
+def get_low_value_restos(conn: Any, year: int | None = None, threshold: float = 10.0) -> pd.DataFrame:
     try:
         df = pd.read_sql_query(
             text("SELECT descricao, ano, numero, empenhado, pago FROM despesas_restos_pagar"),
@@ -201,6 +231,8 @@ def get_low_value_restos(conn: Any, threshold: float = 10.0) -> pd.DataFrame:
 
     df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    if year is not None:
+        df = df[df["ano"] <= year]
     return (
         df[(df["emp_f"] > 0) & (df["emp_f"] < threshold)]
         .assign(descricao=df["descricao"].fillna("Sem identificação").apply(_sanitize_descricao))[

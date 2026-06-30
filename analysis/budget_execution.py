@@ -30,9 +30,12 @@ def run(conn: Any, year: int) -> pd.DataFrame:
 
 
 def summarize(df: pd.DataFrame) -> dict:
+    total_dotacao = float(df["dotacao_atualizada"].sum())
+    total_empenhado = float(df["empenhado"].sum())
     return {
-        "total_empenhado": float(df["empenhado"].sum()),
-        "total_dotacao": float(df["dotacao_atualizada"].sum()),
+        "total_empenhado": total_empenhado,
+        "total_dotacao": total_dotacao,
+        "saldo_orcamentario": total_dotacao - total_empenhado,
     }
 
 

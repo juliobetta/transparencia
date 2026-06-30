@@ -29,9 +29,14 @@ st.header("Execução Orçamentária por Órgão")
 df = _budget(conn, year, _extracted_at)
 totals = budget_execution.summarize(df)
 
-c1, c2 = st.columns(2)
+c1, c2, c3 = st.columns(3)
 c1.metric("Total Empenhado", fmt_currency(totals["total_empenhado"]), help=glossary.tooltip("Empenho"))
 c2.metric("Total Dotação", fmt_currency(totals["total_dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
+c3.metric(
+    "Saldo Orçamentário Disponível",
+    fmt_currency(totals["saldo_orcamentario"]),
+    help="Dotação Atualizada − Valor Empenhado. Indica o espaço legal restante para novos empenhos. Não representa disponibilidade em caixa.",
+)
 
 # Chart
 fig = px.bar(

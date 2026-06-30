@@ -104,8 +104,8 @@ else:
     st.info("Sem repasses registrados para este ano.")
 
 # ── Seção 2: O que foi gasto ────────────────────────────────────────────────
-st.header("② O que foi gasto")
-st.subheader("Evolução do Gasto (Empenhado por Ano)")
+st.header("② O que foi empenhado")
+st.subheader("Evolução do Empenhado por Ano")
 trend = data["execution_trend"]
 if not trend.empty:
     fig = px.bar(

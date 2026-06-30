@@ -12,6 +12,7 @@ from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import expenses_analysis, payroll_vs_services
+from analysis.constants import LRF_PESSOAL_LIMITE_ALERTA, LRF_PESSOAL_LIMITE_LEGAL, LRF_PESSOAL_LIMITE_PRUDENCIAL
 from analysis.expenses_analysis import departmental_payroll_total
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -49,7 +50,34 @@ if not df.empty:
     )
     fig.update_xaxes(tickmode="linear", dtick=1)
     fig.update_traces(hovertemplate="Ano: %{x}<br>Percentual: %{y:.2f}%")
+    fig.add_hline(
+        y=LRF_PESSOAL_LIMITE_LEGAL,
+        line_dash="solid",
+        line_color="red",
+        annotation_text=f"Limite legal {LRF_PESSOAL_LIMITE_LEGAL}%",
+        annotation_position="top right",
+    )
+    fig.add_hline(
+        y=LRF_PESSOAL_LIMITE_PRUDENCIAL,
+        line_dash="dash",
+        line_color="orange",
+        annotation_text=f"Limite prudencial {LRF_PESSOAL_LIMITE_PRUDENCIAL}%",
+        annotation_position="top right",
+    )
+    fig.add_hline(
+        y=LRF_PESSOAL_LIMITE_ALERTA,
+        line_dash="dot",
+        line_color="gold",
+        annotation_text=f"Limite de alerta {LRF_PESSOAL_LIMITE_ALERTA}%",
+        annotation_position="top right",
+    )
     st.plotly_chart(fig, width="stretch")
+    st.caption(
+        f"Linhas de referência da Lei de Responsabilidade Fiscal: "
+        f"**alerta** ({LRF_PESSOAL_LIMITE_ALERTA}%) · "
+        f"**prudencial** ({LRF_PESSOAL_LIMITE_PRUDENCIAL}%, veda novos cargos e reajustes) · "
+        f"**limite legal** ({LRF_PESSOAL_LIMITE_LEGAL}%, sujeito a sanções automáticas)"
+    )
 
 # Granular Salary Analysis
 st.subheader("Distribuição de Remuneração")
