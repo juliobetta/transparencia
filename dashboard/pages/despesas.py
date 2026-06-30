@@ -89,7 +89,7 @@ t1, t2, t3, t4, t5 = st.tabs(
 
 # Tab 1: Unidades Administrativas
 with t1:
-    st.subheader("Análise de Gastos por Unidade do Governo")
+    st.subheader("Análise de Despesas por Unidade do Governo")
 
     metrics = _metrics(conn, year, _extracted_at)
 
@@ -148,8 +148,8 @@ with t2:
     conc = _concentration(conn, year, _extracted_at)
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Gasto com Empresas Locais", fmt_currency_short(impact["local_pago"]))
-    c2.metric("Gasto com Empresas Externas", fmt_currency_short(impact["externo_pago"]))
+    c1.metric("Efetivamente Pago — Empresas Locais", fmt_currency_short(impact["local_pago"]))
+    c2.metric("Efetivamente Pago — Empresas Externas", fmt_currency_short(impact["externo_pago"]))
     c3.metric(
         "Índice de Compras Locais",
         f"{impact['pct_local']:.2f}%",
@@ -310,7 +310,7 @@ with t4:
     dia_sum = _diarias_summary(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Gasto Total com Diárias", fmt_currency(dia_sum["total_valor"]))
+    c1.metric("Total Pago em Diárias", fmt_currency(dia_sum["total_valor"]))
     c2.metric("Total de Servidores Beneficiários", int(dia_sum["total_viajantes"]))
     c3.metric("Média de Reembolso por Viagem", fmt_currency(dia_sum["media_reembolso"]))
 

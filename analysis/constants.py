@@ -10,6 +10,11 @@ THRESHOLD_DEFAULT = THRESHOLD_COMPRAS_SERVICOS
 # Proximity band used to flag potential bid-splitting (contracts priced just below the limit)
 NEAR_THRESHOLD_PCT = 0.20
 
+# LRF limits for personnel spending — Poder Executivo municipal (LC 101/2000)
+LRF_PESSOAL_LIMITE_LEGAL = 54.0  # Art. 20, III, b
+LRF_PESSOAL_LIMITE_PRUDENCIAL = 51.3  # Art. 22, parágrafo único (95% × 54%)
+LRF_PESSOAL_LIMITE_ALERTA = 48.6  # Art. 59, §1º, I (90% × 54%)
+
 # Keywords used to detect vehicle-maintenance contracts from the objeto field
 _VEHICLE_TERMS = (
     "veículo",
