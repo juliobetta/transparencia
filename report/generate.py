@@ -19,6 +19,7 @@ from analysis import (
     supplier_concentration,
     yoy_trends,
 )
+from analysis.constants import THRESHOLD_COMPRAS_SERVICOS, THRESHOLD_OBRAS_ENGENHARIA, THRESHOLD_VEICULOS
 from db import get_metadata
 
 REPORTS_DIR = Path("reports")
@@ -32,8 +33,8 @@ def generate(engine, year: int, month: int) -> Path:
     supplier = supplier_concentration.run(engine, year)
     bidding = bidding_gaps.run(engine, year)
     adesao = adesao_de_ata.run(engine, year, "2")
-    bidding_acima = bidding[bidding["acima_limite"]].to_dict("records")
-    bidding_saude = bidding[bidding["acima_limite"] & bidding["orgao_saude"]]
+    bidding_acima = bidding_gaps.filter_above_limit(bidding).to_dict("records")
+    bidding_saude = bidding_gaps.filter_above_limit_health(bidding)
     revenue = revenue_sources.run(engine, list(range(2022, year + 1)))
     payroll = payroll_vs_services.run(engine, list(range(2022, year + 1)))
     trends = yoy_trends.run(engine, list(range(2022, year + 1)))
@@ -58,6 +59,9 @@ def generate(engine, year: int, month: int) -> Path:
         revenue=revenue,
         payroll=payroll,
         trends=trends,
+        threshold_compras=THRESHOLD_COMPRAS_SERVICOS,
+        threshold_obras=THRESHOLD_OBRAS_ENGENHARIA,
+        threshold_veiculos=THRESHOLD_VEICULOS,
     )
 
     out = REPORTS_DIR / f"{year}-{month:02d}.html"

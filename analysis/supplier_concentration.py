@@ -24,4 +24,22 @@ def run(conn: Any, year: int) -> dict:
     dominant_row = df[df["percentual"] > 40]
     dominante = dominant_row.iloc[0]["descricao"] if not dominant_row.empty else None
 
-    return {"top10": top10, "hhi": hhi, "dominante": dominante}
+    # total_all includes E OUTROS entries excluded from top10 so the pie "Outros" slice is accurate
+    df_all = pd.read_sql_query(
+        text("SELECT empenhado FROM despesas_por_fornecedor WHERE ano = :ano"),
+        conn,
+        params={"ano": year},
+    )
+    df_all["empenhado"] = pd.to_numeric(df_all["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
+    total_all = float(df_all["empenhado"].sum())
+
+    return {"top10": top10, "hhi": hhi, "dominante": dominante, "total_all": total_all}
+
+
+def concentration_pie(top10: pd.DataFrame, total_all: float) -> pd.DataFrame:
+    """Return top10 + 'Outros' slice DataFrame for pie chart rendering."""
+    outros = total_all - float(top10["empenhado"].sum())
+    slices = top10[["descricao", "empenhado"]].rename(columns={"descricao": "Fornecedor"})
+    if outros > 0:
+        slices = pd.concat([slices, pd.DataFrame({"Fornecedor": ["Outros"], "empenhado": [outros]})])
+    return slices

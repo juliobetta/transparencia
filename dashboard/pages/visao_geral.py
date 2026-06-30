@@ -179,8 +179,8 @@ with c2:
         rev_val = row["total_arrecadado"] if year == 2026 else row["total_previsto"]
         _rev_totals = revenue["total"].tolist()
         delta_rec = (
-            (_rev_totals[-1] - _rev_totals[-2]) / _rev_totals[-2] * 100
-            if len(_rev_totals) > 1 and _rev_totals[-2] != 0
+            float(revenue.iloc[-1]["total_pct_change"])
+            if len(revenue) > 1 and pd.notna(revenue.iloc[-1]["total_pct_change"])
             else None
         )
         help_text = "Total efetivamente arrecadado." if year == 2026 else "Previsão orçamentária do ano."
@@ -438,17 +438,11 @@ with col_trend:
     )
 
 with col_pct:
-    yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
-    yoy_pct = yoy_pct.replace([float("inf"), float("-inf")], float("nan"))
-    yoy_pct = yoy_pct.dropna(subset=["total_gasto_pct_change"])
-    _current_year = 2026
-    anos_pct = yoy_pct["ano"].tolist()
-    gap = [
-        round(v, 2)
-        for v in (yoy_pct["total_gasto_pct_change"] - yoy_pct["total_receita_pct_change"].fillna(0)).tolist()
-    ]
-    colors = ["#F44336" if v > 0 else "#4CAF50" for v in gap]
-    opacity = [0.4 if a == _current_year else 1.0 for a in anos_pct]
+    _pressure = yoy_trends.fiscal_pressure_gap(yoy)
+    anos_pct = _pressure["anos"]
+    gap = _pressure["gap"]
+    colors = _pressure["colors"]
+    opacity = [0.4 if a == 2026 else 1.0 for a in anos_pct]
     fig_pct = go.Figure(
         go.Bar(
             x=anos_pct,
@@ -459,10 +453,10 @@ with col_pct:
         )
     )
     fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
-    if _current_year in anos_pct:
-        partial_gap = gap[anos_pct.index(_current_year)]
+    if 2026 in anos_pct:
+        partial_gap = gap[anos_pct.index(2026)]
         fig_pct.add_annotation(
-            x=_current_year,
+            x=2026,
             y=partial_gap,
             text="ano parcial",
             showarrow=False,
@@ -546,22 +540,7 @@ with col_bar:
         "excesso": "#F44336",
         "N/D": "#9E9E9E",
     }
-    by_organ = budget.groupby(["empresa", "descricao"], as_index=False).agg(
-        empenhado=("empenhado", "sum"), dotacao_atualizada=("dotacao_atualizada", "sum")
-    )
-    by_organ["taxa_execucao"] = by_organ.apply(
-        lambda r: r["empenhado"] / r["dotacao_atualizada"] if r["dotacao_atualizada"] > 0 else 0.0,
-        axis=1,
-    )
-    by_organ["alerta"] = by_organ.apply(
-        lambda r: (
-            "N/D"
-            if r["empenhado"] == 0 and r["dotacao_atualizada"] == 0
-            else ("baixa" if r["taxa_execucao"] < 0.3 else ("excesso" if r["taxa_execucao"] > 1.0 else "normal"))
-        ),
-        axis=1,
-    )
-    top10 = by_organ.nlargest(10, "dotacao_atualizada").copy()
+    top10 = budget_execution.top_organs_by_dotacao(budget)
     top10["descricao_short"] = top10["descricao"].str[:30]
     top10["bar_color"] = top10["alerta"].map(_alerta_colors).fillna("#9E9E9E")
 

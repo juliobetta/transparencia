@@ -27,14 +27,11 @@ _extracted_at = get_extraction_date(conn)
 
 st.header("Execução Orçamentária por Órgão")
 df = _budget(conn, year, _extracted_at)
-
-# Summary Metrics
-total_empenhado = df["empenhado"].sum()
-total_dotacao = df["dotacao_atualizada"].sum()
+totals = budget_execution.summarize(df)
 
 c1, c2 = st.columns(2)
-c1.metric("Total Empenhado", fmt_currency(total_empenhado), help=glossary.tooltip("Empenho"))
-c2.metric("Total Dotação", fmt_currency(total_dotacao), help=glossary.tooltip("Dotação Atualizada"))
+c1.metric("Total Empenhado", fmt_currency(totals["total_empenhado"]), help=glossary.tooltip("Empenho"))
+c2.metric("Total Dotação", fmt_currency(totals["total_dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
 
 # Chart
 fig = px.bar(

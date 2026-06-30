@@ -9,10 +9,12 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import fmt_currency, fmt_currency_short, get_conn, get_extraction_date, render_sidebar
-from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from analysis import expenses_analysis, fiscal_position, supplier_concentration
+from analysis.expenses_analysis import get_searchable_diarias
+from analysis.fiscal_position import unpaid_pie, unpaid_summary
+from analysis.supplier_concentration import concentration_pie
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -210,21 +212,7 @@ with t2:
         )
 
     top10_conc = conc["top10"].copy()
-    outros_emp = (
-        pd.read_sql_query(
-            text("SELECT empenhado FROM despesas_por_fornecedor WHERE ano = :ano"), conn, params={"ano": year}
-        )
-        .assign(empenhado=lambda d: pd.to_numeric(d["empenhado"].str.replace(",", "."), errors="coerce").fillna(0))[
-            "empenhado"
-        ]
-        .sum()
-    ) - top10_conc["empenhado"].sum()
-    pie_conc = pd.concat(
-        [
-            top10_conc[["descricao", "empenhado"]].rename(columns={"descricao": "Fornecedor"}),
-            pd.DataFrame({"Fornecedor": ["Outros"], "empenhado": [outros_emp]}),
-        ]
-    )
+    pie_conc = concentration_pie(top10_conc, conc["total_all"])
     fig_conc = px.pie(
         pie_conc, values="empenhado", names="Fornecedor", title="Distribuição do Empenhado — Top 10 Fornecedores"
     )
@@ -259,23 +247,14 @@ with t3:
 
     unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
     if not unpaid_df.empty:
-        rp_total = unpaid_df["pendente"].sum()
-        rp_count = len(unpaid_df)
-        rp_oldest = int(unpaid_df["aguardando_desde"].min())
+        rp = unpaid_summary(unpaid_df)
 
         rc1, rc2, rc3 = st.columns(3)
-        rc1.metric("Total Pendente", fmt_currency(rp_total), help="Soma de todos os empenhos ainda não quitados.")
-        rc2.metric("Fornecedores aguardando", rp_count)
-        rc3.metric("Dívida mais antiga desde", str(rp_oldest))
+        rc1.metric("Total Pendente", fmt_currency(rp["total"]), help="Soma de todos os empenhos ainda não quitados.")
+        rc2.metric("Fornecedores aguardando", rp["count"])
+        rc3.metric("Dívida mais antiga desde", str(rp["oldest"]))
 
-        top10 = unpaid_df.head(10)
-        outros = rp_total - top10["pendente"].sum()
-        pie_df = pd.concat(
-            [
-                top10[["descricao", "pendente"]].rename(columns={"descricao": "Fornecedor", "pendente": "Pendente"}),
-                pd.DataFrame({"Fornecedor": ["Outros"], "Pendente": [outros]}) if outros > 0 else pd.DataFrame(),
-            ]
-        )
+        pie_df = unpaid_pie(unpaid_df)
         fig_rp = px.pie(
             pie_df,
             values="Pendente",
@@ -357,27 +336,8 @@ with t4:
         st.info("Insira o nome do servidor ou departamento abaixo para buscar viagens específicas.")
 
         search_dia = st.text_input("Buscar Diária (Nome do Servidor ou Unidade):", "")
-        # Run dynamic query on SQL database for diarias
-        if search_dia.strip():
-            dia_sql = text("""
-                SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-                FROM diarias
-                WHERE ano = :ano AND (favorecido LIKE :search OR unidade LIKE :search OR cargo LIKE :search)
-                ORDER BY data DESC
-            """)
-            dia_params = {"ano": year, "search": f"%{search_dia}%"}
-        else:
-            dia_sql = text("""
-                SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-                FROM diarias
-                WHERE ano = :ano
-                ORDER BY data DESC LIMIT 150
-            """)
-            dia_params = {"ano": year}
-
-        df_dia_list = pd.read_sql_query(dia_sql, conn, params=dia_params)
+        df_dia_list = get_searchable_diarias(conn, year, search_dia)
         if not df_dia_list.empty:
-            df_dia_list["valor"] = pd.to_numeric(df_dia_list["valor"].str.replace(",", "."), errors="coerce").fillna(0)
             st.dataframe(
                 df_dia_list.rename(
                     columns={

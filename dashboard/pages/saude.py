@@ -142,7 +142,7 @@ c1.metric(
 adesao_df = data["adesao_de_ata_list"]
 c2.metric(
     "Qtd. de Contratos Vinculados",
-    int(adesao_df["has_contract"].sum()) if not adesao_df.empty and "has_contract" in adesao_df.columns else 0,
+    data["adesao_de_ata_contracts_linked"],
 )
 c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata_value"]))
 
@@ -286,13 +286,7 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
     services_df = data["top_suppliers_services"]
     top_suppliers_names = data["top_suppliers"]["descricao"].unique()
 
-    # Filter for top suppliers only
-    filtered_services = services_df[services_df["fornecedor"].isin(top_suppliers_names)]
-
-    # Take top 3 objects per supplier
-    top_services = (
-        filtered_services.sort_values(["fornecedor", "total"], ascending=[True, False]).groupby("fornecedor").head(3)
-    )
+    top_services = health_story.top_services_per_supplier(services_df, top_suppliers_names)
 
     st.dataframe(
         top_services.rename(
