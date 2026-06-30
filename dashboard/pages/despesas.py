@@ -13,7 +13,7 @@ from sqlalchemy.engine import Engine
 
 from analysis import expenses_analysis, fiscal_position, supplier_concentration
 from analysis.expenses_analysis import get_searchable_diarias
-from analysis.fiscal_position import unpaid_pie, unpaid_summary
+from analysis.fiscal_position import get_unpaid_by_exercise, unpaid_pie, unpaid_summary
 from analysis.supplier_concentration import concentration_pie
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -65,8 +65,8 @@ def _unpaid_suppliers(conn, year, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _low_value_restos(conn, _extracted_at):
-    return fiscal_position.get_low_value_restos(conn)
+def _low_value_restos(conn, year, _extracted_at):
+    return fiscal_position.get_low_value_restos(conn, year=year)
 
 
 conn = get_conn()
@@ -243,7 +243,28 @@ with t2:
 
 # Tab 3: Restos a Pagar
 with t3:
-    st.subheader("Fornecedores com Pagamento Pendente")
+    st.subheader("Restos a Pagar — Obrigações de Exercícios Anteriores")
+    st.info(
+        "**O que são Restos a Pagar?** São despesas que a prefeitura empenhou (reservou) em anos anteriores "
+        "mas ainda não pagou. Não são contas atrasadas do ano atual — são compromissos legais de exercícios "
+        "passados que continuam válidos até serem pagos ou cancelados. "
+        "A tabela abaixo consolida todos os fornecedores com saldo pendente acumulado até o ano selecionado.",
+        icon=":material/info:",
+    )
+
+    exercise_df = get_unpaid_by_exercise(conn)
+    if not exercise_df.empty:
+        with st.expander("Ver pendências por exercício fiscal"):
+            st.dataframe(
+                exercise_df,
+                column_config={
+                    "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Pendente": st.column_config.NumberColumn(format="R$ %,.2f"),
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
 
     unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
     if not unpaid_df.empty:
@@ -285,7 +306,7 @@ with t3:
     else:
         st.info("Nenhum fornecedor com pagamento pendente para este exercício.")
 
-    low_value_df = _low_value_restos(conn, _extracted_at)
+    low_value_df = _low_value_restos(conn, year, _extracted_at)
     if not low_value_df.empty:
         with st.expander(
             f":material/warning: {len(low_value_df)} registro(s) com empenhado abaixo de R$ 10,00 — verificar"
