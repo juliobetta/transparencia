@@ -207,7 +207,7 @@ def get_searchable_transactions(conn: Any, year: int, query: str, limit: int = 5
         sql = text("""
             SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
             FROM despesas_gerais
-            WHERE ano = :ano AND (nomefor LIKE :search OR produ LIKE :search OR nomeempresa LIKE :search)
+            WHERE ano = :ano AND (nomefor ILIKE :search OR produ ILIKE :search OR nomeempresa ILIKE :search)
             ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
             LIMIT :lim
         """)
@@ -236,7 +236,7 @@ def get_searchable_diarias(conn: Any, year: int, query: str, limit: int = 150) -
         sql = text("""
             SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
             FROM diarias
-            WHERE ano = :ano AND (favorecido LIKE :search OR unidade LIKE :search OR cargo LIKE :search)
+            WHERE ano = :ano AND (favorecido ILIKE :search OR unidade ILIKE :search OR cargo ILIKE :search)
             ORDER BY data DESC
         """)
         params = {"ano": year, "search": f"%{query}%"}

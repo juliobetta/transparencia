@@ -94,9 +94,38 @@ with t1:
     metrics = _metrics(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Total Empenhado", fmt_currency(metrics["empenhado"]))
-    c2.metric("Total Liquidado", fmt_currency(metrics["liquidado"]), f"Executado: {metrics['taxa_liquidacao']:.1f}%")
-    c3.metric("Total Pago Real", fmt_currency(metrics["pago"]), f"Pago: {metrics['taxa_pagamento']:.1f}%")
+    c1.metric(
+        "Total Empenhado",
+        fmt_currency(metrics["empenhado"]),
+        help=(
+            "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
+            "primeira etapa do gasto público: a administração reconhece a obrigação e reserva o "
+            "recurso no orçamento. Pense como um 'cheque pré-aprovado' — o dinheiro foi comprometido, "
+            "mas ainda não necessariamente saiu do caixa."
+        ),
+    )
+    c2.metric(
+        "Total Liquidado",
+        fmt_currency(metrics["liquidado"]),
+        f"Executado: {metrics['taxa_liquidacao']:.1f}%",
+        help=(
+            "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
+            "verificados pela prefeitura. A liquidação confirma que o município recebeu aquilo que "
+            "contratou e que a nota fiscal ou documento equivalente foi aprovado. É o estágio "
+            "intermediário entre reservar e pagar."
+        ),
+    )
+    c3.metric(
+        "Total Pago Real",
+        fmt_currency(metrics["pago"]),
+        f"Pago: {metrics['taxa_pagamento']:.1f}%",
+        help=(
+            "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
+            "servidor. É o estágio final do gasto público — o dinheiro efetivamente deixou os "
+            "cofres municipais. Em uma gestão saudável, o valor pago tende a se aproximar do "
+            "liquidado ao longo do exercício."
+        ),
+    )
 
     df_unit = _by_unit(conn, year, _extracted_at)
     if not df_unit.empty:
@@ -333,7 +362,17 @@ with t4:
     c1, c2, c3 = st.columns(3)
     c1.metric("Total Pago em Diárias", fmt_currency(dia_sum["total_valor"]))
     c2.metric("Total de Servidores Beneficiários", int(dia_sum["total_viajantes"]))
-    c3.metric("Média de Reembolso por Viagem", fmt_currency(dia_sum["media_reembolso"]))
+    c3.metric(
+        "Média de Reembolso por Viagem",
+        fmt_currency(dia_sum["media_reembolso"]),
+        help=(
+            "Valor médio pago por deslocamento a serviço. Calculado dividindo o total gasto em "
+            "diárias pelo número de registros de viagem no período. Cada registro corresponde a "
+            "um pagamento de diária — servidores com múltiplas viagens aparecem mais de uma vez "
+            "nessa conta. Valores muito acima da média podem indicar viagens de longa duração ou "
+            "deslocamentos para destinos mais distantes."
+        ),
+    )
 
     st.markdown("---")
     df_dia_top = _top_diarias(conn, year, _extracted_at)

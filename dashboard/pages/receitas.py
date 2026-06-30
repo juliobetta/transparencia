@@ -59,10 +59,28 @@ if not df.empty:
 
     # Double metric column layout
     c1, c2 = st.columns(2)
-    c1.metric("Previsão Orçamentária", fmt_currency(row["total_previsto"]))
+    c1.metric(
+        "Previsão Orçamentária",
+        fmt_currency(row["total_previsto"]),
+        help=(
+            "Valor total de receitas que a prefeitura planejou arrecadar no ano, conforme aprovado na "
+            "Lei Orçamentária Anual (LOA). É uma estimativa — o quanto efetivamente entra no caixa pode "
+            "ser maior ou menor, dependendo do desempenho econômico e dos repasses federais e estaduais."
+        ),
+    )
 
     if year == 2026:
-        c2.metric("Total Arrecadado Real", fmt_currency(row["total_arrecadado"]))
+        c2.metric(
+            "Total Arrecadado Real",
+            fmt_currency(row["total_arrecadado"]),
+            help=(
+                "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
+                "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
+                "pagos pelos cidadãos, transferências da União (como FPM e FUNDEB) e repasses do Estado "
+                "(como ICMS e IPVA). Compare com a Previsão Orçamentária para saber se a arrecadação "
+                "está dentro do esperado."
+            ),
+        )
 
         # Progress Bar
         progress_pct = row["pct_arrecadado"]
