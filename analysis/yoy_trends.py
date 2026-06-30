@@ -61,3 +61,18 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
     for col in ["total_gasto", "total_folha", "total_receita", "restos_a_pagar"]:
         df[f"{col}_pct_change"] = df[col].pct_change() * 100
     return df
+
+
+def fiscal_pressure_gap(df: pd.DataFrame) -> dict:
+    """Return gap between spending growth and revenue growth, ready for chart rendering."""
+    valid = df.dropna(subset=["total_gasto_pct_change"]).copy()
+    valid = valid[~valid["total_gasto_pct_change"].isin([float("inf"), float("-inf")])]
+    valid = valid.dropna(subset=["total_gasto_pct_change"])
+    gap = [
+        round(v, 2) for v in (valid["total_gasto_pct_change"] - valid["total_receita_pct_change"].fillna(0)).tolist()
+    ]
+    return {
+        "anos": valid["ano"].tolist(),
+        "gap": gap,
+        "colors": ["#F44336" if v > 0 else "#4CAF50" for v in gap],
+    }

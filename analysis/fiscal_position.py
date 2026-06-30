@@ -171,6 +171,25 @@ def get_unpaid_suppliers_trend(conn: Any, years: list[int]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def unpaid_summary(df: pd.DataFrame) -> dict:
+    """Aggregate metrics from get_unpaid_suppliers() output."""
+    return {
+        "total": float(df["pendente"].sum()),
+        "count": len(df),
+        "oldest": int(df["aguardando_desde"].min()) if not df.empty else 0,
+    }
+
+
+def unpaid_pie(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
+    """Return top-n suppliers + 'Outros' slice for pie chart rendering."""
+    top = df.head(n)
+    outros = float(df["pendente"].sum()) - float(top["pendente"].sum())
+    slices = top[["descricao", "pendente"]].rename(columns={"descricao": "Fornecedor", "pendente": "Pendente"})
+    if outros > 0:
+        slices = pd.concat([slices, pd.DataFrame({"Fornecedor": ["Outros"], "Pendente": [outros]})])
+    return slices
+
+
 def get_low_value_restos(conn: Any, threshold: float = 10.0) -> pd.DataFrame:
     try:
         df = pd.read_sql_query(

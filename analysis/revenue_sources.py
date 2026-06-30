@@ -76,6 +76,7 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
         )
     df = pd.DataFrame(records)
     df["alerta_dependencia"] = df["alerta_dependencia"].astype(object)
+    df["total_pct_change"] = df["total"].pct_change() * 100
     return df
 
 

@@ -229,3 +229,33 @@ def get_searchable_transactions(conn: Any, year: int, query: str, limit: int = 5
     df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     return df
+
+
+def get_searchable_diarias(conn: Any, year: int, query: str, limit: int = 150) -> pd.DataFrame:
+    if query.strip():
+        sql = text("""
+            SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
+            FROM diarias
+            WHERE ano = :ano AND (favorecido LIKE :search OR unidade LIKE :search OR cargo LIKE :search)
+            ORDER BY data DESC
+        """)
+        params = {"ano": year, "search": f"%{query}%"}
+    else:
+        sql = text("""
+            SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
+            FROM diarias
+            WHERE ano = :ano
+            ORDER BY data DESC LIMIT :lim
+        """)
+        params = {"ano": year, "lim": limit}
+
+    df = pd.read_sql_query(sql, conn, params=params)
+    if df.empty:
+        return pd.DataFrame(columns=["data", "servidor", "cargo", "valor", "unidade", "historico"])
+    df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    return df
+
+
+def departmental_payroll_total(df: pd.DataFrame) -> float:
+    """Return total pago distributed via departmental payroll responsibles."""
+    return float(df["pago"].sum()) if not df.empty else 0.0

@@ -5,15 +5,14 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import fmt_currency, get_conn, get_extraction_date, render_partial_year_notice, render_sidebar
-from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import expenses_analysis, payroll_vs_services
+from analysis.expenses_analysis import departmental_payroll_total
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -59,11 +58,7 @@ st.info(
     "O gráfico abaixo usa **Proventos** (remuneração bruta) como aproximação.",
     icon=":material/info:",
 )
-df_pessoal = pd.read_sql_query(text("SELECT proventos FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
-df_pessoal["proventos"] = pd.to_numeric(df_pessoal["proventos"].str.replace(",", "."), errors="coerce")
-# Filter to positive values only for histogram display — reversals (negative) are meaningful for totals
-# but would produce misleading salary distribution bars; the total_folha calculation uses all values.
-df_pessoal = df_pessoal[df_pessoal["proventos"] > 0].dropna()
+df_pessoal = payroll_vs_services.salary_distribution(conn, year)
 
 if not df_pessoal.empty:
     fig_hist = px.histogram(
@@ -97,8 +92,7 @@ st.info(
 
 df_dept = _departmental_payroll(conn, year, _extracted_at)
 if not df_dept.empty:
-    total_dept = df_dept["pago"].sum()
-    st.metric("Total distribuído via responsáveis", fmt_currency(total_dept))
+    st.metric("Total distribuído via responsáveis", fmt_currency(departmental_payroll_total(df_dept)))
 
     fig_dept = px.bar(
         df_dept,

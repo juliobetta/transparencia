@@ -6,6 +6,13 @@ from sqlalchemy import text
 from analysis import revenue_sources
 
 
+def salary_distribution(conn: Any, year: int) -> pd.DataFrame:
+    """Return positive proventos for histogram display (reversals excluded — display only)."""
+    df = pd.read_sql_query(text("SELECT proventos FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
+    df["proventos"] = pd.to_numeric(df["proventos"].str.replace(",", "."), errors="coerce")
+    return df[df["proventos"] > 0].dropna()
+
+
 def run(conn: Any, years: list[int]) -> pd.DataFrame:
     records = []
     for year in years:
