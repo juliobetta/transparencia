@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from shared import (
+    CURRENT_YEAR,
     fmt_percent,
     get_conn,
     get_extraction_date,
@@ -175,15 +176,15 @@ with c1:
 with c2:
     if not revenue.empty:
         row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
-        label = "Receita Arrecadada" if year == 2026 else "Receita Prevista"
-        rev_val = row["total_arrecadado"] if year == 2026 else row["total_previsto"]
+        label = "Receita Arrecadada" if year == CURRENT_YEAR else "Receita Prevista"
+        rev_val = row["total_arrecadado"] if year == CURRENT_YEAR else row["total_previsto"]
         _rev_totals = revenue["total"].tolist()
         delta_rec = (
             float(revenue.iloc[-1]["total_pct_change"])
             if len(revenue) > 1 and pd.notna(revenue.iloc[-1]["total_pct_change"])
             else None
         )
-        help_text = "Total efetivamente arrecadado." if year == 2026 else "Previsão orçamentária do ano."
+        help_text = "Total efetivamente arrecadado." if year == CURRENT_YEAR else "Previsão orçamentária do ano."
         st.metric(
             label,
             _fmt_compact(float(rev_val)),
@@ -442,7 +443,7 @@ with col_pct:
     anos_pct = _pressure["anos"]
     gap = _pressure["gap"]
     colors = _pressure["colors"]
-    opacity = [0.4 if a == 2026 else 1.0 for a in anos_pct]
+    opacity = [0.4 if a == CURRENT_YEAR else 1.0 for a in anos_pct]
     fig_pct = go.Figure(
         go.Bar(
             x=anos_pct,
@@ -453,10 +454,10 @@ with col_pct:
         )
     )
     fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
-    if 2026 in anos_pct:
-        partial_gap = gap[anos_pct.index(2026)]
+    if CURRENT_YEAR in anos_pct:
+        partial_gap = gap[anos_pct.index(CURRENT_YEAR)]
         fig_pct.add_annotation(
-            x=2026,
+            x=CURRENT_YEAR,
             y=partial_gap,
             text="ano parcial",
             showarrow=False,
@@ -484,7 +485,7 @@ col_donut, col_bar = st.columns([4, 6])
 with col_donut:
     if not revenue.empty:
         row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
-        is_partial = year == 2026
+        is_partial = year == CURRENT_YEAR
         donut_title = (
             f"Fontes de Receita ({year} — Arrecadado Parcial)"
             if is_partial

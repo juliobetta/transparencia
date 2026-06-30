@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
 from shared import (
+    CURRENT_YEAR,
     YEARS,
     comparison_table,
     fmt_currency,
@@ -111,8 +112,8 @@ with st.expander("Pessoal"):
     )
 with st.expander("Receitas"):
     render_revenue_methodology()
-    if year_a == 2026 or year_b == 2026:
-        render_partial_year_notice(2026, _extracted_at)
+    if year_a == CURRENT_YEAR or year_b == CURRENT_YEAR:
+        render_partial_year_notice(CURRENT_YEAR, _extracted_at)
     df_receitas = comparison_table(
         result["receitas"],
         [
