@@ -71,6 +71,7 @@ def run(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
         total_value = float(df["total_c_valor"].sum())
         total_licitacao = float(_to_float(df["licitacao_valor"]).sum())
         df["has_contract"] = df["total_c_valor"] > 0
+        df["periodo"] = df["mes"].apply(lambda m: str(int(m)).zfill(2) if pd.notna(m) else "") + "/" + str(year)
 
         return {
             "list": df,

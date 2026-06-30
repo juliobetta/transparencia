@@ -27,3 +27,10 @@ def run(conn: Any, year: int) -> pd.DataFrame:
         axis=1,
     )
     return df
+
+
+def summarize(df: pd.DataFrame) -> dict:
+    return {
+        "total_empenhado": float(df["empenhado"].sum()),
+        "total_dotacao": float(df["dotacao_atualizada"].sum()),
+    }

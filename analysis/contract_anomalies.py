@@ -55,6 +55,8 @@ def run(conn: Any, year: int) -> dict:
     supplier_counts = near.groupby(["empresa", "fornecedor"]).size()
     splitting_keys = supplier_counts[supplier_counts >= 3].index
     splitting = near[near.set_index(["empresa", "fornecedor"]).index.isin(splitting_keys)].copy()
+    if not splitting.empty:
+        splitting["Período"] = splitting["mes"].astype(str).str.zfill(2) + "/" + splitting["ano"].astype(str)
 
     dept_totals = contratos.groupby("empresa").size().rename("total")
     dept_supplier = contratos.groupby(["empresa", "fornecedor"]).size().rename("count").reset_index()
