@@ -71,8 +71,36 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
                 "transferencias_estado_arrecadado": estado_arrecadado,
                 "total_previsto": total_previsto,
                 "total_arrecadado": total_arrecadado,
+                "pct_arrecadado": total_arrecadado / total_previsto if total_previsto > 0 else 0.0,
             }
         )
     df = pd.DataFrame(records)
     df["alerta_dependencia"] = df["alerta_dependencia"].astype(object)
+    return df
+
+
+def breakdown_table(row: "pd.Series", year: int) -> "pd.DataFrame":
+    """Return a Previsto vs Arrecadado breakdown DataFrame ready for display."""
+    current = year == 2026
+    data = [
+        {
+            "Fonte": "Receita Própria (Municipal)",
+            "Previsto": row["receita_propria_previsto"],
+            "Arrecadado": row["receita_propria_arrecadado"] if current else None,
+        },
+        {
+            "Fonte": "Transferências da União (Federal)",
+            "Previsto": row["transferencias_uniao_previsto"],
+            "Arrecadado": row["transferencias_uniao_arrecadado"] if current else None,
+        },
+        {
+            "Fonte": "Transferências do Estado",
+            "Previsto": row["transferencias_estado_previsto"],
+            "Arrecadado": row["transferencias_estado_arrecadado"] if current else None,
+        },
+    ]
+    df = pd.DataFrame(data)
+    if current:
+        df["Diferença (Previsto − Arrecadado)"] = df["Previsto"] - df["Arrecadado"]
+        df["Realização (%)"] = (df["Arrecadado"] / df["Previsto"]) * 100
     return df

@@ -103,6 +103,7 @@ def run(conn: Any, year: int) -> dict:
         "restos_pagos_no_ano": restos_pagos_no_ano,
         "total_saidas": total_saidas,
         "saldo_estimado": saldo_estimado,
+        "saldo_apos_restos": saldo_estimado - restos_pendentes_total,
         "restos_pendentes": restos_pendentes,
         "restos_pendentes_total": restos_pendentes_total,
         "restos_pendentes_anteriores": restos_pendentes_anteriores,

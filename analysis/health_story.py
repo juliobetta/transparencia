@@ -227,7 +227,7 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     top_suppliers_services = _top_suppliers_services(conn, year, empresa_id)
     splitting = _splitting(conn, year, empresa_id)
     transfers_df, transfers_total = _transfers_to_health(conn, year, empresa_id)
-    return {
+    return {  # noqa: RET504
         "emendas": emendas_df,
         "emendas_total": emendas_total,
         "budget": budget,
@@ -236,6 +236,7 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
         "contracts_by_modality": contracts_by_modality,
         "adesao_de_ata_list": adesao_df,
         "adesao_de_ata_count": len(adesao_df),
+        "adesao_de_ata_contracts_linked": int(adesao_df["has_contract"].sum()) if not adesao_df.empty else 0,
         "adesao_de_ata_value": adesao_value,
         "bidding_gaps": bidding_gaps,
         "top_suppliers": top_suppliers,
@@ -245,3 +246,11 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
         "transfers_to_health": transfers_df,
         "transfers_to_health_total": transfers_total,
     }
+
+
+def top_services_per_supplier(
+    services_df: "pd.DataFrame", top_supplier_names: "pd.Series", n: int = 3
+) -> "pd.DataFrame":
+    """Return the top-n contract objects for each of the given supplier names."""
+    filtered = services_df[services_df["fornecedor"].isin(top_supplier_names)]
+    return filtered.sort_values(["fornecedor", "total"], ascending=[True, False]).groupby("fornecedor").head(n)

@@ -65,7 +65,7 @@ if not df.empty:
         c2.metric("Total Arrecadado Real", fmt_currency(row["total_arrecadado"]))
 
         # Progress Bar
-        progress_pct = (row["total_arrecadado"] / row["total_previsto"]) if row["total_previsto"] > 0 else 0
+        progress_pct = row["pct_arrecadado"]
         st.markdown(f"**Progresso de Arrecadação Anual: {progress_pct * 100:.2f}%**")
         st.progress(min(max(progress_pct, 0.0), 1.0))
     else:
@@ -74,29 +74,9 @@ if not df.empty:
     # Detailed Summary Table
     st.subheader("Previsto vs. Arrecadado por Origem")
 
-    resumo_data = [
-        {
-            "Fonte": "Receita Própria (Municipal)",
-            "Previsto": row["receita_propria_previsto"],
-            "Arrecadado": row["receita_propria_arrecadado"] if year == 2026 else None,
-        },
-        {
-            "Fonte": "Transferências da União (Federal)",
-            "Previsto": row["transferencias_uniao_previsto"],
-            "Arrecadado": row["transferencias_uniao_arrecadado"] if year == 2026 else None,
-        },
-        {
-            "Fonte": "Transferências do Estado",
-            "Previsto": row["transferencias_estado_previsto"],
-            "Arrecadado": row["transferencias_estado_arrecadado"] if year == 2026 else None,
-        },
-    ]
-    resumo_df = pd.DataFrame(resumo_data)
+    resumo_df = revenue_sources.breakdown_table(row, year)
 
     if year == 2026:
-        resumo_df["Diferença (Previsto − Arrecadado)"] = resumo_df["Previsto"] - resumo_df["Arrecadado"]
-        resumo_df["Realização (%)"] = (resumo_df["Arrecadado"] / resumo_df["Previsto"]) * 100
-
         # Bar chart comparing predicted vs collected
         melt_df = resumo_df.melt(
             id_vars=["Fonte"], value_vars=["Previsto", "Arrecadado"], var_name="Métrica", value_name="Valor"
@@ -173,7 +153,7 @@ if year == 2026:
         delta=f"-{fmt_currency(herdadas)}",
     )
 
-    saldo_apos_restos = fp["saldo_estimado"] - fp["restos_pendentes_total"]
+    saldo_apos_restos = fp["saldo_apos_restos"]
     st.metric(
         "Saldo após Restos Pendentes (2026)",
         fmt_currency(saldo_apos_restos),
