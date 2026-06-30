@@ -4,9 +4,8 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
-from analysis.contract_anomalies import NEAR_THRESHOLD_PCT, THRESHOLD
+from analysis.constants import NEAR_THRESHOLD_PCT, dispensation_threshold
 
-DISPENSATION_THRESHOLD = 62_725.59
 SAUDE_EMPRESA = "2"
 
 
@@ -132,25 +131,36 @@ def _adesao_de_ata(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame,
 def _bidding_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
-            "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes FROM contratos WHERE ano = :ano AND empresa = :empresa"
+            "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes,"
+            " numobra, tipocoobra"
+            " FROM contratos WHERE ano = :ano AND empresa = :empresa"
         ),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
     df["valor_num"] = _to_float(df["valcon"])
-    return df[df["valor_num"] > DISPENSATION_THRESHOLD].drop(columns=["valor_num", "licitacao_numero"])
+    df["threshold"] = df.apply(
+        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+    )
+    return df[df["valor_num"] > df["threshold"]].drop(columns=["valor_num", "threshold", "licitacao_numero"])
 
 
 def _splitting(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        text("SELECT ano, fornecedor, valcon, objeto, mes FROM contratos WHERE ano = :ano AND empresa = :empresa"),
+        text(
+            "SELECT ano, fornecedor, valcon, objeto, mes, numobra, tipocoobra"
+            " FROM contratos WHERE ano = :ano AND empresa = :empresa"
+        ),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
     df["valor_num"] = _to_float(df["valcon"])
-    lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
-    near = df[(df["valor_num"] >= lower) & (df["valor_num"] < THRESHOLD)]
+    df["threshold"] = df.apply(
+        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+    )
+    df["lower"] = df["threshold"] * (1 - NEAR_THRESHOLD_PCT)
+    near = df[(df["valor_num"] >= df["lower"]) & (df["valor_num"] < df["threshold"])]
     counts = near.groupby("fornecedor").size()
     return near[near["fornecedor"].isin(counts[counts >= 3].index)].copy()
 

@@ -125,9 +125,9 @@ def get_unpaid_suppliers(conn: Any, year: int | None = None) -> pd.DataFrame:
     df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["pendente"] = df["emp_f"] - df["pago_f"]
-    df = df[(df["emp_f"] > 0) & (df["pendente"] > 0)].copy()
     df["descricao"] = df["descricao"].fillna("Sem identificação").apply(_sanitize_descricao)
 
+    # Filter AFTER groupby so cancellations (negative emp_f) reduce the net outstanding correctly
     return (
         df.groupby("descricao")
         .agg(
@@ -138,6 +138,7 @@ def get_unpaid_suppliers(conn: Any, year: int | None = None) -> pd.DataFrame:
             pendente=("pendente", "sum"),
         )
         .reset_index()
+        .query("pendente > 0")
         .sort_values("pendente", ascending=False)
     )
 
@@ -154,7 +155,7 @@ def get_unpaid_suppliers_trend(conn: Any, years: list[int]) -> pd.DataFrame:
     df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["pendente"] = df["emp_f"] - df["pago_f"]
-    df = df[(df["emp_f"] > 0) & (df["pendente"] > 0)]
+    # Keep all rows including cancellations (emp_f < 0) so they reduce the snapshot totals correctly
 
     rows = []
     for year in years:

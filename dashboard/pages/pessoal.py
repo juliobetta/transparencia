@@ -33,7 +33,11 @@ year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
 st.header("Folha de Pagamento")
-st.caption("Percentual dos gastos pagos que corresponde à folha de pessoal (servidores municipais).")
+st.caption(
+    "Quanto da receita municipal arrecadada é comprometido com salários e proventos de servidores. "
+    "A Lei de Responsabilidade Fiscal (LRF) limita esse gasto a **54% da receita corrente líquida** para o Poder Executivo. "
+    "O cálculo usa o total de receitas arrecadadas como base — os dados do portal não permitem calcular a RCL exata com todas as deduções legais."
+)
 render_partial_year_notice(year, _extracted_at)
 df = _payroll(conn, year, _extracted_at)
 if not df.empty:
@@ -41,7 +45,7 @@ if not df.empty:
         df,
         x="ano",
         y="percentual_folha",
-        title="Folha / Total de Gastos (%)",
+        title="Folha de Pessoal como % da Receita Arrecadada",
         labels={"ano": "Ano", "percentual_folha": "%"},
     )
     fig.update_xaxes(tickmode="linear", dtick=1)
@@ -57,6 +61,8 @@ st.info(
 )
 df_pessoal = pd.read_sql_query(text("SELECT proventos FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
 df_pessoal["proventos"] = pd.to_numeric(df_pessoal["proventos"].str.replace(",", "."), errors="coerce")
+# Filter to positive values only for histogram display — reversals (negative) are meaningful for totals
+# but would produce misleading salary distribution bars; the total_folha calculation uses all values.
 df_pessoal = df_pessoal[df_pessoal["proventos"] > 0].dropna()
 
 if not df_pessoal.empty:

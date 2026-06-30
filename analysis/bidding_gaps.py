@@ -3,20 +3,27 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
-DISPENSATION_THRESHOLD = 62_725.59
+from analysis.constants import dispensation_threshold
+
 SAUDE_EMPRESA = "2"
 
 
 def counts_by_year(conn: Any, years: list[int]) -> dict[int, int]:
-    """Return {year: count_above_limit} in a single query instead of N round-trips."""
+    """Return {year: count_above_limit} using the per-contract applicable threshold."""
     placeholders = ", ".join(str(y) for y in years)
     df = pd.read_sql_query(
-        text(f"SELECT ano, licitacao_numero, valcon FROM contratos WHERE ano IN ({placeholders})"),
+        text(
+            f"SELECT ano, licitacao_numero, valcon, numobra, tipocoobra, objeto"
+            f" FROM contratos WHERE ano IN ({placeholders})"
+        ),
         conn,
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
     df["valor_num"] = pd.to_numeric(df["valcon"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
-    df["acima_limite"] = df["valor_num"] > DISPENSATION_THRESHOLD
+    df["threshold"] = df.apply(
+        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+    )
+    df["acima_limite"] = df["valor_num"] > df["threshold"]
     counts = df.groupby("ano")["acima_limite"].sum().astype(int)
     return {y: int(counts.get(y, 0)) for y in years}
 
@@ -24,13 +31,18 @@ def counts_by_year(conn: Any, years: list[int]) -> dict[int, int]:
 def run(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
-            "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes FROM contratos WHERE ano = :ano"
+            "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes,"
+            " numobra, tipocoobra"
+            " FROM contratos WHERE ano = :ano"
         ),
         conn,
         params={"ano": year},
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
     df["valor_num"] = pd.to_numeric(df["valcon"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
-    df["acima_limite"] = df["valor_num"] > DISPENSATION_THRESHOLD
+    df["threshold"] = df.apply(
+        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+    )
+    df["acima_limite"] = df["valor_num"] > df["threshold"]
     df["orgao_saude"] = df["empresa"] == SAUDE_EMPRESA
-    return df.drop(columns=["valor_num"])
+    return df.drop(columns=["valor_num", "threshold"])

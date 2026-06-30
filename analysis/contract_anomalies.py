@@ -3,23 +3,30 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
-THRESHOLD = 62_725.59
-NEAR_THRESHOLD_PCT = 0.20
+from analysis.constants import NEAR_THRESHOLD_PCT, dispensation_threshold
 
 
 def splitting_counts_by_year(conn: Any, years: list[int]) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
     df = pd.read_sql_query(
-        text(f"SELECT ano, fornecedor, valcon FROM contratos WHERE ano IN ({placeholders})"),
+        text(
+            f"SELECT ano, empresa, fornecedor, valcon, numobra, tipocoobra, objeto"
+            f" FROM contratos WHERE ano IN ({placeholders})"
+        ),
         conn,
     )
     df["valor_num"] = pd.to_numeric(df["valcon"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
-    lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
-    near = df[(df["valor_num"] >= lower) & (df["valor_num"] < THRESHOLD)]
+    df["threshold"] = df.apply(
+        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+    )
+    df["lower"] = df["threshold"] * (1 - NEAR_THRESHOLD_PCT)
+    df["near"] = (df["valor_num"] >= df["lower"]) & (df["valor_num"] < df["threshold"])
+
     result = {}
     for y in years:
-        near_y = near[near["ano"] == y]
-        counts = near_y.groupby("fornecedor").size()
+        near_y = df[(df["ano"] == y) & df["near"]]
+        # Group by órgão executor + fornecedor (subelemento de despesa not available in contratos table)
+        counts = near_y.groupby(["empresa", "fornecedor"]).size()
         result[y] = int((counts >= 3).sum())
     return result
 
@@ -27,7 +34,9 @@ def splitting_counts_by_year(conn: Any, years: list[int]) -> dict[int, int]:
 def run(conn: Any, year: int) -> dict:
     contratos = pd.read_sql_query(
         text(
-            "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes FROM contratos WHERE ano = :ano"
+            "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes,"
+            " numobra, tipocoobra"
+            " FROM contratos WHERE ano = :ano"
         ),
         conn,
         params={"ano": year},
@@ -35,11 +44,17 @@ def run(conn: Any, year: int) -> dict:
     contratos["valor_num"] = pd.to_numeric(
         contratos["valcon"].astype(str).str.replace(",", "."), errors="coerce"
     ).fillna(0)
+    contratos["threshold"] = contratos.apply(
+        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+    )
+    contratos["lower"] = contratos["threshold"] * (1 - NEAR_THRESHOLD_PCT)
+    near = contratos[(contratos["valor_num"] >= contratos["lower"]) & (contratos["valor_num"] < contratos["threshold"])]
 
-    lower = THRESHOLD * (1 - NEAR_THRESHOLD_PCT)
-    near = contratos[(contratos["valor_num"] >= lower) & (contratos["valor_num"] < THRESHOLD)]
-    supplier_counts = near.groupby("fornecedor").size()
-    splitting = near[near["fornecedor"].isin(supplier_counts[supplier_counts >= 3].index)].copy()
+    # Splitting: same órgão executor + same fornecedor with 3+ contracts just below their applicable limit
+    # (subelemento de despesa would refine this further but is not available in the contratos table)
+    supplier_counts = near.groupby(["empresa", "fornecedor"]).size()
+    splitting_keys = supplier_counts[supplier_counts >= 3].index
+    splitting = near[near.set_index(["empresa", "fornecedor"]).index.isin(splitting_keys)].copy()
 
     dept_totals = contratos.groupby("empresa").size().rename("total")
     dept_supplier = contratos.groupby(["empresa", "fornecedor"]).size().rename("count").reset_index()

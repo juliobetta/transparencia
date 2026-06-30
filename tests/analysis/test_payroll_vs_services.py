@@ -8,6 +8,19 @@ from analysis.payroll_vs_services import run
 def conn(conn):
     db.upsert(
         conn,
+        "receita_orcamentaria",
+        [
+            {
+                "ano": 2024,
+                "empresa": "1",
+                "codigo": "1.1",
+                "arrecadado": "1200000",
+            },
+        ],
+        ["ano", "empresa", "codigo"],
+    )
+    db.upsert(
+        conn,
         "despesas_por_orgao",
         [
             {
@@ -58,5 +71,7 @@ def test_returns_dataframe_with_percentual(conn):
     assert "percentual_folha" in df.columns
     row = df[df["ano"] == 2024].iloc[0]
     assert row["total_folha"] == pytest.approx(600000, rel=0.01)
-    assert row["total_gasto"] == pytest.approx(800000, rel=0.01)
-    assert row["percentual_folha"] == pytest.approx(75.0, rel=0.01)
+    assert row["total_pago"] == pytest.approx(800000, rel=0.01)
+    assert row["rcl_proxy"] == pytest.approx(1200000, rel=0.01)
+    # percentual_folha = 600000 / 1200000 * 100 = 50%
+    assert row["percentual_folha"] == pytest.approx(50.0, rel=0.01)
