@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import sys
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -195,7 +196,7 @@ def _valcon_float(r: pd.Series) -> float:
         return 0.0
 
 
-def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: list[float]) -> None:
+def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: Sequence[float]) -> None:
     with pdf.table(
         col_widths=widths,
         headings_style=_HEADING_STYLE,
