@@ -3,9 +3,10 @@ from datetime import date
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from analysis.constants import NEAR_THRESHOLD_PCT, dispensation_threshold
+from analysis.expenses_analysis import FORNECEDORES_NATUREZA_MAP
 
 SAUDE_EMPRESA = "2"
 
@@ -191,20 +192,28 @@ def _splitting(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
 
 
 def _top_suppliers(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
-    df = pd.read_sql_query(
-        text(
-            "SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = :ano AND empresa = :empresa"
-        ),
-        conn,
-        params={"ano": year, "empresa": empresa_id},
+    # Aplicar o mesmo filtro de elementos: somente fornecedores de natureza "fornecimento de bens e serviços" (excluindo subvencoes sociais)
+    sql = text("""
+        SELECT f.codigo, f.descricao, f.empenhado
+        FROM despesas_por_fornecedor f
+        LEFT JOIN despesas_gerais g ON f.ano = g.ano AND f.descricao = g.nomefor
+        WHERE f.ano = :ano AND f.empresa = :empresa
+        AND g.elemento IN :elementos
+    """).bindparams(
+        bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
     )
+
+    df = pd.read_sql_query(sql, conn, params={"ano": year, "empresa": empresa_id})
     df["empenhado"] = _to_float(df["empenhado"])
     df = df.groupby(["codigo", "descricao"], as_index=False)["empenhado"].sum()
+
     total = df["empenhado"].sum()
     df["percentual"] = df["empenhado"] / total * 100 if total > 0 else 0
+
     top10 = df.nlargest(10, "empenhado").reset_index(drop=True)
     shares = df["empenhado"] / total if total > 0 else df["empenhado"] * 0
     hhi = float((shares**2).sum() * 10000)
+
     return top10, hhi
 
 
