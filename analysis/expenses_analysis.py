@@ -4,23 +4,15 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import bindparam, text
 
+from analysis.constants import (
+    DESPESAS_MAP,
+    ELEMENTO_FOLHA_PESSOAL,
+    ELEMENTO_SUBVENCOES_SOCIAIS,
+    FORNECEDORES_NATUREZA_MAP,
+)
 from dashboard.shared import CIDADE_CLEAN
 
 # Payroll disbursed through department heads — not individual suppliers
-# Covers: "E OUTROS", "E OUTRO", "E OUT.", "e OUTROS", etc.
-
-SUBVENCOES_SOCIAIS_NATUREZA = "43"
-FORNECEDORES_NATUREZA_MAP = {
-    "30": "30 - Material de Consumo",
-    "36": "36 - Serv. Terceiros (Pessoa Física)",
-    "39": "39 - Serv. Terceiros (Pessoa Jurídica)",
-    "52": "52 - Equipamentos e Mat. Permanente",
-}
-DESPESAS_MAP = {
-    **FORNECEDORES_NATUREZA_MAP,
-    SUBVENCOES_SOCIAIS_NATUREZA: "43 - Subvenções Sociais",
-    # TODO: adicionar outros elementos de despesa conforme necessário
-}
 
 
 def get_elemento_label(elemento: str) -> str:
@@ -110,7 +102,7 @@ def get_top_suppliers_detailed(conn: Any, year: int) -> pd.DataFrame:
         conn,
         params={
             "ano": year,
-            "subvencoes_sociais": SUBVENCOES_SOCIAIS_NATUREZA,
+            "subvencoes_sociais": ELEMENTO_SUBVENCOES_SOCIAIS,
         },
     )
 
@@ -239,18 +231,18 @@ def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
 
 
 def get_departmental_payroll(conn: Any, year: int) -> pd.DataFrame:
-    df = pd.read_sql_query(
-        text(
-            "SELECT descricao, pago FROM despesas_por_fornecedor WHERE ano = :ano AND descricao ~* ' E OUT(ROS?|\\.)'"
-        ),
-        conn,
-        params={"ano": year},
-    )
+    # Filtra folha de pessoal (elemento 11) diretamente da despesas_gerais
+    query = text("""
+        SELECT nomefor as descricao, SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) as pago
+        FROM despesas_gerais
+        WHERE ano = :ano AND elemento = :elemento
+        GROUP BY nomefor
+    """)
+    df = pd.read_sql_query(query, conn, params={"ano": year, "elemento": ELEMENTO_FOLHA_PESSOAL})
     if df.empty:
         return pd.DataFrame(columns=["descricao", "pago"])
 
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
-    return df.groupby("descricao", as_index=False)["pago"].sum().sort_values("pago", ascending=False)  # type: ignore
+    return df.groupby("descricao", as_index=False)["pago"].sum().sort_values("pago", ascending=False)
 
 
 def get_diarias_summary(conn: Any, year: int) -> dict:
