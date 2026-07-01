@@ -1,6 +1,6 @@
 [project]
 name = "transparencia"
-version = "0.8.2"
+version = "0.9.0"
 description = "Transparência fiscal e gestão orçamentária"
 requires-python = ">=3.12"
 dependencies = [
@@ -15,6 +15,7 @@ dependencies = [
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.0",
     "alembic>=1.13",
+    "fpdf2>=2.7",
 ]
 
 [dependency-groups]

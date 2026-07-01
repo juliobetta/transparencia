@@ -83,7 +83,7 @@
     <h2>Contratos sem Licitação (Requer Verificação) ⚠️</h2>
     <p class="glossario"><strong>Licitação:</strong> {{ glossario["Licitação"] }} · <strong>Dispensa:</strong> {{ glossario["Dispensa de Licitação"] }}</p>
     <p>Total de contratos sem licitação: <strong>{{ bidding|length }}</strong> |
-       Acima do limite legal (R$57 mil): <strong class="alerta-excesso">{{ bidding_acima|length }}</strong> |
+       Acima do limite legal (compras/serviços: R$ {{ "{:,.0f}".format(threshold_compras) }}): <strong class="alerta-excesso">{{ bidding_acima|length }}</strong> |
        Na Saúde: <strong class="alerta-excesso">{{ bidding_saude_count }}</strong></p>
     {% if bidding_acima %}
     <table>
@@ -130,11 +130,11 @@
 
   <!-- FOLHA -->
   <div class="secao">
-    <h2>Folha de Pagamento vs Gastos Totais</h2>
+    <h2>Folha de Pagamento vs Receita Arrecadada</h2>
     {% set pay_filtered = payroll[payroll.ano == year] %}
     {% if not pay_filtered.empty %}
     {% set pay_row = pay_filtered.iloc[0] %}
-    <p>Folha de pessoal representa <strong>{{ "{:.1f}%".format(pay_row.percentual_folha) }}</strong> dos gastos pagos em {{ year }}.</p>
+    <p>A folha de pessoal consumiu <strong>{{ "{:.1f}%".format(pay_row.percentual_folha) }}</strong> da receita arrecadada em {{ year }}. O limite legal da LRF para o Poder Executivo municipal é de 54% da receita corrente líquida.</p>
     {% else %}
     <p>Dados de folha de pagamento não disponíveis para {{ year }}.</p>
     {% endif %}
@@ -144,9 +144,9 @@
   <!-- TENDÊNCIAS ANO A ANO -->
   <div class="secao">
     <h2>Tendências Ano a Ano</h2>
-    <p class="glossario"><strong>Gasto Total:</strong> despesa paga · <strong>% Variação:</strong> crescimento/redução em relação ao ano anterior</p>
+    <p class="glossario"><strong>Total Pago:</strong> despesa efetivamente paga · <strong>% Variação:</strong> crescimento/redução em relação ao ano anterior</p>
     <table>
-      <tr><th>Ano</th><th>Gasto Total (R$)</th><th>% Variação</th></tr>
+      <tr><th>Ano</th><th>Total Pago (R$)</th><th>% Variação</th></tr>
       {% for _, r in trends.iterrows() %}
       <tr>
         <td>{{ r.ano|int }}</td>

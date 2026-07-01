@@ -5,13 +5,13 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pandas as pd
 import streamlit as st
 from shared import get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import adesao_de_ata, bidding_gaps, contract_anomalies
+from analysis.constants import THRESHOLD_COMPRAS_SERVICOS
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -45,37 +45,61 @@ adesao = _adesao(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
 anomalies = _anomalies(conn, year, _extracted_at)
 
-# Create MM/YYYY column
-for df in [gaps, adesao["list"], anomalies["splitting"]]:
-    if isinstance(df, pd.DataFrame):
-        if "mes" in df.columns and "ano" in df.columns:
-            df["Período"] = df["mes"].astype(str).str.zfill(2) + "/" + df["ano"].astype(str)
-        elif "mes" in df.columns:
-            # Maybe ano is not in df but it should be available
-            # If not, let's just use mes
-            df["Período"] = df["mes"].astype(str).str.zfill(2)
-        else:
-            df["Período"] = ""
-
-# Re-filter above (acima)
-acima = gaps[gaps["acima_limite"]]
-saude = gaps[gaps["acima_limite"] & gaps["orgao_saude"]]
+acima = bidding_gaps.filter_above_limit(gaps)
+saude = bidding_gaps.filter_above_limit_health(gaps)
 
 st.header("Licitações e Contratos")
 
+_threshold_fmt = f"R$ {THRESHOLD_COMPRAS_SERVICOS:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 st.info(
     "Contratos sem processo licitatório são comuns e frequentemente legais — dispensas de baixo valor "
-    "e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de R$ 62.725,59** "
+    f"e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de {_threshold_fmt}** "
     "sem licitação, pois nesses casos a lei exige justificativa formal "
     "([Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/))."
 )
 
 st.subheader("Resumo")
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Acima do limite legal (R$ 62.725,59)", len(acima))
-c2.metric("Total sem processo licitatório", len(gaps))
-c3.metric("Adesões de Ata (licitações)", adesao["count"])
-c4.metric("Empenhos via Ata Externa", adesao_externa["count"])
+c1.metric(
+    f"Acima do limite legal ({_threshold_fmt})",
+    len(acima),
+    help=(
+        f"Número de contratos firmados sem licitação cujo valor ultrapassa {_threshold_fmt} — "
+        "o teto legal para dispensa em compras e serviços gerais (Decreto nº 12.807/2025). "
+        "Acima desse valor, a lei exige processo licitatório formal com publicação e concorrência. "
+        "Cada item listado merece análise da justificativa oficial do processo."
+    ),
+)
+c2.metric(
+    "Total sem processo licitatório",
+    len(gaps),
+    help=(
+        "Total de contratos identificados sem número de licitação associado. Nem todos são "
+        "irregulares — a lei permite contratação direta por dispensa (baixo valor, emergência) "
+        "ou inexigibilidade (fornecedor exclusivo, profissional notório). O número alto é um "
+        "ponto de atenção, não uma irregularidade automática."
+    ),
+)
+c3.metric(
+    "Adesões de Ata (licitações)",
+    adesao["count"],
+    help=(
+        "Quantidade de contratos firmados por adesão à Ata de Registro de Preços — mecanismo "
+        "em que a prefeitura aproveita uma licitação já realizada por ela mesma para novas "
+        "compras, sem precisar abrir um novo processo. É uma forma legal e eficiente de "
+        "contratar, desde que respeitados os limites de quantidade e vigência da ata."
+    ),
+)
+c4.metric(
+    "Empenhos via Ata Externa",
+    adesao_externa["count"],
+    help=(
+        "Empenhos identificados como 'carona em ata' — a prefeitura utilizou uma Ata de "
+        "Registro de Preços aberta por outro ente público (outro município, estado ou órgão "
+        "federal) para realizar a contratação. O chamado 'carona' é permitido pela Lei "
+        "14.133/2021, mas exige autorização formal do órgão gerenciador da ata."
+    ),
+)
 
 # Fix gap table
 gaps_display = gaps.rename(

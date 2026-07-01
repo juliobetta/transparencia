@@ -5,15 +5,15 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import fmt_currency, get_conn, get_extraction_date, render_partial_year_notice, render_sidebar
-from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import expenses_analysis, payroll_vs_services
+from analysis.constants import LRF_PESSOAL_LIMITE_ALERTA, LRF_PESSOAL_LIMITE_LEGAL, LRF_PESSOAL_LIMITE_PRUDENCIAL
+from analysis.expenses_analysis import departmental_payroll_total
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -33,7 +33,11 @@ year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
 st.header("Folha de Pagamento")
-st.caption("Percentual dos gastos pagos que corresponde à folha de pessoal (servidores municipais).")
+st.caption(
+    "Quanto da receita municipal arrecadada é comprometido com salários e proventos de servidores. "
+    "A Lei de Responsabilidade Fiscal (LRF) limita esse gasto a **54% da receita corrente líquida** para o Poder Executivo. "
+    "O cálculo usa o total de receitas arrecadadas como base — os dados do portal não permitem calcular a RCL exata com todas as deduções legais."
+)
 render_partial_year_notice(year, _extracted_at)
 df = _payroll(conn, year, _extracted_at)
 if not df.empty:
@@ -41,12 +45,39 @@ if not df.empty:
         df,
         x="ano",
         y="percentual_folha",
-        title="Folha / Total de Gastos (%)",
+        title="Folha de Pessoal como % da Receita Arrecadada",
         labels={"ano": "Ano", "percentual_folha": "%"},
     )
     fig.update_xaxes(tickmode="linear", dtick=1)
     fig.update_traces(hovertemplate="Ano: %{x}<br>Percentual: %{y:.2f}%")
+    fig.add_hline(
+        y=LRF_PESSOAL_LIMITE_LEGAL,
+        line_dash="solid",
+        line_color="red",
+        annotation_text=f"Limite legal {LRF_PESSOAL_LIMITE_LEGAL}%",
+        annotation_position="top right",
+    )
+    fig.add_hline(
+        y=LRF_PESSOAL_LIMITE_PRUDENCIAL,
+        line_dash="dash",
+        line_color="orange",
+        annotation_text=f"Limite prudencial {LRF_PESSOAL_LIMITE_PRUDENCIAL}%",
+        annotation_position="top right",
+    )
+    fig.add_hline(
+        y=LRF_PESSOAL_LIMITE_ALERTA,
+        line_dash="dot",
+        line_color="gold",
+        annotation_text=f"Limite de alerta {LRF_PESSOAL_LIMITE_ALERTA}%",
+        annotation_position="top right",
+    )
     st.plotly_chart(fig, width="stretch")
+    st.caption(
+        f"Linhas de referência da Lei de Responsabilidade Fiscal: "
+        f"**alerta** ({LRF_PESSOAL_LIMITE_ALERTA}%) · "
+        f"**prudencial** ({LRF_PESSOAL_LIMITE_PRUDENCIAL}%, veda novos cargos e reajustes) · "
+        f"**limite legal** ({LRF_PESSOAL_LIMITE_LEGAL}%, sujeito a sanções automáticas)"
+    )
 
 # Granular Salary Analysis
 st.subheader("Distribuição de Remuneração")
@@ -55,9 +86,7 @@ st.info(
     "O gráfico abaixo usa **Proventos** (remuneração bruta) como aproximação.",
     icon=":material/info:",
 )
-df_pessoal = pd.read_sql_query(text("SELECT proventos FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
-df_pessoal["proventos"] = pd.to_numeric(df_pessoal["proventos"].str.replace(",", "."), errors="coerce")
-df_pessoal = df_pessoal[df_pessoal["proventos"] > 0].dropna()
+df_pessoal = payroll_vs_services.salary_distribution(conn, year)
 
 if not df_pessoal.empty:
     fig_hist = px.histogram(
@@ -91,8 +120,7 @@ st.info(
 
 df_dept = _departmental_payroll(conn, year, _extracted_at)
 if not df_dept.empty:
-    total_dept = df_dept["pago"].sum()
-    st.metric("Total distribuído via responsáveis", fmt_currency(total_dept))
+    st.metric("Total distribuído via responsáveis", fmt_currency(departmental_payroll_total(df_dept)))
 
     fig_dept = px.bar(
         df_dept,

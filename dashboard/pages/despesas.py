@@ -8,11 +8,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, fmt_currency_short, get_conn, get_extraction_date, render_sidebar
-from sqlalchemy import text
+from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
 from analysis import expenses_analysis, fiscal_position, supplier_concentration
+from analysis.expenses_analysis import get_searchable_diarias
+from analysis.fiscal_position import get_unpaid_by_exercise, unpaid_pie, unpaid_summary
+from analysis.supplier_concentration import concentration_pie
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -63,8 +65,8 @@ def _unpaid_suppliers(conn, year, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _low_value_restos(conn, _extracted_at):
-    return fiscal_position.get_low_value_restos(conn)
+def _low_value_restos(conn, year, _extracted_at):
+    return fiscal_position.get_low_value_restos(conn, year=year)
 
 
 conn = get_conn()
@@ -87,14 +89,43 @@ t1, t2, t3, t4, t5 = st.tabs(
 
 # Tab 1: Unidades Administrativas
 with t1:
-    st.subheader("Análise de Gastos por Unidade do Governo")
+    st.subheader("Análise de Despesas por Unidade do Governo")
 
     metrics = _metrics(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Total Empenhado", fmt_currency(metrics["empenhado"]))
-    c2.metric("Total Liquidado", fmt_currency(metrics["liquidado"]), f"Executado: {metrics['taxa_liquidacao']:.1f}%")
-    c3.metric("Total Pago Real", fmt_currency(metrics["pago"]), f"Pago: {metrics['taxa_pagamento']:.1f}%")
+    c1.metric(
+        "Total Empenhado",
+        fmt_currency(metrics["empenhado"]),
+        help=(
+            "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
+            "primeira etapa do gasto público: a administração reconhece a obrigação e reserva o "
+            "recurso no orçamento. Pense como um 'cheque pré-aprovado' — o dinheiro foi comprometido, "
+            "mas ainda não necessariamente saiu do caixa."
+        ),
+    )
+    c2.metric(
+        "Total Liquidado",
+        fmt_currency(metrics["liquidado"]),
+        f"Executado: {metrics['taxa_liquidacao']:.1f}%",
+        help=(
+            "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
+            "verificados pela prefeitura. A liquidação confirma que o município recebeu aquilo que "
+            "contratou e que a nota fiscal ou documento equivalente foi aprovado. É o estágio "
+            "intermediário entre reservar e pagar."
+        ),
+    )
+    c3.metric(
+        "Total Pago Real",
+        fmt_currency(metrics["pago"]),
+        f"Pago: {metrics['taxa_pagamento']:.1f}%",
+        help=(
+            "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
+            "servidor. É o estágio final do gasto público — o dinheiro efetivamente deixou os "
+            "cofres municipais. Em uma gestão saudável, o valor pago tende a se aproximar do "
+            "liquidado ao longo do exercício."
+        ),
+    )
 
     df_unit = _by_unit(conn, year, _extracted_at)
     if not df_unit.empty:
@@ -146,8 +177,8 @@ with t2:
     conc = _concentration(conn, year, _extracted_at)
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Gasto com Empresas Locais", fmt_currency_short(impact["local_pago"]))
-    c2.metric("Gasto com Empresas Externas", fmt_currency_short(impact["externo_pago"]))
+    c1.metric("Efetivamente Pago — Empresas Locais", fmt_compact(impact["local_pago"]))
+    c2.metric("Efetivamente Pago — Empresas Externas", fmt_compact(impact["externo_pago"]))
     c3.metric(
         "Índice de Compras Locais",
         f"{impact['pct_local']:.2f}%",
@@ -210,21 +241,7 @@ with t2:
         )
 
     top10_conc = conc["top10"].copy()
-    outros_emp = (
-        pd.read_sql_query(
-            text("SELECT empenhado FROM despesas_por_fornecedor WHERE ano = :ano"), conn, params={"ano": year}
-        )
-        .assign(empenhado=lambda d: pd.to_numeric(d["empenhado"].str.replace(",", "."), errors="coerce").fillna(0))[
-            "empenhado"
-        ]
-        .sum()
-    ) - top10_conc["empenhado"].sum()
-    pie_conc = pd.concat(
-        [
-            top10_conc[["descricao", "empenhado"]].rename(columns={"descricao": "Fornecedor"}),
-            pd.DataFrame({"Fornecedor": ["Outros"], "empenhado": [outros_emp]}),
-        ]
-    )
+    pie_conc = concentration_pie(top10_conc, conc["total_all"])
     fig_conc = px.pie(
         pie_conc, values="empenhado", names="Fornecedor", title="Distribuição do Empenhado — Top 10 Fornecedores"
     )
@@ -255,27 +272,39 @@ with t2:
 
 # Tab 3: Restos a Pagar
 with t3:
-    st.subheader("Fornecedores com Pagamento Pendente")
+    st.subheader("Restos a Pagar — Obrigações de Exercícios Anteriores")
+    st.info(
+        "**O que são Restos a Pagar?** São despesas que a prefeitura empenhou (reservou) em anos anteriores "
+        "mas ainda não pagou. Não são contas atrasadas do ano atual — são compromissos legais de exercícios "
+        "passados que continuam válidos até serem pagos ou cancelados. "
+        "A tabela abaixo consolida todos os fornecedores com saldo pendente acumulado até o ano selecionado.",
+        icon=":material/info:",
+    )
+
+    exercise_df = get_unpaid_by_exercise(conn)
+    if not exercise_df.empty:
+        with st.expander("Ver pendências por exercício fiscal"):
+            st.dataframe(
+                exercise_df,
+                column_config={
+                    "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Pendente": st.column_config.NumberColumn(format="R$ %,.2f"),
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
 
     unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
     if not unpaid_df.empty:
-        rp_total = unpaid_df["pendente"].sum()
-        rp_count = len(unpaid_df)
-        rp_oldest = int(unpaid_df["aguardando_desde"].min())
+        rp = unpaid_summary(unpaid_df)
 
         rc1, rc2, rc3 = st.columns(3)
-        rc1.metric("Total Pendente", fmt_currency(rp_total), help="Soma de todos os empenhos ainda não quitados.")
-        rc2.metric("Fornecedores aguardando", rp_count)
-        rc3.metric("Dívida mais antiga desde", str(rp_oldest))
+        rc1.metric("Total Pendente", fmt_currency(rp["total"]), help="Soma de todos os empenhos ainda não quitados.")
+        rc2.metric("Fornecedores aguardando", rp["count"])
+        rc3.metric("Dívida mais antiga desde", str(rp["oldest"]))
 
-        top10 = unpaid_df.head(10)
-        outros = rp_total - top10["pendente"].sum()
-        pie_df = pd.concat(
-            [
-                top10[["descricao", "pendente"]].rename(columns={"descricao": "Fornecedor", "pendente": "Pendente"}),
-                pd.DataFrame({"Fornecedor": ["Outros"], "Pendente": [outros]}) if outros > 0 else pd.DataFrame(),
-            ]
-        )
+        pie_df = unpaid_pie(unpaid_df)
         fig_rp = px.pie(
             pie_df,
             values="Pendente",
@@ -306,7 +335,7 @@ with t3:
     else:
         st.info("Nenhum fornecedor com pagamento pendente para este exercício.")
 
-    low_value_df = _low_value_restos(conn, _extracted_at)
+    low_value_df = _low_value_restos(conn, year, _extracted_at)
     if not low_value_df.empty:
         with st.expander(
             f":material/warning: {len(low_value_df)} registro(s) com empenhado abaixo de R$ 10,00 — verificar"
@@ -331,9 +360,19 @@ with t4:
     dia_sum = _diarias_summary(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Gasto Total com Diárias", fmt_currency(dia_sum["total_valor"]))
+    c1.metric("Total Pago em Diárias", fmt_currency(dia_sum["total_valor"]))
     c2.metric("Total de Servidores Beneficiários", int(dia_sum["total_viajantes"]))
-    c3.metric("Média de Reembolso por Viagem", fmt_currency(dia_sum["media_reembolso"]))
+    c3.metric(
+        "Média de Reembolso por Viagem",
+        fmt_currency(dia_sum["media_reembolso"]),
+        help=(
+            "Valor médio pago por deslocamento a serviço. Calculado dividindo o total gasto em "
+            "diárias pelo número de registros de viagem no período. Cada registro corresponde a "
+            "um pagamento de diária — servidores com múltiplas viagens aparecem mais de uma vez "
+            "nessa conta. Valores muito acima da média podem indicar viagens de longa duração ou "
+            "deslocamentos para destinos mais distantes."
+        ),
+    )
 
     st.markdown("---")
     df_dia_top = _top_diarias(conn, year, _extracted_at)
@@ -357,27 +396,8 @@ with t4:
         st.info("Insira o nome do servidor ou departamento abaixo para buscar viagens específicas.")
 
         search_dia = st.text_input("Buscar Diária (Nome do Servidor ou Unidade):", "")
-        # Run dynamic query on SQL database for diarias
-        if search_dia.strip():
-            dia_sql = text("""
-                SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-                FROM diarias
-                WHERE ano = :ano AND (favorecido LIKE :search OR unidade LIKE :search OR cargo LIKE :search)
-                ORDER BY data DESC
-            """)
-            dia_params = {"ano": year, "search": f"%{search_dia}%"}
-        else:
-            dia_sql = text("""
-                SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-                FROM diarias
-                WHERE ano = :ano
-                ORDER BY data DESC LIMIT 150
-            """)
-            dia_params = {"ano": year}
-
-        df_dia_list = pd.read_sql_query(dia_sql, conn, params=dia_params)
+        df_dia_list = get_searchable_diarias(conn, year, search_dia)
         if not df_dia_list.empty:
-            df_dia_list["valor"] = pd.to_numeric(df_dia_list["valor"].str.replace(",", "."), errors="coerce").fillna(0)
             st.dataframe(
                 df_dia_list.rename(
                     columns={

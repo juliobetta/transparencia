@@ -9,7 +9,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from shared import (
+    SPARK_CFG,
+    fmt_compact,
+    fmt_currency,
+    get_conn,
+    get_extraction_date,
+    pct_delta,
+    render_sidebar,
+    sparkline,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -28,12 +37,32 @@ def _adesao_externa(conn, year, _extracted_at):
     return adesao_de_ata.run_external(conn, year, empresa_id="2")
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _pdf(conn, year, _extracted_at):
+    from report.saude_pdf import generate as generate_pdf
+
+    return generate_pdf(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
-st.title("Fundo Municipal de Saúde")
-st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+title_col, btn_col = st.columns([8, 2])
+with title_col:
+    st.title("Fundo Municipal de Saúde")
+    st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+with btn_col:
+    st.write("")
+    st.write("")
+    pdf_bytes = _pdf(conn, year, _extracted_at)
+    st.download_button(
+        label="⬇ Baixar PDF",
+        data=pdf_bytes,
+        file_name=f"saude-{year}.pdf",
+        mime="application/pdf",
+        use_container_width=True,
+    )
 
 data = _health(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
@@ -45,6 +74,78 @@ for key, val in data.items():
         else:
             val["periodo"] = val["mes"].astype(str).str.zfill(2) + "/" + str(year)
 
+# ── KPIs resumo ─────────────────────────────────────────────────────────────
+budget = data["budget"]
+bt = data["budget_trend"]
+bt_to_year = bt[bt["ano"] <= year]
+pt = data["pharma_empenhos"]["trend"]
+pt_to_year = pt[pt["ano"] <= year]
+
+k1, k2, k3, k4 = st.columns(4)
+
+with k1:
+    st.metric(
+        "Dotação Atualizada",
+        fmt_compact(budget["dotacao"]),
+        delta=pct_delta(bt_to_year["dotacao"].tolist()),
+        delta_color="off",
+        help=glossary.tooltip("Dotação Atualizada"),
+    )
+    if len(bt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(bt_to_year["ano"].tolist(), bt_to_year["dotacao"].tolist()),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_dotacao",
+        )
+
+with k2:
+    st.metric(
+        "Total Empenhado",
+        fmt_compact(budget["empenhado"]),
+        delta=pct_delta(bt_to_year["empenhado"].tolist()),
+        delta_color="off",
+        help=glossary.tooltip("Empenho"),
+    )
+    if len(bt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(bt_to_year["ano"].tolist(), bt_to_year["empenhado"].tolist(), "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_empenhado",
+        )
+
+with k3:
+    st.metric(
+        "Taxa de Execução",
+        f"{budget['taxa_execucao']:.1%}",
+        delta=pct_delta(bt_to_year["taxa"].tolist()),
+    )
+    if len(bt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(bt_to_year["ano"].tolist(), bt_to_year["taxa"].tolist(), "#FF9800"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_taxa",
+        )
+
+with k4:
+    st.metric(
+        "Medicamentos e Insumos",
+        fmt_compact(data["pharma_empenhos"]["total"]),
+        delta=pct_delta(pt_to_year["empenhado"].tolist()),
+        delta_color="off",
+        help="Total empenhado em Material de Consumo na Subfunção 10.303 (Suporte Profilático e Terapêutico).",
+    )
+    if len(pt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(pt_to_year["ano"].tolist(), pt_to_year["empenhado"].tolist(), "#9C27B0"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pharma",
+        )
+
+st.divider()
 
 # ── Seção 1: O que entrou ───────────────────────────────────────────────────
 st.header("① O que entrou")
@@ -84,7 +185,6 @@ else:
     st.info("Sem emendas parlamentares registradas para este ano.")
 
 st.subheader("Orçamento")
-budget = data["budget"]
 c1, c2, c3 = st.columns(3)
 c1.metric("Dotação Atualizada", fmt_currency(budget["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
 c2.metric("Total Empenhado", fmt_currency(budget["empenhado"]), help=glossary.tooltip("Empenho"))
@@ -104,8 +204,8 @@ else:
     st.info("Sem repasses registrados para este ano.")
 
 # ── Seção 2: O que foi gasto ────────────────────────────────────────────────
-st.header("② O que foi gasto")
-st.subheader("Evolução do Gasto (Empenhado por Ano)")
+st.header("② O que foi empenhado")
+st.subheader("Evolução do Empenhado por Ano")
 trend = data["execution_trend"]
 if not trend.empty:
     fig = px.bar(
@@ -115,6 +215,8 @@ if not trend.empty:
         title="Fundo de Saúde — Empenhado por Ano",
         labels={"ano": "Ano", "empenhado": "Empenhado"},
     )
+    fig.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.0f}<extra></extra>")
+    fig.update_layout(yaxis=dict(tickprefix="R$ ", tickformat=",.0f"))
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.plotly_chart(fig, width="stretch")
@@ -142,15 +244,18 @@ c1.metric(
 adesao_df = data["adesao_de_ata_list"]
 c2.metric(
     "Qtd. de Contratos Vinculados",
-    int(adesao_df["has_contract"].sum()) if not adesao_df.empty and "has_contract" in adesao_df.columns else 0,
+    data["adesao_de_ata_contracts_linked"],
 )
 c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata_value"]))
 
 if not data["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
+        _ata_df = data["adesao_de_ata_list"].copy()
+        _ata_df["licitacao_valor"] = pd.to_numeric(
+            _ata_df["licitacao_valor"].astype(str).str.replace(",", "."), errors="coerce"
+        )
         st.dataframe(
-            data["adesao_de_ata_list"]
-            .rename(
+            _ata_df.rename(
                 columns={
                     "numero": "Nº Licit.",
                     "objeto": "Objeto",
@@ -160,9 +265,14 @@ if not data["adesao_de_ata_list"].empty:
                     "total_c_empenhado": "Valor Empenhado",
                     "has_contract": "Contrato Associado",
                 }
-            )
-            .drop(columns=["mes", "ano"], errors="ignore"),
+            ).drop(columns=["mes", "ano"], errors="ignore"),
             width="stretch",
+            column_config={
+                "Nº Licit.": None,
+                "Valor Est. Licitação": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Total Contratado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
             hide_index=True,
         )
 
@@ -191,7 +301,10 @@ if not adesao_externa["list"].empty:
                     "num_licitacao": "Nº Licitação",
                 }
             ),
-            column_config={"Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f")},
+            column_config={
+                "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
             width="stretch",
             hide_index=True,
         )
@@ -286,13 +399,7 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
     services_df = data["top_suppliers_services"]
     top_suppliers_names = data["top_suppliers"]["descricao"].unique()
 
-    # Filter for top suppliers only
-    filtered_services = services_df[services_df["fornecedor"].isin(top_suppliers_names)]
-
-    # Take top 3 objects per supplier
-    top_services = (
-        filtered_services.sort_values(["fornecedor", "total"], ascending=[True, False]).groupby("fornecedor").head(3)
-    )
+    top_services = health_story.top_services_per_supplier(services_df, top_suppliers_names)
 
     st.dataframe(
         top_services.rename(
@@ -307,28 +414,102 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
         hide_index=True,
     )
 
+# ── Seção 5: Insumos e Assistência Farmacêutica ────────────────────────────────
+st.header("⑤ Insumos e Assistência Farmacêutica")
+
+# Bloco A — Empenhos de Medicamentos e Insumos
+st.subheader("Medicamentos e Insumos (Subfunção 10.303 — Material de Consumo)")
+pharma = data["pharma_empenhos"]
+st.metric(
+    "Total Empenhado em Medicamentos e Insumos",
+    fmt_currency(pharma["total"]),
+    help="Empenhos da Subfunção 10.303 (Suporte Profilático e Terapêutico) com Natureza de Despesa 3.3.90.30 (Material de Consumo).",
+)
+st.caption(
+    "Os valores acima refletem empenhos diretos classificados na Subfunção 10.303 com Natureza de Despesa 3.3.90.30. "
+    "Compras de medicamentos e insumos realizadas via **Adesão a Ata de Registro de Preços Externa** estão "
+    "contabilizadas separadamente na seção _Como foi contratado_."
+)
+
+pharma_trend = pharma["trend"]
+if not pharma_trend.empty:
+    fig_pharma = px.bar(
+        pharma_trend,
+        x="ano",
+        y="empenhado",
+        title="Medicamentos e Insumos — Empenhado por Ano",
+        labels={"ano": "Ano", "empenhado": "Empenhado"},
+    )
+    fig_pharma.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.2f}<extra></extra>")
+    fig_pharma.update_layout(yaxis=dict(tickprefix="R$ ", tickformat=",.0f"))
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.plotly_chart(fig_pharma, width="stretch")
+
+if not pharma["detail"].empty:
+    with st.expander("Ver detalhes por fornecedor"):
+        st.dataframe(
+            pharma["detail"].rename(
+                columns={"fornecedor": "Fornecedor", "descricao": "Descrição", "total": "Empenhado"}
+            ),
+            width="stretch",
+            column_config={"Empenhado": st.column_config.NumberColumn(format="R$ %,.2f")},
+            hide_index=True,
+        )
+
+# Bloco B — Licitações de Medicamentos e Insumos
+st.subheader("Licitações de Medicamentos e Insumos")
+pharma_licit = data["pharma_licitacoes"]
+if pharma_licit.empty:
+    st.info("Sem licitações de medicamentos ou insumos registradas para este ano.")
+else:
+    st.dataframe(
+        pharma_licit.rename(
+            columns={
+                "numero": "Nº",
+                "objeto": "Objeto",
+                "modalidade": "Modalidade",
+                "situacao": "Situação",
+                "data_abertura": "Data Abertura",
+            }
+        ).drop(columns=["valor", "valor_num"], errors="ignore"),
+        width="stretch",
+        column_config={
+            "Nº": None,
+        },
+        hide_index=True,
+        column_order=["Nº", "Objeto", "Modalidade", "Situação", "Data Abertura"],
+    )
+
+# Bloco C — Judicialização da Saúde
+st.subheader(":material/gavel: Judicialização da Saúde")
+st.caption(
+    "Despesas decorrentes de sentenças judiciais (Elemento 3.3.90.91) do Fundo Municipal de Saúde, "
+    "separadas das compras programadas de medicamentos e insumos."
+)
+pharma_jud = data["pharma_judicial"]
+st.metric(
+    "Total Empenhado por Determinação Judicial",
+    fmt_currency(pharma_jud["total"]),
+    help="Empenhos com Elemento de Despesa 3.3.90.91 (Sentenças Judiciais) no Fundo Municipal de Saúde.",
+)
+if pharma_jud["total"] == 0:
+    st.info("Sem registros de judicialização para este ano.")
+elif not pharma_jud["detail"].empty:
+    with st.expander("Ver detalhes"):
+        st.dataframe(
+            pharma_jud["detail"].rename(
+                columns={
+                    "subfuncao": "Subfunção",
+                    "fornecedor": "Fornecedor",
+                    "descricao": "Descrição",
+                    "total": "Empenhado",
+                }
+            ),
+            width="stretch",
+            column_config={"Empenhado": st.column_config.NumberColumn(format="R$ %,.2f")},
+            hide_index=True,
+        )
+
 st.divider()
 st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
-
-# ── Exportar relatório ───────────────────────────────────────────────────────
-st.subheader("Exportar")
-
-if "saude_report_year" not in st.session_state:
-    st.session_state["saude_report_year"] = None
-
-if st.button("Gerar Relatório HTML"):
-    from report.saude import generate
-
-    path = generate(conn, year)
-    st.session_state["saude_report_year"] = (year, str(path))
-
-if st.session_state["saude_report_year"] is not None:
-    _year, _path = st.session_state["saude_report_year"]
-    with open(_path, "rb") as f:
-        st.download_button(
-            label=f"Baixar relatório {_year} (HTML)",
-            data=f,
-            file_name=f"saude-{_year}.html",
-            mime="text/html",
-            key="download_saude_report",
-        )

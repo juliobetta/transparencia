@@ -10,12 +10,17 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from shared import (
+    CURRENT_YEAR,
+    SPARK_CFG,
+    fmt_compact,
     fmt_percent,
     get_conn,
     get_extraction_date,
+    pct_delta,
     render_partial_year_notice,
     render_revenue_methodology,
     render_sidebar,
+    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -89,44 +94,6 @@ def _unpaid_trend(conn, years, _extracted_at):
     return fiscal_position.get_unpaid_suppliers_trend(conn, years)
 
 
-def _pct_delta(series: list) -> str | None:
-    if len(series) >= 2 and series[-2] != 0:
-        return f"{(series[-1] - series[-2]) / series[-2] * 100:+.1f}%"
-    return None
-
-
-def _fmt_compact(value: float) -> str:
-    if abs(value) >= 1_000_000_000:
-        return f"R$ {value / 1_000_000_000:.1f}B"
-    if abs(value) >= 1_000_000:
-        return f"R$ {value / 1_000_000:.1f}M"
-    if abs(value) >= 1_000:
-        return f"R$ {value / 1_000:.1f}K"
-    return f"R$ {value:.0f}"
-
-
-def _sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
-    fig = go.Figure(
-        go.Scatter(
-            x=x,
-            y=y,
-            mode="lines",
-            line=dict(color=color, width=2),
-            fill="tozeroy",
-        )
-    )
-    fig.update_layout(
-        height=80,
-        margin=dict(l=0, r=0, t=4, b=4),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
-        showlegend=False,
-    )
-    return fig
-
-
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
@@ -149,7 +116,6 @@ with st.spinner("Carregando..."):
     unpaid_trend = _unpaid_trend(conn, tuple(_all_years), _extracted_at)
 
 anos = yoy["ano"].tolist()
-_spark_cfg = {"displayModeBar": False, "staticPlot": True}
 _counts_map = _bidding_counts(conn, anos, _extracted_at)
 _contract_counts = [_counts_map[y] for y in anos]
 
@@ -160,40 +126,40 @@ with c1:
     delta_gasto = yoy.iloc[-1]["total_gasto_pct_change"] if len(yoy) > 1 else None
     st.metric(
         "Total Pago",
-        _fmt_compact(total_gasto),
+        fmt_compact(total_gasto),
         delta=f"{delta_gasto:+.1f}%" if delta_gasto is not None and not pd.isna(delta_gasto) else None,
         delta_color="off",
         help="Valor total liquidado e pago.",
     )
     st.plotly_chart(
-        _sparkline(anos, yoy["total_gasto"].tolist()),
+        sparkline(anos, yoy["total_gasto"].tolist()),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_total_gasto",
     )
 
 with c2:
     if not revenue.empty:
         row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
-        label = "Receita Arrecadada" if year == 2026 else "Receita Prevista"
-        rev_val = row["total_arrecadado"] if year == 2026 else row["total_previsto"]
+        label = "Receita Arrecadada" if year == CURRENT_YEAR else "Receita Prevista"
+        rev_val = row["total_arrecadado"] if year == CURRENT_YEAR else row["total_previsto"]
         _rev_totals = revenue["total"].tolist()
         delta_rec = (
-            (_rev_totals[-1] - _rev_totals[-2]) / _rev_totals[-2] * 100
-            if len(_rev_totals) > 1 and _rev_totals[-2] != 0
+            float(revenue.iloc[-1]["total_pct_change"])
+            if len(revenue) > 1 and pd.notna(revenue.iloc[-1]["total_pct_change"])
             else None
         )
-        help_text = "Total efetivamente arrecadado." if year == 2026 else "Previsão orçamentária do ano."
+        help_text = "Total efetivamente arrecadado." if year == CURRENT_YEAR else "Previsão orçamentária do ano."
         st.metric(
             label,
-            _fmt_compact(float(rev_val)),
+            fmt_compact(float(rev_val)),
             delta=f"{delta_rec:+.1f}%" if delta_rec is not None and not pd.isna(delta_rec) else None,
             help=help_text,
         )
         st.plotly_chart(
-            _sparkline(anos, revenue["total"].tolist(), "#4CAF50"),
+            sparkline(anos, revenue["total"].tolist(), "#4CAF50"),
             use_container_width=True,
-            config=_spark_cfg,
+            config=SPARK_CFG,
             key="spark_receita",
         )
 
@@ -201,15 +167,15 @@ with c3:
     if not payroll.empty:
         delta_folha = yoy.iloc[-1]["total_folha_pct_change"] if len(yoy) > 1 else None
         st.metric(
-            "Folha / Gastos Totais",
+            "Folha / Total Pago",
             fmt_percent(payroll.iloc[0]["percentual_folha"]),
             delta=f"{delta_folha:+.1f}%" if delta_folha is not None and not pd.isna(delta_folha) else None,
             delta_color="inverse",
         )
         st.plotly_chart(
-            _sparkline(anos, yoy["total_folha"].tolist(), "#FF9800"),
+            sparkline(anos, yoy["total_folha"].tolist(), "#FF9800"),
             use_container_width=True,
-            config=_spark_cfg,
+            config=SPARK_CFG,
             key="spark_folha",
         )
 
@@ -217,16 +183,16 @@ with c4:
     restos = float(yoy.iloc[-1]["restos_a_pagar"]) if not yoy.empty else 0.0
     delta_restos = yoy.iloc[-1]["restos_a_pagar_pct_change"] if len(yoy) > 1 else None
     st.metric(
-        "Restos a Pagar",
-        _fmt_compact(restos),
+        "Restos Pagos",
+        fmt_compact(restos),
         delta=f"{delta_restos:+.1f}%" if delta_restos is not None and not pd.isna(delta_restos) else None,
         delta_color="off",
         help="Restos a pagar efetivamente pagos no ano.",
     )
     st.plotly_chart(
-        _sparkline(anos, yoy["restos_a_pagar"].tolist(), "#9C27B0"),
+        sparkline(anos, yoy["restos_a_pagar"].tolist(), "#9C27B0"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_restos",
     )
 
@@ -253,9 +219,9 @@ with lc1:
         help="Contratos sem licitação acima de R$ 62.725,59 (bens e serviços). [Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)",
     )
     st.plotly_chart(
-        _sparkline(anos, _bidding_counts_list, "#E91E63"),
+        sparkline(anos, _bidding_counts_list, "#E91E63"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_acima",
     )
 
@@ -273,9 +239,9 @@ with lc2:
         help=glossary.tooltip("Adesão de Ata (Carona)"),
     )
     st.plotly_chart(
-        _sparkline(anos, _adesao_counts_list, "#FF9800"),
+        sparkline(anos, _adesao_counts_list, "#FF9800"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_adesao",
     )
 
@@ -293,9 +259,9 @@ with lc3:
         help="Empenhos cuja justificativa contábil referencia um Termo de Adesão Externa a Ata de Registro de Preços de outro ente.",
     )
     st.plotly_chart(
-        _sparkline(anos, _adesao_ext_counts_list, "#9C27B0"),
+        sparkline(anos, _adesao_ext_counts_list, "#9C27B0"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_ext",
     )
 
@@ -313,9 +279,9 @@ with lc4:
         help="Contratos do mesmo fornecedor com valores próximos ao limite de dispensa (R$ 62.725,59), sugerindo possível fracionamento.",
     )
     st.plotly_chart(
-        _sparkline(anos, _splitting_counts_list, "#F44336"),
+        sparkline(anos, _splitting_counts_list, "#F44336"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_split",
     )
 
@@ -334,16 +300,16 @@ if not unpaid_df.empty:
     with rp1:
         st.metric(
             "Total a Pagar a Fornecedores",
-            _fmt_compact(total_pendente),
-            delta=_pct_delta(_trend_vals),
+            fmt_compact(total_pendente),
+            delta=pct_delta(_trend_vals),
             delta_color="inverse",
             help="Soma de todos os empenhos ainda não quitados na tabela de Restos a Pagar.",
         )
         if _trend_vals:
             st.plotly_chart(
-                _sparkline(_trend_anos, _trend_vals, "#E91E63"),
+                sparkline(_trend_anos, _trend_vals, "#E91E63"),
                 use_container_width=True,
-                config=_spark_cfg,
+                config=SPARK_CFG,
                 key="spark_rp_total",
             )
 
@@ -351,15 +317,15 @@ if not unpaid_df.empty:
         st.metric(
             "Fornecedores aguardando",
             num_fornecedores,
-            delta=_pct_delta(_trend_count),
+            delta=pct_delta(_trend_count),
             delta_color="inverse",
             help="Número de fornecedores com pelo menos um empenho não totalmente pago.",
         )
         if _trend_count:
             st.plotly_chart(
-                _sparkline(_trend_anos, _trend_count, "#FF5722"),
+                sparkline(_trend_anos, _trend_count, "#FF5722"),
                 use_container_width=True,
-                config=_spark_cfg,
+                config=SPARK_CFG,
                 key="spark_rp_count",
             )
 
@@ -390,16 +356,30 @@ with col_trend:
             fill="tozeroy",
         )
     )
-    fig_trend.add_trace(
-        go.Scatter(
-            x=anos,
-            y=yoy["total_receita"].tolist(),
-            name="Receita",
-            mode="lines+markers",
-            line=dict(color="#4CAF50", width=2),
-            fill="tozeroy",
+    _receita_notna = yoy["total_receita"].dropna()
+    if len(_receita_notna) >= 2:
+        fig_trend.add_trace(
+            go.Scatter(
+                x=anos,
+                y=yoy["total_receita"].tolist(),
+                name="Receita",
+                mode="lines+markers",
+                line=dict(color="#4CAF50", width=2),
+                fill="tozeroy",
+            )
         )
-    )
+    elif len(_receita_notna) == 1:
+        _receita_val = float(_receita_notna.iloc[0])
+        _receita_ano = int(yoy.loc[_receita_notna.index[0], "ano"])
+        fig_trend.add_hline(
+            y=_receita_val,
+            line_dash="dash",
+            line_color="#4CAF50",
+            line_width=1.5,
+            annotation_text=f"Receita {_receita_ano} (parcial)",
+            annotation_position="top left",
+            annotation_font=dict(color="#4CAF50", size=11),
+        )
     fig_trend.add_trace(
         go.Scatter(
             x=anos,
@@ -420,39 +400,46 @@ with col_trend:
     )
     st.plotly_chart(fig_trend, use_container_width=True)
     st.caption(
-        "Gasto crescendo acima da receita é sinal de desequilíbrio fiscal. Folha persistente acima de 60% do gasto total indica rigidez orçamentária — pouco sobra para investimentos."
+        "Total pago crescendo acima da receita é sinal de desequilíbrio fiscal. Folha persistente acima de 60% do total pago indica rigidez orçamentária — pouco sobra para investimentos."
     )
 
 with col_pct:
-    yoy_pct = yoy.dropna(subset=["total_gasto_pct_change"]).copy()
-    yoy_pct = yoy_pct.replace([float("inf"), float("-inf")], float("nan"))
-    fig_pct = go.Figure()
-    for col_name, label, color in [
-        ("total_gasto_pct_change", "Δ% Gasto", "#2196F3"),
-        ("total_receita_pct_change", "Δ% Receita", "#4CAF50"),
-        ("total_folha_pct_change", "Δ% Folha", "#FF9800"),
-        ("restos_a_pagar_pct_change", "Δ% Restos", "#9C27B0"),
-    ]:
-        fig_pct.add_trace(
-            go.Bar(
-                x=yoy_pct["ano"].tolist(),
-                y=yoy_pct[col_name].tolist(),
-                name=label,
-                marker_color=color,
-            )
+    _pressure = yoy_trends.fiscal_pressure_gap(yoy)
+    anos_pct = _pressure["anos"]
+    gap = _pressure["gap"]
+    colors = _pressure["colors"]
+    opacity = [0.4 if a == CURRENT_YEAR else 1.0 for a in anos_pct]
+    fig_pct = go.Figure(
+        go.Bar(
+            x=anos_pct,
+            y=gap,
+            marker_color=colors,
+            marker_opacity=opacity,
+            hovertemplate="%{x}<br>Pressão: %{y:+.2f}%<extra></extra>",
+        )
+    )
+    fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
+    if CURRENT_YEAR in anos_pct:
+        partial_gap = gap[anos_pct.index(CURRENT_YEAR)]
+        fig_pct.add_annotation(
+            x=CURRENT_YEAR,
+            y=partial_gap,
+            text="ano parcial",
+            showarrow=False,
+            yshift=10 if partial_gap >= 0 else -16,
+            font=dict(size=10, color="rgba(0,0,0,0.45)"),
         )
     fig_pct.update_layout(
-        title="Variação % Anual",
-        barmode="group",
+        title="Pressão Fiscal Anual",
         xaxis=dict(dtick=1, tickformat="d"),
         yaxis=dict(ticksuffix="%"),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        showlegend=False,
         margin=dict(l=0, r=0, t=40, b=60),
     )
     st.plotly_chart(fig_pct, use_container_width=True)
     st.caption(
-        "Variações bruscas no gasto sem crescimento proporcional da receita merecem atenção. Alta acumulada em Restos a Pagar pode indicar dívidas represadas com fornecedores."
+        "Barras acima do zero indicam que o total pago cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
     )
 
 render_revenue_methodology()
@@ -463,7 +450,7 @@ col_donut, col_bar = st.columns([4, 6])
 with col_donut:
     if not revenue.empty:
         row = revenue[revenue["ano"] == year].iloc[0] if year in revenue["ano"].values else revenue.iloc[-1]
-        is_partial = year == 2026
+        is_partial = year == CURRENT_YEAR
         donut_title = (
             f"Fontes de Receita ({year} — Arrecadado Parcial)"
             if is_partial
@@ -491,9 +478,9 @@ with col_donut:
         st.plotly_chart(fig_donut, use_container_width=True)
         if is_partial:
             _prev_rows = revenue[revenue["ano"] == year - 1]
-            _propria_cur = _fmt_compact(float(row["receita_propria_previsto"]))
+            _propria_cur = fmt_compact(float(row["receita_propria_previsto"]))
             _propria_prev = (
-                _fmt_compact(float(_prev_rows.iloc[0]["receita_propria_previsto"])) if not _prev_rows.empty else "N/D"
+                fmt_compact(float(_prev_rows.iloc[0]["receita_propria_previsto"])) if not _prev_rows.empty else "N/D"
             )
             _pct_cur = float(row["pct_propria"])
             _pct_prev = float(_prev_rows.iloc[0]["pct_propria"]) if not _prev_rows.empty else 0
@@ -519,22 +506,7 @@ with col_bar:
         "excesso": "#F44336",
         "N/D": "#9E9E9E",
     }
-    by_organ = budget.groupby(["empresa", "descricao"], as_index=False).agg(
-        empenhado=("empenhado", "sum"), dotacao_atualizada=("dotacao_atualizada", "sum")
-    )
-    by_organ["taxa_execucao"] = by_organ.apply(
-        lambda r: r["empenhado"] / r["dotacao_atualizada"] if r["dotacao_atualizada"] > 0 else 0.0,
-        axis=1,
-    )
-    by_organ["alerta"] = by_organ.apply(
-        lambda r: (
-            "N/D"
-            if r["empenhado"] == 0 and r["dotacao_atualizada"] == 0
-            else ("baixa" if r["taxa_execucao"] < 0.3 else ("excesso" if r["taxa_execucao"] > 1.0 else "normal"))
-        ),
-        axis=1,
-    )
-    top10 = by_organ.nlargest(10, "dotacao_atualizada").copy()
+    top10 = budget_execution.top_organs_by_dotacao(budget)
     top10["descricao_short"] = top10["descricao"].str[:30]
     top10["bar_color"] = top10["alerta"].map(_alerta_colors).fillna("#9E9E9E")
 
@@ -579,7 +551,7 @@ with st.expander(":material/bar_chart: Dados detalhados por ano"):
                 "total_folha": "Total Folha",
                 "total_receita": "Total Receita",
                 "restos_a_pagar": "Restos Pago",
-                "total_gasto_pct_change": "Δ% Gasto",
+                "total_gasto_pct_change": "Δ% Total Pago",
                 "total_folha_pct_change": "Δ% Folha",
                 "total_receita_pct_change": "Δ% Receita",
                 "restos_a_pagar_pct_change": "Δ% Restos",
@@ -592,7 +564,7 @@ with st.expander(":material/bar_chart: Dados detalhados por ano"):
             "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Total Receita": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Restos Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Δ% Gasto": st.column_config.NumberColumn(format="%.2f%%"),
+            "Δ% Total Pago": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ% Folha": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ% Receita": st.column_config.NumberColumn(format="%.2f%%"),
             "Δ% Restos": st.column_config.NumberColumn(format="%.2f%%"),
