@@ -7,11 +7,12 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib
-import matplotlib.pyplot as plt
-import pandas as pd
-from fpdf import FPDF
 
 matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt  # noqa: E402
+import pandas as pd
+from fpdf import FPDF
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
