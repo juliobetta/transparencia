@@ -66,7 +66,7 @@ class _SaudePDF(FPDF):
 def generate(conn: Any, year: int) -> bytes:
     health_story.run(conn, year)
     _raw = db.get_metadata(conn, "last_extracted_at")
-    last_extracted = datetime.strptime(_raw, "%Y-%m-%d").strftime("%d/%m/%Y") if _raw else "desconhecida"
+    last_extracted = datetime.fromisoformat(_raw).strftime("%d/%m/%Y") if _raw else "desconhecida"
 
     pdf = _SaudePDF(year=year, last_extracted=last_extracted)
     pdf.add_page()

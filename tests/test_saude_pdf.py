@@ -64,6 +64,7 @@ def health_conn(conn):
         ],
         ["ano", "empresa", "codigo"],
     )
+    db.set_metadata(conn, "last_extracted_at", "2024-06-15 08:30:00")
     return conn
 
 
@@ -76,3 +77,29 @@ def test_generate_returns_valid_pdf_bytes(health_conn):
 def test_generate_produces_non_trivial_pdf(health_conn):
     result = generate(health_conn, 2024)
     assert len(result) > 5_000
+
+
+def test_generate_handles_missing_metadata(conn):
+    """Test that generate uses 'desconhecida' when no metadata is set."""
+    db.upsert(
+        conn,
+        "despesas_por_orgao",
+        [
+            {
+                "ano": 2025,
+                "empresa": SAUDE,
+                "codigo": "10",
+                "descricao": "SAUDE",
+                "empenhado": "800000",
+                "dotacao_atualizada": "1000000",
+                "liquidado": "700000",
+                "pago": "600000",
+                "dotac": "950000",
+                "altdo": "50000",
+            },
+        ],
+        ["ano", "empresa", "codigo"],
+    )
+    result = generate(conn, 2025)
+    assert isinstance(result, bytes)
+    assert result[:4] == b"%PDF"
