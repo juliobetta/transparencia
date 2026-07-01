@@ -102,7 +102,7 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
     if budget.get("flag_under_execution"):
         pdf.set_fill_color(*WARN_BG)
         pdf.set_font("Helvetica", "", 9)
-        pdf.multi_cell(0, 6, "⚠  Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
+        pdf.multi_cell(0, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
         pdf.ln(3)
     if not budget_trend.empty and len(budget_trend) >= 2:
         chart_bytes = _budget_chart_png(budget_trend)

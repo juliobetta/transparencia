@@ -37,12 +37,32 @@ def _adesao_externa(conn, year, _extracted_at):
     return adesao_de_ata.run_external(conn, year, empresa_id="2")
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _pdf(conn, year, _extracted_at):
+    from report.saude_pdf import generate as generate_pdf
+
+    return generate_pdf(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
-st.title("Fundo Municipal de Saúde")
-st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+title_col, btn_col = st.columns([8, 2])
+with title_col:
+    st.title("Fundo Municipal de Saúde")
+    st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+with btn_col:
+    st.write("")
+    st.write("")
+    pdf_bytes = _pdf(conn, year, _extracted_at)
+    st.download_button(
+        label="⬇ Baixar PDF",
+        data=pdf_bytes,
+        file_name=f"saude-{year}.pdf",
+        mime="application/pdf",
+        use_container_width=True,
+    )
 
 data = _health(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
