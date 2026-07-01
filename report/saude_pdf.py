@@ -30,6 +30,9 @@ GRAY_LIGHT = (240, 244, 248)
 GRAY_TEXT = (102, 102, 102)
 WARN_BG = (255, 243, 205)
 
+_HEADING_STYLE = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
+_ROW_WHITE = FontFace(fill_color=(255, 255, 255))  # explicit white to prevent heading color bleed
+
 
 def _fmt_brl(value: float) -> str:
     return f"R$ {value:,.0f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -125,12 +128,9 @@ def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float
         pdf.ln(2)
         return
 
-    headings_style = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
     with pdf.table(
         col_widths=[65, 65, 27, 23],
-        headings_style=headings_style,
-        cell_fill_color=(245, 248, 252),
-        cell_fill_mode="ROWS",
+        headings_style=_HEADING_STYLE,
         line_height=5,
         text_align="LEFT",
         first_row_as_headings=True,
@@ -139,7 +139,7 @@ def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float
         for col in ["Autor", "Ato Normativo", "Autorizado (R$)", "Empenhado (R$)"]:
             hdr.cell(col)
         for _, r in emendas.iterrows():
-            row = table.row()
+            row = table.row(style=_ROW_WHITE)
             row.cell(str(r.get("Autor", "")))
             row.cell(str(r.get("Ato Normativo", "")))
             row.cell(_fmt_brl(float(r.get("Valor Autorizado", 0) or 0)))
@@ -159,12 +159,9 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
         pdf.ln(4)
         return
 
-    headings_style = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
     with pdf.table(
         col_widths=[100, 45, 35],
-        headings_style=headings_style,
-        cell_fill_color=(245, 248, 252),
-        cell_fill_mode="ROWS",
+        headings_style=_HEADING_STYLE,
         line_height=5,
         text_align="LEFT",
         first_row_as_headings=True,
@@ -173,7 +170,7 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
         for col in ["Fornecedor", "Empenhado (R$)", "% do Total"]:
             hdr.cell(col)
         for _, r in top_suppliers.head(10).iterrows():
-            row = table.row()
+            row = table.row(style=_ROW_WHITE)
             row.cell(str(r.get("descricao", "")))
             row.cell(_fmt_brl(float(r.get("empenhado", 0) or 0)))
             pct = float(r.get("percentual", 0) or 0)
@@ -199,12 +196,9 @@ def _valcon_float(r: pd.Series) -> float:
 
 
 def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: list[float]) -> None:
-    headings_style = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
     with pdf.table(
         col_widths=widths,
-        headings_style=headings_style,
-        cell_fill_color=(245, 248, 252),
-        cell_fill_mode="ROWS",
+        headings_style=_HEADING_STYLE,
         line_height=5,
         text_align="LEFT",
         first_row_as_headings=True,
@@ -213,7 +207,7 @@ def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: list[flo
         for col in cols:
             hdr.cell(col)
         for _, r in rows.head(10).iterrows():
-            row = t.row()
+            row = t.row(style=_ROW_WHITE)
             row.cell(str(r.get("fornecedor", "")))
             row.cell(str(r.get("objeto", "")))
             row.cell(str(r.get("modali", "") or ""))
@@ -313,12 +307,9 @@ def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 5, "Top fornecedores de insumos farmacêuticos:", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
-    headings_style = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
     with pdf.table(
         col_widths=[70, 80, 30],
-        headings_style=headings_style,
-        cell_fill_color=(245, 248, 252),
-        cell_fill_mode="ROWS",
+        headings_style=_HEADING_STYLE,
         line_height=5,
         text_align="LEFT",
         first_row_as_headings=True,
@@ -327,7 +318,7 @@ def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial
         for col in ["Fornecedor", "Produto", "Total (R$)"]:
             hdr.cell(col)
         for _, r in detail.head(10).iterrows():
-            row = table.row()
+            row = table.row(style=_ROW_WHITE)
             row.cell(str(r.get("fornecedor", "")))
             row.cell(str(r.get("descricao", "")))
             row.cell(_fmt_brl(float(r.get("total", 0) or 0)))
