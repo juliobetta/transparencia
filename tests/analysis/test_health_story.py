@@ -264,6 +264,48 @@ def test_bidding_gaps_dispensa_not_legally_exempt(conn):
     assert gap["is_legally_exempt"] is False or gap["is_legally_exempt"] == False  # noqa: E712
 
 
+def test_bidding_gaps_consorcio_and_rateio_are_legally_exempt(conn):
+    import db
+
+    db.upsert(
+        conn,
+        "contratos",
+        [
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "C006",
+                "fornecedor": "CONSORCIO PUBLICO REGIONAL DE SAUDE",
+                "objeto": "CONTRATO DE PROGRAMA",
+                "valor": "300000",
+                "valcon": "300000",
+                "empenhado": "300000",
+                "licitacao_numero": "",
+                "modali": "DISPENSA",
+                "mes": "06",
+            },
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "C007",
+                "fornecedor": "MUNICIPIO DE XYZ",
+                "objeto": "CONTRATO DE RATEIO",
+                "valor": "150000",
+                "valcon": "150000",
+                "empenhado": "150000",
+                "licitacao_numero": "",
+                "modali": "OUTRO NAO APLICAVEL",
+                "mes": "07",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    result = run(conn, 2023)
+    gaps = result["bidding_gaps"]
+    assert gaps[gaps["numero"] == "C006"].iloc[0]["is_legally_exempt"] == True  # noqa: E712
+    assert gaps[gaps["numero"] == "C007"].iloc[0]["is_legally_exempt"] == True  # noqa: E712
+
+
 def test_bidding_gaps_inexigibilidade_is_legally_exempt(conn):
     import db
 

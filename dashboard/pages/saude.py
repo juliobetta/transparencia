@@ -500,26 +500,3 @@ elif not pharma_jud["detail"].empty:
 
 st.divider()
 st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
-
-# ── Exportar relatório ───────────────────────────────────────────────────────
-st.subheader("Exportar")
-
-if "saude_report_year" not in st.session_state:
-    st.session_state["saude_report_year"] = None
-
-if st.button("Gerar Relatório HTML"):
-    from report.saude import generate
-
-    path = generate(conn, year)
-    st.session_state["saude_report_year"] = (year, str(path))
-
-if st.session_state["saude_report_year"] is not None:
-    _year, _path = st.session_state["saude_report_year"]
-    with open(_path, "rb") as f:
-        st.download_button(
-            label=f"Baixar relatório {_year} (HTML)",
-            data=f,
-            file_name=f"saude-{_year}.html",
-            mime="text/html",
-            key="download_saude_report",
-        )

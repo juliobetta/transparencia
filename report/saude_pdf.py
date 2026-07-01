@@ -130,6 +130,7 @@ def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float
         col_widths=[65, 65, 27, 23],
         headings_style=headings_style,
         line_height=5,
+        text_align="LEFT",
         first_row_as_headings=True,
     ) as table:
         hdr = table.row()
@@ -161,6 +162,7 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
         col_widths=[100, 45, 35],
         headings_style=headings_style,
         line_height=5,
+        text_align="LEFT",
         first_row_as_headings=True,
     ) as table:
         hdr = table.row()
@@ -194,7 +196,9 @@ def _valcon_float(r: pd.Series) -> float:
 
 def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: list[float]) -> None:
     headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
-    with pdf.table(col_widths=widths, headings_style=headings_style, line_height=5, first_row_as_headings=True) as t:
+    with pdf.table(
+        col_widths=widths, headings_style=headings_style, line_height=5, text_align="LEFT", first_row_as_headings=True
+    ) as t:
         hdr = t.row()
         for col in cols:
             hdr.cell(col)
@@ -304,6 +308,7 @@ def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial
         col_widths=[70, 80, 30],
         headings_style=headings_style,
         line_height=5,
+        text_align="LEFT",
         first_row_as_headings=True,
     ) as table:
         hdr = table.row()

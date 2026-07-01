@@ -144,9 +144,21 @@ def _bidding_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
         lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
     )
     result = df[df["valor_num"] > df["threshold"]].drop(columns=["valor_num", "threshold", "licitacao_numero"])
-    # Inexigibilidade (Art. 74, Lei 14.133/2021) is legally exempt from bidding regardless of value.
-    # Flag these separately so they are not conflated with potentially irregular dispensas.
-    result["is_legally_exempt"] = result["modali"].fillna("").str.strip().str.lower().str.startswith("inexig")
+    # Classify contracts legally exempt from competitive bidding regardless of value:
+    #   - Inexigibilidade (Art. 74, Lei 14.133/2021) — sole-source justification
+    #   - "Outro / Não Aplicável" — non-standard modality (consortia, intergovernmental)
+    #   - Supplier is a public consortium (Lei 11.107/2005 — contrato de rateio/programa)
+    #   - Object is a contrato de rateio (consortium cost-sharing agreement)
+    modali_low = result["modali"].fillna("").str.strip().str.lower()
+    fornecedor_low = result["fornecedor"].fillna("").str.lower()
+    objeto_low = result["objeto"].fillna("").str.lower()
+    result["is_legally_exempt"] = (
+        modali_low.str.startswith("inexig")
+        | modali_low.str.contains("não aplicável", regex=False, na=False)
+        | modali_low.str.contains("nao aplicavel", regex=False, na=False)
+        | fornecedor_low.str.contains("consorcio", regex=False, na=False)
+        | objeto_low.str.contains("rateio", regex=False, na=False)
+    )
     return result
 
 
