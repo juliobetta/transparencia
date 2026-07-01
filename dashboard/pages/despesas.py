@@ -169,8 +169,8 @@ with t2:
     st.caption(
         "Analisa para onde vai o dinheiro público: quanto fica na economia local, "
         "quanto vai para empresas de fora e se há concentração excessiva em poucos fornecedores. "
-        "Compras locais acima de 30% e HHI abaixo de 2.500 são referências saudáveis. "
-        'Pagamentos distribuídos via responsáveis de secretaria ("E OUTROS") são excluídos desta análise.'
+        "**Esta aba exibe apenas despesas de compras, materiais, serviços e investimentos.** "
+        "Foram excluídos pagamentos de folha de pessoal, previdência e dívidas."
     )
 
     impact = _impact(conn, year, _extracted_at)
@@ -241,14 +241,36 @@ with t2:
         )
 
     top10_conc = conc["top10"].copy()
-    pie_conc = concentration_pie(top10_conc, conc["total_all"])
-    fig_conc = px.pie(
-        pie_conc, values="empenhado", names="Fornecedor", title="Distribuição do Empenhado — Top 10 Fornecedores"
-    )
-    st.plotly_chart(fig_conc, use_container_width=True)
+
+    # Garantir que df_sup esteja definido antes de ser usado
+    df_sup = _top_suppliers(conn, year, _extracted_at)
+
+    # Adicionar o Pie Chart de Natureza da Despesa
+    st.markdown("### Distribuição das Compras e Serviços")
+
+    # Criar colunas para exibir os gráficos lado a lado
+    col_nat, col_conc = st.columns(2)
+
+    with col_nat:
+        df_natureza = df_sup.groupby("elemento")["pago"].sum().reset_index()
+        # Adicionar label descritiva para o elemento no gráfico usando a nova função
+        df_natureza["label"] = df_natureza["elemento"].apply(expenses_analysis.get_elemento_label)
+
+        fig_natureza = px.pie(df_natureza, values="pago", names="label", title="Por Elemento de Despesa")
+        st.plotly_chart(fig_natureza, use_container_width=True)
+
+    with col_conc:
+        pie_conc = concentration_pie(top10_conc, conc["total_all"])
+        fig_conc = px.pie(
+            pie_conc, values="empenhado", names="Fornecedor", title="Distribuição por Fornecedor (Top 10)"
+        )
+        st.plotly_chart(fig_conc, use_container_width=True)
 
     st.markdown("### Top 10 Maiores Prestadores de Serviços / Fornecedores")
-    df_sup = _top_suppliers(conn, year, _extracted_at)
+    st.caption(
+        "Exibindo apenas despesas classificadas como Contratações/Serviços (3.3.xx) ou Investimentos/Obras (4.4.xx)."
+    )
+
     if not df_sup.empty:
         fig_sup = px.bar(
             df_sup.head(10),
@@ -263,12 +285,21 @@ with t2:
 
         st.dataframe(
             df_sup.rename(
-                columns={"fornecedor": "Fornecedor", "insmf": "CNPJ/CPF", "cidade": "Cidade", "pago": "Total Pago (R$)"}
-            )[["Fornecedor", "CNPJ/CPF", "Cidade", "Total Pago (R$)"]],
+                columns={
+                    "fornecedor": "Fornecedor",
+                    "insmf": "CNPJ/CPF",
+                    "cidade": "Cidade",
+                    "codigo": "Código",
+                    "descricao": "Descrição",
+                    "pago": "Total Pago (R$)",
+                }
+            )[["Fornecedor", "CNPJ/CPF", "Cidade", "Descrição", "Total Pago (R$)"]],
             column_config={"Total Pago (R$)": st.column_config.NumberColumn(format="R$ %,.2f")},
             use_container_width=True,
             hide_index=True,
         )
+    else:
+        st.info("Nenhum dado de fornecedor encontrado para as categorias de contratação/obras neste exercício.")
 
 # Tab 3: Restos a Pagar
 with t3:

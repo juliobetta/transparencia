@@ -66,6 +66,27 @@ def populated_conn(conn):
     )
     db.upsert(
         conn,
+        "despesas_gerais",
+        [
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "numero": "100",
+                "nomefor": "ALFA LTDA",
+                "elemento": "30",
+            },
+            {
+                "ano": 2025,
+                "empresa": "7",
+                "numero": "101",
+                "nomefor": "BETA ME",
+                "elemento": "39",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    db.upsert(
+        conn,
         "contratos",
         [
             {
