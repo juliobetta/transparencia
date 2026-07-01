@@ -5,8 +5,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import bindparam, text
 
-from analysis.constants import NEAR_THRESHOLD_PCT, dispensation_threshold
-from analysis.expenses_analysis import FORNECEDORES_NATUREZA_MAP
+from analysis.constants import FORNECEDORES_NATUREZA_MAP, NEAR_THRESHOLD_PCT, dispensation_threshold
 
 SAUDE_EMPRESA = "2"
 
@@ -134,7 +133,7 @@ def _bidding_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
             "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes,"
-            " numobra, tipocoobra"
+            " numobra, tipocoobra, fundlegal"
             " FROM contratos WHERE ano = :ano AND empresa = :empresa"
         ),
         conn,
@@ -147,27 +146,27 @@ def _bidding_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     )
     result = df[df["valor_num"] > df["threshold"]].drop(columns=["valor_num", "threshold", "licitacao_numero"])
 
-    # Classify contracts legally exempt from competitive bidding regardless of value:
-    #   - Inexigibilidade (Art. 74, Lei 14.133/2021) — sole-source justification
-    #   - "Outro / Não Aplicável" — non-standard modality (consortia, intergovernmental)
-    #   - Supplier is a public consortium (Lei 11.107/2005 — contrato de rateio/programa)
-    #   - Object is a contrato de rateio or contrato de programa (consortium agreements)
-    # Text is ASCII-normalized before comparison so accented variants match (e.g. CONSÓRCIO = CONSORCIO).
+    # Classify contracts legally exempt from competitive bidding regardless of value based on structured columns:
+    #   - MODALI or FUNDLEGAL containing INEXIGIBILIDADE or DISPENSA
+    #   - Fornecedor containing CONSORCIO
+    #   - Objeto containing RATEIO or CONTRATO DE PROGRAMA
+
     def _ascii(s: pd.Series) -> pd.Series:
         return s.fillna("").apply(
             lambda v: unicodedata.normalize("NFD", str(v)).encode("ascii", "ignore").decode("ascii").lower()
         )
 
     modali_norm = _ascii(result["modali"])
+    fundlegal_norm = _ascii(result["fundlegal"])
     fornecedor_norm = _ascii(result["fornecedor"])
     objeto_norm = _ascii(result["objeto"])
     result["is_legally_exempt"] = (
-        modali_norm.str.startswith("inexig")
-        | modali_norm.str.contains("nao aplicavel", regex=False, na=False)
-        | fornecedor_norm.str.contains("consorcio", regex=False, na=False)
-        | objeto_norm.str.contains("rateio", regex=False, na=False)
-        | objeto_norm.str.contains("cont. programa", regex=False, na=False)
-        | objeto_norm.str.contains("contrato de programa", regex=False, na=False)
+        modali_norm.str.contains("inexig", na=False)
+        | fundlegal_norm.str.contains("inexig", na=False)
+        | fornecedor_norm.str.contains("consorcio", na=False)
+        | objeto_norm.str.contains("rateio", na=False)
+        | objeto_norm.str.contains("cont. programa", na=False)
+        | objeto_norm.str.contains("contrato de programa", na=False)
     )
     return result
 

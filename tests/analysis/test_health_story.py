@@ -207,6 +207,29 @@ def conn(conn):
         ],
         ["ano", "empresa", "codigo"],
     )
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "DG001",
+                "nomefor": "ALFA LTDA",
+                "elemento": "39",
+                "empenhado": "500000",
+            },
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "DG002",
+                "nomefor": "BETA ME",
+                "elemento": "30",
+                "empenhado": "300000",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
     return conn
 
 

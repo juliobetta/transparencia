@@ -3,7 +3,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import bindparam, text
 
-from analysis.expenses_analysis import FORNECEDORES_NATUREZA_MAP
+from analysis.constants import FORNECEDORES_NATUREZA_MAP
 
 
 def run(conn: Any, year: int) -> dict:
