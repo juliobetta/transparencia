@@ -175,6 +175,27 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
     pdf.ln(5)
 
 
+def _valcon_float(r: pd.Series) -> float:
+    try:
+        return float(str(r.get("valcon", 0)).replace(",", "."))
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: list[float]) -> None:
+    headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
+    with pdf.table(col_widths=widths, headings_style=headings_style, line_height=5, first_row_as_headings=True) as t:
+        hdr = t.row()
+        for col in cols:
+            hdr.cell(col)
+        for _, r in rows.head(10).iterrows():
+            row = t.row()
+            row.cell(str(r.get("fornecedor", "")))
+            row.cell(str(r.get("objeto", "")))
+            row.cell(str(r.get("modali", "") or ""))
+            row.cell(_fmt_brl(_valcon_float(r)))
+
+
 def _draw_alertas_section(
     pdf: FPDF,
     bidding_gaps: pd.DataFrame,
@@ -185,17 +206,20 @@ def _draw_alertas_section(
 ) -> None:
     _section_header(pdf, "4. ALERTAS & IRREGULARIDADES")
 
-    gaps_count = len(bidding_gaps)
+    irregular = bidding_gaps[~bidding_gaps["is_legally_exempt"]] if not bidding_gaps.empty else pd.DataFrame()
+    exempt = bidding_gaps[bidding_gaps["is_legally_exempt"]] if not bidding_gaps.empty else pd.DataFrame()
+
+    gaps_count = len(irregular)
     splitting_count = splitting["fornecedor"].nunique() if not splitting.empty else 0
 
     alerts = [
-        (gaps_count, f"Contratos sem licitação acima do limite: {gaps_count}"),
+        (gaps_count, f"Contratos potencialmente irregulares (sem licitação, acima do limite): {gaps_count}"),
         (splitting_count, f"Fornecedores com possível fracionamento: {splitting_count}"),
         (adesao_count, f"Adesão de ata (carona): {adesao_count} contratos — {_fmt_brl(adesao_value)}"),
     ]
 
     has_alert = any(count > 0 for count, _ in alerts)
-    if not has_alert:
+    if not has_alert and exempt.empty:
         pdf.set_fill_color(212, 237, 218)
         pdf.set_font("NotoSans", "", 9)
         pdf.multi_cell(0, 6, "Nenhum alerta identificado para o período.", fill=True)
@@ -209,31 +233,37 @@ def _draw_alertas_section(
             pdf.multi_cell(0, 6, f"[!]  {msg}", fill=True)
             pdf.ln(2)
 
-    if not bidding_gaps.empty:
+    _COL_HEADERS = ["Fornecedor", "Objeto", "Modalidade", "Valor (R$)"]
+    _COL_WIDTHS = [55, 65, 35, 25]
+
+    if not irregular.empty:
         pdf.ln(2)
         pdf.set_font("NotoSans", "B", 9)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 5, "Contratos sem licitação (acima do limite de dispensa):", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(
+            0,
+            5,
+            "Contratos potencialmente irregulares (acima do limite sem fundamento legal):",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
         pdf.ln(1)
-        headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
-        with pdf.table(
-            col_widths=[70, 72, 38],
-            headings_style=headings_style,
-            line_height=5,
-            first_row_as_headings=True,
-        ) as table:
-            hdr = table.row()
-            for col in ["Fornecedor", "Objeto", "Valor (R$)"]:
-                hdr.cell(col)
-            for _, r in bidding_gaps.head(10).iterrows():
-                row = table.row()
-                row.cell(str(r.get("fornecedor", "")))
-                row.cell(str(r.get("objeto", "")))
-                try:
-                    v = float(str(r.get("valcon", 0)).replace(",", "."))
-                except (ValueError, TypeError):
-                    v = 0.0
-                row.cell(_fmt_brl(v))
+        _gaps_table(pdf, irregular, _COL_HEADERS, _COL_WIDTHS)
+
+    if not exempt.empty:
+        pdf.ln(3)
+        pdf.set_font("NotoSans", "B", 9)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(
+            0,
+            5,
+            "Contratos acima do limite com fundamento legal (Inexigibilidade — Art. 74):",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
+        pdf.ln(1)
+        _gaps_table(pdf, exempt, _COL_HEADERS, _COL_WIDTHS)
+
     pdf.ln(5)
 
 

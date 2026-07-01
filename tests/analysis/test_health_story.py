@@ -252,6 +252,48 @@ def test_bidding_gaps_above_threshold_only(conn):
     assert result["bidding_gaps"].iloc[0]["numero"] == "C002"
 
 
+def test_bidding_gaps_has_is_legally_exempt_column(conn):
+    result = run(conn, 2023)
+    assert "is_legally_exempt" in result["bidding_gaps"].columns
+
+
+def test_bidding_gaps_dispensa_not_legally_exempt(conn):
+    result = run(conn, 2023)
+    # C002 has modali="DISPENSA" — should NOT be legally exempt
+    gap = result["bidding_gaps"].iloc[0]
+    assert gap["is_legally_exempt"] is False or gap["is_legally_exempt"] == False  # noqa: E712
+
+
+def test_bidding_gaps_inexigibilidade_is_legally_exempt(conn):
+    import db
+
+    db.upsert(
+        conn,
+        "contratos",
+        [
+            {
+                "ano": 2023,
+                "empresa": SAUDE,
+                "numero": "C005",
+                "fornecedor": "ESPECIALISTA SA",
+                "objeto": "SERVICO ESPECIALIZADO",
+                "valor": "200000",
+                "valcon": "200000",
+                "empenhado": "200000",
+                "licitacao_numero": "",
+                "modali": "Inexigibilidade de Licitação",
+                "mes": "05",
+            }
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    result = run(conn, 2023)
+    gaps = result["bidding_gaps"]
+    c005 = gaps[gaps["numero"] == "C005"]
+    assert len(c005) == 1
+    assert c005.iloc[0]["is_legally_exempt"] is True or c005.iloc[0]["is_legally_exempt"] == True  # noqa: E712
+
+
 def test_top_suppliers_filtered_to_empresa(conn):
     result = run(conn, 2023)
     names = result["top_suppliers"]["descricao"].tolist()
