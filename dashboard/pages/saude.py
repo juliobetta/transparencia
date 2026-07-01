@@ -248,9 +248,12 @@ c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata
 
 if not data["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
+        _ata_df = data["adesao_de_ata_list"].copy()
+        _ata_df["licitacao_valor"] = pd.to_numeric(
+            _ata_df["licitacao_valor"].astype(str).str.replace(",", "."), errors="coerce"
+        )
         st.dataframe(
-            data["adesao_de_ata_list"]
-            .rename(
+            _ata_df.rename(
                 columns={
                     "numero": "Nº Licit.",
                     "objeto": "Objeto",
@@ -260,9 +263,14 @@ if not data["adesao_de_ata_list"].empty:
                     "total_c_empenhado": "Valor Empenhado",
                     "has_contract": "Contrato Associado",
                 }
-            )
-            .drop(columns=["mes", "ano"], errors="ignore"),
+            ).drop(columns=["mes", "ano"], errors="ignore"),
             width="stretch",
+            column_config={
+                "Nº Licit.": None,
+                "Valor Est. Licitação": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Total Contratado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
             hide_index=True,
         )
 
@@ -291,7 +299,10 @@ if not adesao_externa["list"].empty:
                     "num_licitacao": "Nº Licitação",
                 }
             ),
-            column_config={"Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f")},
+            column_config={
+                "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
             width="stretch",
             hide_index=True,
         )
