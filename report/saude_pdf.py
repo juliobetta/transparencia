@@ -174,6 +174,107 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
     pdf.ln(5)
 
 
+def _draw_alertas_section(
+    pdf: FPDF,
+    bidding_gaps: pd.DataFrame,
+    splitting: pd.DataFrame,
+    adesao_list: pd.DataFrame,  # noqa: ARG001
+    adesao_value: float,
+    adesao_count: int,
+) -> None:
+    _section_header(pdf, "4. ALERTAS & IRREGULARIDADES")
+
+    gaps_count = len(bidding_gaps)
+    splitting_count = splitting["fornecedor"].nunique() if not splitting.empty else 0
+
+    alerts = [
+        (gaps_count, f"Contratos sem licitacao acima do limite: {gaps_count}"),
+        (splitting_count, f"Fornecedores com possivel fracionamento: {splitting_count}"),
+        (adesao_count, f"Adesao de ata (carona): {adesao_count} contratos - {_fmt_brl(adesao_value)}"),
+    ]
+
+    has_alert = any(count > 0 for count, _ in alerts)
+    if not has_alert:
+        pdf.set_fill_color(212, 237, 218)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.multi_cell(0, 6, "Nenhum alerta identificado para o periodo.", fill=True)
+        pdf.ln(4)
+        return
+
+    for count, msg in alerts:
+        if count > 0:
+            pdf.set_fill_color(*WARN_BG)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.multi_cell(0, 6, f"(!)  {msg}", fill=True)
+            pdf.ln(2)
+
+    if not bidding_gaps.empty:
+        pdf.ln(2)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 5, "Contratos sem licitacao (acima do limite de dispensa):", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(1)
+        headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
+        with pdf.table(
+            col_widths=[70, 72, 38],
+            headings_style=headings_style,
+            line_height=5,
+            first_row_as_headings=True,
+        ) as table:
+            hdr = table.row()
+            for col in ["Fornecedor", "Objeto", "Valor (R$)"]:
+                hdr.cell(col)
+            for _, r in bidding_gaps.head(10).iterrows():
+                row = table.row()
+                row.cell(str(r.get("fornecedor", "")))
+                row.cell(str(r.get("objeto", "")))
+                try:
+                    v = float(str(r.get("valcon", 0)).replace(",", "."))
+                except (ValueError, TypeError):
+                    v = 0.0
+                row.cell(_fmt_brl(v))
+    pdf.ln(5)
+
+
+def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial: dict) -> None:
+    _section_header(pdf, "5. MEDICAMENTOS & INSUMOS FARMACEUTICOS")
+    _metric_row(
+        pdf,
+        [
+            ("Total Empenhado (Material Farmaceutico)", _fmt_brl(pharma_empenhos.get("total", 0.0))),
+            ("Total em Mandados Judiciais", _fmt_brl(pharma_judicial.get("total", 0.0))),
+        ],
+    )
+
+    detail: pd.DataFrame = pharma_empenhos.get("detail", pd.DataFrame())
+    if detail.empty:
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.cell(0, 6, "Sem dados de insumos farmaceuticos.", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+        return
+
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 5, "Top fornecedores de insumos farmaceuticos:", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(1)
+    headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
+    with pdf.table(
+        col_widths=[70, 80, 30],
+        headings_style=headings_style,
+        line_height=5,
+        first_row_as_headings=True,
+    ) as table:
+        hdr = table.row()
+        for col in ["Fornecedor", "Produto", "Total (R$)"]:
+            hdr.cell(col)
+        for _, r in detail.head(10).iterrows():
+            row = table.row()
+            row.cell(str(r.get("fornecedor", "")))
+            row.cell(str(r.get("descricao", "")))
+            row.cell(_fmt_brl(float(r.get("total", 0) or 0)))
+    pdf.ln(5)
+
+
 class _SaudePDF(FPDF):
     def __init__(self, year: int, last_extracted: str) -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
@@ -223,5 +324,14 @@ def generate(conn: Any, year: int) -> bytes:
     _draw_orcamento_section(pdf, data["budget"], data["budget_trend"])
     _draw_emendas_section(pdf, data["emendas"], data["emendas_total"])
     _draw_fornecedores_section(pdf, data["top_suppliers"], data["hhi"])
+    _draw_alertas_section(
+        pdf,
+        data["bidding_gaps"],
+        data["splitting"],
+        data["adesao_de_ata_list"],
+        data["adesao_de_ata_value"],
+        data["adesao_de_ata_count"],
+    )
+    _draw_medicamentos_section(pdf, data["pharma_empenhos"], data["pharma_judicial"])
 
     return bytes(pdf.output())
