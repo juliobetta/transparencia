@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, fmt_currency_short, get_conn, get_extraction_date, render_sidebar
+from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
 from analysis import expenses_analysis, fiscal_position, supplier_concentration
@@ -177,8 +177,8 @@ with t2:
     conc = _concentration(conn, year, _extracted_at)
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Efetivamente Pago — Empresas Locais", fmt_currency_short(impact["local_pago"]))
-    c2.metric("Efetivamente Pago — Empresas Externas", fmt_currency_short(impact["externo_pago"]))
+    c1.metric("Efetivamente Pago — Empresas Locais", fmt_compact(impact["local_pago"]))
+    c2.metric("Efetivamente Pago — Empresas Externas", fmt_compact(impact["externo_pago"]))
     c3.metric(
         "Índice de Compras Locais",
         f"{impact['pct_local']:.2f}%",

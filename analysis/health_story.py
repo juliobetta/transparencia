@@ -202,6 +202,92 @@ def _transfers_to_health(conn: Any, year: int, empresa_id: str) -> tuple[pd.Data
     return df, total
 
 
+def _pharma_empenhos(conn: Any, year: int, empresa_id: str) -> dict:
+    detail = pd.read_sql_query(
+        text("""
+            SELECT nomefor AS fornecedor, produ AS descricao,
+                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS total
+            FROM despesas_gerais
+            WHERE empresa = :empresa AND ano = :ano
+              AND subfuncao = '303'
+              AND natureza = 'MATERIAL DE CONSUMO'
+            GROUP BY nomefor, produ
+            ORDER BY total DESC
+        """),
+        conn,
+        params={"empresa": empresa_id, "ano": year},
+    )
+    detail["total"] = _to_float(detail["total"])
+    trend = pd.read_sql_query(
+        text("""
+            SELECT ano,
+                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado
+            FROM despesas_gerais
+            WHERE empresa = :empresa
+              AND subfuncao = '303'
+              AND natureza = 'MATERIAL DE CONSUMO'
+            GROUP BY ano
+            ORDER BY ano
+        """),
+        conn,
+        params={"empresa": empresa_id},
+    )
+    trend["empenhado"] = _to_float(trend["empenhado"])
+    if year not in trend["ano"].values:
+        trend = pd.concat([trend, pd.DataFrame([{"ano": year, "empenhado": 0.0}])], ignore_index=True).sort_values(
+            "ano"
+        )
+    return {
+        "total": float(detail["total"].sum()) if not detail.empty else 0.0,
+        "detail": detail,
+        "trend": trend,
+    }
+
+
+def _pharma_judicial(conn: Any, year: int, empresa_id: str) -> dict:
+    detail = pd.read_sql_query(
+        text("""
+            SELECT subfuncaonome AS subfuncao, nomefor AS fornecedor, produ AS descricao,
+                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS total
+            FROM despesas_gerais
+            WHERE empresa = :empresa AND ano = :ano
+              AND elemento = '91'
+            GROUP BY subfuncaonome, nomefor, produ
+            ORDER BY total DESC
+        """),
+        conn,
+        params={"empresa": empresa_id, "ano": year},
+    )
+    detail["total"] = _to_float(detail["total"])
+    return {
+        "total": float(detail["total"].sum()) if not detail.empty else 0.0,
+        "detail": detail,
+    }
+
+
+def _pharma_licitacoes(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
+    df = pd.read_sql_query(
+        text("""
+            SELECT numero, modalidade, discr AS objeto, valor, situacao, data_abertura
+            FROM licitacoes
+            WHERE empresa = :empresa AND ano = :ano
+              AND (
+                UPPER(discr) LIKE '%MEDICAMENTO%'
+                OR UPPER(discr) LIKE '%INSUMO%'
+                OR UPPER(discr) LIKE '%FARMAC%'
+                OR UPPER(discr) LIKE '%MATERIAL HOSPITALAR%'
+                OR UPPER(discr) LIKE '%CORRELATO%'
+              )
+            ORDER BY CAST(NULLIF(REPLACE(valor, ',', '.'), '') AS FLOAT) DESC NULLS LAST
+        """),
+        conn,
+        params={"empresa": empresa_id, "ano": year},
+    )
+    if not df.empty:
+        df["valor_num"] = _to_float(df["valor"])
+    return df
+
+
 def _top_suppliers_services(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     query = text("""
         SELECT fornecedor, objeto, SUM(CAST(NULLIF(REPLACE(valcon, ',', '.'), '') AS FLOAT)) as total
@@ -227,6 +313,9 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     top_suppliers_services = _top_suppliers_services(conn, year, empresa_id)
     splitting = _splitting(conn, year, empresa_id)
     transfers_df, transfers_total = _transfers_to_health(conn, year, empresa_id)
+    pharma_empenhos = _pharma_empenhos(conn, year, empresa_id)
+    pharma_judicial = _pharma_judicial(conn, year, empresa_id)
+    pharma_licitacoes = _pharma_licitacoes(conn, year, empresa_id)
     return {  # noqa: RET504
         "emendas": emendas_df,
         "emendas_total": emendas_total,
@@ -245,6 +334,9 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
         "splitting": splitting,
         "transfers_to_health": transfers_df,
         "transfers_to_health_total": transfers_total,
+        "pharma_empenhos": pharma_empenhos,
+        "pharma_judicial": pharma_judicial,
+        "pharma_licitacoes": pharma_licitacoes,
     }
 
 

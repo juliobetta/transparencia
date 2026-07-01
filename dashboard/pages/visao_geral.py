@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     CURRENT_YEAR,
+    fmt_compact,
     fmt_percent,
     get_conn,
     get_extraction_date,
@@ -96,16 +97,6 @@ def _pct_delta(series: list) -> str | None:
     return None
 
 
-def _fmt_compact(value: float) -> str:
-    if abs(value) >= 1_000_000_000:
-        return f"R$ {value / 1_000_000_000:.1f}B"
-    if abs(value) >= 1_000_000:
-        return f"R$ {value / 1_000_000:.1f}M"
-    if abs(value) >= 1_000:
-        return f"R$ {value / 1_000:.1f}K"
-    return f"R$ {value:.0f}"
-
-
 def _sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
     fig = go.Figure(
         go.Scatter(
@@ -161,7 +152,7 @@ with c1:
     delta_gasto = yoy.iloc[-1]["total_gasto_pct_change"] if len(yoy) > 1 else None
     st.metric(
         "Total Pago",
-        _fmt_compact(total_gasto),
+        fmt_compact(total_gasto),
         delta=f"{delta_gasto:+.1f}%" if delta_gasto is not None and not pd.isna(delta_gasto) else None,
         delta_color="off",
         help="Valor total liquidado e pago.",
@@ -187,7 +178,7 @@ with c2:
         help_text = "Total efetivamente arrecadado." if year == CURRENT_YEAR else "Previsão orçamentária do ano."
         st.metric(
             label,
-            _fmt_compact(float(rev_val)),
+            fmt_compact(float(rev_val)),
             delta=f"{delta_rec:+.1f}%" if delta_rec is not None and not pd.isna(delta_rec) else None,
             help=help_text,
         )
@@ -219,7 +210,7 @@ with c4:
     delta_restos = yoy.iloc[-1]["restos_a_pagar_pct_change"] if len(yoy) > 1 else None
     st.metric(
         "Restos Pagos",
-        _fmt_compact(restos),
+        fmt_compact(restos),
         delta=f"{delta_restos:+.1f}%" if delta_restos is not None and not pd.isna(delta_restos) else None,
         delta_color="off",
         help="Restos a pagar efetivamente pagos no ano.",
@@ -335,7 +326,7 @@ if not unpaid_df.empty:
     with rp1:
         st.metric(
             "Total a Pagar a Fornecedores",
-            _fmt_compact(total_pendente),
+            fmt_compact(total_pendente),
             delta=_pct_delta(_trend_vals),
             delta_color="inverse",
             help="Soma de todos os empenhos ainda não quitados na tabela de Restos a Pagar.",
@@ -513,9 +504,9 @@ with col_donut:
         st.plotly_chart(fig_donut, use_container_width=True)
         if is_partial:
             _prev_rows = revenue[revenue["ano"] == year - 1]
-            _propria_cur = _fmt_compact(float(row["receita_propria_previsto"]))
+            _propria_cur = fmt_compact(float(row["receita_propria_previsto"]))
             _propria_prev = (
-                _fmt_compact(float(_prev_rows.iloc[0]["receita_propria_previsto"])) if not _prev_rows.empty else "N/D"
+                fmt_compact(float(_prev_rows.iloc[0]["receita_propria_previsto"])) if not _prev_rows.empty else "N/D"
             )
             _pct_cur = float(row["pct_propria"])
             _pct_prev = float(_prev_rows.iloc[0]["pct_propria"]) if not _prev_rows.empty else 0

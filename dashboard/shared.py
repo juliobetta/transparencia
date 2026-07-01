@@ -51,12 +51,14 @@ def fmt_currency(value: float) -> str:
     return f"R$ {value:,.2f}"
 
 
-def fmt_currency_short(value: float) -> str:
+def fmt_compact(value: float) -> str:
+    if abs(value) >= 1_000_000_000:
+        return f"R$ {value / 1_000_000_000:.1f}bi"
     if abs(value) >= 1_000_000:
-        return f"R$ {value / 1_000_000:,.1f}M"
+        return f"R$ {value / 1_000_000:.1f}mi"
     if abs(value) >= 1_000:
-        return f"R$ {value / 1_000:,.1f}K"
-    return f"R$ {value:,.2f}"
+        return f"R$ {value / 1_000:.1f}mil"
+    return f"R$ {value:,.0f}"
 
 
 def fmt_percent(value: float) -> str:

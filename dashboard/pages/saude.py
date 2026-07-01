@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -45,6 +45,18 @@ for key, val in data.items():
         else:
             val["periodo"] = val["mes"].astype(str).str.zfill(2) + "/" + str(year)
 
+# ── KPIs resumo ─────────────────────────────────────────────────────────────
+budget = data["budget"]
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("Dotação Atualizada", fmt_compact(budget["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
+k2.metric("Total Empenhado", fmt_compact(budget["empenhado"]), help=glossary.tooltip("Empenho"))
+k3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
+k4.metric(
+    "Medicamentos e Insumos",
+    fmt_compact(data["pharma_empenhos"]["total"]),
+    help="Total empenhado em Material de Consumo na Subfunção 10.303 (Suporte Profilático e Terapêutico).",
+)
+st.divider()
 
 # ── Seção 1: O que entrou ───────────────────────────────────────────────────
 st.header("① O que entrou")
@@ -84,7 +96,6 @@ else:
     st.info("Sem emendas parlamentares registradas para este ano.")
 
 st.subheader("Orçamento")
-budget = data["budget"]
 c1, c2, c3 = st.columns(3)
 c1.metric("Dotação Atualizada", fmt_currency(budget["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
 c2.metric("Total Empenhado", fmt_currency(budget["empenhado"]), help=glossary.tooltip("Empenho"))
@@ -300,6 +311,103 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
         column_config={"Valor Contratado": st.column_config.NumberColumn(format="R$ %,.2f")},
         hide_index=True,
     )
+
+# ── Seção 5: Insumos e Assistência Farmacêutica ────────────────────────────────
+st.header("⑤ Insumos e Assistência Farmacêutica")
+
+# Bloco A — Empenhos de Medicamentos e Insumos
+st.subheader("Medicamentos e Insumos (Subfunção 10.303 — Material de Consumo)")
+pharma = data["pharma_empenhos"]
+st.metric(
+    "Total Empenhado em Medicamentos e Insumos",
+    fmt_currency(pharma["total"]),
+    help="Empenhos da Subfunção 10.303 (Suporte Profilático e Terapêutico) com Natureza de Despesa 3.3.90.30 (Material de Consumo).",
+)
+st.caption(
+    "Os valores acima refletem empenhos diretos classificados na Subfunção 10.303 com Natureza de Despesa 3.3.90.30. "
+    "Compras de medicamentos e insumos realizadas via **Adesão a Ata de Registro de Preços Externa** estão "
+    "contabilizadas separadamente na seção _Como foi contratado_."
+)
+
+pharma_trend = pharma["trend"]
+if not pharma_trend.empty:
+    fig_pharma = px.bar(
+        pharma_trend,
+        x="ano",
+        y="empenhado",
+        title="Medicamentos e Insumos — Empenhado por Ano",
+        labels={"ano": "Ano", "empenhado": "Empenhado"},
+    )
+    fig_pharma.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.2f}<extra></extra>")
+    fig_pharma.update_layout(yaxis=dict(tickprefix="R$ ", tickformat=",.0f"))
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.plotly_chart(fig_pharma, width="stretch")
+
+if not pharma["detail"].empty:
+    with st.expander("Ver detalhes por fornecedor"):
+        st.dataframe(
+            pharma["detail"].rename(
+                columns={"fornecedor": "Fornecedor", "descricao": "Descrição", "total": "Empenhado"}
+            ),
+            width="stretch",
+            column_config={"Empenhado": st.column_config.NumberColumn(format="R$ %,.2f")},
+            hide_index=True,
+        )
+
+# Bloco B — Licitações de Medicamentos e Insumos
+st.subheader("Licitações de Medicamentos e Insumos")
+pharma_licit = data["pharma_licitacoes"]
+if pharma_licit.empty:
+    st.info("Sem licitações de medicamentos ou insumos registradas para este ano.")
+else:
+    st.dataframe(
+        pharma_licit.rename(
+            columns={
+                "numero": "Nº",
+                "objeto": "Objeto",
+                "modalidade": "Modalidade",
+                "situacao": "Situação",
+                "data_abertura": "Data Abertura",
+            }
+        ).drop(columns=["valor", "valor_num"], errors="ignore"),
+        width="stretch",
+        column_config={
+            "Nº": None,
+        },
+        hide_index=True,
+        column_order=["Nº", "Objeto", "Modalidade", "Situação", "Data Abertura"],
+    )
+
+# Bloco C — Judicialização da Saúde
+st.subheader(":material/gavel: Judicialização da Saúde")
+st.caption(
+    "Despesas decorrentes de sentenças judiciais (Elemento 3.3.90.91) do Fundo Municipal de Saúde, "
+    "separadas das compras programadas de medicamentos e insumos."
+)
+pharma_jud = data["pharma_judicial"]
+st.metric(
+    "Total Empenhado por Determinação Judicial",
+    fmt_currency(pharma_jud["total"]),
+    help="Empenhos com Elemento de Despesa 3.3.90.91 (Sentenças Judiciais) no Fundo Municipal de Saúde.",
+)
+if pharma_jud["total"] == 0:
+    st.info("Sem registros de judicialização para este ano.")
+elif not pharma_jud["detail"].empty:
+    with st.expander("Ver detalhes"):
+        st.dataframe(
+            pharma_jud["detail"].rename(
+                columns={
+                    "subfuncao": "Subfunção",
+                    "fornecedor": "Fornecedor",
+                    "descricao": "Descrição",
+                    "total": "Empenhado",
+                }
+            ),
+            width="stretch",
+            column_config={"Empenhado": st.column_config.NumberColumn(format="R$ %,.2f")},
+            hide_index=True,
+        )
 
 st.divider()
 st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
