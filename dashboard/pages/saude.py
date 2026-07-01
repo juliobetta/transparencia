@@ -215,6 +215,8 @@ if not trend.empty:
         title="Fundo de Saúde — Empenhado por Ano",
         labels={"ano": "Ano", "empenhado": "Empenhado"},
     )
+    fig.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.0f}<extra></extra>")
+    fig.update_layout(yaxis=dict(tickprefix="R$ ", tickformat=",.0f"))
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.plotly_chart(fig, width="stretch")
