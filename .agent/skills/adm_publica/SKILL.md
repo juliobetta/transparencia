@@ -74,3 +74,12 @@ Atuar como Engenheiro de Dados Sênior e Auditor de Finanças Públicas especial
 - **Portaria STN/MF nº 2.057/2025** — Aprova a **15ª edição do Manual de Demonstrativos Fiscais (MDF)**; válida para 2026. Altera regras de RGF e RREO no Siconfi.
 - **Portaria STN/MF nº 636/2026** — Altera codificação de fontes/destinações de recursos para emendas parlamentares; obrigatória nas MSC (Matriz de Saldos Contábeis) enviadas ao Siconfi.
 - **Portaria Interministerial STN/SOF nº 163/2001** — Classificação orçamentária por natureza de despesa (ainda vigente como base).
+
+---
+
+## 8. PADRÕES DE ENRIQUECIMENTO DE DADOS (Data Enrichment)
+
+- **Limitação de Granularidade:** Tabelas de agregação (ex: `despesas_por_fornecedor`) frequentemente possuem apenas metadados básicos (nome, código, valores).
+- **Axioma de Enriquecimento:** Para análises profundas de natureza de despesa, sempre realize `LEFT JOIN` com tabelas de detalhamento transacional (ex: `despesas_gerais`) utilizando chaves compostas (ex: `ano`, `nomefor`).
+- **Validação de Cruzamento:** Sempre agrupe ou use funções de agregação (`MAX`, `SUM`) ao realizar joins para evitar duplicidade de registros caso existam múltiplos registros detalhados para o mesmo agregador.
+- **Filtros Estruturados:** Prefira a filtragem por `elemento` (coluna numérica de classificação contábil) em vez de Regex em strings de descrição para garantir performance e precisão na segregação de tipos de despesa (ex: compras/serviços vs. folha/subvenções).
