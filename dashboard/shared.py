@@ -4,6 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import plotly.graph_objects as go
 import streamlit as st
 from streamlit.connections import SQLConnection
 
@@ -63,6 +64,29 @@ def fmt_compact(value: float) -> str:
 
 def fmt_percent(value: float) -> str:
     return f"{value:.2f}%"
+
+
+SPARK_CFG: dict = {"displayModeBar": False, "staticPlot": True}
+
+
+def pct_delta(series: list) -> str | None:
+    if len(series) >= 2 and series[-2] != 0:
+        return f"{(series[-1] - series[-2]) / series[-2] * 100:+.1f}%"
+    return None
+
+
+def sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
+    fig = go.Figure(go.Scatter(x=x, y=y, mode="lines", line=dict(color=color, width=2), fill="tozeroy"))
+    fig.update_layout(
+        height=80,
+        margin=dict(l=0, r=0, t=4, b=4),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        showlegend=False,
+    )
+    return fig
 
 
 def comparison_table(domain: dict, rows: list[tuple[str, str]]):

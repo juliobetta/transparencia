@@ -202,6 +202,26 @@ def _transfers_to_health(conn: Any, year: int, empresa_id: str) -> tuple[pd.Data
     return df, total
 
 
+def _budget_trend(conn: Any, empresa_id: str) -> "pd.DataFrame":
+    df = pd.read_sql_query(
+        text("""
+            SELECT ano,
+                   SUM(CAST(NULLIF(REPLACE(dotacao_atualizada, ',', '.'), '') AS FLOAT)) AS dotacao,
+                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado
+            FROM despesas_por_orgao
+            WHERE empresa = :empresa
+            GROUP BY ano
+            ORDER BY ano
+        """),
+        conn,
+        params={"empresa": empresa_id},
+    )
+    df["dotacao"] = _to_float(df["dotacao"])
+    df["empenhado"] = _to_float(df["empenhado"])
+    df["taxa"] = df.apply(lambda r: r["empenhado"] / r["dotacao"] if r["dotacao"] > 0 else 0.0, axis=1)
+    return df
+
+
 def _pharma_empenhos(conn: Any, year: int, empresa_id: str) -> dict:
     detail = pd.read_sql_query(
         text("""
@@ -316,6 +336,7 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     pharma_empenhos = _pharma_empenhos(conn, year, empresa_id)
     pharma_judicial = _pharma_judicial(conn, year, empresa_id)
     pharma_licitacoes = _pharma_licitacoes(conn, year, empresa_id)
+    budget_trend = _budget_trend(conn, empresa_id)
     return {  # noqa: RET504
         "emendas": emendas_df,
         "emendas_total": emendas_total,
@@ -337,6 +358,7 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
         "pharma_empenhos": pharma_empenhos,
         "pharma_judicial": pharma_judicial,
         "pharma_licitacoes": pharma_licitacoes,
+        "budget_trend": budget_trend,
     }
 
 

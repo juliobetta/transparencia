@@ -9,7 +9,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
 import streamlit as st
-from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
+from shared import (
+    SPARK_CFG,
+    fmt_compact,
+    fmt_currency,
+    get_conn,
+    get_extraction_date,
+    pct_delta,
+    render_sidebar,
+    sparkline,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -47,15 +56,75 @@ for key, val in data.items():
 
 # ── KPIs resumo ─────────────────────────────────────────────────────────────
 budget = data["budget"]
+bt = data["budget_trend"]
+bt_to_year = bt[bt["ano"] <= year]
+pt = data["pharma_empenhos"]["trend"]
+pt_to_year = pt[pt["ano"] <= year]
+
 k1, k2, k3, k4 = st.columns(4)
-k1.metric("Dotação Atualizada", fmt_compact(budget["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
-k2.metric("Total Empenhado", fmt_compact(budget["empenhado"]), help=glossary.tooltip("Empenho"))
-k3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
-k4.metric(
-    "Medicamentos e Insumos",
-    fmt_compact(data["pharma_empenhos"]["total"]),
-    help="Total empenhado em Material de Consumo na Subfunção 10.303 (Suporte Profilático e Terapêutico).",
-)
+
+with k1:
+    st.metric(
+        "Dotação Atualizada",
+        fmt_compact(budget["dotacao"]),
+        delta=pct_delta(bt_to_year["dotacao"].tolist()),
+        delta_color="off",
+        help=glossary.tooltip("Dotação Atualizada"),
+    )
+    if len(bt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(bt_to_year["ano"].tolist(), bt_to_year["dotacao"].tolist()),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_dotacao",
+        )
+
+with k2:
+    st.metric(
+        "Total Empenhado",
+        fmt_compact(budget["empenhado"]),
+        delta=pct_delta(bt_to_year["empenhado"].tolist()),
+        delta_color="off",
+        help=glossary.tooltip("Empenho"),
+    )
+    if len(bt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(bt_to_year["ano"].tolist(), bt_to_year["empenhado"].tolist(), "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_empenhado",
+        )
+
+with k3:
+    st.metric(
+        "Taxa de Execução",
+        f"{budget['taxa_execucao']:.1%}",
+        delta=pct_delta(bt_to_year["taxa"].tolist()),
+    )
+    if len(bt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(bt_to_year["ano"].tolist(), bt_to_year["taxa"].tolist(), "#FF9800"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_taxa",
+        )
+
+with k4:
+    st.metric(
+        "Medicamentos e Insumos",
+        fmt_compact(data["pharma_empenhos"]["total"]),
+        delta=pct_delta(pt_to_year["empenhado"].tolist()),
+        delta_color="off",
+        help="Total empenhado em Material de Consumo na Subfunção 10.303 (Suporte Profilático e Terapêutico).",
+    )
+    if len(pt_to_year) >= 2:
+        st.plotly_chart(
+            sparkline(pt_to_year["ano"].tolist(), pt_to_year["empenhado"].tolist(), "#9C27B0"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pharma",
+        )
+
 st.divider()
 
 # ── Seção 1: O que entrou ───────────────────────────────────────────────────

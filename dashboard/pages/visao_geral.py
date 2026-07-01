@@ -11,13 +11,16 @@ import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     CURRENT_YEAR,
+    SPARK_CFG,
     fmt_compact,
     fmt_percent,
     get_conn,
     get_extraction_date,
+    pct_delta,
     render_partial_year_notice,
     render_revenue_methodology,
     render_sidebar,
+    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -91,34 +94,6 @@ def _unpaid_trend(conn, years, _extracted_at):
     return fiscal_position.get_unpaid_suppliers_trend(conn, years)
 
 
-def _pct_delta(series: list) -> str | None:
-    if len(series) >= 2 and series[-2] != 0:
-        return f"{(series[-1] - series[-2]) / series[-2] * 100:+.1f}%"
-    return None
-
-
-def _sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
-    fig = go.Figure(
-        go.Scatter(
-            x=x,
-            y=y,
-            mode="lines",
-            line=dict(color=color, width=2),
-            fill="tozeroy",
-        )
-    )
-    fig.update_layout(
-        height=80,
-        margin=dict(l=0, r=0, t=4, b=4),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
-        showlegend=False,
-    )
-    return fig
-
-
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
@@ -141,7 +116,6 @@ with st.spinner("Carregando..."):
     unpaid_trend = _unpaid_trend(conn, tuple(_all_years), _extracted_at)
 
 anos = yoy["ano"].tolist()
-_spark_cfg = {"displayModeBar": False, "staticPlot": True}
 _counts_map = _bidding_counts(conn, anos, _extracted_at)
 _contract_counts = [_counts_map[y] for y in anos]
 
@@ -158,9 +132,9 @@ with c1:
         help="Valor total liquidado e pago.",
     )
     st.plotly_chart(
-        _sparkline(anos, yoy["total_gasto"].tolist()),
+        sparkline(anos, yoy["total_gasto"].tolist()),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_total_gasto",
     )
 
@@ -183,9 +157,9 @@ with c2:
             help=help_text,
         )
         st.plotly_chart(
-            _sparkline(anos, revenue["total"].tolist(), "#4CAF50"),
+            sparkline(anos, revenue["total"].tolist(), "#4CAF50"),
             use_container_width=True,
-            config=_spark_cfg,
+            config=SPARK_CFG,
             key="spark_receita",
         )
 
@@ -199,9 +173,9 @@ with c3:
             delta_color="inverse",
         )
         st.plotly_chart(
-            _sparkline(anos, yoy["total_folha"].tolist(), "#FF9800"),
+            sparkline(anos, yoy["total_folha"].tolist(), "#FF9800"),
             use_container_width=True,
-            config=_spark_cfg,
+            config=SPARK_CFG,
             key="spark_folha",
         )
 
@@ -216,9 +190,9 @@ with c4:
         help="Restos a pagar efetivamente pagos no ano.",
     )
     st.plotly_chart(
-        _sparkline(anos, yoy["restos_a_pagar"].tolist(), "#9C27B0"),
+        sparkline(anos, yoy["restos_a_pagar"].tolist(), "#9C27B0"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_restos",
     )
 
@@ -245,9 +219,9 @@ with lc1:
         help="Contratos sem licitação acima de R$ 62.725,59 (bens e serviços). [Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)",
     )
     st.plotly_chart(
-        _sparkline(anos, _bidding_counts_list, "#E91E63"),
+        sparkline(anos, _bidding_counts_list, "#E91E63"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_acima",
     )
 
@@ -265,9 +239,9 @@ with lc2:
         help=glossary.tooltip("Adesão de Ata (Carona)"),
     )
     st.plotly_chart(
-        _sparkline(anos, _adesao_counts_list, "#FF9800"),
+        sparkline(anos, _adesao_counts_list, "#FF9800"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_adesao",
     )
 
@@ -285,9 +259,9 @@ with lc3:
         help="Empenhos cuja justificativa contábil referencia um Termo de Adesão Externa a Ata de Registro de Preços de outro ente.",
     )
     st.plotly_chart(
-        _sparkline(anos, _adesao_ext_counts_list, "#9C27B0"),
+        sparkline(anos, _adesao_ext_counts_list, "#9C27B0"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_ext",
     )
 
@@ -305,9 +279,9 @@ with lc4:
         help="Contratos do mesmo fornecedor com valores próximos ao limite de dispensa (R$ 62.725,59), sugerindo possível fracionamento.",
     )
     st.plotly_chart(
-        _sparkline(anos, _splitting_counts_list, "#F44336"),
+        sparkline(anos, _splitting_counts_list, "#F44336"),
         use_container_width=True,
-        config=_spark_cfg,
+        config=SPARK_CFG,
         key="spark_lc_split",
     )
 
@@ -327,15 +301,15 @@ if not unpaid_df.empty:
         st.metric(
             "Total a Pagar a Fornecedores",
             fmt_compact(total_pendente),
-            delta=_pct_delta(_trend_vals),
+            delta=pct_delta(_trend_vals),
             delta_color="inverse",
             help="Soma de todos os empenhos ainda não quitados na tabela de Restos a Pagar.",
         )
         if _trend_vals:
             st.plotly_chart(
-                _sparkline(_trend_anos, _trend_vals, "#E91E63"),
+                sparkline(_trend_anos, _trend_vals, "#E91E63"),
                 use_container_width=True,
-                config=_spark_cfg,
+                config=SPARK_CFG,
                 key="spark_rp_total",
             )
 
@@ -343,15 +317,15 @@ if not unpaid_df.empty:
         st.metric(
             "Fornecedores aguardando",
             num_fornecedores,
-            delta=_pct_delta(_trend_count),
+            delta=pct_delta(_trend_count),
             delta_color="inverse",
             help="Número de fornecedores com pelo menos um empenho não totalmente pago.",
         )
         if _trend_count:
             st.plotly_chart(
-                _sparkline(_trend_anos, _trend_count, "#FF5722"),
+                sparkline(_trend_anos, _trend_count, "#FF5722"),
                 use_container_width=True,
-                config=_spark_cfg,
+                config=SPARK_CFG,
                 key="spark_rp_count",
             )
 
