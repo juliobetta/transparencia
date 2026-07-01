@@ -15,6 +15,7 @@ dependencies = [
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.0",
     "alembic>=1.13",
+    "fpdf2>=2.7",
 ]
 
 [dependency-groups]

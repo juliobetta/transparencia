@@ -37,12 +37,32 @@ def _adesao_externa(conn, year, _extracted_at):
     return adesao_de_ata.run_external(conn, year, empresa_id="2")
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _pdf(conn, year, _extracted_at):
+    from report.saude_pdf import generate as generate_pdf
+
+    return generate_pdf(conn, year)
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
-st.title("Fundo Municipal de Saúde")
-st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+title_col, btn_col = st.columns([8, 2])
+with title_col:
+    st.title("Fundo Municipal de Saúde")
+    st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+with btn_col:
+    st.write("")
+    st.write("")
+    pdf_bytes = _pdf(conn, year, _extracted_at)
+    st.download_button(
+        label="⬇ Baixar PDF",
+        data=pdf_bytes,
+        file_name=f"saude-{year}.pdf",
+        mime="application/pdf",
+        use_container_width=True,
+    )
 
 data = _health(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
@@ -195,6 +215,8 @@ if not trend.empty:
         title="Fundo de Saúde — Empenhado por Ano",
         labels={"ano": "Ano", "empenhado": "Empenhado"},
     )
+    fig.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.0f}<extra></extra>")
+    fig.update_layout(yaxis=dict(tickprefix="R$ ", tickformat=",.0f"))
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.plotly_chart(fig, width="stretch")
@@ -228,9 +250,12 @@ c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata
 
 if not data["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
+        _ata_df = data["adesao_de_ata_list"].copy()
+        _ata_df["licitacao_valor"] = pd.to_numeric(
+            _ata_df["licitacao_valor"].astype(str).str.replace(",", "."), errors="coerce"
+        )
         st.dataframe(
-            data["adesao_de_ata_list"]
-            .rename(
+            _ata_df.rename(
                 columns={
                     "numero": "Nº Licit.",
                     "objeto": "Objeto",
@@ -240,9 +265,14 @@ if not data["adesao_de_ata_list"].empty:
                     "total_c_empenhado": "Valor Empenhado",
                     "has_contract": "Contrato Associado",
                 }
-            )
-            .drop(columns=["mes", "ano"], errors="ignore"),
+            ).drop(columns=["mes", "ano"], errors="ignore"),
             width="stretch",
+            column_config={
+                "Nº Licit.": None,
+                "Valor Est. Licitação": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Total Contratado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
             hide_index=True,
         )
 
@@ -271,7 +301,10 @@ if not adesao_externa["list"].empty:
                     "num_licitacao": "Nº Licitação",
                 }
             ),
-            column_config={"Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f")},
+            column_config={
+                "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
             width="stretch",
             hide_index=True,
         )
@@ -480,26 +513,3 @@ elif not pharma_jud["detail"].empty:
 
 st.divider()
 st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
-
-# ── Exportar relatório ───────────────────────────────────────────────────────
-st.subheader("Exportar")
-
-if "saude_report_year" not in st.session_state:
-    st.session_state["saude_report_year"] = None
-
-if st.button("Gerar Relatório HTML"):
-    from report.saude import generate
-
-    path = generate(conn, year)
-    st.session_state["saude_report_year"] = (year, str(path))
-
-if st.session_state["saude_report_year"] is not None:
-    _year, _path = st.session_state["saude_report_year"]
-    with open(_path, "rb") as f:
-        st.download_button(
-            label=f"Baixar relatório {_year} (HTML)",
-            data=f,
-            file_name=f"saude-{_year}.html",
-            mime="text/html",
-            key="download_saude_report",
-        )
