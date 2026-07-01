@@ -172,7 +172,17 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
             row.cell(_fmt_brl(float(r.get("empenhado", 0) or 0)))
             pct = float(r.get("percentual", 0) or 0)
             row.cell(f"{pct:.1f}%")
+    _truncation_note(pdf, len(top_suppliers))
     pdf.ln(5)
+
+
+def _truncation_note(pdf: FPDF, total: int, shown: int = 10) -> None:
+    if total > shown:
+        pdf.set_font("NotoSans", "I", 8)
+        pdf.set_text_color(*GRAY_TEXT)
+        pdf.cell(0, 5, f"Exibindo os {shown} primeiros de {total} registros.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(1)
 
 
 def _valcon_float(r: pd.Series) -> float:
@@ -194,6 +204,7 @@ def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: list[flo
             row.cell(str(r.get("objeto", "")))
             row.cell(str(r.get("modali", "") or ""))
             row.cell(_fmt_brl(_valcon_float(r)))
+    _truncation_note(pdf, len(rows))
 
 
 def _draw_alertas_section(
@@ -303,6 +314,7 @@ def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial
             row.cell(str(r.get("fornecedor", "")))
             row.cell(str(r.get("descricao", "")))
             row.cell(_fmt_brl(float(r.get("total", 0) or 0)))
+    _truncation_note(pdf, len(detail))
     pdf.ln(5)
 
 
