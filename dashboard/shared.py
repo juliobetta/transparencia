@@ -10,7 +10,8 @@ from streamlit.connections import SQLConnection
 import db
 import glossary
 
-YEARS = list(range(2022, date.today().year + 1))
+CURRENT_YEAR = date.today().year
+YEARS = list(range(2022, CURRENT_YEAR + 1))
 CIDADE_CLEAN = "PORCIUNCULA"  # TODO: move this to .env, keeping a default value
 
 

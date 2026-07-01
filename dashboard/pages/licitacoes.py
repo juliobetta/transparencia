@@ -60,10 +60,46 @@ st.info(
 
 st.subheader("Resumo")
 c1, c2, c3, c4 = st.columns(4)
-c1.metric(f"Acima do limite legal ({_threshold_fmt})", len(acima))
-c2.metric("Total sem processo licitatório", len(gaps))
-c3.metric("Adesões de Ata (licitações)", adesao["count"])
-c4.metric("Empenhos via Ata Externa", adesao_externa["count"])
+c1.metric(
+    f"Acima do limite legal ({_threshold_fmt})",
+    len(acima),
+    help=(
+        f"Número de contratos firmados sem licitação cujo valor ultrapassa {_threshold_fmt} — "
+        "o teto legal para dispensa em compras e serviços gerais (Decreto nº 12.807/2025). "
+        "Acima desse valor, a lei exige processo licitatório formal com publicação e concorrência. "
+        "Cada item listado merece análise da justificativa oficial do processo."
+    ),
+)
+c2.metric(
+    "Total sem processo licitatório",
+    len(gaps),
+    help=(
+        "Total de contratos identificados sem número de licitação associado. Nem todos são "
+        "irregulares — a lei permite contratação direta por dispensa (baixo valor, emergência) "
+        "ou inexigibilidade (fornecedor exclusivo, profissional notório). O número alto é um "
+        "ponto de atenção, não uma irregularidade automática."
+    ),
+)
+c3.metric(
+    "Adesões de Ata (licitações)",
+    adesao["count"],
+    help=(
+        "Quantidade de contratos firmados por adesão à Ata de Registro de Preços — mecanismo "
+        "em que a prefeitura aproveita uma licitação já realizada por ela mesma para novas "
+        "compras, sem precisar abrir um novo processo. É uma forma legal e eficiente de "
+        "contratar, desde que respeitados os limites de quantidade e vigência da ata."
+    ),
+)
+c4.metric(
+    "Empenhos via Ata Externa",
+    adesao_externa["count"],
+    help=(
+        "Empenhos identificados como 'carona em ata' — a prefeitura utilizou uma Ata de "
+        "Registro de Preços aberta por outro ente público (outro município, estado ou órgão "
+        "federal) para realizar a contratação. O chamado 'carona' é permitido pela Lei "
+        "14.133/2021, mas exige autorização formal do órgão gerenciador da ata."
+    ),
+)
 
 # Fix gap table
 gaps_display = gaps.rename(
