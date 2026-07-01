@@ -79,6 +79,11 @@ def test_generate_produces_non_trivial_pdf(health_conn):
     assert len(result) > 5_000
 
 
+def test_generate_with_orcamento_section_is_larger(health_conn):
+    result = generate(health_conn, 2024)
+    assert len(result) > 20_000
+
+
 def test_generate_handles_missing_metadata(conn):
     """Test that generate uses 'desconhecida' when no metadata is set."""
     db.upsert(
