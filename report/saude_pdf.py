@@ -13,6 +13,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd
 from fpdf import FPDF
+from fpdf.fonts import FontFace
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -109,6 +110,70 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
     pdf.ln(5)
 
 
+def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float) -> None:
+    _section_header(pdf, "2. EMENDAS PARLAMENTARES")
+    if emendas_total <= 0:
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.cell(0, 6, "Sem emendas parlamentares registradas.", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+        return
+
+    _metric_row(pdf, [("Total Recebido (Valor Autorizado)", _fmt_brl(emendas_total))])
+
+    if emendas.empty:
+        pdf.ln(2)
+        return
+
+    headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
+    with pdf.table(
+        col_widths=[65, 65, 27, 23],
+        headings_style=headings_style,
+        line_height=5,
+        first_row_as_headings=True,
+    ) as table:
+        hdr = table.row()
+        for col in ["Autor", "Ato Normativo", "Autorizado (R$)", "Empenhado (R$)"]:
+            hdr.cell(col)
+        for _, r in emendas.iterrows():
+            row = table.row()
+            row.cell(str(r.get("Autor", "")))
+            row.cell(str(r.get("Ato Normativo", "")))
+            row.cell(_fmt_brl(float(r.get("Valor Autorizado", 0) or 0)))
+            emp = r.get("Empenhado")
+            row.cell(_fmt_brl(float(emp)) if pd.notna(emp) and emp else "-")
+    pdf.ln(5)
+
+
+def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: float) -> None:
+    _section_header(pdf, "3. FORNECEDORES & CONCENTRAÇÃO DE MERCADO")
+    hhi_label = "baixo" if hhi < 1500 else ("moderado" if hhi < 2500 else "alto")
+    _metric_row(pdf, [("Indice HHI (concentracao de mercado)", f"{hhi:,.0f} - {hhi_label}")])
+
+    if top_suppliers.empty:
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.cell(0, 6, "Sem dados de fornecedores.", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(4)
+        return
+
+    headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
+    with pdf.table(
+        col_widths=[100, 45, 35],
+        headings_style=headings_style,
+        line_height=5,
+        first_row_as_headings=True,
+    ) as table:
+        hdr = table.row()
+        for col in ["Fornecedor", "Empenhado (R$)", "% do Total"]:
+            hdr.cell(col)
+        for _, r in top_suppliers.head(10).iterrows():
+            row = table.row()
+            row.cell(str(r.get("descricao", "")))
+            row.cell(_fmt_brl(float(r.get("empenhado", 0) or 0)))
+            pct = float(r.get("percentual", 0) or 0)
+            row.cell(f"{pct:.1f}%")
+    pdf.ln(5)
+
+
 class _SaudePDF(FPDF):
     def __init__(self, year: int, last_extracted: str) -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
@@ -156,5 +221,7 @@ def generate(conn: Any, year: int) -> bytes:
     pdf.add_page()
 
     _draw_orcamento_section(pdf, data["budget"], data["budget_trend"])
+    _draw_emendas_section(pdf, data["emendas"], data["emendas_total"])
+    _draw_fornecedores_section(pdf, data["top_suppliers"], data["hhi"])
 
     return bytes(pdf.output())

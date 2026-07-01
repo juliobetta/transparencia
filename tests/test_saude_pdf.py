@@ -84,6 +84,39 @@ def test_generate_with_orcamento_section_is_larger(health_conn):
     assert len(result) > 20_000
 
 
+@pytest.fixture
+def full_health_conn(health_conn):
+    db.upsert(
+        health_conn,
+        "emendas_cad",
+        [
+            {
+                "ano": 2024,
+                "empresa": SAUDE,
+                "numero": "E001",
+                "numero_emenda": "E001",
+                "resumo": "AQUISICAO DE MEDICAMENTOS",
+                "valor_total": "500000",
+                "empenhado": "450000",
+                "autor": "Dep. Maria Silva",
+                "tipo_emenda_descr": "Individual",
+                "esfera_origem": "Federal",
+                "ato_normativo": "LEI 12345/2024",
+                "destinacao_descr": "Saúde",
+            }
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    return health_conn
+
+
+def test_generate_with_emendas_and_fornecedores(full_health_conn):
+    result = generate(full_health_conn, 2024)
+    assert isinstance(result, bytes)
+    assert result[:4] == b"%PDF"
+    assert len(result) > 25_000
+
+
 def test_generate_handles_missing_metadata(conn):
     """Test that generate uses 'desconhecida' when no metadata is set."""
     db.upsert(
