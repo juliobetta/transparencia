@@ -9,7 +9,7 @@ SAUDE_EMPRESA = "2"
 
 
 def counts_by_year(conn: Any, years: list[int]) -> dict[int, int]:
-    """Return {year: count_above_limit} using the per-contract applicable threshold."""
+    """Retorna {ano: contagem_acima_do_limite} usando o limite aplicável por contrato."""
     placeholders = ", ".join(str(y) for y in years)
     df = pd.read_sql_query(
         text(

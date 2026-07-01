@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 from .base import BASE_URL, BaseExtractor
 
 
-# Post-processing helper, kept here for now as it's specific to Contratos
+# Auxiliar de pós-processamento, mantido aqui por enquanto, pois é específico para Contratos
 def _post_process_contratos(row: dict) -> dict:
     row.setdefault("numero", row.get("codigo", ""))
     proclic = row.get("proclic", "")
@@ -15,57 +15,57 @@ def _post_process_contratos(row: dict) -> dict:
 
 
 def _post_process_pessoal(row: dict) -> dict:
-    # API sends REGISTRO; model PK uses matricula.
+    # A API envia REGISTRO; a PK do modelo usa matricula.
     if "matricula" not in row or row["matricula"] is None:
         row["matricula"] = row.get("registro")
     return row
 
 
 def _post_process_despesas_extra_orcamentaria(row: dict) -> dict:
-    # API sends NUMEROGUIA; model PK uses numero.
+    # A API envia NUMEROGUIA; a PK do modelo usa numero.
     if "numero" not in row or row["numero"] is None:
         row["numero"] = row.get("numeroguia") or row.get("codigo")
     return row
 
 
 def _post_process_despesas_gerais(row: dict) -> dict:
-    # API sends PKEMP (PK do empenho); model PK uses numero.
+    # A API envia PKEMP (PK do empenho); a PK do modelo usa numero.
     if "numero" not in row or row["numero"] is None:
         row["numero"] = row.get("pkemp") or row.get("codigo")
     return row
 
 
 def _post_process_despesas_restos_pagar(row: dict) -> dict:
-    # API sends CODIGO; model PK uses numero.
+    # A API envia CODIGO; a PK do modelo usa numero.
     if "numero" not in row or row["numero"] is None:
         row["numero"] = row.get("codigo")
     return row
 
 
 def _post_process_diarias(row: dict) -> dict:
-    # ORDEMPAGAMENTO (payment order number) is the most unique per (ano, empresa).
-    # NEMPG is the budget commitment number and repeats across many diária payments.
+    # ORDEMPAGAMENTO (número da ordem de pagamento) é o mais exclusivo por (ano, empresa).
+    # NEMPG é o número do empenho orçamentário e se repete em muitos pagamentos de diárias.
     if "numero" not in row or row["numero"] is None:
         row["numero"] = row.get("ordempagamento") or row.get("nempg")
     return row
 
 
 def _post_process_emendas_cad(row: dict) -> dict:
-    # API sends NUMERO_EMENDA; model PK uses numero.
+    # A API envia NUMERO_EMENDA; a PK do modelo usa numero.
     if "numero" not in row or row["numero"] is None:
         row["numero"] = row.get("numero_emenda") or row.get("pk_ep_emenda")
     return row
 
 
 def _post_process_receita_detalhes(row: dict) -> dict:
-    # API sends NLANC (número de lançamento); model PK uses codigo.
+    # A API envia NLANC (número de lançamento); a PK do modelo usa codigo.
     if "codigo" not in row or row["codigo"] is None:
         row["codigo"] = row.get("nlanc") or row.get("codre")
     return row
 
 
 def _post_process_transferencias(row: dict) -> dict:
-    # DTLAN (data de lançamento) is unique per transfer event and the best natural key.
+    # DTLAN (data de lançamento) é exclusiva por evento de transferência e a melhor chave natural.
     if "codigo" not in row or row["codigo"] is None:
         row["codigo"] = row.get("dtlan") or f"{row.get('mes', '')}-{row.get('cnpjrecebedora', '')}"
     return row
@@ -95,7 +95,7 @@ class PessoalExtractor(BaseExtractor):
         return f"{BASE_URL}{self.base_path}?{urlencode(params)}"
 
 
-# Define the endpoint configurations
+# Define as configurações dos endpoints
 ENDPOINT_CONFIGS = [
     (
         "/Transparencia/VersaoJson/Despesas/",
