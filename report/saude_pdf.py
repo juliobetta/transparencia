@@ -22,6 +22,7 @@ from analysis import health_story
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BRASAO_PATH = ASSETS_DIR / "brasao-porciuncula.svg"
+FONTS_DIR = ASSETS_DIR / "fonts"
 
 BLUE_DARK = (26, 82, 118)
 BLUE_MID = (26, 122, 191)
@@ -37,7 +38,7 @@ def _fmt_brl(value: float) -> str:
 def _section_header(pdf: FPDF, title: str) -> None:
     pdf.set_fill_color(*BLUE_DARK)
     pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_font("NotoSans", "B", 11)
     pdf.cell(0, 8, title, fill=True, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(3)
     pdf.set_text_color(0, 0, 0)
@@ -54,11 +55,11 @@ def _metric_row(pdf: FPDF, cards: list[tuple[str, str]]) -> None:
         x = start_x + i * (w + gap)
         pdf.set_xy(x, start_y)
         pdf.set_fill_color(*GRAY_LIGHT)
-        pdf.set_font("Helvetica", "", 8)
+        pdf.set_font("NotoSans", "", 8)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(w, 6, label, fill=True, new_x="RIGHT", new_y="TOP")
         pdf.set_xy(x, start_y + 6)
-        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_font("NotoSans", "B", 12)
         pdf.set_text_color(*BLUE_DARK)
         pdf.cell(w, 8, value, fill=True)
 
@@ -101,7 +102,7 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
     )
     if budget.get("flag_under_execution"):
         pdf.set_fill_color(*WARN_BG)
-        pdf.set_font("Helvetica", "", 9)
+        pdf.set_font("NotoSans", "", 9)
         pdf.multi_cell(0, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
         pdf.ln(3)
     if not budget_trend.empty and len(budget_trend) >= 2:
@@ -113,7 +114,7 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
 def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float) -> None:
     _section_header(pdf, "2. EMENDAS PARLAMENTARES")
     if emendas_total <= 0:
-        pdf.set_font("Helvetica", "I", 9)
+        pdf.set_font("NotoSans", "I", 9)
         pdf.cell(0, 6, "Sem emendas parlamentares registradas.", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
         return
@@ -147,10 +148,10 @@ def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float
 def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: float) -> None:
     _section_header(pdf, "3. FORNECEDORES & CONCENTRAÇÃO DE MERCADO")
     hhi_label = "baixo" if hhi < 1500 else ("moderado" if hhi < 2500 else "alto")
-    _metric_row(pdf, [("Indice HHI (concentracao de mercado)", f"{hhi:,.0f} - {hhi_label}")])
+    _metric_row(pdf, [("Índice HHI (concentração de mercado)", f"{hhi:,.0f} — {hhi_label}")])
 
     if top_suppliers.empty:
-        pdf.set_font("Helvetica", "I", 9)
+        pdf.set_font("NotoSans", "I", 9)
         pdf.cell(0, 6, "Sem dados de fornecedores.", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
         return
@@ -188,31 +189,31 @@ def _draw_alertas_section(
     splitting_count = splitting["fornecedor"].nunique() if not splitting.empty else 0
 
     alerts = [
-        (gaps_count, f"Contratos sem licitacao acima do limite: {gaps_count}"),
-        (splitting_count, f"Fornecedores com possivel fracionamento: {splitting_count}"),
-        (adesao_count, f"Adesao de ata (carona): {adesao_count} contratos - {_fmt_brl(adesao_value)}"),
+        (gaps_count, f"Contratos sem licitação acima do limite: {gaps_count}"),
+        (splitting_count, f"Fornecedores com possível fracionamento: {splitting_count}"),
+        (adesao_count, f"Adesão de ata (carona): {adesao_count} contratos — {_fmt_brl(adesao_value)}"),
     ]
 
     has_alert = any(count > 0 for count, _ in alerts)
     if not has_alert:
         pdf.set_fill_color(212, 237, 218)
-        pdf.set_font("Helvetica", "", 9)
-        pdf.multi_cell(0, 6, "Nenhum alerta identificado para o periodo.", fill=True)
+        pdf.set_font("NotoSans", "", 9)
+        pdf.multi_cell(0, 6, "Nenhum alerta identificado para o período.", fill=True)
         pdf.ln(4)
         return
 
     for count, msg in alerts:
         if count > 0:
             pdf.set_fill_color(*WARN_BG)
-            pdf.set_font("Helvetica", "", 9)
-            pdf.multi_cell(0, 6, f"(!)  {msg}", fill=True)
+            pdf.set_font("NotoSans", "", 9)
+            pdf.multi_cell(0, 6, f"[!]  {msg}", fill=True)
             pdf.ln(2)
 
     if not bidding_gaps.empty:
         pdf.ln(2)
-        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_font("NotoSans", "B", 9)
         pdf.set_text_color(0, 0, 0)
-        pdf.cell(0, 5, "Contratos sem licitacao (acima do limite de dispensa):", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 5, "Contratos sem licitação (acima do limite de dispensa):", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(1)
         headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
         with pdf.table(
@@ -237,25 +238,25 @@ def _draw_alertas_section(
 
 
 def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial: dict) -> None:
-    _section_header(pdf, "5. MEDICAMENTOS & INSUMOS FARMACEUTICOS")
+    _section_header(pdf, "5. MEDICAMENTOS & INSUMOS FARMACÊUTICOS")
     _metric_row(
         pdf,
         [
-            ("Total Empenhado (Material Farmaceutico)", _fmt_brl(pharma_empenhos.get("total", 0.0))),
+            ("Total Empenhado (Material Farmacêutico)", _fmt_brl(pharma_empenhos.get("total", 0.0))),
             ("Total em Mandados Judiciais", _fmt_brl(pharma_judicial.get("total", 0.0))),
         ],
     )
 
     detail: pd.DataFrame = pharma_empenhos.get("detail", pd.DataFrame())
     if detail.empty:
-        pdf.set_font("Helvetica", "I", 9)
-        pdf.cell(0, 6, "Sem dados de insumos farmaceuticos.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("NotoSans", "I", 9)
+        pdf.cell(0, 6, "Sem dados de insumos farmacêuticos.", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
         return
 
-    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_font("NotoSans", "B", 9)
     pdf.set_text_color(0, 0, 0)
-    pdf.cell(0, 5, "Top fornecedores de insumos farmaceuticos:", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 5, "Top fornecedores de insumos farmacêuticos:", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
     headings_style = FontFace(fill_color=BLUE_DARK, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
     with pdf.table(
@@ -282,6 +283,9 @@ class _SaudePDF(FPDF):
         self.last_extracted = last_extracted
         self.set_margins(15, 15, 15)
         self.set_auto_page_break(auto=True, margin=20)
+        self.add_font("NotoSans", "", str(FONTS_DIR / "NotoSans-Regular.ttf"))
+        self.add_font("NotoSans", "B", str(FONTS_DIR / "NotoSans-Bold.ttf"))
+        self.add_font("NotoSans", "I", str(FONTS_DIR / "NotoSans-Italic.ttf"))
 
     def header(self) -> None:
         if BRASAO_PATH.exists():
@@ -290,15 +294,15 @@ class _SaudePDF(FPDF):
             except Exception:
                 pass
         self.set_xy(40, 10)
-        self.set_font("Helvetica", "B", 14)
+        self.set_font("NotoSans", "B", 14)
         self.set_text_color(*BLUE_DARK)
-        self.cell(0, 7, f"Fundo Municipal de Sa\xfade \x96 {self.year}", new_x="LMARGIN", new_y="NEXT")
+        self.cell(0, 7, f"Fundo Municipal de Saúde — {self.year}", new_x="LMARGIN", new_y="NEXT")
         self.set_xy(40, 17)
-        self.set_font("Helvetica", "", 10)
+        self.set_font("NotoSans", "", 10)
         self.set_text_color(*GRAY_TEXT)
         self.cell(0, 5, "Município de Porciúncula / RJ", new_x="LMARGIN", new_y="NEXT")
         self.set_xy(40, 22)
-        self.set_font("Helvetica", "", 9)
+        self.set_font("NotoSans", "", 9)
         self.cell(0, 5, f"Dados extraídos em: {self.last_extracted}", new_x="LMARGIN", new_y="NEXT")
         self.set_draw_color(*BLUE_DARK)
         self.line(15, 36, 195, 36)
@@ -307,7 +311,7 @@ class _SaudePDF(FPDF):
 
     def footer(self) -> None:
         self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
+        self.set_font("NotoSans", "I", 8)
         self.set_text_color(*GRAY_TEXT)
         now = datetime.now().strftime("%d/%m/%Y %H:%M")
         self.cell(0, 10, f"Gerado em: {now}   |   Página {self.page_no()}", align="C")
