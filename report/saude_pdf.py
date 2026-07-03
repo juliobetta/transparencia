@@ -361,11 +361,18 @@ class _SaudePDF(FPDF):
         self.set_text_color(0, 0, 0)
 
     def footer(self) -> None:
-        self.set_y(-15)
-        self.set_font("NotoSans", "I", 8)
+        self.set_y(-25)
+        self.set_font("NotoSans", "I", 7)
         self.set_text_color(*GRAY_TEXT)
+        self.multi_cell(
+            0,
+            4,
+            "Aviso Legal: Estes dados são extraídos de fontes públicas para fins informativos. As informações podem sofrer atualizações e não substituem os documentos oficiais das entidades. Consulte sempre o portal oficial do ente.",
+            align="C",
+        )
+        self.ln(2)
         now = datetime.now().strftime("%d/%m/%Y %H:%M")
-        self.cell(0, 10, f"Gerado em: {now}   |   Página {self.page_no()}", align="C")
+        self.cell(0, 5, f"Gerado em: {now}   |   Página {self.page_no()}", align="C")
 
 
 def generate(conn: Any, year: int) -> bytes:

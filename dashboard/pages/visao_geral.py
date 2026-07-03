@@ -570,7 +570,3 @@ with st.expander(":material/bar_chart: Dados detalhados por ano"):
             "Δ% Restos": st.column_config.NumberColumn(format="%.2f%%"),
         },
     )
-
-st.info(
-    f":material/link: Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})"
-)

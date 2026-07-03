@@ -9,7 +9,6 @@ import streamlit as st
 from streamlit.connections import SQLConnection
 
 import db
-import glossary
 
 CURRENT_YEAR = date.today().year
 YEARS = list(range(2022, CURRENT_YEAR + 1))
@@ -31,11 +30,10 @@ def render_sidebar() -> int:
     if _last_extracted:
         fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
         _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
-    st.sidebar.markdown(
-        f"### :material/link: Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
-        unsafe_allow_html=True,
+    st.sidebar.markdown("----")
+    st.sidebar.info(
+        "**Aviso Legal**: Dados extraídos de fontes públicas para fins informativos. Não substituem documentos oficiais. Consulte sempre o [portal oficial](https://transparencia.porciuncula.rj.gov.br/)."
     )
-    st.sidebar.markdown("---")
     st.sidebar.caption(
         f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
     )
