@@ -44,56 +44,57 @@ c2.metric("Total Empenhado", fmt_compact(totals["total_empenhado"]), help=glossa
 c3.metric("Total Liquidado", fmt_compact(totals["total_liquidado"]), help=glossary.tooltip("Liquidação"))
 c4.metric("Total Pago", fmt_compact(totals["total_pago"]), help=glossary.tooltip("Pagamento"))
 
-# Chart
-view_option = st.radio("Escolha a visão:", ["Órgão", "Função"])
+# Funnel Chart (Órgão)
+summary_data = pd.DataFrame(
+    {
+        "Estágio": ["Dotação", "Empenhado", "Liquidado", "Pago"],
+        "Valor": [
+            totals["total_dotacao"],
+            totals["total_empenhado"],
+            totals["total_liquidado"],
+            totals["total_pago"],
+        ],
+        "ValorFormatado": [
+            fmt_currency(totals["total_dotacao"]),
+            fmt_currency(totals["total_empenhado"]),
+            fmt_currency(totals["total_liquidado"]),
+            fmt_currency(totals["total_pago"]),
+        ],
+    }
+)
+fig_funnel = px.funnel(
+    summary_data,
+    x="Valor",
+    y="Estágio",
+    text="ValorFormatado",
+    title="Funil da Execução Orçamentária",
+)
+fig_funnel.update_traces(
+    textposition="inside",
+    texttemplate="%{text}",
+    hovertemplate="Estágio: %{y}<br>Valor: %{text}<extra></extra>",
+)
+st.plotly_chart(fig_funnel, use_container_width=True)
 
-if view_option == "Órgão":
-    summary_data = pd.DataFrame(
-        {
-            "Estágio": ["Dotação", "Empenhado", "Liquidado", "Pago"],
-            "Valor": [
-                totals["total_dotacao"],
-                totals["total_empenhado"],
-                totals["total_liquidado"],
-                totals["total_pago"],
-            ],
-            "ValorFormatado": [
-                fmt_currency(totals["total_dotacao"]),
-                fmt_currency(totals["total_empenhado"]),
-                fmt_currency(totals["total_liquidado"]),
-                fmt_currency(totals["total_pago"]),
-            ],
-        }
-    )
-    fig = px.funnel(
-        summary_data,
-        x="Valor",
-        y="Estágio",
-        text="ValorFormatado",
-        title="Funil da Execução Orçamentária",
-        subtitle="O funil abaixo mostra a jornada do dinheiro público: do planejamento (Dotação) até o pagamento efetivo (Pagamento). Nem tudo o que é planejado é empenhado, e nem tudo o que é empenhado vira pagamento.",
-    )
-    fig.update_traces(
-        textposition="inside",
-        texttemplate="%{text}",
-        hovertemplate="Estágio: %{y}<br>Valor: %{text}<extra></extra>",
-    )
-    st.plotly_chart(fig, width="stretch")
-else:
-    df_func = functional_budget.get_functional_budget(conn, year)
-    df_func["ValorFormatado"] = df_func["pago"].apply(fmt_currency)
-    fig = px.sunburst(
-        df_func,
-        path=["funcaonome", "subfuncaonome"],
-        values="pago",
-        title="Execução Orçamentária por Função (Valor Pago)",
-        hover_data=["ValorFormatado"],
-    )
-    fig.update_traces(
-        hovertemplate="<b>%{label}</b><br>Valor Pago: %{customdata[0]}<extra></extra>",
-    )
-    st.plotly_chart(fig, width="stretch")
+# Bar Chart (Função)
+st.markdown("---")
+df_func = functional_budget.get_functional_budget(conn, year)
+df_func_summary = df_func.groupby("funcaonome")["pago"].sum().reset_index().sort_values("pago", ascending=True)
+df_func_summary["ValorFormatado"] = df_func_summary["pago"].apply(fmt_currency)
 
+fig_bar = px.bar(
+    df_func_summary,
+    x="pago",
+    y="funcaonome",
+    orientation="h",
+    title="Execução Orçamentária por Função (Valor Pago)",
+    labels={"pago": "Pago (R$)", "funcaonome": "Função"},
+    text="ValorFormatado",
+)
+fig_bar.update_traces(textposition="outside")
+st.plotly_chart(fig_bar, use_container_width=True)
+
+st.subheader("Detalhamento por Órgão")
 st.dataframe(
     df[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
         columns={
@@ -110,6 +111,21 @@ st.dataframe(
         "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
         "Dotação": st.column_config.NumberColumn(format="R$ %,.2f"),
         "Taxa de Execução": st.column_config.NumberColumn(format="%.2f%%"),
+    },
+)
+
+st.subheader("Detalhamento por Função")
+st.dataframe(
+    df_func_summary[["funcaonome", "pago"]].rename(
+        columns={
+            "funcaonome": "Função",
+            "pago": "Total Pago",
+        }
+    ),
+    width="stretch",
+    hide_index=True,
+    column_config={
+        "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
     },
 )
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
