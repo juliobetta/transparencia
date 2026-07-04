@@ -1,5 +1,7 @@
 from urllib.parse import urlencode
 
+from utils.masking import is_cpf, mask_cpf, mask_name
+
 from .base import BASE_URL, BaseExtractor
 
 
@@ -18,6 +20,16 @@ def _post_process_pessoal(row: dict) -> dict:
     # A API envia REGISTRO; a PK do modelo usa matricula.
     if "matricula" not in row or row["matricula"] is None:
         row["matricula"] = row.get("registro")
+    return row
+
+
+def _post_process_fornecedor(row: dict) -> dict:
+    """Aplica anonimização se o campo INSMF for um CPF."""
+    documento = row.get("INSMF", "")
+    if is_cpf(documento):
+        row["INSMF"] = mask_cpf(documento)
+        if "DESCRICAO" in row:
+            row["DESCRICAO"] = mask_name(row["DESCRICAO"])
     return row
 
 
@@ -120,6 +132,7 @@ ENDPOINT_CONFIGS = [
         ["ano", "empresa", "codigo"],
         {"MostrarFornecedor": "True", "MostraDadosConsolidado": "False"},
         DespesasExtractor,
+        _post_process_fornecedor,
     ),
     (
         "/Transparencia/VersaoJson/Despesas/",
