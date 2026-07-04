@@ -18,7 +18,7 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import budget_execution
+from analysis import budget_execution, functional_budget
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -45,32 +45,49 @@ c3.metric("Total Liquidado", fmt_compact(totals["total_liquidado"]), help=glossa
 c4.metric("Total Pago", fmt_compact(totals["total_pago"]), help=glossary.tooltip("Pagamento"))
 
 # Chart
-summary_data = pd.DataFrame(
-    {
-        "Estágio": ["Dotação", "Empenhado", "Liquidado", "Pago"],
-        "Valor": [totals["total_dotacao"], totals["total_empenhado"], totals["total_liquidado"], totals["total_pago"]],
-        "ValorFormatado": [
-            fmt_currency(totals["total_dotacao"]),
-            fmt_currency(totals["total_empenhado"]),
-            fmt_currency(totals["total_liquidado"]),
-            fmt_currency(totals["total_pago"]),
-        ],
-    }
-)
-fig = px.funnel(
-    summary_data,
-    x="Valor",
-    y="Estágio",
-    text="ValorFormatado",
-    title="Funil da Execução Orçamentária",
-    subtitle="O funil abaixo mostra a jornada do dinheiro público: do planejamento (Dotação) até o pagamento efetivo (Pagamento). Nem tudo o que é planejado é empenhado, e nem tudo o que é empenhado vira pagamento.",
-)
-fig.update_traces(
-    textposition="inside",
-    texttemplate="%{text}",
-    hovertemplate="Estágio: %{y}<br>Valor: %{text}<extra></extra>",
-)
-st.plotly_chart(fig, width="stretch")
+view_option = st.radio("Escolha a visão:", ["Órgão", "Função"])
+
+if view_option == "Órgão":
+    summary_data = pd.DataFrame(
+        {
+            "Estágio": ["Dotação", "Empenhado", "Liquidado", "Pago"],
+            "Valor": [
+                totals["total_dotacao"],
+                totals["total_empenhado"],
+                totals["total_liquidado"],
+                totals["total_pago"],
+            ],
+            "ValorFormatado": [
+                fmt_currency(totals["total_dotacao"]),
+                fmt_currency(totals["total_empenhado"]),
+                fmt_currency(totals["total_liquidado"]),
+                fmt_currency(totals["total_pago"]),
+            ],
+        }
+    )
+    fig = px.funnel(
+        summary_data,
+        x="Valor",
+        y="Estágio",
+        text="ValorFormatado",
+        title="Funil da Execução Orçamentária",
+        subtitle="O funil abaixo mostra a jornada do dinheiro público: do planejamento (Dotação) até o pagamento efetivo (Pagamento). Nem tudo o que é planejado é empenhado, e nem tudo o que é empenhado vira pagamento.",
+    )
+    fig.update_traces(
+        textposition="inside",
+        texttemplate="%{text}",
+        hovertemplate="Estágio: %{y}<br>Valor: %{text}<extra></extra>",
+    )
+    st.plotly_chart(fig, width="stretch")
+else:
+    df_func = functional_budget.get_functional_budget(conn, year)
+    fig = px.sunburst(
+        df_func,
+        path=["funcaonome", "subfuncaonome"],
+        values="pago",
+        title="Execução Orçamentária por Função (Valor Pago)",
+    )
+    st.plotly_chart(fig, width="stretch")
 
 st.dataframe(
     df[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
