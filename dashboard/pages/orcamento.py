@@ -92,6 +92,7 @@ fig_bar = px.bar(
     text="ValorFormatado",
 )
 fig_bar.update_traces(textposition="outside")
+fig_bar.update_layout(margin=dict(r=150))
 st.plotly_chart(fig_bar, use_container_width=True)
 
 st.subheader("Detalhamento por Órgão")
