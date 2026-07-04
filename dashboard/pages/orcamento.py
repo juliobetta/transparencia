@@ -81,11 +81,16 @@ if view_option == "Órgão":
     st.plotly_chart(fig, width="stretch")
 else:
     df_func = functional_budget.get_functional_budget(conn, year)
+    df_func["ValorFormatado"] = df_func["pago"].apply(fmt_currency)
     fig = px.sunburst(
         df_func,
         path=["funcaonome", "subfuncaonome"],
         values="pago",
         title="Execução Orçamentária por Função (Valor Pago)",
+        hover_data=["ValorFormatado"],
+    )
+    fig.update_traces(
+        hovertemplate="<b>%{label}</b><br>Valor Pago: %{customdata[0]}<extra></extra>",
     )
     st.plotly_chart(fig, width="stretch")
 
