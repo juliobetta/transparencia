@@ -91,8 +91,8 @@ fig_bar = px.bar(
     labels={"pago": "Pago (R$)", "funcaonome": "Função"},
     text="ValorFormatado",
 )
-fig_bar.update_traces(textposition="outside")
-fig_bar.update_layout(margin=dict(r=350))
+fig_bar.update_traces(textposition="auto")
+fig_bar.update_layout(margin=dict(r=50))
 st.plotly_chart(fig_bar, use_container_width=True)
 
 st.subheader("Detalhamento por Órgão")
