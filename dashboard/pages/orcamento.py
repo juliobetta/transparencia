@@ -76,27 +76,6 @@ fig_funnel.update_traces(
 )
 st.plotly_chart(fig_funnel, use_container_width=True)
 
-# Bar Chart (Função)
-st.markdown("---")
-df_func = functional_budget.get_functional_budget(conn, year)
-df_func_summary = df_func.groupby("funcaonome")["pago"].sum().reset_index().sort_values("pago", ascending=True)
-df_func_summary["ValorFormatado"] = df_func_summary["pago"].apply(fmt_currency)
-
-fig_bar = px.bar(
-    df_func_summary,
-    x="pago",
-    y="funcaonome",
-    orientation="h",
-    title="Execução Orçamentária por Função (Valor Pago)",
-    labels={"pago": "Pago (R$)", "funcaonome": "Função"},
-    text="ValorFormatado",
-)
-fig_bar.update_traces(textposition="auto")
-fig_bar.update_layout(margin=dict(r=50))
-st.plotly_chart(fig_bar, use_container_width=True)
-
-st.markdown("---")
-
 with st.expander("Ver Detalhamento por Órgão"):
     st.dataframe(
         df[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
@@ -117,14 +96,35 @@ with st.expander("Ver Detalhamento por Órgão"):
         },
     )
 
+# Bar Chart (Função)
+st.markdown("---")
+df_func = functional_budget.get_functional_budget(conn, year)
+df_func_summary = df_func.groupby("funcaonome")["pago"].sum().reset_index().sort_values("pago", ascending=True)
+df_func_summary["ValorFormatado"] = df_func_summary["pago"].apply(fmt_currency)
+
+fig_bar = px.bar(
+    df_func_summary,
+    x="pago",
+    y="funcaonome",
+    orientation="h",
+    title="Execução Orçamentária por Função (Valor Pago)",
+    labels={"pago": "Pago (R$)", "funcaonome": "Função"},
+    text="ValorFormatado",
+)
+fig_bar.update_traces(textposition="auto")
+fig_bar.update_layout(margin=dict(r=50))
+st.plotly_chart(fig_bar, use_container_width=True)
+
 with st.expander("Ver Detalhamento por Função"):
     st.dataframe(
-        df_func_summary[["funcaonome", "pago"]].rename(
+        df_func_summary[["funcaonome", "pago"]]
+        .rename(
             columns={
                 "funcaonome": "Função",
                 "pago": "Total Pago",
             }
-        ),
+        )
+        .sort_values(by="Total Pago", ascending=False),
         width="stretch",
         hide_index=True,
         column_config={
