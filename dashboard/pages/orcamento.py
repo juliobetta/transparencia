@@ -95,38 +95,41 @@ fig_bar.update_traces(textposition="auto")
 fig_bar.update_layout(margin=dict(r=50))
 st.plotly_chart(fig_bar, use_container_width=True)
 
-st.subheader("Detalhamento por Órgão")
-st.dataframe(
-    df[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
-        columns={
-            "descricao": "Órgão",
-            "empenhado": "Empenhado",
-            "dotacao_atualizada": "Dotação",
-            "taxa_execucao": "Taxa de Execução",
-            "alerta": "Situação",
-        }
-    ),
-    width="stretch",
-    hide_index=True,
-    column_config={
-        "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
-        "Dotação": st.column_config.NumberColumn(format="R$ %,.2f"),
-        "Taxa de Execução": st.column_config.NumberColumn(format="%.2f%%"),
-    },
-)
+st.markdown("---")
 
-st.subheader("Detalhamento por Função")
-st.dataframe(
-    df_func_summary[["funcaonome", "pago"]].rename(
-        columns={
-            "funcaonome": "Função",
-            "pago": "Total Pago",
-        }
-    ),
-    width="stretch",
-    hide_index=True,
-    column_config={
-        "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-    },
-)
+with st.expander("Ver Detalhamento por Órgão"):
+    st.dataframe(
+        df[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
+            columns={
+                "descricao": "Órgão",
+                "empenhado": "Empenhado",
+                "dotacao_atualizada": "Dotação",
+                "taxa_execucao": "Taxa de Execução",
+                "alerta": "Situação",
+            }
+        ),
+        width="stretch",
+        hide_index=True,
+        column_config={
+            "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Dotação": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Taxa de Execução": st.column_config.NumberColumn(format="%.2f%%"),
+        },
+    )
+
+with st.expander("Ver Detalhamento por Função"):
+    st.dataframe(
+        df_func_summary[["funcaonome", "pago"]].rename(
+            columns={
+                "funcaonome": "Função",
+                "pago": "Total Pago",
+            }
+        ),
+        width="stretch",
+        hide_index=True,
+        column_config={
+            "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+        },
+    )
+
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
