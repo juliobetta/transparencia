@@ -7,12 +7,14 @@ from sqlalchemy import text
 def run(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
-            "SELECT ano, empresa, codigo, descricao, empenhado, dotacao_atualizada FROM despesas_por_orgao WHERE ano = :ano"
+            "SELECT ano, empresa, codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_orgao WHERE ano = :ano"
         ),
         conn,
         params={"ano": year},
     )
     df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
     df["dotacao_atualizada"] = pd.to_numeric(df["dotacao_atualizada"].str.replace(",", "."), errors="coerce").fillna(0)
     df["taxa_execucao"] = df.apply(
         lambda r: r["empenhado"] / r["dotacao_atualizada"] if r["dotacao_atualizada"] > 0 else 0,
@@ -32,8 +34,12 @@ def run(conn: Any, year: int) -> pd.DataFrame:
 def summarize(df: pd.DataFrame) -> dict:
     total_dotacao = float(df["dotacao_atualizada"].sum())
     total_empenhado = float(df["empenhado"].sum())
+    total_liquidado = float(df["liquidado"].sum())
+    total_pago = float(df["pago"].sum())
     return {
         "total_empenhado": total_empenhado,
+        "total_liquidado": total_liquidado,
+        "total_pago": total_pago,
         "total_dotacao": total_dotacao,
         "saldo_orcamentario": total_dotacao - total_empenhado,
     }

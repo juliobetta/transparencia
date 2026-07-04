@@ -77,3 +77,15 @@ def test_flags_normal(conn):
     df = run(conn, 2025)
     cultura = df[df["codigo"] == "03"].iloc[0]
     assert cultura["alerta"] == "normal"
+
+
+def test_summarize(conn):
+    from analysis.budget_execution import summarize
+
+    df = run(conn, 2025)
+    summary = summarize(df)
+    assert summary["total_dotacao"] == 1500000.0
+    assert summary["total_empenhado"] == 950000.0
+    assert summary["total_liquidado"] == 890000.0
+    assert summary["total_pago"] == 880000.0
+    assert summary["saldo_orcamentario"] == 550000.0
