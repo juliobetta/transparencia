@@ -2,13 +2,22 @@ import unicodedata
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
+from analysis.constants import (
+    DESPESAS_MAP,
+    ELEMENTO_FOLHA_PESSOAL,
+    ELEMENTO_SUBVENCOES_SOCIAIS,
+    FORNECEDORES_NATUREZA_MAP,
+)
 from dashboard.shared import CIDADE_CLEAN
 
 # Payroll disbursed through department heads — not individual suppliers
-# Covers: "E OUTROS", "E OUTRO", "E OUT.", "e OUTROS", etc.
-_EXCLUDE_E_OUTROS = "AND descricao !~* ' E OUT(ROS?|\\.)'  "
+
+
+def get_elemento_label(elemento: str) -> str:
+    """Retorna o label descritivo para o elemento da despesa."""
+    return DESPESAS_MAP.get(str(elemento), f"Elemento {elemento}")
 
 
 def _sum_col_where(conn: Any, table: str, col: str, year: int) -> float:
@@ -59,33 +68,88 @@ def get_expenses_by_unit(conn: Any, year: int) -> pd.DataFrame:
 
 
 def get_top_suppliers_detailed(conn: Any, year: int) -> pd.DataFrame:
-    df = pd.read_sql_query(
-        text(
-            f"SELECT descricao as fornecedor, insmf, cepci as cidade, empenhado, liquidado, pago FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"
-        ),
-        conn,
-        params={"ano": year},
+    """
+    Retorna um DataFrame detalhado dos principais fornecedores, incluindo informações sobre empenhado, liquidado e pago.
+    """
+    # JOIN para buscar o elemento de despesa associado
+    # Filtro estrito: apenas elementos de FORNECEDORES_NATUREZA_MAP e fornecedores que nao tenham natureza '43' (Subvenções Sociais).
+    sql = text(
+        """
+        SELECT
+            f.descricao as fornecedor,
+            f.insmf,
+            f.cepci as cidade,
+            f.codigo,
+            f.empenhado,
+            f.liquidado,
+            f.pago,
+            MAX(g.produ) as descricao,
+            MAX(g.elemento) as elemento
+        FROM despesas_por_fornecedor f
+        LEFT JOIN despesas_gerais g
+          ON f.ano = g.ano
+          AND f.descricao = g.nomefor
+        WHERE f.ano = :ano
+        AND g.elemento IN :elementos
+        GROUP BY f.descricao, f.insmf, f.cepci, f.codigo, f.empenhado, f.liquidado, f.pago
+        """
+    ).bindparams(
+        bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
     )
+
+    df = pd.read_sql_query(
+        sql,
+        conn,
+        params={
+            "ano": year,
+            "subvencoes_sociais": ELEMENTO_SUBVENCOES_SOCIAIS,
+        },
+    )
+
     if df.empty:
-        return pd.DataFrame(columns=["fornecedor", "insmf", "cidade", "empenhado", "liquidado", "pago"])
+        return pd.DataFrame(
+            columns=[
+                "fornecedor",
+                "insmf",
+                "cidade",
+                "codigo",
+                "elemento",
+                "empenhado",
+                "liquidado",
+                "pago",
+                "descricao",
+            ]
+        )
 
     df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
     df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
     df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
 
     return (
-        df.groupby(["fornecedor", "insmf", "cidade"], as_index=False)[["empenhado", "liquidado", "pago"]]
+        df.groupby(["fornecedor", "insmf", "cidade", "codigo", "elemento"], as_index=False)[
+            ["empenhado", "liquidado", "pago", "descricao"]
+        ]
         .sum()
         .sort_values("pago", ascending=False)
     )
 
 
 def get_local_spending_impact(conn: Any, year: int) -> dict:
-    df = pd.read_sql_query(
-        text(f"SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"),
-        conn,
-        params={"ano": year},
+    sql = text(
+        """
+        SELECT f.cepci as cidade, f.pago
+        FROM despesas_por_fornecedor f
+        LEFT JOIN despesas_gerais g
+          ON f.ano = g.ano
+          AND f.descricao = g.nomefor
+        WHERE f.ano = :ano
+        AND g.elemento IN :elementos
+        """
+    ).bindparams(
+        bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
     )
+
+    df = pd.read_sql_query(sql, conn, params={"ano": year})
     if df.empty:
         return {"local_pago": 0.0, "externo_pago": 0.0, "total_pago": 0.0, "pct_local": 0.0}
 
@@ -113,11 +177,21 @@ def get_local_spending_impact(conn: Any, year: int) -> dict:
 
 
 def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
-    df = pd.read_sql_query(
-        text(f"SELECT cepci as cidade, pago FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"),
-        conn,
-        params={"ano": year},
+    sql = text(
+        """
+        SELECT f.cepci as cidade, f.pago
+        FROM despesas_por_fornecedor f
+        LEFT JOIN despesas_gerais g
+          ON f.ano = g.ano
+          AND f.descricao = g.nomefor
+        WHERE f.ano = :ano
+        AND g.elemento IN :elementos
+        """
+    ).bindparams(
+        bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
     )
+
+    df = pd.read_sql_query(sql, conn, params={"ano": year})
     if df.empty:
         return pd.DataFrame(columns=["cidade", "pago"])
 
@@ -135,7 +209,7 @@ def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
     df.loc[df["cidade_label"].str.fullmatch(r"\d*"), "cidade_label"] = "Não Informado"
     df.loc[df["cidade_clean"] == CIDADE_CLEAN, "cidade_label"] = "Negócios Locais (Porciúncula)"
 
-    by_city = df.groupby("cidade_label", as_index=False)["pago"].sum().sort_values("pago", ascending=False)
+    by_city = df.groupby("cidade_label", as_index=False)["pago"].sum().sort_values("pago", ascending=False)  # type: ignore
 
     local_row = by_city[by_city["cidade_label"] == "Negócios Locais (Porciúncula)"].copy()
     external = by_city[by_city["cidade_label"] != "Negócios Locais (Porciúncula)"].copy()
@@ -157,17 +231,17 @@ def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
 
 
 def get_departmental_payroll(conn: Any, year: int) -> pd.DataFrame:
-    df = pd.read_sql_query(
-        text(
-            "SELECT descricao, pago FROM despesas_por_fornecedor WHERE ano = :ano AND descricao ~* ' E OUT(ROS?|\\.)'"
-        ),
-        conn,
-        params={"ano": year},
-    )
+    # Filtra folha de pessoal (elemento 11) diretamente da despesas_gerais
+    query = text("""
+        SELECT nomefor as descricao, SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) as pago
+        FROM despesas_gerais
+        WHERE ano = :ano AND elemento = :elemento
+        GROUP BY nomefor
+    """)
+    df = pd.read_sql_query(query, conn, params={"ano": year, "elemento": ELEMENTO_FOLHA_PESSOAL})
     if df.empty:
         return pd.DataFrame(columns=["descricao", "pago"])
 
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
     return df.groupby("descricao", as_index=False)["pago"].sum().sort_values("pago", ascending=False)
 
 

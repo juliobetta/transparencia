@@ -1,17 +1,27 @@
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
-_EXCLUDE_E_OUTROS = "AND descricao !~* ' E OUT(ROS?|\\.)'  "
+from analysis.constants import FORNECEDORES_NATUREZA_MAP
 
 
 def run(conn: Any, year: int) -> dict:
-    df = pd.read_sql_query(
-        text(f"SELECT codigo, descricao, empenhado FROM despesas_por_fornecedor WHERE ano = :ano {_EXCLUDE_E_OUTROS}"),
-        conn,
-        params={"ano": year},
+    sql = text(
+        """
+        SELECT f.codigo, f.descricao, f.empenhado
+        FROM despesas_por_fornecedor f
+        LEFT JOIN despesas_gerais g
+          ON f.ano = g.ano
+          AND f.descricao = g.nomefor
+        WHERE f.ano = :ano
+        AND g.elemento IN :elementos
+        """
+    ).bindparams(
+        bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
     )
+
+    df = pd.read_sql_query(sql, conn, params={"ano": year})
     df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
     df = df.groupby(["codigo", "descricao"], as_index=False)["empenhado"].sum()
     total = df["empenhado"].sum()
@@ -26,7 +36,19 @@ def run(conn: Any, year: int) -> dict:
 
     # total_all includes E OUTROS entries excluded from top10 so the pie "Outros" slice is accurate
     df_all = pd.read_sql_query(
-        text("SELECT empenhado FROM despesas_por_fornecedor WHERE ano = :ano"),
+        text(
+            """
+            SELECT f.empenhado
+            FROM despesas_por_fornecedor f
+            LEFT JOIN despesas_gerais g
+              ON f.ano = g.ano
+              AND f.descricao = g.nomefor
+            WHERE f.ano = :ano
+            AND g.elemento IN :elementos
+            """
+        ).bindparams(
+            bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
+        ),
         conn,
         params={"ano": year},
     )

@@ -40,6 +40,17 @@ def conn(conn):
         ],
         ["ano", "empresa", "codigo"],
     )
+    # Adicionar registros em despesas_gerais para que o JOIN funcione
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            {"ano": 2025, "empresa": "7", "numero": "1", "nomefor": "ALFA LTDA", "elemento": "30"},
+            {"ano": 2025, "empresa": "7", "numero": "2", "nomefor": "BETA ME", "elemento": "36"},
+            {"ano": 2025, "empresa": "7", "numero": "3", "nomefor": "GAMA SA", "elemento": "39"},
+        ],
+        ["ano", "empresa", "numero"],
+    )
     return conn
 
 
@@ -78,5 +89,75 @@ def test_no_dominant_when_balanced(conn):
         for i in range(5)
     ]
     db.upsert(conn, "despesas_por_fornecedor", rows, ["ano", "empresa", "codigo"])
+
+
+def test_supplier_with_43_and_service_element_included(conn):
+    # Caso: Fornecedor tem elemento 43 (subvenção) E elemento 30 (material - whitelist)
+    # Deve ser incluído.
+    db.upsert(
+        conn,
+        "despesas_por_fornecedor",
+        [
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "codigo": "430",
+                "descricao": "ASSOCIAÇÃO MISTA",
+                "empenhado": "1000",
+                "liquidado": "0",
+                "pago": "1000",
+            },
+        ],
+        ["ano", "empresa", "codigo"],
+    )
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            # Registro com elemento 43
+            {"ano": 2026, "empresa": "7", "numero": "100", "nomefor": "ASSOCIAÇÃO MISTA", "elemento": "43"},
+            # Registro com elemento da Whitelist
+            {"ano": 2026, "empresa": "7", "numero": "101", "nomefor": "ASSOCIAÇÃO MISTA", "elemento": "30"},
+        ],
+        ["ano", "empresa", "numero"],
+    )
     result = run(conn, 2026)
-    assert result["dominante"] is None
+
+    # Verifica se a associação está presente nos resultados
+    assert any(result["top10"]["descricao"] == "ASSOCIAÇÃO MISTA")
+    assert result["total_all"] >= 1000.0
+
+
+def test_supplier_with_only_43_excluded(conn):
+    # Caso: Fornecedor tem APENAS elemento 43 (subvenção pura)
+    # Deve ser excluído.
+    db.upsert(
+        conn,
+        "despesas_por_fornecedor",
+        [
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "codigo": "431",
+                "descricao": "ASSOCIAÇÃO PURA",
+                "empenhado": "5000",
+                "liquidado": "0",
+                "pago": "5000",
+            },
+        ],
+        ["ano", "empresa", "codigo"],
+    )
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            {"ano": 2026, "empresa": "7", "numero": "200", "nomefor": "ASSOCIAÇÃO PURA", "elemento": "43"},
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    result = run(conn, 2026)
+
+    # Verifica que a associação pura não está presente
+    assert not any(result["top10"]["descricao"] == "ASSOCIAÇÃO PURA")
+    # Total deve ser menor do que incluir os 5000 da associação pura
+    assert result["total_all"] < 5000.0
