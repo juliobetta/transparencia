@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 def get_functional_budget(conn, year: int) -> pd.DataFrame:
     query = text("""
-        SELECT funcaonome, subfuncaonome
+        SELECT funcaonome, subfuncaonome,
                SUM(CAST(COALESCE(NULLIF(empenhado, ''), '0') AS FLOAT)) as empenhado,
                SUM(CAST(COALESCE(NULLIF(liquidado, ''), '0') AS FLOAT)) as liquidado,
                SUM(CAST(COALESCE(NULLIF(pago, ''), '0') AS FLOAT)) as pago
