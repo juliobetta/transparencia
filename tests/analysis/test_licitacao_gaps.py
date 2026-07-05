@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.licitacao_gaps import run
+from analysis.licitacao_gaps import counts_by_year, run, totals_sem_licitacao_por_ano
 
 SAUDE_EMPRESA = "2"
 
@@ -71,3 +71,11 @@ def test_below_threshold_not_flagged(conn):
 def test_flags_saude_empresa(conn):
     df = run(conn, 2025)
     assert df[df["numero"] == "001"].iloc[0]["orgao_saude"]
+
+
+def test_totals_sem_licitacao_por_ano(conn):
+    result = totals_sem_licitacao_por_ano(conn, [2025])
+    above = counts_by_year(conn, [2025])
+    assert 2025 in result
+    assert result[2025] >= above[2025]
+    assert isinstance(result[2025], int)
