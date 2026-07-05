@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import plotly.express as px
 import streamlit as st
 from shared import (
+    CURRENT_YEAR,
     SPARK_CFG,
     fmt_currency,
     get_conn,
@@ -52,7 +53,10 @@ st.caption(
     "A Lei de Responsabilidade Fiscal (LRF) limita esse gasto a **54% da receita corrente líquida** para o Poder Executivo. "
     "O cálculo usa o total de receitas arrecadadas como base — os dados do portal não permitem calcular a RCL exata com todas as deduções legais."
 )
-render_partial_year_notice(year, _extracted_at)
+
+if year == CURRENT_YEAR:
+    render_partial_year_notice(year, _extracted_at)
+
 df_folha = _folha_pagamento(conn, year, _extracted_at)
 _all_years = list(range(2022, year + 1))
 _anos = _all_years
