@@ -108,7 +108,6 @@ year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
 _all_years = list(range(2022, year + 1))
-_anos = _all_years
 _hist_metricas = _metricas_por_ano(conn, tuple(_all_years), _extracted_at)
 _hist_impacto = _impacto_por_ano(conn, tuple(_all_years), _extracted_at)
 _hist_hhi = _hhi_por_ano(conn, tuple(_all_years), _extracted_at)
@@ -135,9 +134,9 @@ with t1:
 
     metricas = _metricas(conn, year, _extracted_at)
 
-    _emp_serie = [_hist_metricas[y]["empenhado"] for y in _anos]
-    _liq_serie = [_hist_metricas[y]["liquidado"] for y in _anos]
-    _pago_serie = [_hist_metricas[y]["pago"] for y in _anos]
+    _emp_serie = [_hist_metricas[y]["empenhado"] for y in _all_years]
+    _liq_serie = [_hist_metricas[y]["liquidado"] for y in _all_years]
+    _pago_serie = [_hist_metricas[y]["pago"] for y in _all_years]
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -154,13 +153,17 @@ with t1:
             ),
         )
         st.plotly_chart(
-            sparkline(_anos, _emp_serie, "#2196F3"), use_container_width=True, config=SPARK_CFG, key="spark_desp_emp"
+            sparkline(_all_years, _emp_serie, "#2196F3"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_emp",
         )
     with c2:
         st.metric(
             "Total Liquidado",
             fmt_currency(metricas["liquidado"]),
-            f"Executado: {metricas['taxa_liquidacao']:.1f}%",
+            delta=pct_delta(_liq_serie),
+            delta_color="off",
             help=(
                 "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
                 "verificados pela prefeitura. A liquidação confirma que o município recebeu aquilo que "
@@ -169,13 +172,17 @@ with t1:
             ),
         )
         st.plotly_chart(
-            sparkline(_anos, _liq_serie, "#4CAF50"), use_container_width=True, config=SPARK_CFG, key="spark_desp_liq"
+            sparkline(_all_years, _liq_serie, "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_liq",
         )
     with c3:
         st.metric(
             "Total Pago Real",
             fmt_currency(metricas["pago"]),
-            f"Pago: {metricas['taxa_pagamento']:.1f}%",
+            delta=pct_delta(_pago_serie),
+            delta_color="off",
             help=(
                 "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
                 "servidor. É o estágio final do gasto público — o dinheiro efetivamente deixou os "
@@ -184,7 +191,10 @@ with t1:
             ),
         )
         st.plotly_chart(
-            sparkline(_anos, _pago_serie, "#FF9800"), use_container_width=True, config=SPARK_CFG, key="spark_desp_pago"
+            sparkline(_all_years, _pago_serie, "#FF9800"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_pago",
         )
 
     df_unidades = _por_unidade(conn, year, _extracted_at)
@@ -236,10 +246,10 @@ with t2:
     impacto = _impacto(conn, year, _extracted_at)
     concentracao = _concentracao(conn, year, _extracted_at)
 
-    _local_serie = [_hist_impacto[y]["local_pago"] for y in _anos]
-    _ext_serie = [_hist_impacto[y]["externo_pago"] for y in _anos]
-    _pct_local_serie = [_hist_impacto[y]["pct_local"] for y in _anos]
-    _hhi_serie = [_hist_hhi[y] for y in _anos]
+    _local_serie = [_hist_impacto[y]["local_pago"] for y in _all_years]
+    _ext_serie = [_hist_impacto[y]["externo_pago"] for y in _all_years]
+    _pct_local_serie = [_hist_impacto[y]["pct_local"] for y in _all_years]
+    _hhi_serie = [_hist_hhi[y] for y in _all_years]
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -250,7 +260,7 @@ with t2:
             delta_color="normal",
         )
         st.plotly_chart(
-            sparkline(_anos, _local_serie, "#4CAF50"),
+            sparkline(_all_years, _local_serie, "#4CAF50"),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_local",
@@ -263,7 +273,10 @@ with t2:
             delta_color="inverse",
         )
         st.plotly_chart(
-            sparkline(_anos, _ext_serie, "#F44336"), use_container_width=True, config=SPARK_CFG, key="spark_desp_ext"
+            sparkline(_all_years, _ext_serie, "#F44336"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_ext",
         )
     with c3:
         st.metric(
@@ -274,7 +287,7 @@ with t2:
             help="Percentual de recursos mantidos na economia local de Porciúncula.",
         )
         st.plotly_chart(
-            sparkline(_anos, _pct_local_serie, "#2196F3"),
+            sparkline(_all_years, _pct_local_serie, "#2196F3"),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_pct_local",
@@ -288,7 +301,10 @@ with t2:
             help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
         )
         st.plotly_chart(
-            sparkline(_anos, _hhi_serie, "#9C27B0"), use_container_width=True, config=SPARK_CFG, key="spark_desp_hhi"
+            sparkline(_all_years, _hhi_serie, "#9C27B0"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_hhi",
         )
 
     if impacto["total_pago"] > 0:
@@ -524,8 +540,8 @@ with t4:
 
     resumo_diarias_data = _resumo_diarias(conn, year, _extracted_at)
 
-    _diarias_val_serie = [_hist_diarias[y]["total_valor"] for y in _anos]
-    _diarias_cnt_serie = [_hist_diarias[y]["total_viajantes"] for y in _anos]
+    _diarias_val_serie = [_hist_diarias[y]["total_valor"] for y in _all_years]
+    _diarias_cnt_serie = [_hist_diarias[y]["total_viajantes"] for y in _all_years]
 
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -536,7 +552,7 @@ with t4:
             delta_color="inverse",
         )
         st.plotly_chart(
-            sparkline(_anos, _diarias_val_serie, "#FF9800"),
+            sparkline(_all_years, _diarias_val_serie, "#FF9800"),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_diarias",
@@ -549,7 +565,7 @@ with t4:
             delta_color="off",
         )
         st.plotly_chart(
-            sparkline(_anos, _diarias_cnt_serie, "#607D8B"),
+            sparkline(_all_years, _diarias_cnt_serie, "#607D8B"),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_viajantes",
