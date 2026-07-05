@@ -263,7 +263,7 @@ if not data["adesao_de_ata_list"].empty:
                     "licitacao_valor": "Valor Est. Licitação",
                     "total_c_valor": "Valor Total Contratado",
                     "total_c_empenhado": "Valor Empenhado",
-                    "has_contract": "Contrato Associado",
+                    "tem_contrato": "Contrato Associado",
                 }
             ).drop(columns=["mes", "ano"], errors="ignore"),
             width="stretch",

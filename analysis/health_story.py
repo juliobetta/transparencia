@@ -123,7 +123,7 @@ def _adesao_de_ata(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame,
     try:
         df = pd.read_sql_query(query, conn, params={"ano": year, "empresa": empresa_id})
         total_value = float(_to_float(df["total_c_valor"]).sum()) if not df.empty else 0.0
-        df["has_contract"] = df["total_c_valor"] > 0
+        df["tem_contrato"] = df["total_c_valor"] > 0
         return df, total_value
     except Exception:
         return pd.DataFrame(), 0.0
@@ -379,7 +379,7 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
         "contracts_by_modality": contracts_by_modality,
         "adesao_de_ata_list": adesao_df,
         "adesao_de_ata_count": len(adesao_df),
-        "adesao_de_ata_contracts_linked": int(adesao_df["has_contract"].sum()) if not adesao_df.empty else 0,
+        "adesao_de_ata_contracts_linked": int(adesao_df["tem_contrato"].sum()) if not adesao_df.empty else 0,
         "adesao_de_ata_value": adesao_value,
         "licitacao_gaps": licitacao_gaps,
         "top_suppliers": top_suppliers,

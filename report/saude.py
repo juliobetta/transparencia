@@ -85,7 +85,7 @@ def generate(conn, year: int) -> Path:
         execution_trend=data["execution_trend"].to_dict("records"),
         adesao_de_ata_count=data["adesao_de_ata_count"],
         adesao_de_ata_value=data["adesao_de_ata_value"],
-        adesao_de_ata_contracts_linked_count=int(data["adesao_de_ata_list"]["has_contract"].sum()),
+        adesao_de_ata_contracts_linked_count=int(data["adesao_de_ata_list"]["tem_contrato"].sum()),
         adesao_de_ata_list=adesao_df.to_dict("records") if not adesao_df.empty else [],
         contracts_by_modality=data["contracts_by_modality"].to_dict("records"),
         splitting=splitting.to_dict("records") if not splitting.empty else [],

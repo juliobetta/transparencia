@@ -135,7 +135,7 @@ with st.expander("Ver licitações via Adesão de Ata"):
                     "licitacao_valor": "Valor Est. Licitação",
                     "total_c_valor": "Valor Total Contratado",
                     "total_c_empenhado": "Valor Empenhado",
-                    "has_contract": "Contrato Associado",
+                    "tem_contrato": "Contrato Associado",
                 }
             )
             .drop(columns=["numero"], errors="ignore")
