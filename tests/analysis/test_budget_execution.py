@@ -90,7 +90,7 @@ def test_summarize(conn):
 
 
 def test_summarize_by_year(conn):
-    # conn fixture already inserts 2025 data with:
+    # O fixture insere dados de 2025:
     # SAUDE: dotacao=500000, empenhado=100000, liquidado=90000, pago=80000
     # EDUCACAO: dotacao=500000, empenhado=600000, liquidado=600000, pago=600000
     # CULTURA: dotacao=500000, empenhado=250000, liquidado=200000, pago=200000

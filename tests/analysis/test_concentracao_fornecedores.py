@@ -164,7 +164,7 @@ def test_fornecedor_apenas_43_excluido(conn):
 
 
 def test_hhi_por_ano(conn):
-    # conn fixture inserts 2025 data: ALFA 60%, BETA 20%, GAMA 20% → HHI ≈ 4400
+    # O fixture insere dados de 2025: ALFA 60%, BETA 20%, GAMA 20% → HHI ≈ 4400
     result = hhi_por_ano(conn, [2025])
     assert 2025 in result
     assert result[2025] == pytest.approx(4400, rel=0.01)

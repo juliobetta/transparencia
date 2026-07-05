@@ -199,8 +199,8 @@ def test_get_resumo_diarias_por_ano(conn):
 
 
 def test_total_folha_orgao_por_ano(conn):
-    # The conn fixture does not insert despesas_gerais with elemento=11,
-    # so this should return 0 for 2026 without crashing.
+    # O fixture não insere registros em despesas_gerais com elemento=11,
+    # portanto deve retornar 0 para 2026 sem erro.
     result = total_folha_orgao_por_ano(conn, [2026])
     assert 2026 in result
     assert isinstance(result[2026], float)
