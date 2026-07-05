@@ -127,7 +127,7 @@ with c2:
 with c3:
     st.metric(
         "Adesões de Ata (licitações)",
-        adesao["quantidade"],
+        _hist_adesao[year],
         delta=pct_delta(_adesao_serie),
         delta_color="inverse",
         help=(
