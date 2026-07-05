@@ -12,7 +12,7 @@ import db
 import glossary
 from analysis import (
     adesao_de_ata,
-    budget_execution,
+    execucao_orcamentaria,
     licitacao_gaps,
     payroll_vs_services,
     revenue_sources,
@@ -29,7 +29,7 @@ TEMPLATE_DIR = Path(__file__).parent
 def generate(engine, year: int, month: int) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
 
-    budget = budget_execution.run(engine, year)
+    budget = execucao_orcamentaria.run(engine, year)
     supplier = supplier_concentration.run(engine, year)
     bidding = licitacao_gaps.run(engine, year)
     adesao = adesao_de_ata.run(engine, year, "2")

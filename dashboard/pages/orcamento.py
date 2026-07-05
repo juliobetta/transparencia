@@ -18,14 +18,14 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import budget_execution, functional_budget
+from analysis import execucao_orcamentaria, functional_budget
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _budget(conn, year, _extracted_at):
-    return budget_execution.run(conn, year)
+    return execucao_orcamentaria.run(conn, year)
 
 
 conn = get_conn()
@@ -36,7 +36,7 @@ st.title("Execução Orçamentária por Órgão")
 st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
 
 df = _budget(conn, year, _extracted_at)
-totals = budget_execution.summarize(df)
+totals = execucao_orcamentaria.summarize(df)
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Total Dotação", fmt_compact(totals["total_dotacao"]), help=glossary.tooltip("Dotação Atualizada"))

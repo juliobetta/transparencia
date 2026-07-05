@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 import db
-from analysis.budget_execution import run
+from analysis.execucao_orcamentaria import run
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def test_flags_normal(conn):
 
 
 def test_summarize(conn):
-    from analysis.budget_execution import summarize
+    from analysis.execucao_orcamentaria import summarize
 
     df = run(conn, 2025)
     summary = summarize(df)

@@ -27,8 +27,8 @@ from sqlalchemy.engine import Engine
 import glossary
 from analysis import (
     adesao_de_ata,
-    budget_execution,
     contract_anomalies,
+    execucao_orcamentaria,
     fiscal_position,
     licitacao_gaps,
     payroll_vs_services,
@@ -41,7 +41,7 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _budget(conn, year, _extracted_at):
-    return budget_execution.run(conn, year)
+    return execucao_orcamentaria.run(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -506,7 +506,7 @@ with col_bar:
         "excesso": "#F44336",
         "N/D": "#9E9E9E",
     }
-    top10 = budget_execution.top_organs_by_dotacao(budget)
+    top10 = execucao_orcamentaria.top_orgaos_por_dotacao(budget)
     top10["descricao_short"] = top10["descricao"].str[:30]
     top10["bar_color"] = top10["alerta"].map(_alerta_colors).fillna("#9E9E9E")
 

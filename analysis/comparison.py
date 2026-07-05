@@ -7,7 +7,7 @@ import pandas as pd
 
 from analysis import (
     adesao_de_ata,
-    budget_execution,
+    execucao_orcamentaria,
     licitacao_gaps,
     payroll_vs_services,
     revenue_sources,
@@ -56,7 +56,7 @@ def _get_revenue_row(df: pd.DataFrame, year: int) -> pd.Series | None:
 
 def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
     def _despesas(spec: PeriodSpec) -> dict:
-        budget = budget_execution.run(conn, spec.year)
+        budget = execucao_orcamentaria.run(conn, spec.year)
         return {
             "empenhado": budget["empenhado"].sum(),
             "dotacao": budget["dotacao_atualizada"].sum(),
