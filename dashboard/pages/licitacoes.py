@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import get_conn, get_extraction_date, render_sidebar
+from shared import SPARK_CFG, get_conn, get_extraction_date, pct_delta, render_sidebar, sparkline
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -36,6 +36,26 @@ def _anomalias(conn, year, _extracted_at):
     return anomalias_contratuais.run(conn, year)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _acima_por_ano(conn, years, _extracted_at):
+    return licitacao_gaps.counts_by_year(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _totals_sem_lic_por_ano(conn, years, _extracted_at):
+    return licitacao_gaps.totals_sem_licitacao_por_ano(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _adesao_por_ano(conn, years, _extracted_at):
+    return adesao_de_ata.formal_counts_by_year(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _adesao_ext_por_ano(conn, years, _extracted_at):
+    return adesao_de_ata.external_counts_by_year(conn, list(years))
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
@@ -47,6 +67,18 @@ anomalias = _anomalias(conn, year, _extracted_at)
 
 acima = licitacao_gaps.filter_above_limit(lacunas)
 saude = licitacao_gaps.filter_above_limit_health(lacunas)
+
+_all_years = list(range(2022, year + 1))
+_anos = _all_years
+_hist_acima = _acima_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_totals = _totals_sem_lic_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_adesao = _adesao_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_adesao_ext = _adesao_ext_por_ano(conn, tuple(_all_years), _extracted_at)
+
+_acima_serie = [_hist_acima[y] for y in _anos]
+_totals_serie = [_hist_totals[y] for y in _anos]
+_adesao_serie = [_hist_adesao[y] for y in _anos]
+_adesao_ext_serie = [_hist_adesao_ext[y] for y in _anos]
 
 st.header("Licitações e Contratos")
 
@@ -60,46 +92,70 @@ st.info(
 
 st.subheader("Resumo")
 c1, c2, c3, c4 = st.columns(4)
-c1.metric(
-    f"Acima do limite legal ({_limite_fmt})",
-    len(acima),
-    help=(
-        f"Número de contratos firmados sem licitação cujo valor ultrapassa {_limite_fmt} — "
-        "o teto legal para dispensa em compras e serviços gerais (Decreto nº 12.807/2025). "
-        "Acima desse valor, a lei exige processo licitatório formal com publicação e concorrência. "
-        "Cada item listado merece análise da justificativa oficial do processo."
-    ),
-)
-c2.metric(
-    "Total sem processo licitatório",
-    len(lacunas),
-    help=(
-        "Total de contratos identificados sem número de licitação associado. Nem todos são "
-        "irregulares — a lei permite contratação direta por dispensa (baixo valor, emergência) "
-        "ou inexigibilidade (fornecedor exclusivo, profissional notório). O número alto é um "
-        "ponto de atenção, não uma irregularidade automática."
-    ),
-)
-c3.metric(
-    "Adesões de Ata (licitações)",
-    adesao["quantidade"],
-    help=(
-        "Quantidade de contratos firmados por adesão à Ata de Registro de Preços — mecanismo "
-        "em que a prefeitura aproveita uma licitação já realizada por ela mesma para novas "
-        "compras, sem precisar abrir um novo processo. É uma forma legal e eficiente de "
-        "contratar, desde que respeitados os limites de quantidade e vigência da ata."
-    ),
-)
-c4.metric(
-    "Empenhos via Ata Externa",
-    adesao_externa["quantidade"],
-    help=(
-        "Empenhos identificados como 'carona em ata' — a prefeitura utilizou uma Ata de "
-        "Registro de Preços aberta por outro ente público (outro município, estado ou órgão "
-        "federal) para realizar a contratação. O chamado 'carona' é permitido pela Lei "
-        "14.133/2021, mas exige autorização formal do órgão gerenciador da ata."
-    ),
-)
+with c1:
+    st.metric(
+        f"Acima do limite legal ({_limite_fmt})",
+        len(acima),
+        delta=pct_delta(_acima_serie),
+        delta_color="inverse",
+        help=(
+            f"Número de contratos firmados sem licitação cujo valor ultrapassa {_limite_fmt} — "
+            "o teto legal para dispensa em compras e serviços gerais (Decreto nº 12.807/2025). "
+            "Acima desse valor, a lei exige processo licitatório formal com publicação e concorrência. "
+            "Cada item listado merece análise da justificativa oficial do processo."
+        ),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _acima_serie, "#E91E63"), use_container_width=True, config=SPARK_CFG, key="spark_lic_acima"
+    )
+with c2:
+    st.metric(
+        "Total sem processo licitatório",
+        len(lacunas),
+        delta=pct_delta(_totals_serie),
+        delta_color="inverse",
+        help=(
+            "Total de contratos identificados sem número de licitação associado. Nem todos são "
+            "irregulares — a lei permite contratação direta por dispensa (baixo valor, emergência) "
+            "ou inexigibilidade (fornecedor exclusivo, profissional notório). O número alto é um "
+            "ponto de atenção, não uma irregularidade automática."
+        ),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _totals_serie, "#FF9800"), use_container_width=True, config=SPARK_CFG, key="spark_lic_total"
+    )
+with c3:
+    st.metric(
+        "Adesões de Ata (licitações)",
+        adesao["quantidade"],
+        delta=pct_delta(_adesao_serie),
+        delta_color="inverse",
+        help=(
+            "Quantidade de contratos firmados por adesão à Ata de Registro de Preços — mecanismo "
+            "em que a prefeitura aproveita uma licitação já realizada por ela mesma para novas "
+            "compras, sem precisar abrir um novo processo. É uma forma legal e eficiente de "
+            "contratar, desde que respeitados os limites de quantidade e vigência da ata."
+        ),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _adesao_serie, "#9C27B0"), use_container_width=True, config=SPARK_CFG, key="spark_lic_adesao"
+    )
+with c4:
+    st.metric(
+        "Empenhos via Ata Externa",
+        adesao_externa["quantidade"],
+        delta=pct_delta(_adesao_ext_serie),
+        delta_color="inverse",
+        help=(
+            "Empenhos identificados como 'carona em ata' — a prefeitura utilizou uma Ata de "
+            "Registro de Preços aberta por outro ente público (outro município, estado ou órgão "
+            "federal) para realizar a contratação. O chamado 'carona' é permitido pela Lei "
+            "14.133/2021, mas exige autorização formal do órgão gerenciador da ata."
+        ),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _adesao_ext_serie, "#607D8B"), use_container_width=True, config=SPARK_CFG, key="spark_lic_ext"
+    )
 
 # Preparar tabela de contratos sem licitação
 lacunas_exibicao = lacunas.rename(
