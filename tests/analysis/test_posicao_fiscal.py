@@ -1,12 +1,12 @@
 import pytest
 
 import db
-from analysis.fiscal_position import run
+from analysis.posicao_fiscal import run
 
 
 @pytest.fixture
 def conn(conn):
-    # Revenue: one flat root-level code so revenue_sources sums it cleanly
+    # Receita: código raiz único para revenue_sources somar corretamente
     db.upsert(
         conn,
         "receita_orcamentaria",
@@ -24,7 +24,7 @@ def conn(conn):
         ],
         ["ano", "empresa", "codigo"],
     )
-    # Expenses paid (current budget)
+    # Despesas pagas (orçamento corrente)
     db.upsert(
         conn,
         "despesas_por_orgao",
@@ -44,7 +44,7 @@ def conn(conn):
         ],
         ["ano", "empresa", "codigo"],
     )
-    # Restos paid in 2026 (on old obligations)
+    # Restos pagos em 2026 (sobre obrigações antigas)
     db.upsert(
         conn,
         "despesas_restos_pagar",
@@ -62,7 +62,7 @@ def conn(conn):
         ],
         ["ano", "empresa", "numero"],
     )
-    # Restos from prior years (multi-year outstanding debt)
+    # Restos de exercícios anteriores (dívida plurianual)
     db.upsert(
         conn,
         "despesas_restos_pagar",
@@ -105,7 +105,7 @@ def test_saldo_estimado_calculation(conn):
     assert result["saldo_estimado"] == pytest.approx(70000, rel=0.01)
 
 
-def test_restos_pendentes_by_year(conn):
+def test_restos_pendentes_por_ano(conn):
     result = run(conn, 2026)
     by_ano = {r["ano"]: r for r in result["restos_pendentes"]}
     # 2024: empenhado=50000, pago=20000 → pendente=30000
@@ -114,11 +114,11 @@ def test_restos_pendentes_by_year(conn):
     assert by_ano[2025]["pendente"] == pytest.approx(25000, rel=0.01)
     # 2026: empenhado=30000, pago=30000 → pendente=0
     assert by_ano[2026]["pendente"] == pytest.approx(0, abs=1)
-    # Total outstanding = 30000 + 25000 + 0 = 55000
+    # Total pendente = 30000 + 25000 + 0 = 55000
     assert result["restos_pendentes_total"] == pytest.approx(55000, rel=0.01)
 
 
-def test_administracao_boundary(conn):
+def test_fronteira_administracao(conn):
     result = run(conn, 2026)
     by_ano = {r["ano"]: r for r in result["restos_pendentes"]}
     assert by_ano[2024]["administracao"] == "Adm. Anterior"

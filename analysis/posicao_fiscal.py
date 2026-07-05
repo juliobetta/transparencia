@@ -9,7 +9,7 @@ from analysis import revenue_sources
 
 def _sanitize_descricao(s: str) -> str:
     s = s.strip()
-    # Remove leading document-number prefix (e.g. "03.163.892 NOME" → "NOME")
+    # Remove prefixo de número de documento (ex: "03.163.892 NOME" → "NOME")
     s = re.sub(r"^\d{2}\.\d{3}\.\d{3}\s+", "", s)
     return s
 
@@ -29,17 +29,17 @@ def _sum_varchar_col(conn: Any, table: str, col: str, year: int) -> float:
 
 
 def run(conn: Any, year: int) -> dict:
-    # 1. Total receitas arrecadadas (reuses existing root-only logic)
+    # 1. Total receitas arrecadadas (reutiliza lógica de raiz existente)
     rev_df = revenue_sources.run(conn, [year])
     total_arrecadado = float(rev_df.iloc[0]["total_arrecadado"]) if not rev_df.empty else 0.0
 
-    # 2. Current-year budget paid
+    # 2. Despesas correntes pagas no ano
     despesas_pagas = _sum_varchar_col(conn, "despesas_por_orgao", "pago", year)
 
-    # 3. Sum of pago for restos whose exercise year matches the given year
+    # 3. Soma do pago de restos cujo exercício corresponde ao ano informado
     restos_pagos_no_ano = _sum_varchar_col(conn, "despesas_restos_pagar", "pago", year)
 
-    # 4. Outstanding restos by exercise year
+    # 4. Restos pendentes por exercício
     restos_pendentes = []
     try:
         df = pd.read_sql_query(
@@ -68,10 +68,10 @@ def run(conn: Any, year: int) -> dict:
     total_saidas = despesas_pagas + restos_pagos_no_ano
     saldo_estimado = total_arrecadado - total_saidas
     restos_pendentes_total = sum(float(r["pendente"]) for r in restos_pendentes)
-    # Only pre-2025 obligations represent inherited debt from the previous administration
+    # Apenas obrigações pré-2025 representam dívida herdada da gestão anterior
     restos_pendentes_anteriores = sum(float(r["pendente"]) for r in restos_pendentes if int(r["ano"]) < 2025)
 
-    # 5. Top 5 creditors with pending restos from current administration (2025+)
+    # 5. Top 5 credores com restos pendentes da administração atual (2025+)
     top_credores_adm_atual = []
     try:
         df_cred = pd.read_sql_query(
@@ -111,7 +111,7 @@ def run(conn: Any, year: int) -> dict:
     }
 
 
-def get_unpaid_suppliers(conn: Any, year: int | None = None) -> pd.DataFrame:
+def get_fornecedores_pendentes(conn: Any, year: int | None = None) -> pd.DataFrame:
     try:
         df = pd.read_sql_query(
             text("SELECT descricao, ano, empenhado, pago FROM despesas_restos_pagar"),
@@ -128,7 +128,7 @@ def get_unpaid_suppliers(conn: Any, year: int | None = None) -> pd.DataFrame:
     df["pendente"] = df["emp_f"] - df["pago_f"]
     df["descricao"] = df["descricao"].fillna("Sem identificação").apply(_sanitize_descricao)
 
-    # Filter AFTER groupby so cancellations (negative emp_f) reduce the net outstanding correctly
+    # Filtra APÓS groupby para que cancelamentos (emp_f negativo) reduzam o saldo líquido corretamente
     return (
         df.groupby("descricao")
         .agg(
@@ -144,7 +144,7 @@ def get_unpaid_suppliers(conn: Any, year: int | None = None) -> pd.DataFrame:
     )
 
 
-def get_unpaid_suppliers_trend(conn: Any, years: list[int]) -> pd.DataFrame:
+def get_tendencia_fornecedores_pendentes(conn: Any, years: list[int]) -> pd.DataFrame:
     try:
         df = pd.read_sql_query(
             text("SELECT ano, descricao, empenhado, pago FROM despesas_restos_pagar"),
@@ -156,7 +156,7 @@ def get_unpaid_suppliers_trend(conn: Any, years: list[int]) -> pd.DataFrame:
     df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["pendente"] = df["emp_f"] - df["pago_f"]
-    # Keep all rows including cancellations (emp_f < 0) so they reduce the snapshot totals correctly
+    # Mantém todos os registros incluindo cancelamentos (emp_f < 0) para reduzir corretamente os totais do snapshot
 
     rows = []
     for year in years:
@@ -171,8 +171,7 @@ def get_unpaid_suppliers_trend(conn: Any, years: list[int]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def unpaid_summary(df: pd.DataFrame) -> dict:
-    """Aggregate metrics from get_unpaid_suppliers() output."""
+def resumo_pendentes(df: pd.DataFrame) -> dict:
     return {
         "total": float(df["pendente"].sum()),
         "count": len(df),
@@ -180,8 +179,7 @@ def unpaid_summary(df: pd.DataFrame) -> dict:
     }
 
 
-def unpaid_pie(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
-    """Return top-n suppliers + 'Outros' slice for pie chart rendering."""
+def piechart_pendentes(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     top = df.head(n)
     outros = float(df["pendente"].sum()) - float(top["pendente"].sum())
     slices = top[["descricao", "pendente"]].rename(columns={"descricao": "Fornecedor", "pendente": "Pendente"})
@@ -190,8 +188,8 @@ def unpaid_pie(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return slices
 
 
-def get_unpaid_by_exercise(conn: Any) -> pd.DataFrame:
-    """Return pending RAP totals broken down by exercise year (for segregation display per Seção 3)."""
+def get_pendentes_por_exercicio(conn: Any) -> pd.DataFrame:
+    """Retorna totais de RAP pendentes por exercício (para exibição por seção)."""
     try:
         df = pd.read_sql_query(
             text("SELECT ano, empenhado, pago FROM despesas_restos_pagar"),
@@ -220,7 +218,7 @@ def get_unpaid_by_exercise(conn: Any) -> pd.DataFrame:
     )
 
 
-def get_low_value_restos(conn: Any, year: int | None = None, threshold: float = 10.0) -> pd.DataFrame:
+def get_restos_baixo_valor(conn: Any, year: int | None = None, threshold: float = 10.0) -> pd.DataFrame:
     try:
         df = pd.read_sql_query(
             text("SELECT descricao, ano, numero, empenhado, pago FROM despesas_restos_pagar"),

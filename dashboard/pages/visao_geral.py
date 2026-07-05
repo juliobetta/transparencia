@@ -29,9 +29,9 @@ from analysis import (
     adesao_de_ata,
     anomalias_contratuais,
     execucao_orcamentaria,
-    fiscal_position,
     licitacao_gaps,
     payroll_vs_services,
+    posicao_fiscal,
     revenue_sources,
     yoy_trends,
 )
@@ -86,12 +86,12 @@ def _contagens_fracionamento(conn, years, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _unpaid_suppliers(conn, year, _extracted_at):
-    return fiscal_position.get_unpaid_suppliers(conn, year)
+    return posicao_fiscal.get_fornecedores_pendentes(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _unpaid_trend(conn, years, _extracted_at):
-    return fiscal_position.get_unpaid_suppliers_trend(conn, years)
+    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, years)
 
 
 conn = get_conn()

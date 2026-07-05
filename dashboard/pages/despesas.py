@@ -11,9 +11,9 @@ import streamlit as st
 from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
-from analysis import analise_despesas, fiscal_position, supplier_concentration
+from analysis import analise_despesas, posicao_fiscal, supplier_concentration
 from analysis.analise_despesas import get_diarias_pesquisaveis
-from analysis.fiscal_position import get_unpaid_by_exercise, unpaid_pie, unpaid_summary
+from analysis.posicao_fiscal import get_pendentes_por_exercicio, piechart_pendentes, resumo_pendentes
 from analysis.supplier_concentration import concentration_pie
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -61,12 +61,12 @@ def _top_diarias(conn, year, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _unpaid_suppliers(conn, year, _extracted_at):
-    return fiscal_position.get_unpaid_suppliers(conn, year)
+    return posicao_fiscal.get_fornecedores_pendentes(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _low_value_restos(conn, year, _extracted_at):
-    return fiscal_position.get_low_value_restos(conn, year=year)
+    return posicao_fiscal.get_restos_baixo_valor(conn, year=year)
 
 
 conn = get_conn()
@@ -312,7 +312,7 @@ with t3:
         icon=":material/info:",
     )
 
-    exercise_df = get_unpaid_by_exercise(conn)
+    exercise_df = get_pendentes_por_exercicio(conn)
     if not exercise_df.empty:
         with st.expander("Ver pendências por exercício fiscal"):
             st.dataframe(
@@ -328,14 +328,14 @@ with t3:
 
     unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
     if not unpaid_df.empty:
-        rp = unpaid_summary(unpaid_df)
+        rp = resumo_pendentes(unpaid_df)
 
         rc1, rc2, rc3 = st.columns(3)
         rc1.metric("Total Pendente", fmt_currency(rp["total"]), help="Soma de todos os empenhos ainda não quitados.")
         rc2.metric("Fornecedores aguardando", rp["count"])
         rc3.metric("Dívida mais antiga desde", str(rp["oldest"]))
 
-        pie_df = unpaid_pie(unpaid_df)
+        pie_df = piechart_pendentes(unpaid_df)
         fig_rp = px.pie(
             pie_df,
             values="Pendente",
