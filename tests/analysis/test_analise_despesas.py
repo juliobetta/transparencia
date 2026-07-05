@@ -4,11 +4,15 @@ import db
 from analysis.analise_despesas import (
     get_despesas_por_unidade,
     get_impacto_gastos_locais,
+    get_impacto_por_ano,
     get_metricas_gerais_despesas,
+    get_metricas_por_ano,
     get_principais_beneficiarios_diarias,
     get_principais_fornecedores_detalhados,
     get_resumo_diarias,
+    get_resumo_diarias_por_ano,
     get_transacoes_pesquisaveis,
+    total_folha_orgao_por_ano,
 )
 
 
@@ -171,3 +175,32 @@ def test_get_principais_beneficiarios_diarias(conn):
 def test_get_transacoes_pesquisaveis(conn):
     df = get_transacoes_pesquisaveis(conn, 2026, "Empresa")
     assert len(df) >= 1
+
+
+def test_get_metricas_por_ano(conn):
+    result = get_metricas_por_ano(conn, [2026])
+    assert 2026 in result
+    assert result[2026]["empenhado"] == 15000.0
+    assert result[2026]["pago"] == 11000.0
+
+
+def test_get_impacto_por_ano(conn):
+    result = get_impacto_por_ano(conn, [2026])
+    assert 2026 in result
+    assert result[2026]["local_pago"] == 3000.0
+    assert result[2026]["pct_local"] == 60.0
+
+
+def test_get_resumo_diarias_por_ano(conn):
+    result = get_resumo_diarias_por_ano(conn, [2026])
+    assert 2026 in result
+    assert result[2026]["total_valor"] == 1900.0
+    assert result[2026]["total_viajantes"] == 2
+
+
+def test_total_folha_orgao_por_ano(conn):
+    # O fixture não insere registros em despesas_gerais com elemento=11,
+    # portanto deve retornar 0 para 2026 sem erro.
+    result = total_folha_orgao_por_ano(conn, [2026])
+    assert 2026 in result
+    assert isinstance(result[2026], float)

@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.concentracao_fornecedores import run
+from analysis.concentracao_fornecedores import hhi_por_ano, run
 
 
 @pytest.fixture
@@ -161,3 +161,10 @@ def test_fornecedor_apenas_43_excluido(conn):
     assert not any(result["top10"]["descricao"] == "ASSOCIAÇÃO PURA")
     # Total deve ser menor do que incluir os 5000 da associação pura
     assert result["total_all"] < 5000.0
+
+
+def test_hhi_por_ano(conn):
+    # O fixture insere dados de 2025: ALFA 60%, BETA 20%, GAMA 20% → HHI ≈ 4400
+    result = hhi_por_ano(conn, [2025])
+    assert 2025 in result
+    assert result[2025] == pytest.approx(4400, rel=0.01)

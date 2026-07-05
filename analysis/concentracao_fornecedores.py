@@ -64,3 +64,7 @@ def piechart_concentracao(top10: pd.DataFrame, total_all: float) -> pd.DataFrame
     if outros > 0:
         slices = pd.concat([slices, pd.DataFrame({"Fornecedor": ["Outros"], "empenhado": [outros]})])
     return slices
+
+
+def hhi_por_ano(conn: Any, years: list[int]) -> dict[int, float]:
+    return {year: run(conn, year)["hhi"] for year in years}

@@ -8,7 +8,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
+from shared import (
+    SPARK_CFG,
+    fmt_compact,
+    fmt_currency,
+    get_conn,
+    get_extraction_date,
+    pct_delta,
+    render_sidebar,
+    sparkline,
+)
 from sqlalchemy.engine import Engine
 
 from analysis import analise_despesas, concentracao_fornecedores, posicao_fiscal
@@ -69,9 +78,41 @@ def _restos_baixo_valor(conn, year, _extracted_at):
     return posicao_fiscal.get_restos_baixo_valor(conn, year=year)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _metricas_por_ano(conn, years, _extracted_at):
+    return analise_despesas.get_metricas_por_ano(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _impacto_por_ano(conn, years, _extracted_at):
+    return analise_despesas.get_impacto_por_ano(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _hhi_por_ano(conn, years, _extracted_at):
+    return concentracao_fornecedores.hhi_por_ano(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _resumo_diarias_por_ano(conn, years, _extracted_at):
+    return analise_despesas.get_resumo_diarias_por_ano(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _tendencia_pendentes(conn, years, _extracted_at):
+    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, list(years))
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
+
+_all_years = list(range(2022, year + 1))
+_hist_metricas = _metricas_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_impacto = _impacto_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_hhi = _hhi_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_diarias = _resumo_diarias_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_pendentes = _tendencia_pendentes(conn, tuple(_all_years), _extracted_at)
 
 st.title("Portal de Despesas Detalhadas")
 st.caption("Detalhes sobre onde e como os recursos públicos estão sendo aplicados.")
@@ -93,39 +134,68 @@ with t1:
 
     metricas = _metricas(conn, year, _extracted_at)
 
+    _emp_serie = [_hist_metricas[y]["empenhado"] for y in _all_years]
+    _liq_serie = [_hist_metricas[y]["liquidado"] for y in _all_years]
+    _pago_serie = [_hist_metricas[y]["pago"] for y in _all_years]
+
     c1, c2, c3 = st.columns(3)
-    c1.metric(
-        "Total Empenhado",
-        fmt_currency(metricas["empenhado"]),
-        help=(
-            "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
-            "primeira etapa do gasto público: a administração reconhece a obrigação e reserva o "
-            "recurso no orçamento. Pense como um 'cheque pré-aprovado' — o dinheiro foi comprometido, "
-            "mas ainda não necessariamente saiu do caixa."
-        ),
-    )
-    c2.metric(
-        "Total Liquidado",
-        fmt_currency(metricas["liquidado"]),
-        f"Executado: {metricas['taxa_liquidacao']:.1f}%",
-        help=(
-            "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
-            "verificados pela prefeitura. A liquidação confirma que o município recebeu aquilo que "
-            "contratou e que a nota fiscal ou documento equivalente foi aprovado. É o estágio "
-            "intermediário entre reservar e pagar."
-        ),
-    )
-    c3.metric(
-        "Total Pago Real",
-        fmt_currency(metricas["pago"]),
-        f"Pago: {metricas['taxa_pagamento']:.1f}%",
-        help=(
-            "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
-            "servidor. É o estágio final do gasto público — o dinheiro efetivamente deixou os "
-            "cofres municipais. Em uma gestão saudável, o valor pago tende a se aproximar do "
-            "liquidado ao longo do exercício."
-        ),
-    )
+    with c1:
+        st.metric(
+            "Total Empenhado",
+            fmt_currency(metricas["empenhado"]),
+            delta=pct_delta(_emp_serie),
+            delta_color="off",
+            help=(
+                "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
+                "primeira etapa do gasto público: a administração reconhece a obrigação e reserva o "
+                "recurso no orçamento. Pense como um 'cheque pré-aprovado' — o dinheiro foi comprometido, "
+                "mas ainda não necessariamente saiu do caixa."
+            ),
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _emp_serie, "#2196F3"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_emp",
+        )
+    with c2:
+        st.metric(
+            "Total Liquidado",
+            fmt_currency(metricas["liquidado"]),
+            delta=pct_delta(_liq_serie),
+            delta_color="off",
+            help=(
+                "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
+                "verificados pela prefeitura. A liquidação confirma que o município recebeu aquilo que "
+                "contratou e que a nota fiscal ou documento equivalente foi aprovado. É o estágio "
+                "intermediário entre reservar e pagar."
+            ),
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _liq_serie, "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_liq",
+        )
+    with c3:
+        st.metric(
+            "Total Pago Real",
+            fmt_currency(metricas["pago"]),
+            delta=pct_delta(_pago_serie),
+            delta_color="off",
+            help=(
+                "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
+                "servidor. É o estágio final do gasto público — o dinheiro efetivamente deixou os "
+                "cofres municipais. Em uma gestão saudável, o valor pago tende a se aproximar do "
+                "liquidado ao longo do exercício."
+            ),
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _pago_serie, "#FF9800"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_pago",
+        )
 
     df_unidades = _por_unidade(conn, year, _extracted_at)
     if not df_unidades.empty:
@@ -176,19 +246,66 @@ with t2:
     impacto = _impacto(conn, year, _extracted_at)
     concentracao = _concentracao(conn, year, _extracted_at)
 
+    _local_serie = [_hist_impacto[y]["local_pago"] for y in _all_years]
+    _ext_serie = [_hist_impacto[y]["externo_pago"] for y in _all_years]
+    _pct_local_serie = [_hist_impacto[y]["pct_local"] for y in _all_years]
+    _hhi_serie = [_hist_hhi[y] for y in _all_years]
+
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Efetivamente Pago — Empresas Locais", fmt_compact(impacto["local_pago"]))
-    c2.metric("Efetivamente Pago — Empresas Externas", fmt_compact(impacto["externo_pago"]))
-    c3.metric(
-        "Índice de Compras Locais",
-        f"{impacto['pct_local']:.2f}%",
-        help="Percentual de recursos mantidos na economia local de Porciúncula.",
-    )
-    c4.metric(
-        "HHI (concentração)",
-        f"{concentracao['hhi']:,.0f}",
-        help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
-    )
+    with c1:
+        st.metric(
+            "Efetivamente Pago — Empresas Locais",
+            fmt_compact(impacto["local_pago"]),
+            delta=pct_delta(_local_serie),
+            delta_color="normal",
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _local_serie, "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_local",
+        )
+    with c2:
+        st.metric(
+            "Efetivamente Pago — Empresas Externas",
+            fmt_compact(impacto["externo_pago"]),
+            delta=pct_delta(_ext_serie),
+            delta_color="inverse",
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _ext_serie, "#F44336"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_ext",
+        )
+    with c3:
+        st.metric(
+            "Índice de Compras Locais",
+            f"{impacto['pct_local']:.2f}%",
+            delta=pct_delta(_pct_local_serie),
+            delta_color="normal",
+            help="Percentual de recursos mantidos na economia local de Porciúncula.",
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _pct_local_serie, "#2196F3"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_pct_local",
+        )
+    with c4:
+        st.metric(
+            "HHI (concentração)",
+            f"{concentracao['hhi']:,.0f}",
+            delta=pct_delta(_hhi_serie),
+            delta_color="inverse",
+            help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _hhi_serie, "#9C27B0"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_hhi",
+        )
 
     if impacto["total_pago"] > 0:
         df_mercado = pd.DataFrame(
@@ -331,12 +448,42 @@ with t3:
     if not df_pendentes.empty:
         resumo = resumo_pendentes(df_pendentes)
 
+        _val_pendentes = _hist_pendentes["total_pendente"].tolist() if not _hist_pendentes.empty else []
+        _cnt_pendentes = _hist_pendentes["num_fornecedores"].tolist() if not _hist_pendentes.empty else []
+        _anos_pendentes = _hist_pendentes["ano"].tolist() if not _hist_pendentes.empty else []
+
         rc1, rc2, rc3 = st.columns(3)
-        rc1.metric(
-            "Total Pendente", fmt_currency(resumo["total"]), help="Soma de todos os empenhos ainda não quitados."
-        )
-        rc2.metric("Fornecedores aguardando", resumo["count"])
-        rc3.metric("Dívida mais antiga desde", str(resumo["oldest"]))
+        with rc1:
+            st.metric(
+                "Total Pendente",
+                fmt_currency(resumo["total"]),
+                delta=pct_delta(_val_pendentes),
+                delta_color="inverse",
+                help="Soma de todos os empenhos ainda não quitados.",
+            )
+            if _val_pendentes:
+                st.plotly_chart(
+                    sparkline(_anos_pendentes, _val_pendentes, "#E91E63"),
+                    use_container_width=True,
+                    config=SPARK_CFG,
+                    key="spark_desp_rp_total",
+                )
+        with rc2:
+            st.metric(
+                "Fornecedores aguardando",
+                resumo["count"],
+                delta=pct_delta(_cnt_pendentes),
+                delta_color="inverse",
+            )
+            if _cnt_pendentes:
+                st.plotly_chart(
+                    sparkline(_anos_pendentes, _cnt_pendentes, "#FF5722"),
+                    use_container_width=True,
+                    config=SPARK_CFG,
+                    key="spark_desp_rp_count",
+                )
+        with rc3:
+            st.metric("Dívida mais antiga desde", str(resumo["oldest"]))
 
         df_pizza_pendentes = piechart_pendentes(df_pendentes)
         fig_pendentes = px.pie(
@@ -393,20 +540,48 @@ with t4:
 
     resumo_diarias_data = _resumo_diarias(conn, year, _extracted_at)
 
+    _diarias_val_serie = [_hist_diarias[y]["total_valor"] for y in _all_years]
+    _diarias_cnt_serie = [_hist_diarias[y]["total_viajantes"] for y in _all_years]
+
     c1, c2, c3 = st.columns(3)
-    c1.metric("Total Pago em Diárias", fmt_currency(resumo_diarias_data["total_valor"]))
-    c2.metric("Total de Servidores Beneficiários", int(resumo_diarias_data["total_viajantes"]))
-    c3.metric(
-        "Média de Reembolso por Viagem",
-        fmt_currency(resumo_diarias_data["media_reembolso"]),
-        help=(
-            "Valor médio pago por deslocamento a serviço. Calculado dividindo o total gasto em "
-            "diárias pelo número de registros de viagem no período. Cada registro corresponde a "
-            "um pagamento de diária — servidores com múltiplas viagens aparecem mais de uma vez "
-            "nessa conta. Valores muito acima da média podem indicar viagens de longa duração ou "
-            "deslocamentos para destinos mais distantes."
-        ),
-    )
+    with c1:
+        st.metric(
+            "Total Pago em Diárias",
+            fmt_currency(resumo_diarias_data["total_valor"]),
+            delta=pct_delta(_diarias_val_serie),
+            delta_color="inverse",
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _diarias_val_serie, "#FF9800"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_diarias",
+        )
+    with c2:
+        st.metric(
+            "Total de Servidores Beneficiários",
+            int(resumo_diarias_data["total_viajantes"]),
+            delta=pct_delta(_diarias_cnt_serie),
+            delta_color="off",
+        )
+        st.plotly_chart(
+            sparkline(_all_years, _diarias_cnt_serie, "#607D8B"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_desp_viajantes",
+        )
+    with c3:
+        st.metric(
+            "Média de Reembolso por Viagem",
+            fmt_currency(resumo_diarias_data["media_reembolso"]),
+            help=(
+                "Valor médio pago por deslocamento a serviço. Calculado dividindo o total gasto em "
+                "diárias pelo número de registros de viagem no período. Cada registro corresponde a "
+                "um pagamento de diária — servidores com múltiplas viagens aparecem mais de uma vez "
+                "nessa conta. Valores muito acima da média podem indicar viagens de longa duração ou "
+                "deslocamentos para destinos mais distantes."
+            ),
+        )
 
     st.markdown("---")
     df_top_diarias = _top_diarias(conn, year, _extracted_at)

@@ -297,7 +297,7 @@ if not df_pendentes.empty:
     _anos_tendencia = tendencia_pendentes["ano"].tolist() if not tendencia_pendentes.empty else []
 
     st.subheader("Restos a Pagar — Obrigações Pendentes")
-    rp1, rp2, rp3 = st.columns(3)
+    rp1, rp2, rp3, _ = st.columns(4)
 
     with rp1:
         st.metric(

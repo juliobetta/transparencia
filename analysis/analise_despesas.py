@@ -332,3 +332,19 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
 
 def total_folha_por_orgao(df: pd.DataFrame) -> float:
     return float(df["pago"].sum()) if not df.empty else 0.0
+
+
+def get_metricas_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
+    return {year: get_metricas_gerais_despesas(conn, year) for year in years}
+
+
+def get_impacto_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
+    return {year: get_impacto_gastos_locais(conn, year) for year in years}
+
+
+def get_resumo_diarias_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
+    return {year: get_resumo_diarias(conn, year) for year in years}
+
+
+def total_folha_orgao_por_ano(conn: Any, years: list[int]) -> dict[int, float]:
+    return {year: total_folha_por_orgao(get_folha_por_orgao(conn, year)) for year in years}

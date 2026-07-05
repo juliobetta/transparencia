@@ -10,12 +10,15 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     CURRENT_YEAR,
+    SPARK_CFG,
     fmt_currency,
     get_conn,
     get_extraction_date,
+    pct_delta,
     render_partial_year_notice,
     render_revenue_methodology,
     render_sidebar,
+    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -26,8 +29,8 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _receita(conn, year, _extracted_at):
-    return fontes_receita.run(conn, [year])
+def _receita(conn, years, _extracted_at):
+    return fontes_receita.run(conn, list(years))
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -56,41 +59,64 @@ else:
 
 render_revenue_methodology()
 
-df = _receita(conn, year, _extracted_at)
-if not df.empty:
-    row = df.iloc[0]
+_all_years = list(range(2022, year + 1))
+df_hist = _receita(conn, tuple(_all_years), _extracted_at)
+df_ano = df_hist[df_hist["ano"] == year]
 
-    # Layout de duas colunas de métricas
-    c1, c2 = st.columns(2)
-    c1.metric(
-        "Previsão Orçamentária",
-        fmt_currency(row["total_previsto"]),
-        help=(
-            "Valor total de receitas que a prefeitura planejou arrecadar no ano, conforme aprovado na "
-            "Lei Orçamentária Anual (LOA). É uma estimativa — o quanto efetivamente entra no caixa pode "
-            "ser maior ou menor, dependendo do desempenho econômico e dos repasses federais e estaduais."
-        ),
-    )
+if not df_ano.empty:
+    row = df_ano.iloc[0]
+    _anos_hist = df_hist["ano"].tolist()
+    _prev_serie = df_hist["total_previsto"].tolist()
 
-    if year == CURRENT_YEAR:
-        c2.metric(
-            "Total Arrecadado Real",
-            fmt_currency(row["total_arrecadado"]),
+    c1, c2, _ = st.columns(3)
+    with c1:
+        st.metric(
+            "Previsão Orçamentária",
+            fmt_currency(row["total_previsto"]),
+            delta=pct_delta(_prev_serie),
+            delta_color="off",
             help=(
-                "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
-                "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
-                "pagos pelos cidadãos, transferências da União (como FPM e FUNDEB) e repasses do Estado "
-                "(como ICMS e IPVA). Compare com a Previsão Orçamentária para saber se a arrecadação "
-                "está dentro do esperado."
+                "Valor total de receitas que a prefeitura planejou arrecadar no ano, conforme aprovado na "
+                "Lei Orçamentária Anual (LOA). É uma estimativa — o quanto efetivamente entra no caixa pode "
+                "ser maior ou menor, dependendo do desempenho econômico e dos repasses federais e estaduais."
             ),
         )
+        st.plotly_chart(
+            sparkline(_anos_hist, _prev_serie, "#2196F3"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_rec_prev",
+        )
 
+    _total_serie = df_hist["total"].tolist()
+    with c2:
+        if year == CURRENT_YEAR:
+            st.metric(
+                "Total Arrecadado Real",
+                fmt_currency(row["total_arrecadado"]),
+                delta=pct_delta(_total_serie),
+                help=(
+                    "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
+                    "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
+                    "pagos pelos cidadãos, transferências da União (como FPM e FUNDEB) e repasses do Estado "
+                    "(como ICMS e IPVA). Compare com a Previsão Orçamentária para saber se a arrecadação "
+                    "está dentro do esperado."
+                ),
+            )
+        else:
+            st.metric("Total Arrecadado Real", "N/D (Não Disp. na API)")
+        st.plotly_chart(
+            sparkline(_anos_hist, _total_serie, "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_rec_total",
+        )
+
+    if year == CURRENT_YEAR:
         # Progress Bar
         pct_progresso = row["pct_arrecadado"]
         st.markdown(f"**Progresso de Arrecadação Anual: {pct_progresso * 100:.2f}%**")
         st.progress(min(max(pct_progresso, 0.0), 1.0))
-    else:
-        c2.metric("Total Arrecadado Real", "N/D (Não Disp. na API)")
 
     # Tabela de detalhamento
     st.subheader("Previsto vs. Arrecadado por Origem")
