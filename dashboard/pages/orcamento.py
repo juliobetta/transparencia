@@ -99,7 +99,12 @@ with st.expander("Ver Detalhamento por Órgão"):
 # Bar Chart (Função)
 st.markdown("---")
 df_func = functional_budget.get_functional_budget(conn, year)
-df_func_summary = df_func.groupby("funcaonome")["pago"].sum().reset_index().sort_values("pago", ascending=True)
+df_func_summary = (
+    df_func.groupby("funcaonome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
+    .sum()
+    .reset_index()
+    .sort_values("pago", ascending=True)
+)
 df_func_summary["ValorFormatado"] = df_func_summary["pago"].apply(fmt_currency)
 
 fig_bar = px.bar(
@@ -117,10 +122,13 @@ st.plotly_chart(fig_bar, use_container_width=True)
 
 with st.expander("Ver Detalhamento por Função"):
     st.dataframe(
-        df_func_summary[["funcaonome", "pago"]]
+        df_func_summary[["funcaonome", "dotacao_atualizada", "liquidado", "empenhado", "pago"]]
         .rename(
             columns={
                 "funcaonome": "Função",
+                "dotacao_atualizada": "Total Dotação",
+                "empenhado": "Total Empenhado",
+                "liquidado": "Total Liquidado",
                 "pago": "Total Pago",
             }
         )
@@ -128,8 +136,18 @@ with st.expander("Ver Detalhamento por Função"):
         width="stretch",
         hide_index=True,
         column_config={
+            "Total Dotação": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Total Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            "Total Liquidado": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
         },
+        column_order=[
+            "Função",
+            "Total Dotação",
+            "Total Empenhado",
+            "Total Liquidado",
+            "Total Pago",
+        ],
     )
 
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
