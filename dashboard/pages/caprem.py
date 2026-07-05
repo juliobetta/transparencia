@@ -10,7 +10,7 @@ from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import caprem_story
+from analysis import historia_caprem
 from report.caprem import generate
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -18,7 +18,7 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _caprem(conn, year, _extracted_at):
-    return caprem_story.run(conn, year)
+    return historia_caprem.run(conn, year)
 
 
 conn = get_conn()
@@ -33,8 +33,8 @@ data = _caprem(conn, year, _extracted_at)
 # Section 1: Repasses
 st.header("① Repasses")
 c1, c2 = st.columns(2)
-c1.metric("Total de Repasses (R$)", fmt_currency(data.get("total_transfers", 0)))
-c2.metric("Número de Operações", data.get("count_operations", 0))
+c1.metric("Total de Repasses (R$)", fmt_currency(data.get("total_transferencias", 0)))
+c2.metric("Número de Operações", data.get("count_operacoes", 0))
 
 # Section 2: Detalhes de Despesas
 st.header("② Detalhes de Despesas")
