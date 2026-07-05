@@ -36,3 +36,4 @@ opencode.json
 .worktrees
 .streamlit/secrets.toml
 docs/superpowers/
+*.db
