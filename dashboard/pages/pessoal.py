@@ -77,7 +77,6 @@ if not df_folha.empty:
             config=SPARK_CFG,
             key="spark_pes_pct",
         )
-    # The existing fig = px.bar(...) and st.plotly_chart(fig, ...) lines remain unchanged below this block.
     fig = px.bar(
         df_folha,
         x="ano",
