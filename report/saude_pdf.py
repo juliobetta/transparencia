@@ -218,7 +218,7 @@ def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: Sequence
 
 def _draw_alertas_section(
     pdf: FPDF,
-    bidding_gaps: pd.DataFrame,
+    licitacao_gaps: pd.DataFrame,
     splitting: pd.DataFrame,
     adesao_list: pd.DataFrame,  # noqa: ARG001
     adesao_value: float,
@@ -226,8 +226,8 @@ def _draw_alertas_section(
 ) -> None:
     _section_header(pdf, "4. ALERTAS & IRREGULARIDADES")
 
-    irregular = bidding_gaps[~bidding_gaps["is_legally_exempt"]] if not bidding_gaps.empty else pd.DataFrame()
-    exempt = bidding_gaps[bidding_gaps["is_legally_exempt"]] if not bidding_gaps.empty else pd.DataFrame()
+    irregular = licitacao_gaps[~licitacao_gaps["is_legally_exempt"]] if not licitacao_gaps.empty else pd.DataFrame()
+    exempt = licitacao_gaps[licitacao_gaps["is_legally_exempt"]] if not licitacao_gaps.empty else pd.DataFrame()
 
     gaps_count = len(irregular)
     splitting_count = splitting["fornecedor"].nunique() if not splitting.empty else 0
@@ -381,7 +381,7 @@ def generate(conn: Any, year: int) -> bytes:
     _draw_fornecedores_section(pdf, data["top_suppliers"], data["hhi"])
     _draw_alertas_section(
         pdf,
-        data["bidding_gaps"],
+        data["licitacao_gaps"],
         data["splitting"],
         data["adesao_de_ata_list"],
         data["adesao_de_ata_value"],

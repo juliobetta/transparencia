@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.bidding_gaps import run
+from analysis.licitacao_gaps import run
 
 SAUDE_EMPRESA = "2"
 

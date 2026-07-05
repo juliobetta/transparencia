@@ -43,15 +43,15 @@ def generate(conn, year: int) -> Path:
         emendas_df = data["emendas"]
 
     # Pre-format valcon for template rendering
-    if not data["bidding_gaps"].empty:
-        gaps = data["bidding_gaps"].copy()
+    if not data["licitacao_gaps"].empty:
+        gaps = data["licitacao_gaps"].copy()
         gaps["valor_fmt"] = (
             pd.to_numeric(gaps["valcon"].astype(str).str.replace(",", "."), errors="coerce")
             .fillna(0)
             .map("{:,.0f}".format)
         )
     else:
-        gaps = data["bidding_gaps"]
+        gaps = data["licitacao_gaps"]
 
     if not data["splitting"].empty:
         splitting = data["splitting"].copy()
@@ -94,7 +94,7 @@ def generate(conn, year: int) -> Path:
         top_suppliers_services=data["top_suppliers_services"].to_dict("records")
         if not data["top_suppliers_services"].empty
         else [],
-        bidding_gaps=gaps.to_dict("records") if not gaps.empty else [],
+        licitacao_gaps=gaps.to_dict("records") if not gaps.empty else [],
     )
 
     out = REPORTS_DIR / f"saude-{year}.html"

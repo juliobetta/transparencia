@@ -12,8 +12,8 @@ import db
 import glossary
 from analysis import (
     adesao_de_ata,
-    bidding_gaps,
     budget_execution,
+    licitacao_gaps,
     payroll_vs_services,
     revenue_sources,
     supplier_concentration,
@@ -31,10 +31,10 @@ def generate(engine, year: int, month: int) -> Path:
 
     budget = budget_execution.run(engine, year)
     supplier = supplier_concentration.run(engine, year)
-    bidding = bidding_gaps.run(engine, year)
+    bidding = licitacao_gaps.run(engine, year)
     adesao = adesao_de_ata.run(engine, year, "2")
-    bidding_acima = bidding_gaps.filter_above_limit(bidding).to_dict("records")
-    bidding_saude = bidding_gaps.filter_above_limit_health(bidding)
+    bidding_acima = licitacao_gaps.filter_above_limit(bidding).to_dict("records")
+    bidding_saude = licitacao_gaps.filter_above_limit_health(bidding)
     revenue = revenue_sources.run(engine, list(range(2022, year + 1)))
     payroll = payroll_vs_services.run(engine, list(range(2022, year + 1)))
     trends = yoy_trends.run(engine, list(range(2022, year + 1)))

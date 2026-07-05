@@ -129,7 +129,7 @@ def _adesao_de_ata(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame,
         return pd.DataFrame(), 0.0
 
 
-def _bidding_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
+def _licitacao_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
             "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes,"
@@ -361,7 +361,7 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     execution_flow = _execution_flow(conn, year, empresa_id)
     contracts_by_modality = _contracts_by_modality(conn, year, empresa_id)
     adesao_df, adesao_value = _adesao_de_ata(conn, year, empresa_id)
-    bidding_gaps = _bidding_gaps(conn, year, empresa_id)
+    licitacao_gaps = _licitacao_gaps(conn, year, empresa_id)
     top_suppliers, hhi = _top_suppliers(conn, year, empresa_id)
     top_suppliers_services = _top_suppliers_services(conn, year, empresa_id)
     splitting = _splitting(conn, year, empresa_id)
@@ -381,7 +381,7 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
         "adesao_de_ata_count": len(adesao_df),
         "adesao_de_ata_contracts_linked": int(adesao_df["has_contract"].sum()) if not adesao_df.empty else 0,
         "adesao_de_ata_value": adesao_value,
-        "bidding_gaps": bidding_gaps,
+        "licitacao_gaps": licitacao_gaps,
         "top_suppliers": top_suppliers,
         "top_suppliers_services": top_suppliers_services,
         "hhi": hhi,

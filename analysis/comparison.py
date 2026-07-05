@@ -7,8 +7,8 @@ import pandas as pd
 
 from analysis import (
     adesao_de_ata,
-    bidding_gaps,
     budget_execution,
+    licitacao_gaps,
     payroll_vs_services,
     revenue_sources,
     supplier_concentration,
@@ -89,7 +89,7 @@ def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
         }
 
     def _licitacoes(spec: PeriodSpec) -> dict:
-        gaps = bidding_gaps.run(conn, spec.year)
+        gaps = licitacao_gaps.run(conn, spec.year)
         return {
             "sem_licitacao": float(len(gaps)),
             "acima_limite": float(gaps["acima_limite"].sum()),

@@ -10,7 +10,7 @@ from shared import get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import adesao_de_ata, bidding_gaps, contract_anomalies
+from analysis import adesao_de_ata, contract_anomalies, licitacao_gaps
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -18,7 +18,7 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _gaps(conn, year, _extracted_at):
-    return bidding_gaps.run(conn, year)
+    return licitacao_gaps.run(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -45,8 +45,8 @@ adesao = _adesao(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
 anomalies = _anomalies(conn, year, _extracted_at)
 
-acima = bidding_gaps.filter_above_limit(gaps)
-saude = bidding_gaps.filter_above_limit_health(gaps)
+acima = licitacao_gaps.filter_above_limit(gaps)
+saude = licitacao_gaps.filter_above_limit_health(gaps)
 
 st.header("Licitações e Contratos")
 

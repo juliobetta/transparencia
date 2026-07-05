@@ -269,25 +269,25 @@ def test_adesao_de_ata_detected(conn):
     assert result["adesao_de_ata_value"] == 150_000.0
 
 
-def test_bidding_gaps_above_threshold_only(conn):
+def test_licitacao_gaps_above_threshold_only(conn):
     result = run(conn, 2023)
-    assert len(result["bidding_gaps"]) == 1
-    assert result["bidding_gaps"].iloc[0]["numero"] == "C002"
+    assert len(result["licitacao_gaps"]) == 1
+    assert result["licitacao_gaps"].iloc[0]["numero"] == "C002"
 
 
-def test_bidding_gaps_has_is_legally_exempt_column(conn):
+def test_licitacao_gaps_has_is_legally_exempt_column(conn):
     result = run(conn, 2023)
-    assert "is_legally_exempt" in result["bidding_gaps"].columns
+    assert "is_legally_exempt" in result["licitacao_gaps"].columns
 
 
-def test_bidding_gaps_dispensa_not_legally_exempt(conn):
+def test_licitacao_gaps_dispensa_not_legally_exempt(conn):
     result = run(conn, 2023)
     # C002 has modali="DISPENSA" — should NOT be legally exempt
-    gap = result["bidding_gaps"].iloc[0]
+    gap = result["licitacao_gaps"].iloc[0]
     assert gap["is_legally_exempt"] is False or gap["is_legally_exempt"] == False  # noqa: E712
 
 
-def test_bidding_gaps_consorcio_and_rateio_are_legally_exempt(conn):
+def test_licitacao_gaps_consorcio_and_rateio_are_legally_exempt(conn):
     import db
 
     db.upsert(
@@ -324,12 +324,12 @@ def test_bidding_gaps_consorcio_and_rateio_are_legally_exempt(conn):
         ["ano", "empresa", "numero"],
     )
     result = run(conn, 2023)
-    gaps = result["bidding_gaps"]
+    gaps = result["licitacao_gaps"]
     assert gaps[gaps["numero"] == "C006"].iloc[0]["is_legally_exempt"] == True  # noqa: E712
     assert gaps[gaps["numero"] == "C007"].iloc[0]["is_legally_exempt"] == True  # noqa: E712
 
 
-def test_bidding_gaps_inexigibilidade_is_legally_exempt(conn):
+def test_licitacao_gaps_inexigibilidade_is_legally_exempt(conn):
     import db
 
     db.upsert(
@@ -353,7 +353,7 @@ def test_bidding_gaps_inexigibilidade_is_legally_exempt(conn):
         ["ano", "empresa", "numero"],
     )
     result = run(conn, 2023)
-    gaps = result["bidding_gaps"]
+    gaps = result["licitacao_gaps"]
     c005 = gaps[gaps["numero"] == "C005"]
     assert len(c005) == 1
     assert c005.iloc[0]["is_legally_exempt"] is True or c005.iloc[0]["is_legally_exempt"] == True  # noqa: E712

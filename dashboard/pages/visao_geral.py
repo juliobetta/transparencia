@@ -27,10 +27,10 @@ from sqlalchemy.engine import Engine
 import glossary
 from analysis import (
     adesao_de_ata,
-    bidding_gaps,
     budget_execution,
     contract_anomalies,
     fiscal_position,
+    licitacao_gaps,
     payroll_vs_services,
     revenue_sources,
     yoy_trends,
@@ -46,12 +46,12 @@ def _budget(conn, year, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _bidding(conn, year, _extracted_at):
-    return bidding_gaps.run(conn, year)
+    return licitacao_gaps.run(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _bidding_counts(conn, years, _extracted_at):
-    return bidding_gaps.counts_by_year(conn, years)
+    return licitacao_gaps.counts_by_year(conn, years)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)

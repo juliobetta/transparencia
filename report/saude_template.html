@@ -110,10 +110,10 @@
   </table>
   {% endif %}
   <h3>Contratos sem Licitação acima do limite legal</h3>
-  {% if bidding_gaps %}
+  {% if licitacao_gaps %}
   <table>
     <tr><th>Fornecedor</th><th>Objeto</th><th>Modalidade</th><th>Valor (R$)</th></tr>
-    {% for row in bidding_gaps %}
+    {% for row in licitacao_gaps %}
     <tr><td>{{ row.fornecedor }}</td><td>{{ row.objeto }}</td><td>{{ row.modali }}</td><td>R$ {{ row.valor_fmt }}</td></tr>
     {% endfor %}
   </table>
