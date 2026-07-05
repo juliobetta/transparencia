@@ -63,3 +63,7 @@ def top_orgaos_por_dotacao(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
         axis=1,
     )
     return por_orgao.nlargest(n, "dotacao_atualizada").copy()
+
+
+def summarize_by_year(conn: Any, years: list[int]) -> dict[int, dict]:
+    return {year: summarize(run(conn, year)) for year in years}
