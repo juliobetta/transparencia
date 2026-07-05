@@ -33,8 +33,8 @@ def generate(conn, spec_a: PeriodSpec, spec_b: PeriodSpec) -> Path:
         result=result,
     )
 
-    slug_a = f"{spec_a.year}-{spec_a.month_start:02d}-{spec_a.month_end:02d}"
-    slug_b = f"{spec_b.year}-{spec_b.month_start:02d}-{spec_b.month_end:02d}"
+    slug_a = f"{spec_a.year}-{spec_a.mes_inicio:02d}-{spec_a.mes_fim:02d}"
+    slug_b = f"{spec_b.year}-{spec_b.mes_inicio:02d}-{spec_b.mes_fim:02d}"
     out = REPORTS_DIR / f"compare_{slug_a}_vs_{slug_b}.html"
     out.write_text(html, encoding="utf-8")
     return out
@@ -49,8 +49,8 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    spec_a = PeriodSpec(year=int(args[0]), month_start=int(args[1]), month_end=int(args[2]))
-    spec_b = PeriodSpec(year=int(args[3]), month_start=int(args[4]), month_end=int(args[5]))
+    spec_a = PeriodSpec(year=int(args[0]), mes_inicio=int(args[1]), mes_fim=int(args[2]))
+    spec_b = PeriodSpec(year=int(args[3]), mes_inicio=int(args[4]), mes_fim=int(args[5]))
 
     engine = db.get_engine()
     path = generate(engine, spec_a, spec_b)

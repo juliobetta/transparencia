@@ -57,9 +57,9 @@ def run(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
 
         if raw.empty:
             return {
-                "list": pd.DataFrame(),
-                "count": 0,
-                "value": 0.0,
+                "lista": pd.DataFrame(),
+                "quantidade": 0,
+                "valor": 0.0,
                 "total_licitacao": 0.0,
                 "contratos_associados_count": 0,
             }
@@ -74,9 +74,9 @@ def run(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
         df["periodo"] = df["mes"].apply(lambda m: str(int(m)).zfill(2) if pd.notna(m) else "") + "/" + str(year)
 
         return {
-            "list": df,
-            "count": len(df),
-            "value": total_value,
+            "lista": df,
+            "quantidade": len(df),
+            "valor": total_value,
             "total_licitacao": total_licitacao,
             "contratos_associados_count": int(df["tem_contrato"].sum()),
         }
@@ -166,14 +166,14 @@ def run_external(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict
     try:
         df = pd.read_sql_query(query, conn, params=params)
         if df.empty:
-            return {"list": pd.DataFrame(), "count": 0, "total_pago": 0.0}
+            return {"lista": pd.DataFrame(), "quantidade": 0, "total_pago": 0.0}
         df["pago"] = _to_float(df["pago"])
         df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
         return {
-            "list": df,
-            "count": len(df),
+            "lista": df,
+            "quantidade": len(df),
             "total_pago": float(df["pago"].sum()),
         }
     except Exception as e:
         print(f"DEBUG: Exception in Adesao Externa: {e}")
-        return {"list": pd.DataFrame(), "count": 0, "total_pago": 0.0}
+        return {"lista": pd.DataFrame(), "quantidade": 0, "total_pago": 0.0}

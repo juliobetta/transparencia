@@ -6,20 +6,20 @@ from analysis.comparison import PeriodSpec, _delta, _filter_months, run
 
 
 def test_period_spec_fields():
-    spec = PeriodSpec(year=2024, month_start=1, month_end=6)
+    spec = PeriodSpec(year=2024, mes_inicio=1, mes_fim=6)
     assert spec.year == 2024
-    assert spec.month_start == 1
-    assert spec.month_end == 6
+    assert spec.mes_inicio == 1
+    assert spec.mes_fim == 6
 
 
 def test_period_spec_invalid_month_range():
     with pytest.raises(ValueError):
-        PeriodSpec(year=2024, month_start=6, month_end=3)
+        PeriodSpec(year=2024, mes_inicio=6, mes_fim=3)
 
 
 def test_period_spec_invalid_month_out_of_bounds():
     with pytest.raises(ValueError):
-        PeriodSpec(year=2024, month_start=0, month_end=12)
+        PeriodSpec(year=2024, mes_inicio=0, mes_fim=12)
 
 
 def test_delta_normal():
@@ -35,7 +35,7 @@ def test_delta_zero_base():
 
 def test_filter_months_filters_correctly():
     df = pd.DataFrame({"mes": ["01", "03", "07", "12"], "val": [1, 2, 3, 4]})
-    spec = PeriodSpec(year=2024, month_start=1, month_end=6)
+    spec = PeriodSpec(year=2024, mes_inicio=1, mes_fim=6)
     filtered = _filter_months(df, "mes", spec)
     assert len(filtered) == 2
     assert set(filtered["mes"]) == {"01", "03"}
@@ -185,8 +185,8 @@ def conn(conn):
 
 
 def test_run_returns_all_domains(conn):
-    spec_a = PeriodSpec(year=2024, month_start=1, month_end=12)
-    spec_b = PeriodSpec(year=2025, month_start=1, month_end=12)
+    spec_a = PeriodSpec(year=2024, mes_inicio=1, mes_fim=12)
+    spec_b = PeriodSpec(year=2025, mes_inicio=1, mes_fim=12)
     result = run(conn, spec_a, spec_b)
     assert set(result.keys()) == {
         "spec_a",
@@ -201,15 +201,15 @@ def test_run_returns_all_domains(conn):
 
 
 def test_despesas_delta_direction(conn):
-    spec_a = PeriodSpec(year=2024, month_start=1, month_end=12)
-    spec_b = PeriodSpec(year=2025, month_start=1, month_end=12)
+    spec_a = PeriodSpec(year=2024, mes_inicio=1, mes_fim=12)
+    spec_b = PeriodSpec(year=2025, mes_inicio=1, mes_fim=12)
     result = run(conn, spec_a, spec_b)
     assert result["despesas"]["empenhado"]["b"] > result["despesas"]["empenhado"]["a"]
 
 
 def test_licitacoes_sem_licitacao_count(conn):
-    spec_a = PeriodSpec(year=2024, month_start=1, month_end=12)
-    spec_b = PeriodSpec(year=2025, month_start=1, month_end=12)
+    spec_a = PeriodSpec(year=2024, mes_inicio=1, mes_fim=12)
+    spec_b = PeriodSpec(year=2025, mes_inicio=1, mes_fim=12)
     result = run(conn, spec_a, spec_b)
     assert result["licitacoes"]["sem_licitacao"]["a"] == 1
     assert result["licitacoes"]["sem_licitacao"]["b"] == 2
@@ -217,8 +217,8 @@ def test_licitacoes_sem_licitacao_count(conn):
 
 def test_domain_subkeys_match_page_expectations(conn):
     """Ensure every key the dashboard pages access is present in the comparison result."""
-    spec_a = PeriodSpec(year=2024, month_start=1, month_end=12)
-    spec_b = PeriodSpec(year=2025, month_start=1, month_end=12)
+    spec_a = PeriodSpec(year=2024, mes_inicio=1, mes_fim=12)
+    spec_b = PeriodSpec(year=2025, mes_inicio=1, mes_fim=12)
     result = run(conn, spec_a, spec_b)
 
     assert {"empenhado", "dotacao"} <= result["despesas"].keys()
@@ -226,4 +226,4 @@ def test_domain_subkeys_match_page_expectations(conn):
     assert {"receita_propria", "transferencias_uniao", "transferencias_estado", "total"} <= result["receitas"].keys()
     assert {"sem_licitacao", "acima_limite", "saude"} <= result["licitacoes"].keys()
     assert {"hhi"} <= result["fornecedores"].keys()
-    assert {"count", "valor_licitacao", "valor_contratos"} <= result["adesao"].keys()
+    assert {"quantidade", "valor_licitacao", "valor_contratos"} <= result["adesao"].keys()

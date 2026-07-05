@@ -279,19 +279,19 @@ if not data["adesao_de_ata_list"].empty:
 c1, c2 = st.columns(2)
 c1.metric(
     "Empenhos via Ata Externa",
-    adesao_externa["count"],
+    adesao_externa["quantidade"],
     help="Empenhos cuja justificativa contábil referencia uma Ata de Registro de Preços de outro ente (Termo de Adesão Externa).",
 )
 c2.metric("Valor Total Pago via Ata Externa", fmt_currency(adesao_externa["total_pago"]))
 
-if not adesao_externa["list"].empty:
+if not adesao_externa["lista"].empty:
     with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
         st.caption(
             "Registros extraídos da justificativa contábil dos empenhos do Fundo Municipal de Saúde "
             "que referenciam explicitamente um Termo de Adesão Externa a Ata de Registro de Preços."
         )
         st.dataframe(
-            adesao_externa["list"].rename(
+            adesao_externa["lista"].rename(
                 columns={
                     "data": "Data",
                     "fornecedor": "Fornecedor",

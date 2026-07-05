@@ -103,10 +103,10 @@
   </div>
 
   <!-- ADESÃO DE ATA -->
-  {% if adesao.count > 0 %}
+  {% if adesao.quantidade > 0 %}
   <div class="secao">
     <h2>Adesão de Ata de Registro de Preços</h2>
-    <p>Foram identificadas <strong>{{ adesao.count }}</strong> adesões, totalizando <strong>R$ {{ "{:,.0f}".format(adesao.value) }}</strong>.</p>
+    <p>Foram identificadas <strong>{{ adesao.quantidade }}</strong> adesões, totalizando <strong>R$ {{ "{:,.0f}".format(adesao.valor) }}</strong>.</p>
     {% if adesao.contratos_associados_count > 0 %}
     <p>Destas, <strong>{{ adesao.contratos_associados_count }}</strong> possuem contratos vinculados no sistema.</p>
     {% endif %}

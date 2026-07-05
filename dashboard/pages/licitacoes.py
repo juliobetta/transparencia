@@ -82,7 +82,7 @@ c2.metric(
 )
 c3.metric(
     "Adesões de Ata (licitações)",
-    adesao["count"],
+    adesao["quantidade"],
     help=(
         "Quantidade de contratos firmados por adesão à Ata de Registro de Preços — mecanismo "
         "em que a prefeitura aproveita uma licitação já realizada por ela mesma para novas "
@@ -92,7 +92,7 @@ c3.metric(
 )
 c4.metric(
     "Empenhos via Ata Externa",
-    adesao_externa["count"],
+    adesao_externa["quantidade"],
     help=(
         "Empenhos identificados como 'carona em ata' — a prefeitura utilizou uma Ata de "
         "Registro de Preços aberta por outro ente público (outro município, estado ou órgão "
@@ -125,9 +125,9 @@ with st.expander("Ver contratos sem processo licitatório"):
     )
 
 with st.expander("Ver licitações via Adesão de Ata"):
-    if not adesao["list"].empty:
+    if not adesao["lista"].empty:
         df_adesao = (
-            adesao["list"]
+            adesao["lista"]
             .rename(
                 columns={
                     "objeto": "Objeto",
@@ -164,13 +164,13 @@ with st.expander("Ver licitações via Adesão de Ata"):
         st.info("Nenhuma adesão de ata registrada para este ano.")
 
 with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
-    if not adesao_externa["list"].empty:
+    if not adesao_externa["lista"].empty:
         st.caption(
             "Empenhos cuja justificativa contábil referencia uma Ata de Registro de Preços de outro ente "
             "(Termo de Adesão Externa). Esses registros complementam as licitações formais via carona."
         )
         st.dataframe(
-            adesao_externa["list"].rename(
+            adesao_externa["lista"].rename(
                 columns={
                     "data": "Data",
                     "fornecedor": "Fornecedor",

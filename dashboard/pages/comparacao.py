@@ -55,8 +55,8 @@ with col_b:
     m_start_b = st.selectbox("Mês início B", MONTHS, index=0, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_ms_b")
     m_end_b = st.selectbox("Mês fim B", MONTHS, index=11, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_me_b")
 
-spec_a = PeriodSpec(year=year_a, month_start=m_start_a, month_end=m_end_a)
-spec_b = PeriodSpec(year=year_b, month_start=m_start_b, month_end=m_end_b)
+spec_a = PeriodSpec(year=year_a, mes_inicio=m_start_a, mes_fim=m_end_a)
+spec_b = PeriodSpec(year=year_b, mes_inicio=m_start_b, mes_fim=m_end_b)
 result = _comparison(conn, spec_a, spec_b, _extracted_at)
 
 st.subheader("Resumo")
@@ -69,7 +69,7 @@ d = result["licitacoes"]["sem_licitacao"]
 m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 d = result["fornecedores"]["hhi"]
 m4.metric("HHI", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
-d = result["adesao"]["count"]
+d = result["adesao"]["quantidade"]
 m5.metric("Adesões", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
 
 with st.expander("Despesas"):
@@ -172,7 +172,7 @@ with st.expander("Adesão de Ata"):
     st.subheader("Adesão de Ata")
     df = comparison_table(
         result["adesao"],
-        [("Quantidade", "count")],
+        [("Quantidade", "quantidade")],
     )
     st.dataframe(
         df,
