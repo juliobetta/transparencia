@@ -7,7 +7,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_partial_year_notice, render_sidebar
+from shared import (
+    SPARK_CFG,
+    fmt_currency,
+    get_conn,
+    get_extraction_date,
+    pct_delta,
+    render_partial_year_notice,
+    render_sidebar,
+    sparkline,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -28,6 +37,11 @@ def _folha_por_departamento(conn, year, _extracted_at):
     return analise_despesas.get_folha_por_orgao(conn, year)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _folha_orgao_por_ano(conn, years, _extracted_at):
+    return analise_despesas.total_folha_orgao_por_ano(conn, list(years))
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
@@ -40,7 +54,30 @@ st.caption(
 )
 render_partial_year_notice(year, _extracted_at)
 df_folha = _folha_pagamento(conn, year, _extracted_at)
+_all_years = list(range(2022, year + 1))
+_anos = _all_years
+_hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), _extracted_at)
+_folha_orgao_serie = [_hist_folha_orgao[y] for y in _anos]
 if not df_folha.empty:
+    _pct_serie = df_folha["percentual_folha"].tolist()
+    _anos_folha = df_folha["ano"].tolist()
+    _pct_atual = float(df_folha.iloc[-1]["percentual_folha"])
+    kf1, _ = st.columns([1, 3])
+    with kf1:
+        st.metric(
+            "Folha / Receita Arrecadada",
+            f"{_pct_atual:.1f}%",
+            delta=pct_delta(_pct_serie),
+            delta_color="inverse",
+            help="Percentual da receita arrecadada comprometido com folha de pessoal (proventos brutos).",
+        )
+        st.plotly_chart(
+            sparkline(_anos_folha, _pct_serie, "#FF9800"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pes_pct",
+        )
+    # The existing fig = px.bar(...) and st.plotly_chart(fig, ...) lines remain unchanged below this block.
     fig = px.bar(
         df_folha,
         x="ano",
@@ -120,7 +157,21 @@ st.info(
 
 df_departamentos = _folha_por_departamento(conn, year, _extracted_at)
 if not df_departamentos.empty:
-    st.metric("Total distribuído via responsáveis", fmt_currency(total_folha_por_orgao(df_departamentos)))
+    _total_folha_atual = total_folha_por_orgao(df_departamentos)
+    kp1, _ = st.columns([1, 3])
+    with kp1:
+        st.metric(
+            "Total distribuído via responsáveis",
+            fmt_currency(_total_folha_atual),
+            delta=pct_delta(_folha_orgao_serie),
+            delta_color="off",
+        )
+        st.plotly_chart(
+            sparkline(_anos, _folha_orgao_serie, "#607D8B"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pes_folha_orgao",
+        )
 
     fig_departamentos = px.bar(
         df_departamentos,
