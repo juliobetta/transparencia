@@ -63,8 +63,8 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
     return df
 
 
-def fiscal_pressure_gap(df: pd.DataFrame) -> dict:
-    """Return gap between spending growth and revenue growth, ready for chart rendering."""
+def gap_pressao_fiscal(df: pd.DataFrame) -> dict:
+    """Retorna gap entre crescimento dos gastos e da receita, pronto para renderização em gráfico."""
     valid = df.dropna(subset=["total_gasto_pct_change"]).copy()
     valid = valid[~valid["total_gasto_pct_change"].isin([float("inf"), float("-inf")])]
     valid = valid.dropna(subset=["total_gasto_pct_change"])

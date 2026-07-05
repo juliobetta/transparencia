@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 import db
-from analysis.caprem_story import run
+from analysis.historia_caprem import run
 
 
 @pytest.fixture
@@ -30,8 +30,8 @@ def conn(conn):
 
 def test_run_returns_expected_structure(conn):
     result = run(conn, 2023)
-    assert result["total_transfers"] == pytest.approx(1556335.93, rel=0.01)
-    assert result["count_operations"] == 1
+    assert result["total_transferencias"] == pytest.approx(1556335.93, rel=0.01)
+    assert result["count_operacoes"] == 1
     assert isinstance(result["despesas"], pd.DataFrame)
-    assert result["transfers_by_type"] == []
-    assert result["budget"] == {"dotacao": 0, "empenhado": 0, "taxa_execucao": 0}
+    assert result["transferencias_por_tipo"] == []
+    assert result["orcamento"] == {"dotacao": 0, "empenhado": 0, "taxa_execucao": 0}

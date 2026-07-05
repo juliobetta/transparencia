@@ -10,29 +10,32 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     CURRENT_YEAR,
+    SPARK_CFG,
     fmt_currency,
     get_conn,
     get_extraction_date,
+    pct_delta,
     render_partial_year_notice,
     render_revenue_methodology,
     render_sidebar,
+    sparkline,
 )
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import fiscal_position, revenue_sources
+from analysis import fontes_receita, posicao_fiscal
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _revenue(conn, year, _extracted_at):
-    return revenue_sources.run(conn, [year])
+def _receita(conn, years, _extracted_at):
+    return fontes_receita.run(conn, list(years))
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _fiscal_position(conn, year, _extracted_at, _v=6):
-    return fiscal_position.run(conn, year)
+def _posicao_fiscal(conn, year, _extracted_at, _v=6):
+    return posicao_fiscal.run(conn, year)
 
 
 conn = get_conn()
@@ -41,7 +44,7 @@ _extracted_at = get_extraction_date(conn)
 
 st.header("Fontes de Receita")
 
-# Informative historical limitations notice
+# Aviso sobre limitações históricas dos dados
 if year < CURRENT_YEAR:
     st.info(
         "O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
@@ -56,54 +59,77 @@ else:
 
 render_revenue_methodology()
 
-df = _revenue(conn, year, _extracted_at)
-if not df.empty:
-    row = df.iloc[0]
+_all_years = list(range(2022, year + 1))
+df_hist = _receita(conn, tuple(_all_years), _extracted_at)
+df_ano = df_hist[df_hist["ano"] == year]
 
-    # Double metric column layout
-    c1, c2 = st.columns(2)
-    c1.metric(
-        "Previsão Orçamentária",
-        fmt_currency(row["total_previsto"]),
-        help=(
-            "Valor total de receitas que a prefeitura planejou arrecadar no ano, conforme aprovado na "
-            "Lei Orçamentária Anual (LOA). É uma estimativa — o quanto efetivamente entra no caixa pode "
-            "ser maior ou menor, dependendo do desempenho econômico e dos repasses federais e estaduais."
-        ),
-    )
+if not df_ano.empty:
+    row = df_ano.iloc[0]
+    _anos_hist = df_hist["ano"].tolist()
+    _prev_serie = df_hist["total_previsto"].tolist()
 
-    if year == CURRENT_YEAR:
-        c2.metric(
-            "Total Arrecadado Real",
-            fmt_currency(row["total_arrecadado"]),
+    c1, c2, _ = st.columns(3)
+    with c1:
+        st.metric(
+            "Previsão Orçamentária",
+            fmt_currency(row["total_previsto"]),
+            delta=pct_delta(_prev_serie),
+            delta_color="off",
             help=(
-                "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
-                "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
-                "pagos pelos cidadãos, transferências da União (como FPM e FUNDEB) e repasses do Estado "
-                "(como ICMS e IPVA). Compare com a Previsão Orçamentária para saber se a arrecadação "
-                "está dentro do esperado."
+                "Valor total de receitas que a prefeitura planejou arrecadar no ano, conforme aprovado na "
+                "Lei Orçamentária Anual (LOA). É uma estimativa — o quanto efetivamente entra no caixa pode "
+                "ser maior ou menor, dependendo do desempenho econômico e dos repasses federais e estaduais."
             ),
         )
+        st.plotly_chart(
+            sparkline(_anos_hist, _prev_serie, "#2196F3"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_rec_prev",
+        )
 
-        # Progress Bar
-        progress_pct = row["pct_arrecadado"]
-        st.markdown(f"**Progresso de Arrecadação Anual: {progress_pct * 100:.2f}%**")
-        st.progress(min(max(progress_pct, 0.0), 1.0))
-    else:
-        c2.metric("Total Arrecadado Real", "N/D (Não Disp. na API)")
-
-    # Detailed Summary Table
-    st.subheader("Previsto vs. Arrecadado por Origem")
-
-    resumo_df = revenue_sources.breakdown_table(row, year)
+    _total_serie = df_hist["total"].tolist()
+    with c2:
+        if year == CURRENT_YEAR:
+            st.metric(
+                "Total Arrecadado Real",
+                fmt_currency(row["total_arrecadado"]),
+                delta=pct_delta(_total_serie),
+                help=(
+                    "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
+                    "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
+                    "pagos pelos cidadãos, transferências da União (como FPM e FUNDEB) e repasses do Estado "
+                    "(como ICMS e IPVA). Compare com a Previsão Orçamentária para saber se a arrecadação "
+                    "está dentro do esperado."
+                ),
+            )
+        else:
+            st.metric("Total Arrecadado Real", "N/D (Não Disp. na API)")
+        st.plotly_chart(
+            sparkline(_anos_hist, _total_serie, "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_rec_total",
+        )
 
     if year == CURRENT_YEAR:
-        # Bar chart comparing predicted vs collected
-        melt_df = resumo_df.melt(
+        # Progress Bar
+        pct_progresso = row["pct_arrecadado"]
+        st.markdown(f"**Progresso de Arrecadação Anual: {pct_progresso * 100:.2f}%**")
+        st.progress(min(max(pct_progresso, 0.0), 1.0))
+
+    # Tabela de detalhamento
+    st.subheader("Previsto vs. Arrecadado por Origem")
+
+    resumo_df = fontes_receita.tabela_detalhamento(row, year)
+
+    if year == CURRENT_YEAR:
+        # Gráfico de barras: previsto vs. arrecadado
+        df_comparativo = resumo_df.melt(
             id_vars=["Fonte"], value_vars=["Previsto", "Arrecadado"], var_name="Métrica", value_name="Valor"
         )
         fig = px.bar(
-            melt_df,
+            df_comparativo,
             x="Fonte",
             y="Valor",
             color="Métrica",
@@ -148,43 +174,43 @@ if year == CURRENT_YEAR:
     st.divider()
     st.subheader(f"Situação Fiscal Estimada ({CURRENT_YEAR})")
 
-    fp = _fiscal_position(conn, year, _extracted_at)
+    posicao_fiscal_data = _posicao_fiscal(conn, year, _extracted_at)
 
-    prev_year = CURRENT_YEAR - 1
+    ano_anterior = CURRENT_YEAR - 1
     st.warning(
         f"""
         **Estimativa baseada em dados públicos — não é um balanço oficial.**\n\n
         * **Fluxo Líquido do Período**: total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos).
         Não representa o saldo de caixa disponível — não inclui saldo inicial em 01/01/{CURRENT_YEAR}, receitas/despesas extra-orçamentárias nem aplicações financeiras.
-        * **Obrigações Herdadas**: restos a pagar de exercícios anteriores a {prev_year} (dívida da administração anterior) ainda não quitados. \n\n
+        * **Obrigações Herdadas**: restos a pagar de exercícios anteriores a {ano_anterior} (dívida da administração anterior) ainda não quitados. \n\n
         Para o valor oficial, consulte Prestação de Contas > Responsabilidade Fiscal - RREO no [portal da transparência]({glossary.PORTAL_URL}).
         """,
         icon=":material/warning:",
     )
 
     fc1, fc2, fc3 = st.columns(3)
-    fc1.metric("Receitas Arrecadadas", fmt_currency(fp["total_arrecadado"]))
+    fc1.metric("Receitas Arrecadadas", fmt_currency(posicao_fiscal_data["total_arrecadado"]))
     fc2.metric(
         "Efetivamente Pago — Exercício Corrente",
-        fmt_currency(fp["despesas_pagas"]),
+        fmt_currency(posicao_fiscal_data["despesas_pagas"]),
         help=f"Despesas do orçamento de {CURRENT_YEAR} pagas no ano.",
     )
     fc3.metric(
         "Restos a Pagar Quitados",
-        fmt_currency(fp["restos_pagos_no_ano"]),
+        fmt_currency(posicao_fiscal_data["restos_pagos_no_ano"]),
         help=f"Pagamentos de empenhos de anos anteriores (Restos a Pagar) realizados em {CURRENT_YEAR}.",
     )
 
     fc3, fc4 = st.columns(2)
-    fc3.metric("Fluxo Líquido do Período", fmt_currency(fp["saldo_estimado"]))
-    herdadas = fp.get("restos_pendentes_anteriores", 0.0)
+    fc3.metric("Fluxo Líquido do Período", fmt_currency(posicao_fiscal_data["saldo_estimado"]))
+    herdadas = posicao_fiscal_data.get("restos_pendentes_anteriores", 0.0)
     fc4.metric(
         "Obrigações Herdadas (Adm. Anterior)",
         fmt_currency(herdadas),
         delta=f"-{fmt_currency(herdadas)}",
     )
 
-    saldo_apos_restos = fp["saldo_apos_restos"]
+    saldo_apos_restos = posicao_fiscal_data["saldo_apos_restos"]
     st.metric(
         f"Saldo após Restos Pendentes ({CURRENT_YEAR})",
         fmt_currency(saldo_apos_restos),
@@ -192,8 +218,8 @@ if year == CURRENT_YEAR:
     )
 
     with st.expander(":material/table_chart: Restos a Pagar pendentes por exercício"):
-        if fp["restos_pendentes"]:
-            restos_df = pd.DataFrame(fp["restos_pendentes"]).rename(
+        if posicao_fiscal_data["restos_pendentes"]:
+            restos_df = pd.DataFrame(posicao_fiscal_data["restos_pendentes"]).rename(
                 columns={
                     "ano": "Exercício",
                     "administracao": "Administração",
@@ -212,15 +238,17 @@ if year == CURRENT_YEAR:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.metric("Total Pendente (todos os exercícios)", fmt_currency(fp["restos_pendentes_total"]))
+            st.metric(
+                "Total Pendente (todos os exercícios)", fmt_currency(posicao_fiscal_data["restos_pendentes_total"])
+            )
         else:
             st.info("Sem dados de Restos a Pagar disponíveis.")
 
         st.markdown(
             f"""
 **Legenda da tabela:**
-- **Adm. Anterior** (exercícios < {prev_year}) — obrigações deixadas pela administração anterior, refletidas em "Obrigações Herdadas" acima
-- **Adm. Atual** (exercícios ≥ {prev_year}) — obrigações da administração corrente em processamento normal
+- **Adm. Anterior** (exercícios < {ano_anterior}) — obrigações deixadas pela administração anterior, refletidas em "Obrigações Herdadas" acima
+- **Adm. Atual** (exercícios ≥ {ano_anterior}) — obrigações da administração corrente em processamento normal
 
 **Não incluído no Fluxo Líquido:**
 - Saldo inicial de caixa em 01/01/{CURRENT_YEAR}

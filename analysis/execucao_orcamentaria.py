@@ -45,16 +45,16 @@ def summarize(df: pd.DataFrame) -> dict:
     }
 
 
-def top_organs_by_dotacao(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
-    """Aggregate by organ, compute execution rate + alert, return top-n by dotação."""
-    by_organ = df.groupby(["empresa", "descricao"], as_index=False).agg(
+def top_orgaos_por_dotacao(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
+    """Agregar por órgão, calcular taxa de execução + alerta, retornar top-n por dotação."""
+    por_orgao = df.groupby(["empresa", "descricao"], as_index=False).agg(
         empenhado=("empenhado", "sum"), dotacao_atualizada=("dotacao_atualizada", "sum")
     )
-    by_organ["taxa_execucao"] = by_organ.apply(
+    por_orgao["taxa_execucao"] = por_orgao.apply(
         lambda r: r["empenhado"] / r["dotacao_atualizada"] if r["dotacao_atualizada"] > 0 else 0.0,
         axis=1,
     )
-    by_organ["alerta"] = by_organ.apply(
+    por_orgao["alerta"] = por_orgao.apply(
         lambda r: (
             "N/D"
             if r["empenhado"] == 0 and r["dotacao_atualizada"] == 0
@@ -62,4 +62,8 @@ def top_organs_by_dotacao(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
         ),
         axis=1,
     )
-    return by_organ.nlargest(n, "dotacao_atualizada").copy()
+    return por_orgao.nlargest(n, "dotacao_atualizada").copy()
+
+
+def summarize_by_year(conn: Any, years: list[int]) -> dict[int, dict]:
+    return {year: summarize(run(conn, year)) for year in years}

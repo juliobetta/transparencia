@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.contract_anomalies import run
+from analysis.anomalias_contratuais import run
 
 
 @pytest.fixture
@@ -24,11 +24,11 @@ def conn(conn):
     return conn
 
 
-def test_splitting_detects_pattern(conn):
+def test_fracionamento_detecta_padrao(conn):
     result = run(conn, 2025)
-    assert "ALFA LTDA" in result["splitting"]["fornecedor"].values
+    assert "ALFA LTDA" in result["fracionamento"]["fornecedor"].values
 
 
-def test_result_has_all_keys(conn):
+def test_resultado_tem_todas_as_chaves(conn):
     result = run(conn, 2025)
-    assert {"splitting", "repeated_supplier", "short_window"} == set(result.keys())
+    assert {"fracionamento", "fornecedor_recorrente", "janela_curta"} == set(result.keys())

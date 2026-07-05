@@ -22,58 +22,62 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import comparison
-from analysis.comparison import PeriodSpec
+from analysis import comparacao
+from analysis.comparacao import PeriodSpec
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _comparison(conn, spec_a, spec_b, _extracted_at):
-    return comparison.run(conn, spec_a, spec_b)
+def _comparacao(conn, periodo_a, periodo_b, _extracted_at):
+    return comparacao.run(conn, periodo_a, periodo_b)
 
 
 conn = get_conn()
 _extracted_at = get_extraction_date(conn)
-render_sidebar()  # sidebar portal link + metadata; year value not used on this page
+render_sidebar()  # link do portal e metadados na barra lateral; ano não é usado nesta página
 
 st.header("Comparação de Períodos")
 st.caption("Compare dois períodos e veja as variações em cada dimensão.")
 
-MONTHS = list(range(1, 13))
-MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+MESES = list(range(1, 13))
+NOMES_MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
 
-col_a, col_b = st.columns(2)
-with col_a:
+col_periodo_a, col_periodo_b = st.columns(2)
+with col_periodo_a:
     st.subheader("Período A")
-    year_a = st.selectbox("Ano A", YEARS, index=0, key="cmp_year_a")
-    m_start_a = st.selectbox("Mês início A", MONTHS, index=0, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_ms_a")
-    m_end_a = st.selectbox("Mês fim A", MONTHS, index=11, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_me_a")
-with col_b:
+    ano_a = st.selectbox("Ano A", YEARS, index=0, key="cmp_year_a")
+    mes_inicio_a = st.selectbox(
+        "Mês início A", MESES, index=0, format_func=lambda m: NOMES_MESES[m - 1], key="cmp_ms_a"
+    )
+    mes_fim_a = st.selectbox("Mês fim A", MESES, index=11, format_func=lambda m: NOMES_MESES[m - 1], key="cmp_me_a")
+with col_periodo_b:
     st.subheader("Período B")
-    year_b = st.selectbox("Ano B", YEARS, index=len(YEARS) - 2, key="cmp_year_b")
-    m_start_b = st.selectbox("Mês início B", MONTHS, index=0, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_ms_b")
-    m_end_b = st.selectbox("Mês fim B", MONTHS, index=11, format_func=lambda m: MONTH_NAMES[m - 1], key="cmp_me_b")
+    ano_b = st.selectbox("Ano B", YEARS, index=len(YEARS) - 2, key="cmp_year_b")
+    mes_inicio_b = st.selectbox(
+        "Mês início B", MESES, index=0, format_func=lambda m: NOMES_MESES[m - 1], key="cmp_ms_b"
+    )
+    mes_fim_b = st.selectbox("Mês fim B", MESES, index=11, format_func=lambda m: NOMES_MESES[m - 1], key="cmp_me_b")
 
-spec_a = PeriodSpec(year=year_a, month_start=m_start_a, month_end=m_end_a)
-spec_b = PeriodSpec(year=year_b, month_start=m_start_b, month_end=m_end_b)
-result = _comparison(conn, spec_a, spec_b, _extracted_at)
+periodo_a = PeriodSpec(year=ano_a, mes_inicio=mes_inicio_a, mes_fim=mes_fim_a)
+periodo_b = PeriodSpec(year=ano_b, mes_inicio=mes_inicio_b, mes_fim=mes_fim_b)
+resultado = _comparacao(conn, periodo_a, periodo_b, _extracted_at)
 
 st.subheader("Resumo")
 m1, m2, m3, m4, m5 = st.columns(5)
-d = result["despesas"]["empenhado"]
-m1.metric("Empenhado", fmt_currency(d["b"]), delta=fmt_delta(d), delta_color="inverse")
-d = result["pessoal"]["percentual_folha"]
-m2.metric("Folha / Total Pago", fmt_percent(d["b"]), delta=fmt_delta(d, "{:+.1f}%"), delta_color="inverse")
-d = result["licitacoes"]["sem_licitacao"]
-m3.metric("Sem Licitação", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
-d = result["fornecedores"]["hhi"]
-m4.metric("HHI", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
-d = result["adesao"]["count"]
-m5.metric("Adesões", f"{d['b']:.0f}", delta=fmt_delta(d, "{:+.0f}"), delta_color="inverse")
+dado = resultado["despesas"]["empenhado"]
+m1.metric("Empenhado", fmt_currency(dado["b"]), delta=fmt_delta(dado), delta_color="inverse")
+dado = resultado["pessoal"]["percentual_folha"]
+m2.metric("Folha / Total Pago", fmt_percent(dado["b"]), delta=fmt_delta(dado, "{:+.1f}%"), delta_color="inverse")
+dado = resultado["licitacoes"]["sem_licitacao"]
+m3.metric("Sem Licitação", f"{dado['b']:.0f}", delta=fmt_delta(dado, "{:+.0f}"), delta_color="inverse")
+dado = resultado["fornecedores"]["hhi"]
+m4.metric("HHI", f"{dado['b']:.0f}", delta=fmt_delta(dado, "{:+.0f}"), delta_color="inverse")
+dado = resultado["adesao"]["quantidade"]
+m5.metric("Adesões", f"{dado['b']:.0f}", delta=fmt_delta(dado, "{:+.0f}"), delta_color="inverse")
 
 with st.expander("Despesas"):
-    df = comparison_table(result["despesas"], [("Empenhado", "empenhado"), ("Dotação Atualizada", "dotacao")])
+    df = comparison_table(resultado["despesas"], [("Empenhado", "empenhado"), ("Dotação Atualizada", "dotacao")])
     st.dataframe(
         df,
         column_config={
@@ -86,9 +90,9 @@ with st.expander("Despesas"):
         hide_index=True,
     )
 with st.expander("Pessoal"):
-    df_currency = comparison_table(result["pessoal"], [("Total Folha", "total_folha")])
+    df_moeda = comparison_table(resultado["pessoal"], [("Total Folha", "total_folha")])
     st.dataframe(
-        df_currency,
+        df_moeda,
         column_config={
             "Período A": st.column_config.NumberColumn(format="R$ %,.2f"),
             "Período B": st.column_config.NumberColumn(format="R$ %,.2f"),
@@ -98,9 +102,9 @@ with st.expander("Pessoal"):
         width="stretch",
         hide_index=True,
     )
-    df_percent = comparison_table(result["pessoal"], [("% do Total Pago", "percentual_folha")])
+    df_porcentagem = comparison_table(resultado["pessoal"], [("% do Total Pago", "percentual_folha")])
     st.dataframe(
-        df_percent,
+        df_porcentagem,
         column_config={
             "Período A": st.column_config.NumberColumn(format="%.2f%%"),
             "Período B": st.column_config.NumberColumn(format="%.2f%%"),
@@ -112,10 +116,10 @@ with st.expander("Pessoal"):
     )
 with st.expander("Receitas"):
     render_revenue_methodology()
-    if year_a == CURRENT_YEAR or year_b == CURRENT_YEAR:
+    if ano_a == CURRENT_YEAR or ano_b == CURRENT_YEAR:
         render_partial_year_notice(CURRENT_YEAR, _extracted_at)
     df_receitas = comparison_table(
-        result["receitas"],
+        resultado["receitas"],
         [
             ("Receita Própria", "receita_propria"),
             ("Transferências da União", "transferencias_uniao"),
@@ -136,7 +140,7 @@ with st.expander("Receitas"):
     )
 with st.expander("Licitações"):
     df = comparison_table(
-        result["licitacoes"],
+        resultado["licitacoes"],
         [
             ("Contratos sem Licitação", "sem_licitacao"),
             ("Acima do Limite Legal", "acima_limite"),
@@ -155,7 +159,7 @@ with st.expander("Licitações"):
         hide_index=True,
     )
 with st.expander("Fornecedores"):
-    df = comparison_table(result["fornecedores"], [("HHI", "hhi")])
+    df = comparison_table(resultado["fornecedores"], [("HHI", "hhi")])
     st.dataframe(
         df,
         column_config={
@@ -171,8 +175,8 @@ with st.expander("Fornecedores"):
 with st.expander("Adesão de Ata"):
     st.subheader("Adesão de Ata")
     df = comparison_table(
-        result["adesao"],
-        [("Quantidade", "count")],
+        resultado["adesao"],
+        [("Quantidade", "quantidade")],
     )
     st.dataframe(
         df,
@@ -186,7 +190,7 @@ with st.expander("Adesão de Ata"):
         hide_index=True,
     )
     df = comparison_table(
-        result["adesao"],
+        resultado["adesao"],
         [("Valor Licitação", "valor_licitacao"), ("Valor Contratos", "valor_contratos")],
     )
     st.dataframe(

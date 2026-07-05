@@ -27,12 +27,12 @@
 
   <h2>① Recursos Recebidos</h2>
   <div class="metrics-row">
-    <div class="metric"><div class="label">Total de Repasses (R$)</div><div class="value">R$ {{ "{:,.0f}".format(total_transfers) }}</div></div>
+    <div class="metric"><div class="label">Total de Repasses (R$)</div><div class="value">R$ {{ "{:,.0f}".format(total_transferencias) }}</div></div>
   </div>
-  {% if transfers_by_type %}
+  {% if transferencias_por_tipo %}
   <table>
     <tr><th>Tipo de Recurso</th><th>Valor (R$)</th></tr>
-    {% for row in transfers_by_type %}
+    {% for row in transferencias_por_tipo %}
     <tr><td>{{ row.tipo }}</td><td>R$ {{ "{:,.0f}".format(row.valor) }}</td></tr>
     {% endfor %}
   </table>
@@ -40,9 +40,9 @@
 
   <h2>② Execução Orçamentária</h2>
   <div class="metrics-row">
-    <div class="metric"><div class="label">Dotação Atualizada (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.dotacao) }}</div></div>
-    <div class="metric"><div class="label">Total Empenhado (R$)</div><div class="value">R$ {{ "{:,.0f}".format(budget.empenhado) }}</div></div>
-    <div class="metric"><div class="label">Taxa de Execução</div><div class="value">{{ "{:.1%}".format(budget.taxa_execucao) }}</div></div>
+    <div class="metric"><div class="label">Dotação Atualizada (R$)</div><div class="value">R$ {{ "{:,.0f}".format(orcamento.dotacao) }}</div></div>
+    <div class="metric"><div class="label">Total Empenhado (R$)</div><div class="value">R$ {{ "{:,.0f}".format(orcamento.empenhado) }}</div></div>
+    <div class="metric"><div class="label">Taxa de Execução</div><div class="value">{{ "{:.1%}".format(orcamento.taxa_execucao) }}</div></div>
   </div>
 
   <div class="footer">

@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 import db
-from analysis.budget_execution import run
+from analysis.execucao_orcamentaria import run, summarize, summarize_by_year
 
 
 @pytest.fixture
@@ -80,8 +80,6 @@ def test_flags_normal(conn):
 
 
 def test_summarize(conn):
-    from analysis.budget_execution import summarize
-
     df = run(conn, 2025)
     summary = summarize(df)
     assert summary["total_dotacao"] == 1500000.0
@@ -89,3 +87,15 @@ def test_summarize(conn):
     assert summary["total_liquidado"] == 890000.0
     assert summary["total_pago"] == 880000.0
     assert summary["saldo_orcamentario"] == 550000.0
+
+
+def test_summarize_by_year(conn):
+    # O fixture insere dados de 2025:
+    # SAUDE: dotacao=500000, empenhado=100000, liquidado=90000, pago=80000
+    # EDUCACAO: dotacao=500000, empenhado=600000, liquidado=600000, pago=600000
+    # CULTURA: dotacao=500000, empenhado=250000, liquidado=200000, pago=200000
+    result = summarize_by_year(conn, [2025])
+    assert 2025 in result
+    assert result[2025]["total_dotacao"] == 1500000.0
+    assert result[2025]["total_empenhado"] == 950000.0
+    assert result[2025]["total_pago"] == 880000.0

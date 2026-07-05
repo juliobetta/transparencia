@@ -3,6 +3,8 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
+# codigo de fornecedor do CAPREM no banco de dados
+# TODO: mover para metadata ou config
 CAPREM_CODE = "1061"
 
 
@@ -17,16 +19,16 @@ def run(conn: Any, year: int):
         for col in ["empenhado", "liquidado", "pago"]:
             df[col] = pd.to_numeric(df[col].str.replace(",", "."), errors="coerce").fillna(0)
 
-        total_transfers = df["empenhado"].sum()
-        count_operations = len(df)
+        total_transferencias = df["empenhado"].sum()
+        count_operacoes = len(df)
     else:
-        total_transfers = 0
-        count_operations = 0
+        total_transferencias = 0
+        count_operacoes = 0
 
     return {
-        "total_transfers": total_transfers,
-        "count_operations": count_operations,
+        "total_transferencias": total_transferencias,
+        "count_operacoes": count_operacoes,
         "despesas": df,
-        "transfers_by_type": [],
-        "budget": {"dotacao": 0, "empenhado": 0, "taxa_execucao": 0},
+        "transferencias_por_tipo": [],
+        "orcamento": {"dotacao": 0, "empenhado": 0, "taxa_execucao": 0},
     }
