@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.health_story import run
+from analysis.historia_saude import run
 
 SAUDE = "2"
 OTHER = "7"
@@ -233,7 +233,7 @@ def conn(conn):
     return conn
 
 
-def test_emendas_filtered_to_empresa(conn):
+def test_emendas_filtradas_por_empresa(conn):
     result = run(conn, 2023)
     assert len(result["emendas"]) == 1
     assert result["emendas"].iloc[0]["Nº"] == "E001"
@@ -244,50 +244,50 @@ def test_emendas_total(conn):
     assert result["emendas_total"] == 500000.0
 
 
-def test_budget_filtered_to_empresa(conn):
+def test_orcamento_filtrado_por_empresa(conn):
     result = run(conn, 2023)
-    assert result["budget"]["dotacao"] == 1_000_000.0
-    assert result["budget"]["empenhado"] == 800_000.0
+    assert result["orcamento"]["dotacao"] == 1_000_000.0
+    assert result["orcamento"]["empenhado"] == 800_000.0
 
 
-def test_budget_taxa_execucao(conn):
+def test_orcamento_taxa_execucao(conn):
     result = run(conn, 2023)
-    assert abs(result["budget"]["taxa_execucao"] - 0.8) < 0.001
+    assert abs(result["orcamento"]["taxa_execucao"] - 0.8) < 0.001
 
 
-def test_execution_trend_filtered_to_empresa(conn):
+def test_tendencia_execucao_filtrada_por_empresa(conn):
     result = run(conn, 2023)
-    trend = result["execution_trend"]
+    trend = result["tendencia_execucao"]
     assert set(trend["ano"].tolist()) == {2022, 2023}
     row_2023 = trend[trend["ano"] == 2023].iloc[0]
     assert row_2023["empenhado"] == 800_000.0
 
 
-def test_adesao_de_ata_detected(conn):
+def test_adesao_de_ata_detectada(conn):
     result = run(conn, 2023)
     assert result["adesao_de_ata_count"] == 1
     assert result["adesao_de_ata_value"] == 150_000.0
 
 
-def test_licitacao_gaps_above_threshold_only(conn):
+def test_licitacao_gaps_acima_do_limite(conn):
     result = run(conn, 2023)
     assert len(result["licitacao_gaps"]) == 1
     assert result["licitacao_gaps"].iloc[0]["numero"] == "C002"
 
 
-def test_licitacao_gaps_has_is_legally_exempt_column(conn):
+def test_licitacao_gaps_tem_coluna_isento_legalmente(conn):
     result = run(conn, 2023)
-    assert "is_legally_exempt" in result["licitacao_gaps"].columns
+    assert "isento_legalmente" in result["licitacao_gaps"].columns
 
 
-def test_licitacao_gaps_dispensa_not_legally_exempt(conn):
+def test_licitacao_gaps_dispensa_nao_isento(conn):
     result = run(conn, 2023)
-    # C002 has modali="DISPENSA" — should NOT be legally exempt
+    # C002 tem modali="DISPENSA" — não deve ser isento legalmente
     gap = result["licitacao_gaps"].iloc[0]
-    assert gap["is_legally_exempt"] is False or gap["is_legally_exempt"] == False  # noqa: E712
+    assert gap["isento_legalmente"] is False or gap["isento_legalmente"] == False  # noqa: E712
 
 
-def test_licitacao_gaps_consorcio_and_rateio_are_legally_exempt(conn):
+def test_licitacao_gaps_consorcio_e_rateio_sao_isentos(conn):
     import db
 
     db.upsert(
@@ -325,11 +325,11 @@ def test_licitacao_gaps_consorcio_and_rateio_are_legally_exempt(conn):
     )
     result = run(conn, 2023)
     gaps = result["licitacao_gaps"]
-    assert gaps[gaps["numero"] == "C006"].iloc[0]["is_legally_exempt"] == True  # noqa: E712
-    assert gaps[gaps["numero"] == "C007"].iloc[0]["is_legally_exempt"] == True  # noqa: E712
+    assert gaps[gaps["numero"] == "C006"].iloc[0]["isento_legalmente"] == True  # noqa: E712
+    assert gaps[gaps["numero"] == "C007"].iloc[0]["isento_legalmente"] == True  # noqa: E712
 
 
-def test_licitacao_gaps_inexigibilidade_is_legally_exempt(conn):
+def test_licitacao_gaps_inexigibilidade_e_isento(conn):
     import db
 
     db.upsert(
@@ -356,16 +356,16 @@ def test_licitacao_gaps_inexigibilidade_is_legally_exempt(conn):
     gaps = result["licitacao_gaps"]
     c005 = gaps[gaps["numero"] == "C005"]
     assert len(c005) == 1
-    assert c005.iloc[0]["is_legally_exempt"] is True or c005.iloc[0]["is_legally_exempt"] == True  # noqa: E712
+    assert c005.iloc[0]["isento_legalmente"] is True or c005.iloc[0]["isento_legalmente"] == True  # noqa: E712
 
 
-def test_top_suppliers_filtered_to_empresa(conn):
+def test_principais_fornecedores_filtrados_por_empresa(conn):
     result = run(conn, 2023)
-    names = result["top_suppliers"]["descricao"].tolist()
+    names = result["principais_fornecedores"]["descricao"].tolist()
     assert "DELTA SA" not in names
     assert "ALFA LTDA" in names
 
 
-def test_hhi_positive(conn):
+def test_hhi_positivo(conn):
     result = run(conn, 2023)
     assert result["hhi"] > 0

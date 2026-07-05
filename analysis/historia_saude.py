@@ -54,7 +54,7 @@ def _budget(conn: Any, year: int, empresa_id: str) -> dict:
     empenhado = _to_float(df["empenhado"]).sum()
     taxa = empenhado / dotacao if dotacao > 0 else 0.0
     flag = taxa < 0.70 and year < date.today().year
-    return {"dotacao": dotacao, "empenhado": empenhado, "taxa_execucao": taxa, "flag_under_execution": flag}
+    return {"dotacao": dotacao, "empenhado": empenhado, "taxa_execucao": taxa, "alerta_sub_execucao": flag}
 
 
 def _execution_trend(conn: Any, empresa_id: str) -> pd.DataFrame:
@@ -91,16 +91,16 @@ def _contracts_by_modality(conn: Any, year: int, empresa_id: str) -> pd.DataFram
         params={"ano": year, "empresa": empresa_id},
     )
     if df.empty:
-        return pd.DataFrame(columns=["modality", "count", "total_value", "periodo"])
+        return pd.DataFrame(columns=["modalidade", "quantidade", "valor_total", "periodo"])
     df["valor_num"] = _to_float(df["valcon"])
-    df["modality"] = df["modali"].fillna("").str.strip()
-    df["modality"] = df["modality"].where(df["modality"] != "", "Sem Informação")
+    df["modalidade"] = df["modali"].fillna("").str.strip()
+    df["modalidade"] = df["modalidade"].where(df["modalidade"] != "", "Sem Informação")
     df["periodo"] = df["mes"].astype(str).str.zfill(2) + "/" + str(year)
     return (
-        df.groupby(["modality", "periodo"])
-        .agg(count=("modality", "size"), total_value=("valor_num", "sum"))
+        df.groupby(["modalidade", "periodo"])
+        .agg(quantidade=("modalidade", "size"), valor_total=("valor_num", "sum"))
         .reset_index()
-        .sort_values("total_value", ascending=False)
+        .sort_values("valor_total", ascending=False)
     )
 
 
@@ -141,15 +141,15 @@ def _licitacao_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
     df["valor_num"] = _to_float(df["valcon"])
-    df["threshold"] = df.apply(
+    df["limite"] = df.apply(
         lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
     )
-    result = df[df["valor_num"] > df["threshold"]].drop(columns=["valor_num", "threshold", "licitacao_numero"])
+    result = df[df["valor_num"] > df["limite"]].drop(columns=["valor_num", "limite", "licitacao_numero"])
 
-    # Classify contracts legally exempt from competitive bidding regardless of value based on structured columns:
-    #   - MODALI or FUNDLEGAL containing INEXIGIBILIDADE or DISPENSA
-    #   - Fornecedor containing CONSORCIO
-    #   - Objeto containing RATEIO or CONTRATO DE PROGRAMA
+    # Classifica contratos isentos de licitação pela lei, independente do valor, com base em colunas estruturadas:
+    #   - MODALI ou FUNDLEGAL contendo INEXIGIBILIDADE ou DISPENSA
+    #   - Fornecedor contendo CONSORCIO
+    #   - Objeto contendo RATEIO ou CONTRATO DE PROGRAMA
 
     def _ascii(s: pd.Series) -> pd.Series:
         return s.fillna("").apply(
@@ -160,7 +160,7 @@ def _licitacao_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     fundlegal_norm = _ascii(result["fundlegal"])
     fornecedor_norm = _ascii(result["fornecedor"])
     objeto_norm = _ascii(result["objeto"])
-    result["is_legally_exempt"] = (
+    result["isento_legalmente"] = (
         modali_norm.str.contains("inexig", na=False)
         | fundlegal_norm.str.contains("inexig", na=False)
         | fornecedor_norm.str.contains("consorcio", na=False)
@@ -181,13 +181,13 @@ def _splitting(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
         params={"ano": year, "empresa": empresa_id},
     )
     df["valor_num"] = _to_float(df["valcon"])
-    df["threshold"] = df.apply(
+    df["limite"] = df.apply(
         lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
     )
-    df["lower"] = df["threshold"] * (1 - NEAR_THRESHOLD_PCT)
-    near = df[(df["valor_num"] >= df["lower"]) & (df["valor_num"] < df["threshold"])]
-    counts = near.groupby("fornecedor").size()
-    return near[near["fornecedor"].isin(counts[counts >= 3].index)].copy()
+    df["limite_inferior"] = df["limite"] * (1 - NEAR_THRESHOLD_PCT)
+    proximo = df[(df["valor_num"] >= df["limite_inferior"]) & (df["valor_num"] < df["limite"])]
+    counts = proximo.groupby("fornecedor").size()
+    return proximo[proximo["fornecedor"].isin(counts[counts >= 3].index)].copy()
 
 
 def _top_suppliers(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
@@ -356,48 +356,47 @@ def _top_suppliers_services(conn: Any, year: int, empresa_id: str) -> pd.DataFra
 
 def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     emendas_df, emendas_total = _emendas(conn, year, empresa_id)
-    budget = _budget(conn, year, empresa_id)
-    execution_trend = _execution_trend(conn, empresa_id)
-    execution_flow = _execution_flow(conn, year, empresa_id)
-    contracts_by_modality = _contracts_by_modality(conn, year, empresa_id)
+    orcamento = _budget(conn, year, empresa_id)
+    tendencia_execucao = _execution_trend(conn, empresa_id)
+    fluxo_execucao = _execution_flow(conn, year, empresa_id)
+    contratos_por_modalidade = _contracts_by_modality(conn, year, empresa_id)
     adesao_df, adesao_value = _adesao_de_ata(conn, year, empresa_id)
-    licitacao_gaps = _licitacao_gaps(conn, year, empresa_id)
-    top_suppliers, hhi = _top_suppliers(conn, year, empresa_id)
-    top_suppliers_services = _top_suppliers_services(conn, year, empresa_id)
-    splitting = _splitting(conn, year, empresa_id)
-    transfers_df, transfers_total = _transfers_to_health(conn, year, empresa_id)
+    gaps_licitacao = _licitacao_gaps(conn, year, empresa_id)
+    principais_fornecedores, hhi = _top_suppliers(conn, year, empresa_id)
+    principais_fornecedores_servicos = _top_suppliers_services(conn, year, empresa_id)
+    fracionamento = _splitting(conn, year, empresa_id)
+    transferencias_df, transferencias_total = _transfers_to_health(conn, year, empresa_id)
     pharma_empenhos = _pharma_empenhos(conn, year, empresa_id)
     pharma_judicial = _pharma_judicial(conn, year, empresa_id)
     pharma_licitacoes = _pharma_licitacoes(conn, year, empresa_id)
-    budget_trend = _budget_trend(conn, empresa_id)
+    tendencia_orcamento = _budget_trend(conn, empresa_id)
     return {  # noqa: RET504
         "emendas": emendas_df,
         "emendas_total": emendas_total,
-        "budget": budget,
-        "execution_trend": execution_trend,
-        "execution_flow": execution_flow,
-        "contracts_by_modality": contracts_by_modality,
+        "orcamento": orcamento,
+        "tendencia_execucao": tendencia_execucao,
+        "fluxo_execucao": fluxo_execucao,
+        "contratos_por_modalidade": contratos_por_modalidade,
         "adesao_de_ata_list": adesao_df,
         "adesao_de_ata_count": len(adesao_df),
         "adesao_de_ata_contracts_linked": int(adesao_df["tem_contrato"].sum()) if not adesao_df.empty else 0,
         "adesao_de_ata_value": adesao_value,
-        "licitacao_gaps": licitacao_gaps,
-        "top_suppliers": top_suppliers,
-        "top_suppliers_services": top_suppliers_services,
+        "licitacao_gaps": gaps_licitacao,
+        "principais_fornecedores": principais_fornecedores,
+        "principais_fornecedores_servicos": principais_fornecedores_servicos,
         "hhi": hhi,
-        "splitting": splitting,
-        "transfers_to_health": transfers_df,
-        "transfers_to_health_total": transfers_total,
+        "fracionamento": fracionamento,
+        "transferencias_saude": transferencias_df,
+        "transferencias_saude_total": transferencias_total,
         "pharma_empenhos": pharma_empenhos,
         "pharma_judicial": pharma_judicial,
         "pharma_licitacoes": pharma_licitacoes,
-        "budget_trend": budget_trend,
+        "tendencia_orcamento": tendencia_orcamento,
     }
 
 
-def top_services_per_supplier(
+def get_principais_servicos_por_fornecedor(
     services_df: "pd.DataFrame", top_supplier_names: "pd.Series", n: int = 3
 ) -> "pd.DataFrame":
-    """Return the top-n contract objects for each of the given supplier names."""
     filtered = services_df[services_df["fornecedor"].isin(top_supplier_names)]
     return filtered.sort_values(["fornecedor", "total"], ascending=[True, False]).groupby("fornecedor").head(n)

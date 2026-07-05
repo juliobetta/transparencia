@@ -22,14 +22,14 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import adesao_de_ata, health_story
+from analysis import adesao_de_ata, historia_saude
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _health(conn, year, _extracted_at):
-    return health_story.run(conn, year)
+    return historia_saude.run(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -75,8 +75,8 @@ for key, val in data.items():
             val["periodo"] = val["mes"].astype(str).str.zfill(2) + "/" + str(year)
 
 # ── KPIs resumo ─────────────────────────────────────────────────────────────
-budget = data["budget"]
-bt = data["budget_trend"]
+budget = data["orcamento"]
+bt = data["tendencia_orcamento"]
 bt_to_year = bt[bt["ano"] <= year]
 pt = data["pharma_empenhos"]["trend"]
 pt_to_year = pt[pt["ano"] <= year]
@@ -189,11 +189,11 @@ c1, c2, c3 = st.columns(3)
 c1.metric("Dotação Atualizada", fmt_currency(budget["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
 c2.metric("Total Empenhado", fmt_currency(budget["empenhado"]), help=glossary.tooltip("Empenho"))
 c3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
-if budget["flag_under_execution"]:
+if budget["alerta_sub_execucao"]:
     st.warning(f"Taxa de execução abaixo de 70% ao final do ano {year}.", icon=":material/warning:")
 
 st.subheader("Repasses da Prefeitura")
-transfers_total = data["transfers_to_health_total"]
+transfers_total = data["transferencias_saude_total"]
 if transfers_total > 0:
     st.metric(
         "Total de repasses recebidos",
@@ -206,7 +206,7 @@ else:
 # ── Seção 2: O que foi gasto ────────────────────────────────────────────────
 st.header("② O que foi empenhado")
 st.subheader("Evolução do Empenhado por Ano")
-trend = data["execution_trend"]
+trend = data["tendencia_execucao"]
 if not trend.empty:
     fig = px.bar(
         trend,
@@ -310,14 +310,14 @@ if not adesao_externa["list"].empty:
         )
 
 st.subheader("Distribuição por Modalidade")
-modality_df = data["contracts_by_modality"]
+modality_df = data["contratos_por_modalidade"]
 if not modality_df.empty and modality_df.notna().all().all():
     st.dataframe(
         modality_df.rename(
             columns={
-                "modality": "Modalidade",
-                "count": "Qtd",
-                "total_value": "Valor Total",
+                "modalidade": "Modalidade",
+                "quantidade": "Qtd",
+                "valor_total": "Valor Total",
                 "periodo": "Período",
             }
         )
@@ -364,10 +364,10 @@ if not gaps.empty and gaps.notna().all().all():
 else:
     st.success("Nenhum contrato acima do limite legal sem processo licitatório.")
 
-if not data["splitting"].empty and data["splitting"].notna().all().all():
+if not data["fracionamento"].empty and data["fracionamento"].notna().all().all():
     st.subheader(":material/warning: Possível fracionamento de contratos")
     st.dataframe(
-        data["splitting"].rename(columns={"periodo": "Período"}).drop(columns=["mes", "ano"], errors="ignore"),
+        data["fracionamento"].rename(columns={"periodo": "Período"}).drop(columns=["mes", "ano"], errors="ignore"),
         width="stretch",
         hide_index=True,
     )
@@ -379,12 +379,14 @@ st.metric(
     f"{data['hhi']:,.0f}",
     help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
 )
-if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all():
+if not data["principais_fornecedores"].empty and data["principais_fornecedores"].notna().all().all():
     st.subheader("Top 10 Fornecedores")
 
     # Display main Top 10 table
     st.dataframe(
-        data["top_suppliers"].rename(columns={"descricao": "Fornecedor", "empenhado": "Empenhado", "percentual": "%"}),
+        data["principais_fornecedores"].rename(
+            columns={"descricao": "Fornecedor", "empenhado": "Empenhado", "percentual": "%"}
+        ),
         width="stretch",
         column_config={
             "codigo": None,
@@ -396,10 +398,10 @@ if not data["top_suppliers"].empty and data["top_suppliers"].notna().all().all()
 
     # New: Supplier-to-Services Correlation Table
     st.subheader("Top Fornecedores e seus Objetos de Contrato")
-    services_df = data["top_suppliers_services"]
-    top_suppliers_names = data["top_suppliers"]["descricao"].unique()
+    services_df = data["principais_fornecedores_servicos"]
+    top_suppliers_names = data["principais_fornecedores"]["descricao"].unique()
 
-    top_services = health_story.top_services_per_supplier(services_df, top_suppliers_names)
+    top_services = historia_saude.get_principais_servicos_por_fornecedor(services_df, top_suppliers_names)
 
     st.dataframe(
         top_services.rename(
