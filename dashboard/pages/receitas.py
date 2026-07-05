@@ -88,11 +88,13 @@ if not df_ano.empty:
             key="spark_rec_prev",
         )
 
-    if year == CURRENT_YEAR:
-        with c2:
+    _total_serie = df_hist["total"].tolist()
+    with c2:
+        if year == CURRENT_YEAR:
             st.metric(
                 "Total Arrecadado Real",
                 fmt_currency(row["total_arrecadado"]),
+                delta=pct_delta(_total_serie),
                 help=(
                     "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
                     "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
@@ -101,9 +103,14 @@ if not df_ano.empty:
                     "está dentro do esperado."
                 ),
             )
-    else:
-        with c2:
+        else:
             st.metric("Total Arrecadado Real", "N/D (Não Disp. na API)")
+        st.plotly_chart(
+            sparkline(_anos_hist, _total_serie, "#4CAF50"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_rec_total",
+        )
 
     if year == CURRENT_YEAR:
         # Progress Bar
