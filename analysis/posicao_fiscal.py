@@ -4,7 +4,7 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
-from analysis import revenue_sources
+from analysis import fontes_receita
 
 
 def _sanitize_descricao(s: str) -> str:
@@ -30,7 +30,7 @@ def _sum_varchar_col(conn: Any, table: str, col: str, year: int) -> float:
 
 def run(conn: Any, year: int) -> dict:
     # 1. Total receitas arrecadadas (reutiliza lógica de raiz existente)
-    rev_df = revenue_sources.run(conn, [year])
+    rev_df = fontes_receita.run(conn, [year])
     total_arrecadado = float(rev_df.iloc[0]["total_arrecadado"]) if not rev_df.empty else 0.0
 
     # 2. Despesas correntes pagas no ano

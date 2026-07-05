@@ -29,11 +29,11 @@ from analysis import (
     adesao_de_ata,
     anomalias_contratuais,
     execucao_orcamentaria,
+    folha_vs_servicos,
+    fontes_receita,
     licitacao_gaps,
-    payroll_vs_services,
     posicao_fiscal,
-    revenue_sources,
-    yoy_trends,
+    tendencias_anuais,
 )
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -56,17 +56,17 @@ def _bidding_counts(conn, years, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _revenue(conn, years, _extracted_at):
-    return revenue_sources.run(conn, years)
+    return fontes_receita.run(conn, years)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _payroll(conn, years, _extracted_at):
-    return payroll_vs_services.run(conn, years)
+    return folha_vs_servicos.run(conn, years)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _yoy(conn, years, _extracted_at):
-    return yoy_trends.run(conn, years)
+    return tendencias_anuais.run(conn, years)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -406,7 +406,7 @@ with col_trend:
     )
 
 with col_pct:
-    _pressure = yoy_trends.fiscal_pressure_gap(yoy)
+    _pressure = tendencias_anuais.gap_pressao_fiscal(yoy)
     anos_pct = _pressure["anos"]
     gap = _pressure["gap"]
     colors = _pressure["colors"]

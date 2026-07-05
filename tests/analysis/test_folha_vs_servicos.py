@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.payroll_vs_services import run
+from analysis.folha_vs_servicos import run
 
 
 @pytest.fixture

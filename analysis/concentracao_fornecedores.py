@@ -31,10 +31,10 @@ def run(conn: Any, year: int) -> dict:
     shares = df["empenhado"] / total if total > 0 else df["empenhado"] * 0
     hhi = float((shares**2).sum() * 10000)
 
-    dominant_row = df[df["percentual"] > 40]
-    dominante = dominant_row.iloc[0]["descricao"] if not dominant_row.empty else None
+    linha_dominante = df[df["percentual"] > 40]
+    dominante = linha_dominante.iloc[0]["descricao"] if not linha_dominante.empty else None
 
-    # total_all includes E OUTROS entries excluded from top10 so the pie "Outros" slice is accurate
+    # total_all inclui entradas "E OUTROS" excluídas do top10 para que a fatia "Outros" do piechart seja precisa
     df_all = pd.read_sql_query(
         text(
             """
@@ -58,8 +58,7 @@ def run(conn: Any, year: int) -> dict:
     return {"top10": top10, "hhi": hhi, "dominante": dominante, "total_all": total_all}
 
 
-def concentration_pie(top10: pd.DataFrame, total_all: float) -> pd.DataFrame:
-    """Return top10 + 'Outros' slice DataFrame for pie chart rendering."""
+def piechart_concentracao(top10: pd.DataFrame, total_all: float) -> pd.DataFrame:
     outros = total_all - float(top10["empenhado"].sum())
     slices = top10[["descricao", "empenhado"]].rename(columns={"descricao": "Fornecedor"})
     if outros > 0:

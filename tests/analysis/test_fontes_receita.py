@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.revenue_sources import run
+from analysis.fontes_receita import run
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def test_revenue_breakdown(conn):
     assert row["receita_propria_arrecadado"] == 80000.0
 
 
-def test_flags_high_dependency(conn):
+def test_alerta_alta_dependencia(conn):
     # Insert high-dependency data for a different year to avoid conflict
     db.upsert(
         conn,

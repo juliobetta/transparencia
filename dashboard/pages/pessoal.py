@@ -11,7 +11,7 @@ from shared import fmt_currency, get_conn, get_extraction_date, render_partial_y
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import analise_despesas, payroll_vs_services
+from analysis import analise_despesas, folha_vs_servicos
 from analysis.analise_despesas import total_folha_por_orgao
 from analysis.constants import LRF_PESSOAL_LIMITE_ALERTA, LRF_PESSOAL_LIMITE_LEGAL, LRF_PESSOAL_LIMITE_PRUDENCIAL
 
@@ -20,7 +20,7 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _payroll(conn, year, _extracted_at):
-    return payroll_vs_services.run(conn, list(range(2022, year + 1)))
+    return folha_vs_servicos.run(conn, list(range(2022, year + 1)))
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -86,7 +86,7 @@ st.info(
     "O gráfico abaixo usa **Proventos** (remuneração bruta) como aproximação.",
     icon=":material/info:",
 )
-df_pessoal = payroll_vs_services.salary_distribution(conn, year)
+df_pessoal = folha_vs_servicos.distribuicao_salarios(conn, year)
 
 if not df_pessoal.empty:
     fig_hist = px.histogram(

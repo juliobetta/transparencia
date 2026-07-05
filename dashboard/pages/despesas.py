@@ -11,10 +11,10 @@ import streamlit as st
 from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
-from analysis import analise_despesas, posicao_fiscal, supplier_concentration
+from analysis import analise_despesas, concentracao_fornecedores, posicao_fiscal
 from analysis.analise_despesas import get_diarias_pesquisaveis
+from analysis.concentracao_fornecedores import piechart_concentracao
 from analysis.posicao_fiscal import get_pendentes_por_exercicio, piechart_pendentes, resumo_pendentes
-from analysis.supplier_concentration import concentration_pie
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -41,7 +41,7 @@ def _top_suppliers(conn, year, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _concentration(conn, year, _extracted_at):
-    return supplier_concentration.run(conn, year)
+    return concentracao_fornecedores.run(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -260,7 +260,7 @@ with t2:
         st.plotly_chart(fig_natureza, use_container_width=True)
 
     with col_conc:
-        pie_conc = concentration_pie(top10_conc, conc["total_all"])
+        pie_conc = piechart_concentracao(top10_conc, conc["total_all"])
         fig_conc = px.pie(
             pie_conc, values="empenhado", names="Fornecedor", title="Distribuição por Fornecedor (Top 10)"
         )

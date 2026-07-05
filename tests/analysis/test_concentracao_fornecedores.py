@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.supplier_concentration import run
+from analysis.concentracao_fornecedores import run
 
 
 @pytest.fixture
@@ -70,12 +70,12 @@ def test_hhi_computed(conn):
     assert result["hhi"] == pytest.approx(4400, rel=0.01)
 
 
-def test_dominant_supplier_detected(conn):
+def test_fornecedor_dominante_detectado(conn):
     result = run(conn, 2025)
     assert result["dominante"] == "ALFA LTDA"
 
 
-def test_no_dominant_when_balanced(conn):
+def test_sem_dominante_quando_equilibrado(conn):
     rows = [
         {
             "ano": 2026,
@@ -91,7 +91,7 @@ def test_no_dominant_when_balanced(conn):
     db.upsert(conn, "despesas_por_fornecedor", rows, ["ano", "empresa", "codigo"])
 
 
-def test_supplier_with_43_and_service_element_included(conn):
+def test_fornecedor_elemento_43_e_servico_incluido(conn):
     # Caso: Fornecedor tem elemento 43 (subvenção) E elemento 30 (material - whitelist)
     # Deve ser incluído.
     db.upsert(
@@ -128,7 +128,7 @@ def test_supplier_with_43_and_service_element_included(conn):
     assert result["total_all"] >= 1000.0
 
 
-def test_supplier_with_only_43_excluded(conn):
+def test_fornecedor_apenas_43_excluido(conn):
     # Caso: Fornecedor tem APENAS elemento 43 (subvenção pura)
     # Deve ser excluído.
     db.upsert(

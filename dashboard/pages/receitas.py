@@ -20,19 +20,19 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import fiscal_position, revenue_sources
+from analysis import fontes_receita, posicao_fiscal
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _revenue(conn, year, _extracted_at):
-    return revenue_sources.run(conn, [year])
+    return fontes_receita.run(conn, [year])
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _fiscal_position(conn, year, _extracted_at, _v=6):
-    return fiscal_position.run(conn, year)
+    return posicao_fiscal.run(conn, year)
 
 
 conn = get_conn()
@@ -95,7 +95,7 @@ if not df.empty:
     # Detailed Summary Table
     st.subheader("Previsto vs. Arrecadado por Origem")
 
-    resumo_df = revenue_sources.breakdown_table(row, year)
+    resumo_df = fontes_receita.tabela_detalhamento(row, year)
 
     if year == CURRENT_YEAR:
         # Bar chart comparing predicted vs collected

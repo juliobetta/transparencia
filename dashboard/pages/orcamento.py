@@ -18,7 +18,7 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import execucao_orcamentaria, functional_budget
+from analysis import execucao_orcamentaria, orcamento_funcional
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -98,7 +98,7 @@ with st.expander("Ver Detalhamento por Órgão"):
 
 # Bar Chart (Função)
 st.markdown("---")
-df_func = functional_budget.get_functional_budget(conn, year)
+df_func = orcamento_funcional.get_orcamento_funcional(conn, year)
 df_func_summary = (
     df_func.groupby("funcaonome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
     .sum()
