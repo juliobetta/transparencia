@@ -22,15 +22,15 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import comparison
-from analysis.comparison import PeriodSpec
+from analysis import comparacao
+from analysis.comparacao import PeriodSpec
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _comparison(conn, spec_a, spec_b, _extracted_at):
-    return comparison.run(conn, spec_a, spec_b)
+    return comparacao.run(conn, spec_a, spec_b)
 
 
 conn = get_conn()

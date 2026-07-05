@@ -10,7 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 
 import db
 import glossary
-from analysis.comparison import PeriodSpec, run
+from analysis.comparacao import PeriodSpec, run
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 TEMPLATE_DIR = Path(__file__).parent

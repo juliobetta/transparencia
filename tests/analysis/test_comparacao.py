@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 import db
-from analysis.comparison import PeriodSpec, _delta, _filter_months, run
+from analysis.comparacao import PeriodSpec, _delta, _filter_months, run
 
 
 def test_period_spec_fields():
