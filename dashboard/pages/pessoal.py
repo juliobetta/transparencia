@@ -11,9 +11,9 @@ from shared import fmt_currency, get_conn, get_extraction_date, render_partial_y
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import expenses_analysis, payroll_vs_services
+from analysis import analise_despesas, payroll_vs_services
+from analysis.analise_despesas import total_folha_por_orgao
 from analysis.constants import LRF_PESSOAL_LIMITE_ALERTA, LRF_PESSOAL_LIMITE_LEGAL, LRF_PESSOAL_LIMITE_PRUDENCIAL
-from analysis.expenses_analysis import departmental_payroll_total
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -25,7 +25,7 @@ def _payroll(conn, year, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _departmental_payroll(conn, year, _extracted_at):
-    return expenses_analysis.get_departmental_payroll(conn, year)
+    return analise_despesas.get_folha_por_orgao(conn, year)
 
 
 conn = get_conn()
@@ -120,7 +120,7 @@ st.info(
 
 df_dept = _departmental_payroll(conn, year, _extracted_at)
 if not df_dept.empty:
-    st.metric("Total distribuído via responsáveis", fmt_currency(departmental_payroll_total(df_dept)))
+    st.metric("Total distribuído via responsáveis", fmt_currency(total_folha_por_orgao(df_dept)))
 
     fig_dept = px.bar(
         df_dept,

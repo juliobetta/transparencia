@@ -11,8 +11,8 @@ import streamlit as st
 from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
-from analysis import expenses_analysis, fiscal_position, supplier_concentration
-from analysis.expenses_analysis import get_searchable_diarias
+from analysis import analise_despesas, fiscal_position, supplier_concentration
+from analysis.analise_despesas import get_diarias_pesquisaveis
 from analysis.fiscal_position import get_unpaid_by_exercise, unpaid_pie, unpaid_summary
 from analysis.supplier_concentration import concentration_pie
 
@@ -21,22 +21,22 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _metrics(conn, year, _extracted_at):
-    return expenses_analysis.get_general_expense_metrics(conn, year)
+    return analise_despesas.get_metricas_gerais_despesas(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _by_unit(conn, year, _extracted_at):
-    return expenses_analysis.get_expenses_by_unit(conn, year)
+    return analise_despesas.get_despesas_por_unidade(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _impact(conn, year, _extracted_at):
-    return expenses_analysis.get_local_spending_impact(conn, year)
+    return analise_despesas.get_impacto_gastos_locais(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _top_suppliers(conn, year, _extracted_at):
-    return expenses_analysis.get_top_suppliers_detailed(conn, year)
+    return analise_despesas.get_principais_fornecedores_detalhados(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -46,17 +46,17 @@ def _concentration(conn, year, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _spending_by_city(conn, year, _extracted_at):
-    return expenses_analysis.get_spending_by_city(conn, year, top_n=5)
+    return analise_despesas.get_gastos_por_municipio(conn, year, top_n=5)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _diarias_summary(conn, year, _extracted_at):
-    return expenses_analysis.get_diarias_summary(conn, year)
+    return analise_despesas.get_resumo_diarias(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _top_diarias(conn, year, _extracted_at):
-    return expenses_analysis.get_top_diarias_beneficiaries(conn, year)
+    return analise_despesas.get_principais_beneficiarios_diarias(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -254,7 +254,7 @@ with t2:
     with col_nat:
         df_natureza = df_sup.groupby("elemento")["pago"].sum().reset_index()
         # Adicionar label descritiva para o elemento no gráfico usando a nova função
-        df_natureza["label"] = df_natureza["elemento"].apply(expenses_analysis.get_elemento_label)
+        df_natureza["label"] = df_natureza["elemento"].apply(analise_despesas.get_elemento_label)
 
         fig_natureza = px.pie(df_natureza, values="pago", names="label", title="Por Elemento de Despesa")
         st.plotly_chart(fig_natureza, use_container_width=True)
@@ -427,7 +427,7 @@ with t4:
         st.info("Insira o nome do servidor ou departamento abaixo para buscar viagens específicas.")
 
         search_dia = st.text_input("Buscar Diária (Nome do Servidor ou Unidade):", "")
-        df_dia_list = get_searchable_diarias(conn, year, search_dia)
+        df_dia_list = get_diarias_pesquisaveis(conn, year, search_dia)
         if not df_dia_list.empty:
             st.dataframe(
                 df_dia_list.rename(
@@ -461,7 +461,7 @@ with t5:
     limit_q = st.slider("Qtd. Máxima de Resultados:", min_value=50, max_value=1000, value=250, step=50)
 
     if search_q.strip() or year:
-        df_t = expenses_analysis.get_searchable_transactions(conn, year, search_q, limit_q)
+        df_t = analise_despesas.get_transacoes_pesquisaveis(conn, year, search_q, limit_q)
         if not df_t.empty:
             st.markdown(f"Exibindo os **{len(df_t)}** maiores pagamentos contábeis correspondentes:")
             st.dataframe(
