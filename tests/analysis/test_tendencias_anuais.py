@@ -1,7 +1,7 @@
 import pytest
 
 import db
-from analysis.yoy_trends import run
+from analysis.tendencias_anuais import run
 
 
 @pytest.fixture

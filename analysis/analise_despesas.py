@@ -12,7 +12,7 @@ from analysis.constants import (
 )
 from dashboard.shared import CIDADE_CLEAN
 
-# Payroll disbursed through department heads — not individual suppliers
+# Folha de pessoal distribuída via responsáveis de unidade — não por fornecedores individuais
 
 
 def get_elemento_label(elemento: str) -> str:
@@ -30,7 +30,7 @@ def _sum_col_where(conn: Any, table: str, col: str, year: int) -> float:
         return 0.0
 
 
-def get_general_expense_metrics(conn: Any, year: int) -> dict:
+def get_metricas_gerais_despesas(conn: Any, year: int) -> dict:
     empenhado = _sum_col_where(conn, "despesas_por_unidade", "empenhado", year)
     liquidado = _sum_col_where(conn, "despesas_por_unidade", "liquidado", year)
     pago = _sum_col_where(conn, "despesas_por_unidade", "pago", year)
@@ -44,7 +44,7 @@ def get_general_expense_metrics(conn: Any, year: int) -> dict:
     }
 
 
-def get_expenses_by_unit(conn: Any, year: int) -> pd.DataFrame:
+def get_despesas_por_unidade(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
             "SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_unidade WHERE ano = :ano"
@@ -67,7 +67,7 @@ def get_expenses_by_unit(conn: Any, year: int) -> pd.DataFrame:
     )
 
 
-def get_top_suppliers_detailed(conn: Any, year: int) -> pd.DataFrame:
+def get_principais_fornecedores_detalhados(conn: Any, year: int) -> pd.DataFrame:
     """
     Retorna um DataFrame detalhado dos principais fornecedores, incluindo informações sobre empenhado, liquidado e pago.
     """
@@ -134,7 +134,7 @@ def get_top_suppliers_detailed(conn: Any, year: int) -> pd.DataFrame:
     )
 
 
-def get_local_spending_impact(conn: Any, year: int) -> dict:
+def get_impacto_gastos_locais(conn: Any, year: int) -> dict:
     sql = text(
         """
         SELECT f.cepci as cidade, f.pago
@@ -176,7 +176,7 @@ def get_local_spending_impact(conn: Any, year: int) -> dict:
     }
 
 
-def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
+def get_gastos_por_municipio(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
     sql = text(
         """
         SELECT f.cepci as cidade, f.pago
@@ -230,7 +230,7 @@ def get_spending_by_city(conn: Any, year: int, top_n: int = 5) -> pd.DataFrame:
     return result
 
 
-def get_departmental_payroll(conn: Any, year: int) -> pd.DataFrame:
+def get_folha_por_orgao(conn: Any, year: int) -> pd.DataFrame:
     # Filtra folha de pessoal (elemento 11) diretamente da despesas_gerais
     query = text("""
         SELECT nomefor as descricao, SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) as pago
@@ -245,7 +245,7 @@ def get_departmental_payroll(conn: Any, year: int) -> pd.DataFrame:
     return df.groupby("descricao", as_index=False)["pago"].sum().sort_values("pago", ascending=False)
 
 
-def get_diarias_summary(conn: Any, year: int) -> dict:
+def get_resumo_diarias(conn: Any, year: int) -> dict:
     df = pd.read_sql_query(text("SELECT valor, favorecido FROM diarias WHERE ano = :ano"), conn, params={"ano": year})
     if df.empty:
         return {"total_valor": 0.0, "total_viajantes": 0, "media_reembolso": 0.0}
@@ -261,7 +261,7 @@ def get_diarias_summary(conn: Any, year: int) -> dict:
     }
 
 
-def get_top_diarias_beneficiaries(conn: Any, year: int) -> pd.DataFrame:
+def get_principais_beneficiarios_diarias(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("SELECT favorecido, cargo, valor FROM diarias WHERE ano = :ano"), conn, params={"ano": year}
     )
@@ -276,7 +276,7 @@ def get_top_diarias_beneficiaries(conn: Any, year: int) -> pd.DataFrame:
     return summary.sort_values("valor", ascending=False).head(10)
 
 
-def get_searchable_transactions(conn: Any, year: int, query: str, limit: int = 500) -> pd.DataFrame:
+def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 500) -> pd.DataFrame:
     if query.strip():
         sql = text("""
             SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
@@ -305,7 +305,7 @@ def get_searchable_transactions(conn: Any, year: int, query: str, limit: int = 5
     return df
 
 
-def get_searchable_diarias(conn: Any, year: int, query: str, limit: int = 150) -> pd.DataFrame:
+def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150) -> pd.DataFrame:
     if query.strip():
         sql = text("""
             SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
@@ -330,6 +330,5 @@ def get_searchable_diarias(conn: Any, year: int, query: str, limit: int = 150) -
     return df
 
 
-def departmental_payroll_total(df: pd.DataFrame) -> float:
-    """Return total pago distributed via departmental payroll responsibles."""
+def total_folha_por_orgao(df: pd.DataFrame) -> float:
     return float(df["pago"].sum()) if not df.empty else 0.0

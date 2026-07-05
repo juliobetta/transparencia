@@ -18,14 +18,14 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import budget_execution, functional_budget
+from analysis import execucao_orcamentaria, orcamento_funcional
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _budget(conn, year, _extracted_at):
-    return budget_execution.run(conn, year)
+def _orcamento(conn, year, _extracted_at):
+    return execucao_orcamentaria.run(conn, year)
 
 
 conn = get_conn()
@@ -35,50 +35,50 @@ _extracted_at = get_extraction_date(conn)
 st.title("Execução Orçamentária por Órgão")
 st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
 
-df = _budget(conn, year, _extracted_at)
-totals = budget_execution.summarize(df)
+df_orcamento = _orcamento(conn, year, _extracted_at)
+totais = execucao_orcamentaria.summarize(df_orcamento)
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Total Dotação", fmt_compact(totals["total_dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
-c2.metric("Total Empenhado", fmt_compact(totals["total_empenhado"]), help=glossary.tooltip("Empenho"))
-c3.metric("Total Liquidado", fmt_compact(totals["total_liquidado"]), help=glossary.tooltip("Liquidação"))
-c4.metric("Total Pago", fmt_compact(totals["total_pago"]), help=glossary.tooltip("Pagamento"))
+c1.metric("Total Dotação", fmt_compact(totais["total_dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
+c2.metric("Total Empenhado", fmt_compact(totais["total_empenhado"]), help=glossary.tooltip("Empenho"))
+c3.metric("Total Liquidado", fmt_compact(totais["total_liquidado"]), help=glossary.tooltip("Liquidação"))
+c4.metric("Total Pago", fmt_compact(totais["total_pago"]), help=glossary.tooltip("Pagamento"))
 
-# Funnel Chart (Órgão)
-summary_data = pd.DataFrame(
+# Gráfico de Funil (Órgão)
+dados_resumo = pd.DataFrame(
     {
         "Estágio": ["Dotação", "Empenhado", "Liquidado", "Pago"],
         "Valor": [
-            totals["total_dotacao"],
-            totals["total_empenhado"],
-            totals["total_liquidado"],
-            totals["total_pago"],
+            totais["total_dotacao"],
+            totais["total_empenhado"],
+            totais["total_liquidado"],
+            totais["total_pago"],
         ],
         "ValorFormatado": [
-            fmt_currency(totals["total_dotacao"]),
-            fmt_currency(totals["total_empenhado"]),
-            fmt_currency(totals["total_liquidado"]),
-            fmt_currency(totals["total_pago"]),
+            fmt_currency(totais["total_dotacao"]),
+            fmt_currency(totais["total_empenhado"]),
+            fmt_currency(totais["total_liquidado"]),
+            fmt_currency(totais["total_pago"]),
         ],
     }
 )
-fig_funnel = px.funnel(
-    summary_data,
+fig_funil = px.funnel(
+    dados_resumo,
     x="Valor",
     y="Estágio",
     text="ValorFormatado",
     title="Funil da Execução Orçamentária",
 )
-fig_funnel.update_traces(
+fig_funil.update_traces(
     textposition="inside",
     texttemplate="%{text}",
     hovertemplate="Estágio: %{y}<br>Valor: %{text}<extra></extra>",
 )
-st.plotly_chart(fig_funnel, use_container_width=True)
+st.plotly_chart(fig_funil, use_container_width=True)
 
 with st.expander("Ver Detalhamento por Órgão"):
     st.dataframe(
-        df[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
+        df_orcamento[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
             columns={
                 "descricao": "Órgão",
                 "empenhado": "Empenhado",
@@ -96,19 +96,19 @@ with st.expander("Ver Detalhamento por Órgão"):
         },
     )
 
-# Bar Chart (Função)
+# Gráfico de Barras (Função)
 st.markdown("---")
-df_func = functional_budget.get_functional_budget(conn, year)
-df_func_summary = (
-    df_func.groupby("funcaonome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
+df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year)
+df_funcional_resumo = (
+    df_funcional.groupby("funcaonome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
     .sum()
     .reset_index()
     .sort_values("pago", ascending=True)
 )
-df_func_summary["ValorFormatado"] = df_func_summary["pago"].apply(fmt_currency)
+df_funcional_resumo["ValorFormatado"] = df_funcional_resumo["pago"].apply(fmt_currency)
 
-fig_bar = px.bar(
-    df_func_summary,
+fig_barras = px.bar(
+    df_funcional_resumo,
     x="pago",
     y="funcaonome",
     orientation="h",
@@ -116,13 +116,13 @@ fig_bar = px.bar(
     labels={"pago": "Pago (R$)", "funcaonome": "Função"},
     text="ValorFormatado",
 )
-fig_bar.update_traces(textposition="auto")
-fig_bar.update_layout(margin=dict(r=50))
-st.plotly_chart(fig_bar, use_container_width=True)
+fig_barras.update_traces(textposition="auto")
+fig_barras.update_layout(margin=dict(r=50))
+st.plotly_chart(fig_barras, use_container_width=True)
 
 with st.expander("Ver Detalhamento por Função"):
     st.dataframe(
-        df_func_summary[["funcaonome", "dotacao_atualizada", "liquidado", "empenhado", "pago"]]
+        df_funcional_resumo[["funcaonome", "dotacao_atualizada", "liquidado", "empenhado", "pago"]]
         .rename(
             columns={
                 "funcaonome": "Função",

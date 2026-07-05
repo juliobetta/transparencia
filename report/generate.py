@@ -12,12 +12,12 @@ import db
 import glossary
 from analysis import (
     adesao_de_ata,
-    bidding_gaps,
-    budget_execution,
-    payroll_vs_services,
-    revenue_sources,
-    supplier_concentration,
-    yoy_trends,
+    concentracao_fornecedores,
+    execucao_orcamentaria,
+    folha_vs_servicos,
+    fontes_receita,
+    licitacao_gaps,
+    tendencias_anuais,
 )
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS, THRESHOLD_OBRAS_ENGENHARIA, THRESHOLD_VEICULOS
 from db import get_metadata
@@ -29,15 +29,15 @@ TEMPLATE_DIR = Path(__file__).parent
 def generate(engine, year: int, month: int) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
 
-    budget = budget_execution.run(engine, year)
-    supplier = supplier_concentration.run(engine, year)
-    bidding = bidding_gaps.run(engine, year)
+    budget = execucao_orcamentaria.run(engine, year)
+    supplier = concentracao_fornecedores.run(engine, year)
+    bidding = licitacao_gaps.run(engine, year)
     adesao = adesao_de_ata.run(engine, year, "2")
-    bidding_acima = bidding_gaps.filter_above_limit(bidding).to_dict("records")
-    bidding_saude = bidding_gaps.filter_above_limit_health(bidding)
-    revenue = revenue_sources.run(engine, list(range(2022, year + 1)))
-    payroll = payroll_vs_services.run(engine, list(range(2022, year + 1)))
-    trends = yoy_trends.run(engine, list(range(2022, year + 1)))
+    bidding_acima = licitacao_gaps.filter_above_limit(bidding).to_dict("records")
+    bidding_saude = licitacao_gaps.filter_above_limit_health(bidding)
+    revenue = fontes_receita.run(engine, list(range(2022, year + 1)))
+    payroll = folha_vs_servicos.run(engine, list(range(2022, year + 1)))
+    trends = tendencias_anuais.run(engine, list(range(2022, year + 1)))
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("template.html")

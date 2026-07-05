@@ -80,8 +80,8 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
     return df
 
 
-def breakdown_table(row: "pd.Series", year: int) -> "pd.DataFrame":
-    """Return a Previsto vs Arrecadado breakdown DataFrame ready for display."""
+def tabela_detalhamento(row: "pd.Series", year: int) -> "pd.DataFrame":
+    """Retorna DataFrame de Previsto vs Arrecadado por fonte de receita, pronto para exibição."""
     current = year == 2026
     data = [
         {

@@ -7,32 +7,32 @@ import pandas as pd
 
 from analysis import (
     adesao_de_ata,
-    bidding_gaps,
-    budget_execution,
-    payroll_vs_services,
-    revenue_sources,
-    supplier_concentration,
+    concentracao_fornecedores,
+    execucao_orcamentaria,
+    folha_vs_servicos,
+    fontes_receita,
+    licitacao_gaps,
 )
 
 
 @dataclass
 class PeriodSpec:
     year: int
-    month_start: int
-    month_end: int
+    mes_inicio: int
+    mes_fim: int
 
     def __post_init__(self) -> None:
-        if self.month_start < 1:
-            raise ValueError(f"month_start must be >= 1, got {self.month_start}")
-        if self.month_end > 12:
-            raise ValueError(f"month_end must be <= 12, got {self.month_end}")
-        if self.month_start > self.month_end:
-            raise ValueError(f"month_start ({self.month_start}) must be <= month_end ({self.month_end})")
+        if self.mes_inicio < 1:
+            raise ValueError(f"mes_inicio must be >= 1, got {self.mes_inicio}")
+        if self.mes_fim > 12:
+            raise ValueError(f"mes_fim must be <= 12, got {self.mes_fim}")
+        if self.mes_inicio > self.mes_fim:
+            raise ValueError(f"mes_inicio ({self.mes_inicio}) must be <= mes_fim ({self.mes_fim})")
 
     def label(self) -> str:
-        if self.month_start == 1 and self.month_end == 12:
+        if self.mes_inicio == 1 and self.mes_fim == 12:
             return str(self.year)
-        return f"{self.year}/{self.month_start:02d}–{self.month_end:02d}"
+        return f"{self.year}/{self.mes_inicio:02d}–{self.mes_fim:02d}"
 
 
 def _delta(a: float, b: float) -> dict:
@@ -45,7 +45,7 @@ def _delta(a: float, b: float) -> dict:
 
 
 def _filter_months(df: pd.DataFrame, month_col: str, spec: PeriodSpec) -> pd.DataFrame:
-    months = {f"{m:02d}" for m in range(spec.month_start, spec.month_end + 1)}
+    months = {f"{m:02d}" for m in range(spec.mes_inicio, spec.mes_fim + 1)}
     return df[df[month_col].astype(str).str.zfill(2).isin(months)]
 
 
@@ -56,21 +56,21 @@ def _get_revenue_row(df: pd.DataFrame, year: int) -> pd.Series | None:
 
 def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
     def _despesas(spec: PeriodSpec) -> dict:
-        budget = budget_execution.run(conn, spec.year)
+        budget = execucao_orcamentaria.run(conn, spec.year)
         return {
             "empenhado": budget["empenhado"].sum(),
             "dotacao": budget["dotacao_atualizada"].sum(),
         }
 
     def _pessoal(spec: PeriodSpec) -> dict:
-        df = payroll_vs_services.run(conn, [spec.year])
+        df = folha_vs_servicos.run(conn, [spec.year])
         if df.empty:
             return {"total_folha": 0.0, "percentual_folha": 0.0}
         row = df.iloc[0]
         return {"total_folha": float(row["total_folha"]), "percentual_folha": float(row["percentual_folha"])}
 
     def _receitas(spec: PeriodSpec) -> dict:
-        df = revenue_sources.run(conn, [spec.year])
+        df = fontes_receita.run(conn, [spec.year])
         row = _get_revenue_row(df, spec.year)
         if row is None:
             return {
@@ -89,7 +89,7 @@ def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
         }
 
     def _licitacoes(spec: PeriodSpec) -> dict:
-        gaps = bidding_gaps.run(conn, spec.year)
+        gaps = licitacao_gaps.run(conn, spec.year)
         return {
             "sem_licitacao": float(len(gaps)),
             "acima_limite": float(gaps["acima_limite"].sum()),
@@ -97,15 +97,15 @@ def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
         }
 
     def _fornecedores(spec: PeriodSpec) -> dict:
-        result = supplier_concentration.run(conn, spec.year)
+        result = concentracao_fornecedores.run(conn, spec.year)
         return {"hhi": float(result["hhi"])}
 
     def _adesao(spec: PeriodSpec) -> dict:
         result = adesao_de_ata.run(conn, spec.year, "2")
         return {
-            "count": float(result["count"]),
+            "quantidade": float(result["quantidade"]),
             "valor_licitacao": float(result["total_licitacao"]),
-            "valor_contratos": float(result["value"]),
+            "valor_contratos": float(result["valor"]),
         }
 
     domains = [

@@ -11,62 +11,62 @@ import streamlit as st
 from shared import fmt_compact, fmt_currency, get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
-from analysis import expenses_analysis, fiscal_position, supplier_concentration
-from analysis.expenses_analysis import get_searchable_diarias
-from analysis.fiscal_position import get_unpaid_by_exercise, unpaid_pie, unpaid_summary
-from analysis.supplier_concentration import concentration_pie
+from analysis import analise_despesas, concentracao_fornecedores, posicao_fiscal
+from analysis.analise_despesas import get_diarias_pesquisaveis
+from analysis.concentracao_fornecedores import piechart_concentracao
+from analysis.posicao_fiscal import get_pendentes_por_exercicio, piechart_pendentes, resumo_pendentes
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _metrics(conn, year, _extracted_at):
-    return expenses_analysis.get_general_expense_metrics(conn, year)
+def _metricas(conn, year, _extracted_at):
+    return analise_despesas.get_metricas_gerais_despesas(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _by_unit(conn, year, _extracted_at):
-    return expenses_analysis.get_expenses_by_unit(conn, year)
+def _por_unidade(conn, year, _extracted_at):
+    return analise_despesas.get_despesas_por_unidade(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _impact(conn, year, _extracted_at):
-    return expenses_analysis.get_local_spending_impact(conn, year)
+def _impacto(conn, year, _extracted_at):
+    return analise_despesas.get_impacto_gastos_locais(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _top_suppliers(conn, year, _extracted_at):
-    return expenses_analysis.get_top_suppliers_detailed(conn, year)
+def _top_fornecedores(conn, year, _extracted_at):
+    return analise_despesas.get_principais_fornecedores_detalhados(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _concentration(conn, year, _extracted_at):
-    return supplier_concentration.run(conn, year)
+def _concentracao(conn, year, _extracted_at):
+    return concentracao_fornecedores.run(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _spending_by_city(conn, year, _extracted_at):
-    return expenses_analysis.get_spending_by_city(conn, year, top_n=5)
+def _gastos_por_municipio(conn, year, _extracted_at):
+    return analise_despesas.get_gastos_por_municipio(conn, year, top_n=5)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _diarias_summary(conn, year, _extracted_at):
-    return expenses_analysis.get_diarias_summary(conn, year)
+def _resumo_diarias(conn, year, _extracted_at):
+    return analise_despesas.get_resumo_diarias(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _top_diarias(conn, year, _extracted_at):
-    return expenses_analysis.get_top_diarias_beneficiaries(conn, year)
+    return analise_despesas.get_principais_beneficiarios_diarias(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _unpaid_suppliers(conn, year, _extracted_at):
-    return fiscal_position.get_unpaid_suppliers(conn, year)
+def _fornecedores_pendentes(conn, year, _extracted_at):
+    return posicao_fiscal.get_fornecedores_pendentes(conn, year)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _low_value_restos(conn, year, _extracted_at):
-    return fiscal_position.get_low_value_restos(conn, year=year)
+def _restos_baixo_valor(conn, year, _extracted_at):
+    return posicao_fiscal.get_restos_baixo_valor(conn, year=year)
 
 
 conn = get_conn()
@@ -76,7 +76,7 @@ _extracted_at = get_extraction_date(conn)
 st.title("Portal de Despesas Detalhadas")
 st.caption("Detalhes sobre onde e como os recursos públicos estão sendo aplicados.")
 
-# Tabs layout
+# Layout de abas
 t1, t2, t3, t4, t5 = st.tabs(
     [
         ":material/corporate_fare: Unidades Administrativas",
@@ -91,12 +91,12 @@ t1, t2, t3, t4, t5 = st.tabs(
 with t1:
     st.subheader("Análise de Despesas por Unidade do Governo")
 
-    metrics = _metrics(conn, year, _extracted_at)
+    metricas = _metricas(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
     c1.metric(
         "Total Empenhado",
-        fmt_currency(metrics["empenhado"]),
+        fmt_currency(metricas["empenhado"]),
         help=(
             "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
             "primeira etapa do gasto público: a administração reconhece a obrigação e reserva o "
@@ -106,8 +106,8 @@ with t1:
     )
     c2.metric(
         "Total Liquidado",
-        fmt_currency(metrics["liquidado"]),
-        f"Executado: {metrics['taxa_liquidacao']:.1f}%",
+        fmt_currency(metricas["liquidado"]),
+        f"Executado: {metricas['taxa_liquidacao']:.1f}%",
         help=(
             "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
             "verificados pela prefeitura. A liquidação confirma que o município recebeu aquilo que "
@@ -117,8 +117,8 @@ with t1:
     )
     c3.metric(
         "Total Pago Real",
-        fmt_currency(metrics["pago"]),
-        f"Pago: {metrics['taxa_pagamento']:.1f}%",
+        fmt_currency(metricas["pago"]),
+        f"Pago: {metricas['taxa_pagamento']:.1f}%",
         help=(
             "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
             "servidor. É o estágio final do gasto público — o dinheiro efetivamente deixou os "
@@ -127,11 +127,11 @@ with t1:
         ),
     )
 
-    df_unit = _by_unit(conn, year, _extracted_at)
-    if not df_unit.empty:
+    df_unidades = _por_unidade(conn, year, _extracted_at)
+    if not df_unidades.empty:
         st.markdown("---")
         fig = px.bar(
-            df_unit.head(15),
+            df_unidades.head(15),
             x="pago",
             y="descricao",
             orientation="h",
@@ -142,7 +142,7 @@ with t1:
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(
-            df_unit.rename(
+            df_unidades.rename(
                 columns={
                     "descricao": "Unidade Administrativa",
                     "empenhado": "Empenhado (R$)",
@@ -173,32 +173,32 @@ with t2:
         "Foram excluídos pagamentos de folha de pessoal, previdência e dívidas."
     )
 
-    impact = _impact(conn, year, _extracted_at)
-    conc = _concentration(conn, year, _extracted_at)
+    impacto = _impacto(conn, year, _extracted_at)
+    concentracao = _concentracao(conn, year, _extracted_at)
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Efetivamente Pago — Empresas Locais", fmt_compact(impact["local_pago"]))
-    c2.metric("Efetivamente Pago — Empresas Externas", fmt_compact(impact["externo_pago"]))
+    c1.metric("Efetivamente Pago — Empresas Locais", fmt_compact(impacto["local_pago"]))
+    c2.metric("Efetivamente Pago — Empresas Externas", fmt_compact(impacto["externo_pago"]))
     c3.metric(
         "Índice de Compras Locais",
-        f"{impact['pct_local']:.2f}%",
+        f"{impacto['pct_local']:.2f}%",
         help="Percentual de recursos mantidos na economia local de Porciúncula.",
     )
     c4.metric(
         "HHI (concentração)",
-        f"{conc['hhi']:,.0f}",
+        f"{concentracao['hhi']:,.0f}",
         help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
     )
 
-    if impact["total_pago"] > 0:
-        pie_df = pd.DataFrame(
+    if impacto["total_pago"] > 0:
+        df_mercado = pd.DataFrame(
             {
                 "Mercado": ["Negócios Locais (Porciúncula)", "Prestadores Externos"],
-                "Pago (R$)": [impact["local_pago"], impact["externo_pago"]],
+                "Pago (R$)": [impacto["local_pago"], impacto["externo_pago"]],
             }
         )
         fig_pie = px.pie(
-            pie_df,
+            df_mercado,
             values="Pago (R$)",
             names="Mercado",
             color="Mercado",
@@ -206,14 +206,14 @@ with t2:
             title="Destino Geográfico dos Recursos Públicos Pagos",
         )
 
-        df_cities = _spending_by_city(conn, year, _extracted_at)
+        df_cidades = _gastos_por_municipio(conn, year, _extracted_at)
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(fig_pie, use_container_width=True)
         with col2:
-            if not df_cities.empty:
+            if not df_cidades.empty:
                 fig_cities = px.pie(
-                    df_cities,
+                    df_cidades,
                     values="pago",
                     names="cidade",
                     color="cidade",
@@ -222,10 +222,10 @@ with t2:
                 )
                 st.plotly_chart(fig_cities, use_container_width=True)
     else:
-        df_cities = _spending_by_city(conn, year, _extracted_at)
-        if not df_cities.empty:
+        df_cidades = _gastos_por_municipio(conn, year, _extracted_at)
+        if not df_cidades.empty:
             fig_cities = px.pie(
-                df_cities,
+                df_cidades,
                 values="pago",
                 names="cidade",
                 color="cidade",
@@ -235,15 +235,16 @@ with t2:
             st.plotly_chart(fig_cities, use_container_width=True)
 
     st.markdown("### Concentração de Fornecedores")
-    if conc["dominante"]:
+    if concentracao["dominante"]:
         st.warning(
-            f"{conc['dominante']} recebeu mais de 40% do total empenhado a fornecedores.", icon=":material/warning:"
+            f"{concentracao['dominante']} recebeu mais de 40% do total empenhado a fornecedores.",
+            icon=":material/warning:",
         )
 
-    top10_conc = conc["top10"].copy()
+    top10_concentracao = concentracao["top10"].copy()
 
     # Garantir que df_sup esteja definido antes de ser usado
-    df_sup = _top_suppliers(conn, year, _extracted_at)
+    df_fornecedores = _top_fornecedores(conn, year, _extracted_at)
 
     # Adicionar o Pie Chart de Natureza da Despesa
     st.markdown("### Distribuição das Compras e Serviços")
@@ -252,28 +253,28 @@ with t2:
     col_nat, col_conc = st.columns(2)
 
     with col_nat:
-        df_natureza = df_sup.groupby("elemento")["pago"].sum().reset_index()
+        df_natureza = df_fornecedores.groupby("elemento")["pago"].sum().reset_index()
         # Adicionar label descritiva para o elemento no gráfico usando a nova função
-        df_natureza["label"] = df_natureza["elemento"].apply(expenses_analysis.get_elemento_label)
+        df_natureza["label"] = df_natureza["elemento"].apply(analise_despesas.get_elemento_label)
 
         fig_natureza = px.pie(df_natureza, values="pago", names="label", title="Por Elemento de Despesa")
         st.plotly_chart(fig_natureza, use_container_width=True)
 
     with col_conc:
-        pie_conc = concentration_pie(top10_conc, conc["total_all"])
-        fig_conc = px.pie(
-            pie_conc, values="empenhado", names="Fornecedor", title="Distribuição por Fornecedor (Top 10)"
+        pizza_concentracao = piechart_concentracao(top10_concentracao, concentracao["total_all"])
+        fig_concentracao = px.pie(
+            pizza_concentracao, values="empenhado", names="Fornecedor", title="Distribuição por Fornecedor (Top 10)"
         )
-        st.plotly_chart(fig_conc, use_container_width=True)
+        st.plotly_chart(fig_concentracao, use_container_width=True)
 
     st.markdown("### Top 10 Maiores Prestadores de Serviços / Fornecedores")
     st.caption(
         "Exibindo apenas despesas classificadas como Contratações/Serviços (3.3.xx) ou Investimentos/Obras (4.4.xx)."
     )
 
-    if not df_sup.empty:
+    if not df_fornecedores.empty:
         fig_sup = px.bar(
-            df_sup.head(10),
+            df_fornecedores.head(10),
             x="pago",
             y="fornecedor",
             orientation="h",
@@ -284,7 +285,7 @@ with t2:
         st.plotly_chart(fig_sup, use_container_width=True)
 
         st.dataframe(
-            df_sup.rename(
+            df_fornecedores.rename(
                 columns={
                     "fornecedor": "Fornecedor",
                     "insmf": "CNPJ/CPF",
@@ -312,11 +313,11 @@ with t3:
         icon=":material/info:",
     )
 
-    exercise_df = get_unpaid_by_exercise(conn)
-    if not exercise_df.empty:
+    df_por_exercicio = get_pendentes_por_exercicio(conn)
+    if not df_por_exercicio.empty:
         with st.expander("Ver pendências por exercício fiscal"):
             st.dataframe(
-                exercise_df,
+                df_por_exercicio,
                 column_config={
                     "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
                     "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
@@ -326,26 +327,28 @@ with t3:
                 hide_index=True,
             )
 
-    unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
-    if not unpaid_df.empty:
-        rp = unpaid_summary(unpaid_df)
+    df_pendentes = _fornecedores_pendentes(conn, year, _extracted_at)
+    if not df_pendentes.empty:
+        resumo = resumo_pendentes(df_pendentes)
 
         rc1, rc2, rc3 = st.columns(3)
-        rc1.metric("Total Pendente", fmt_currency(rp["total"]), help="Soma de todos os empenhos ainda não quitados.")
-        rc2.metric("Fornecedores aguardando", rp["count"])
-        rc3.metric("Dívida mais antiga desde", str(rp["oldest"]))
+        rc1.metric(
+            "Total Pendente", fmt_currency(resumo["total"]), help="Soma de todos os empenhos ainda não quitados."
+        )
+        rc2.metric("Fornecedores aguardando", resumo["count"])
+        rc3.metric("Dívida mais antiga desde", str(resumo["oldest"]))
 
-        pie_df = unpaid_pie(unpaid_df)
-        fig_rp = px.pie(
-            pie_df,
+        df_pizza_pendentes = piechart_pendentes(df_pendentes)
+        fig_pendentes = px.pie(
+            df_pizza_pendentes,
             values="Pendente",
             names="Fornecedor",
             title="Top 10 Fornecedores com Maior Pendência",
         )
-        st.plotly_chart(fig_rp, use_container_width=True)
+        st.plotly_chart(fig_pendentes, use_container_width=True)
 
         st.dataframe(
-            unpaid_df.rename(
+            df_pendentes.rename(
                 columns={
                     "descricao": "Fornecedor",
                     "aguardando_desde": "Aguardando desde",
@@ -366,16 +369,16 @@ with t3:
     else:
         st.info("Nenhum fornecedor com pagamento pendente para este exercício.")
 
-    low_value_df = _low_value_restos(conn, year, _extracted_at)
-    if not low_value_df.empty:
+    df_baixo_valor = _restos_baixo_valor(conn, year, _extracted_at)
+    if not df_baixo_valor.empty:
         with st.expander(
-            f":material/warning: {len(low_value_df)} registro(s) com empenhado abaixo de R$ 10,00 — verificar"
+            f":material/warning: {len(df_baixo_valor)} registro(s) com empenhado abaixo de R$ 10,00 — verificar"
         ):
             st.warning(
                 "Estes registros possuem valores empenhados muito baixos e podem indicar erros de lançamento ou dados inconsistentes na fonte."
             )
             st.dataframe(
-                low_value_df,
+                df_baixo_valor,
                 column_config={
                     "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
                     "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
@@ -388,14 +391,14 @@ with t3:
 with t4:
     st.subheader("Diárias e Auxílios de Viagem a Serviço")
 
-    dia_sum = _diarias_summary(conn, year, _extracted_at)
+    resumo_diarias_data = _resumo_diarias(conn, year, _extracted_at)
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Total Pago em Diárias", fmt_currency(dia_sum["total_valor"]))
-    c2.metric("Total de Servidores Beneficiários", int(dia_sum["total_viajantes"]))
+    c1.metric("Total Pago em Diárias", fmt_currency(resumo_diarias_data["total_valor"]))
+    c2.metric("Total de Servidores Beneficiários", int(resumo_diarias_data["total_viajantes"]))
     c3.metric(
         "Média de Reembolso por Viagem",
-        fmt_currency(dia_sum["media_reembolso"]),
+        fmt_currency(resumo_diarias_data["media_reembolso"]),
         help=(
             "Valor médio pago por deslocamento a serviço. Calculado dividindo o total gasto em "
             "diárias pelo número de registros de viagem no período. Cada registro corresponde a "
@@ -406,11 +409,11 @@ with t4:
     )
 
     st.markdown("---")
-    df_dia_top = _top_diarias(conn, year, _extracted_at)
-    if not df_dia_top.empty:
+    df_top_diarias = _top_diarias(conn, year, _extracted_at)
+    if not df_top_diarias.empty:
         st.markdown("### Top 10 Servidores que Receberam Diárias")
         st.dataframe(
-            df_dia_top.rename(
+            df_top_diarias.rename(
                 columns={
                     "favorecido": "Servidor Público",
                     "cargo": "Cargo",
@@ -426,11 +429,11 @@ with t4:
         st.markdown("### Histórico e Detalhes dos Pagamentos de Diárias")
         st.info("Insira o nome do servidor ou departamento abaixo para buscar viagens específicas.")
 
-        search_dia = st.text_input("Buscar Diária (Nome do Servidor ou Unidade):", "")
-        df_dia_list = get_searchable_diarias(conn, year, search_dia)
-        if not df_dia_list.empty:
+        busca_diaria = st.text_input("Buscar Diária (Nome do Servidor ou Unidade):", "")
+        df_lista_diarias = get_diarias_pesquisaveis(conn, year, busca_diaria)
+        if not df_lista_diarias.empty:
             st.dataframe(
-                df_dia_list.rename(
+                df_lista_diarias.rename(
                     columns={
                         "data": "Data",
                         "servidor": "Servidor",
@@ -457,15 +460,15 @@ with t5:
         "Você pode buscar por nome de empresa, órgão ou termos específicos (ex: *asfalto*, *combustível*, *medicamento*)."
     )
 
-    search_q = st.text_input("Termo de Busca:", placeholder="Digite para pesquisar...")
-    limit_q = st.slider("Qtd. Máxima de Resultados:", min_value=50, max_value=1000, value=250, step=50)
+    busca_termo = st.text_input("Termo de Busca:", placeholder="Digite para pesquisar...")
+    limite_resultados = st.slider("Qtd. Máxima de Resultados:", min_value=50, max_value=1000, value=250, step=50)
 
-    if search_q.strip() or year:
-        df_t = expenses_analysis.get_searchable_transactions(conn, year, search_q, limit_q)
-        if not df_t.empty:
-            st.markdown(f"Exibindo os **{len(df_t)}** maiores pagamentos contábeis correspondentes:")
+    if busca_termo.strip() or year:
+        df_transacoes = analise_despesas.get_transacoes_pesquisaveis(conn, year, busca_termo, limite_resultados)
+        if not df_transacoes.empty:
+            st.markdown(f"Exibindo os **{len(df_transacoes)}** maiores pagamentos contábeis correspondentes:")
             st.dataframe(
-                df_t.rename(
+                df_transacoes.rename(
                     columns={
                         "data": "Data Empenho",
                         "fornecedor": "Fornecedor / Favorecido",

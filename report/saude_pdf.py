@@ -19,7 +19,7 @@ from fpdf.fonts import FontFace
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import db
-from analysis import health_story
+from analysis import historia_saude
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BRASAO_PATH = ASSETS_DIR / "brasao-porciuncula.svg"
@@ -104,7 +104,7 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
             ("Taxa de Execução", f"{budget['taxa_execucao']:.1%}"),
         ],
     )
-    if budget.get("flag_under_execution"):
+    if budget.get("alerta_sub_execucao"):
         pdf.set_fill_color(*WARN_BG)
         pdf.set_font("NotoSans", "", 9)
         pdf.multi_cell(0, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
@@ -218,7 +218,7 @@ def _gaps_table(pdf: FPDF, rows: pd.DataFrame, cols: list[str], widths: Sequence
 
 def _draw_alertas_section(
     pdf: FPDF,
-    bidding_gaps: pd.DataFrame,
+    licitacao_gaps: pd.DataFrame,
     splitting: pd.DataFrame,
     adesao_list: pd.DataFrame,  # noqa: ARG001
     adesao_value: float,
@@ -226,8 +226,8 @@ def _draw_alertas_section(
 ) -> None:
     _section_header(pdf, "4. ALERTAS & IRREGULARIDADES")
 
-    irregular = bidding_gaps[~bidding_gaps["is_legally_exempt"]] if not bidding_gaps.empty else pd.DataFrame()
-    exempt = bidding_gaps[bidding_gaps["is_legally_exempt"]] if not bidding_gaps.empty else pd.DataFrame()
+    irregular = licitacao_gaps[~licitacao_gaps["isento_legalmente"]] if not licitacao_gaps.empty else pd.DataFrame()
+    exempt = licitacao_gaps[licitacao_gaps["isento_legalmente"]] if not licitacao_gaps.empty else pd.DataFrame()
 
     gaps_count = len(irregular)
     splitting_count = splitting["fornecedor"].nunique() if not splitting.empty else 0
@@ -369,20 +369,20 @@ class _SaudePDF(FPDF):
 
 
 def generate(conn: Any, year: int) -> bytes:
-    data = health_story.run(conn, year)
+    data = historia_saude.run(conn, year)
     _raw = db.get_metadata(conn, "last_extracted_at")
     last_extracted = datetime.fromisoformat(_raw).strftime("%d/%m/%Y") if _raw else "desconhecida"
 
     pdf = _SaudePDF(year=year, last_extracted=last_extracted)
     pdf.add_page()
 
-    _draw_orcamento_section(pdf, data["budget"], data["budget_trend"])
+    _draw_orcamento_section(pdf, data["orcamento"], data["tendencia_orcamento"])
     _draw_emendas_section(pdf, data["emendas"], data["emendas_total"])
-    _draw_fornecedores_section(pdf, data["top_suppliers"], data["hhi"])
+    _draw_fornecedores_section(pdf, data["principais_fornecedores"], data["hhi"])
     _draw_alertas_section(
         pdf,
-        data["bidding_gaps"],
-        data["splitting"],
+        data["licitacao_gaps"],
+        data["fracionamento"],
         data["adesao_de_ata_list"],
         data["adesao_de_ata_value"],
         data["adesao_de_ata_count"],

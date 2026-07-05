@@ -45,7 +45,7 @@ def run(conn: Any, year: int) -> pd.DataFrame:
     )
     df["acima_limite"] = df["valor_num"] > df["threshold"]
     df["orgao_saude"] = df["empresa"] == SAUDE_EMPRESA
-    df["Período"] = df["mes"].astype(str).str.zfill(2) + "/" + df["ano"].astype(str)
+    df["periodo"] = df["mes"].astype(str).str.zfill(2) + "/" + df["ano"].astype(str)
     return df.drop(columns=["valor_num", "threshold"])
 
 
