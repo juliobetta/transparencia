@@ -27,7 +27,7 @@ from sqlalchemy.engine import Engine
 import glossary
 from analysis import (
     adesao_de_ata,
-    contract_anomalies,
+    anomalias_contratuais,
     execucao_orcamentaria,
     fiscal_position,
     licitacao_gaps,
@@ -80,8 +80,8 @@ def _adesao_externa_counts(conn, years, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _splitting_counts(conn, years, _extracted_at):
-    return contract_anomalies.splitting_counts_by_year(conn, years)
+def _contagens_fracionamento(conn, years, _extracted_at):
+    return anomalias_contratuais.contagens_fracionamento_por_ano(conn, years)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -111,7 +111,7 @@ with st.spinner("Carregando..."):
     yoy = _yoy(conn, _all_years, _extracted_at)
     _adesao_map = _adesao_counts(conn, _all_years, _extracted_at)
     _adesao_ext_map = _adesao_externa_counts(conn, _all_years, _extracted_at)
-    _splitting_map = _splitting_counts(conn, _all_years, _extracted_at)
+    _splitting_map = _contagens_fracionamento(conn, _all_years, _extracted_at)
     unpaid_df = _unpaid_suppliers(conn, year, _extracted_at)
     unpaid_trend = _unpaid_trend(conn, tuple(_all_years), _extracted_at)
 
@@ -200,7 +200,7 @@ st.subheader("Licitações e Contratos")
 _bidding_counts_list = [_counts_map[y] for y in anos]
 _adesao_counts_list = [_adesao_map[y] for y in anos]
 _adesao_ext_counts_list = [_adesao_ext_map[y] for y in anos]
-_splitting_counts_list = [_splitting_map[y] for y in anos]
+_contagens_fracionamento_list = [_splitting_map[y] for y in anos]
 
 lc1, lc2, lc3, lc4 = st.columns(4)
 
@@ -267,8 +267,10 @@ with lc3:
 
 with lc4:
     _delta_split = (
-        (_splitting_counts_list[-1] - _splitting_counts_list[-2]) / _splitting_counts_list[-2] * 100
-        if len(_splitting_counts_list) > 1 and _splitting_counts_list[-2] != 0
+        (_contagens_fracionamento_list[-1] - _contagens_fracionamento_list[-2])
+        / _contagens_fracionamento_list[-2]
+        * 100
+        if len(_contagens_fracionamento_list) > 1 and _contagens_fracionamento_list[-2] != 0
         else None
     )
     st.metric(
@@ -279,7 +281,7 @@ with lc4:
         help="Contratos do mesmo fornecedor com valores próximos ao limite de dispensa (R$ 62.725,59), sugerindo possível fracionamento.",
     )
     st.plotly_chart(
-        sparkline(anos, _splitting_counts_list, "#F44336"),
+        sparkline(anos, _contagens_fracionamento_list, "#F44336"),
         use_container_width=True,
         config=SPARK_CFG,
         key="spark_lc_split",

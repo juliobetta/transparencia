@@ -10,7 +10,7 @@ from shared import get_conn, get_extraction_date, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import adesao_de_ata, contract_anomalies, licitacao_gaps
+from analysis import adesao_de_ata, anomalias_contratuais, licitacao_gaps
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -32,8 +32,8 @@ def _adesao_externa(conn, year, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _anomalies(conn, year, _extracted_at):
-    return contract_anomalies.run(conn, year)
+def _anomalias(conn, year, _extracted_at):
+    return anomalias_contratuais.run(conn, year)
 
 
 conn = get_conn()
@@ -43,7 +43,7 @@ _extracted_at = get_extraction_date(conn)
 gaps = _gaps(conn, year, _extracted_at)
 adesao = _adesao(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
-anomalies = _anomalies(conn, year, _extracted_at)
+anomalias = _anomalias(conn, year, _extracted_at)
 
 acima = licitacao_gaps.filter_above_limit(gaps)
 saude = licitacao_gaps.filter_above_limit_health(gaps)
@@ -210,10 +210,10 @@ if not acima.empty:
         width="stretch",
         hide_index=True,
     )
-if not anomalies["splitting"].empty:
+if not anomalias["fracionamento"].empty:
     st.subheader(":material/warning: Possível fracionamento de contratos")
     st.dataframe(
-        anomalies["splitting"][["fornecedor", "valcon", "objeto", "periodo"]].rename(
+        anomalias["fracionamento"][["fornecedor", "valcon", "objeto", "periodo"]].rename(
             columns={
                 "fornecedor": "Fornecedor",
                 "valcon": "Valor",
