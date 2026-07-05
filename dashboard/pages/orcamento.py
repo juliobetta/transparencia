@@ -9,11 +9,14 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import (
+    SPARK_CFG,
     fmt_compact,
     fmt_currency,
     get_conn,
     get_extraction_date,
+    pct_delta,
     render_sidebar,
+    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -28,6 +31,11 @@ def _orcamento(conn, year, _extracted_at):
     return execucao_orcamentaria.run(conn, year)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _orcamento_by_year(conn, years, _extracted_at):
+    return execucao_orcamentaria.summarize_by_year(conn, list(years))
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
@@ -38,11 +46,65 @@ st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
 df_orcamento = _orcamento(conn, year, _extracted_at)
 totais = execucao_orcamentaria.summarize(df_orcamento)
 
+_all_years = list(range(2022, year + 1))
+_hist = _orcamento_by_year(conn, tuple(_all_years), _extracted_at)
+_anos = _all_years
+_dotacao_serie = [_hist[y]["total_dotacao"] for y in _anos]
+_empenhado_serie = [_hist[y]["total_empenhado"] for y in _anos]
+_liquidado_serie = [_hist[y]["total_liquidado"] for y in _anos]
+_pago_serie = [_hist[y]["total_pago"] for y in _anos]
+
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Total Dotação", fmt_compact(totais["total_dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
-c2.metric("Total Empenhado", fmt_compact(totais["total_empenhado"]), help=glossary.tooltip("Empenho"))
-c3.metric("Total Liquidado", fmt_compact(totais["total_liquidado"]), help=glossary.tooltip("Liquidação"))
-c4.metric("Total Pago", fmt_compact(totais["total_pago"]), help=glossary.tooltip("Pagamento"))
+with c1:
+    st.metric(
+        "Total Dotação",
+        fmt_compact(totais["total_dotacao"]),
+        delta=pct_delta(_dotacao_serie),
+        delta_color="off",
+        help=glossary.tooltip("Dotação Atualizada"),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _dotacao_serie, "#607D8B"), use_container_width=True, config=SPARK_CFG, key="spark_orc_dotacao"
+    )
+with c2:
+    st.metric(
+        "Total Empenhado",
+        fmt_compact(totais["total_empenhado"]),
+        delta=pct_delta(_empenhado_serie),
+        delta_color="off",
+        help=glossary.tooltip("Empenho"),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _empenhado_serie, "#2196F3"),
+        use_container_width=True,
+        config=SPARK_CFG,
+        key="spark_orc_empenhado",
+    )
+with c3:
+    st.metric(
+        "Total Liquidado",
+        fmt_compact(totais["total_liquidado"]),
+        delta=pct_delta(_liquidado_serie),
+        delta_color="off",
+        help=glossary.tooltip("Liquidação"),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _liquidado_serie, "#4CAF50"),
+        use_container_width=True,
+        config=SPARK_CFG,
+        key="spark_orc_liquidado",
+    )
+with c4:
+    st.metric(
+        "Total Pago",
+        fmt_compact(totais["total_pago"]),
+        delta=pct_delta(_pago_serie),
+        delta_color="off",
+        help=glossary.tooltip("Pagamento"),
+    )
+    st.plotly_chart(
+        sparkline(_anos, _pago_serie, "#FF9800"), use_container_width=True, config=SPARK_CFG, key="spark_orc_pago"
+    )
 
 # Gráfico de Funil (Órgão)
 dados_resumo = pd.DataFrame(
