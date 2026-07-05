@@ -28,7 +28,7 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _health(conn, year, _extracted_at):
+def _saude(conn, year, _extracted_at):
     return historia_saude.run(conn, year)
 
 
@@ -48,11 +48,11 @@ conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
-title_col, btn_col = st.columns([8, 2])
-with title_col:
+col_titulo, col_botao = st.columns([8, 2])
+with col_titulo:
     st.title("Fundo Municipal de Saúde")
     st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
-with btn_col:
+with col_botao:
     st.write("")
     st.write("")
     pdf_bytes = _pdf(conn, year, _extracted_at)
@@ -64,10 +64,10 @@ with btn_col:
         use_container_width=True,
     )
 
-data = _health(conn, year, _extracted_at)
+dados = _saude(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
-# Create MM/YYYY column for display
-for key, val in data.items():
+# Criar coluna MM/AAAA para exibição
+for key, val in dados.items():
     if isinstance(val, pd.DataFrame) and "mes" in val.columns:
         if "ano" in val.columns:
             val["periodo"] = val["mes"].astype(str).str.zfill(2) + "/" + val["ano"].astype(str)
@@ -75,25 +75,25 @@ for key, val in data.items():
             val["periodo"] = val["mes"].astype(str).str.zfill(2) + "/" + str(year)
 
 # ── KPIs resumo ─────────────────────────────────────────────────────────────
-budget = data["orcamento"]
-bt = data["tendencia_orcamento"]
-bt_to_year = bt[bt["ano"] <= year]
-pt = data["pharma_empenhos"]["trend"]
-pt_to_year = pt[pt["ano"] <= year]
+orcamento = dados["orcamento"]
+tendencia_orcamento = dados["tendencia_orcamento"]
+tendencia_ate_ano = tendencia_orcamento[tendencia_orcamento["ano"] <= year]
+tendencia_farma = dados["pharma_empenhos"]["trend"]
+tendencia_farma_ate_ano = tendencia_farma[tendencia_farma["ano"] <= year]
 
 k1, k2, k3, k4 = st.columns(4)
 
 with k1:
     st.metric(
         "Dotação Atualizada",
-        fmt_compact(budget["dotacao"]),
-        delta=pct_delta(bt_to_year["dotacao"].tolist()),
+        fmt_compact(orcamento["dotacao"]),
+        delta=pct_delta(tendencia_ate_ano["dotacao"].tolist()),
         delta_color="off",
         help=glossary.tooltip("Dotação Atualizada"),
     )
-    if len(bt_to_year) >= 2:
+    if len(tendencia_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(bt_to_year["ano"].tolist(), bt_to_year["dotacao"].tolist()),
+            sparkline(tendencia_ate_ano["ano"].tolist(), tendencia_ate_ano["dotacao"].tolist()),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_dotacao",
@@ -102,14 +102,14 @@ with k1:
 with k2:
     st.metric(
         "Total Empenhado",
-        fmt_compact(budget["empenhado"]),
-        delta=pct_delta(bt_to_year["empenhado"].tolist()),
+        fmt_compact(orcamento["empenhado"]),
+        delta=pct_delta(tendencia_ate_ano["empenhado"].tolist()),
         delta_color="off",
         help=glossary.tooltip("Empenho"),
     )
-    if len(bt_to_year) >= 2:
+    if len(tendencia_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(bt_to_year["ano"].tolist(), bt_to_year["empenhado"].tolist(), "#4CAF50"),
+            sparkline(tendencia_ate_ano["ano"].tolist(), tendencia_ate_ano["empenhado"].tolist(), "#4CAF50"),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_empenhado",
@@ -118,12 +118,12 @@ with k2:
 with k3:
     st.metric(
         "Taxa de Execução",
-        f"{budget['taxa_execucao']:.1%}",
-        delta=pct_delta(bt_to_year["taxa"].tolist()),
+        f"{orcamento['taxa_execucao']:.1%}",
+        delta=pct_delta(tendencia_ate_ano["taxa"].tolist()),
     )
-    if len(bt_to_year) >= 2:
+    if len(tendencia_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(bt_to_year["ano"].tolist(), bt_to_year["taxa"].tolist(), "#FF9800"),
+            sparkline(tendencia_ate_ano["ano"].tolist(), tendencia_ate_ano["taxa"].tolist(), "#FF9800"),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_taxa",
@@ -132,14 +132,16 @@ with k3:
 with k4:
     st.metric(
         "Medicamentos e Insumos",
-        fmt_compact(data["pharma_empenhos"]["total"]),
-        delta=pct_delta(pt_to_year["empenhado"].tolist()),
+        fmt_compact(dados["pharma_empenhos"]["total"]),
+        delta=pct_delta(tendencia_farma_ate_ano["empenhado"].tolist()),
         delta_color="off",
         help="Total empenhado em Material de Consumo na Subfunção 10.303 (Suporte Profilático e Terapêutico).",
     )
-    if len(pt_to_year) >= 2:
+    if len(tendencia_farma_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(pt_to_year["ano"].tolist(), pt_to_year["empenhado"].tolist(), "#9C27B0"),
+            sparkline(
+                tendencia_farma_ate_ano["ano"].tolist(), tendencia_farma_ate_ano["empenhado"].tolist(), "#9C27B0"
+            ),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_pharma",
@@ -150,11 +152,11 @@ st.divider()
 # ── Seção 1: O que entrou ───────────────────────────────────────────────────
 st.header("① O que entrou")
 st.subheader("Emendas Parlamentares")
-if data["emendas_total"] > 0:
-    st.metric("Total de emendas (valor autorizado)", fmt_currency(data["emendas_total"]))
-    if not data["emendas"].empty and data["emendas"].notna().any().any():
+if dados["emendas_total"] > 0:
+    st.metric("Total de emendas (valor autorizado)", fmt_currency(dados["emendas_total"]))
+    if not dados["emendas"].empty and dados["emendas"].notna().any().any():
         st.dataframe(
-            data["emendas"].rename(
+            dados["emendas"].rename(
                 columns={
                     "numero": "Nº",
                     "descricao": "Objeto",
@@ -186,18 +188,18 @@ else:
 
 st.subheader("Orçamento")
 c1, c2, c3 = st.columns(3)
-c1.metric("Dotação Atualizada", fmt_currency(budget["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
-c2.metric("Total Empenhado", fmt_currency(budget["empenhado"]), help=glossary.tooltip("Empenho"))
-c3.metric("Taxa de Execução", f"{budget['taxa_execucao']:.1%}")
-if budget["alerta_sub_execucao"]:
+c1.metric("Dotação Atualizada", fmt_currency(orcamento["dotacao"]), help=glossary.tooltip("Dotação Atualizada"))
+c2.metric("Total Empenhado", fmt_currency(orcamento["empenhado"]), help=glossary.tooltip("Empenho"))
+c3.metric("Taxa de Execução", f"{orcamento['taxa_execucao']:.1%}")
+if orcamento["alerta_sub_execucao"]:
     st.warning(f"Taxa de execução abaixo de 70% ao final do ano {year}.", icon=":material/warning:")
 
 st.subheader("Repasses da Prefeitura")
-transfers_total = data["transferencias_saude_total"]
-if transfers_total > 0:
+total_repasses = dados["transferencias_saude_total"]
+if total_repasses > 0:
     st.metric(
         "Total de repasses recebidos",
-        fmt_currency(transfers_total),
+        fmt_currency(total_repasses),
         help="Valores transferidos pela Prefeitura Municipal ao Fundo de Saúde no ano.",
     )
 else:
@@ -206,10 +208,10 @@ else:
 # ── Seção 2: O que foi gasto ────────────────────────────────────────────────
 st.header("② O que foi empenhado")
 st.subheader("Evolução do Empenhado por Ano")
-trend = data["tendencia_execucao"]
-if not trend.empty:
+tendencia_execucao = dados["tendencia_execucao"]
+if not tendencia_execucao.empty:
     fig = px.bar(
-        trend,
+        tendencia_execucao,
         x="ano",
         y="empenhado",
         title="Fundo de Saúde — Empenhado por Ano",
@@ -222,7 +224,7 @@ if not trend.empty:
         st.plotly_chart(fig, width="stretch")
 
     st.dataframe(
-        trend.rename(columns={"ano": "Ano", "empenhado": "Empenhado"}),
+        tendencia_execucao.rename(columns={"ano": "Ano", "empenhado": "Empenhado"}),
         width="stretch",
         hide_index=True,
         column_config={
@@ -238,19 +240,19 @@ st.header("③ Como foi contratado")
 c1, c2, c3 = st.columns(3)
 c1.metric(
     "Licitações via Adesão de Ata (Carona)",
-    data["adesao_de_ata_count"],
+    dados["adesao_de_ata_count"],
     help=glossary.tooltip("Adesão de Ata (Carona)"),
 )
-adesao_df = data["adesao_de_ata_list"]
+adesao_df = dados["adesao_de_ata_list"]
 c2.metric(
     "Qtd. de Contratos Vinculados",
-    data["adesao_de_ata_contracts_linked"],
+    dados["adesao_de_ata_contracts_linked"],
 )
-c3.metric("Valor Total Contratado via Adesão", fmt_currency(data["adesao_de_ata_value"]))
+c3.metric("Valor Total Contratado via Adesão", fmt_currency(dados["adesao_de_ata_value"]))
 
-if not data["adesao_de_ata_list"].empty:
+if not dados["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
-        _ata_df = data["adesao_de_ata_list"].copy()
+        _ata_df = dados["adesao_de_ata_list"].copy()
         _ata_df["licitacao_valor"] = pd.to_numeric(
             _ata_df["licitacao_valor"].astype(str).str.replace(",", "."), errors="coerce"
         )
@@ -310,10 +312,10 @@ if not adesao_externa["lista"].empty:
         )
 
 st.subheader("Distribuição por Modalidade")
-modality_df = data["contratos_por_modalidade"]
-if not modality_df.empty and modality_df.notna().all().all():
+df_modalidades = dados["contratos_por_modalidade"]
+if not df_modalidades.empty and df_modalidades.notna().all().all():
     st.dataframe(
-        modality_df.rename(
+        df_modalidades.rename(
             columns={
                 "modalidade": "Modalidade",
                 "quantidade": "Qtd",
@@ -340,11 +342,11 @@ st.subheader("Contratos sem Licitação acima de R$ 62.725,59")
 st.caption(
     "[Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)"
 )
-gaps = data["licitacao_gaps"]
-if not gaps.empty and gaps.notna().all().all():
-    st.metric("Total de contratos", len(gaps))
+lacunas_saude = dados["licitacao_gaps"]
+if not lacunas_saude.empty and lacunas_saude.notna().all().all():
+    st.metric("Total de contratos", len(lacunas_saude))
     st.dataframe(
-        gaps.rename(
+        lacunas_saude.rename(
             columns={
                 "periodo": "Período",
                 "numero": "Nº",
@@ -364,10 +366,10 @@ if not gaps.empty and gaps.notna().all().all():
 else:
     st.success("Nenhum contrato acima do limite legal sem processo licitatório.")
 
-if not data["fracionamento"].empty and data["fracionamento"].notna().all().all():
+if not dados["fracionamento"].empty and dados["fracionamento"].notna().all().all():
     st.subheader(":material/warning: Possível fracionamento de contratos")
     st.dataframe(
-        data["fracionamento"].rename(columns={"periodo": "Período"}).drop(columns=["mes", "ano"], errors="ignore"),
+        dados["fracionamento"].rename(columns={"periodo": "Período"}).drop(columns=["mes", "ano"], errors="ignore"),
         width="stretch",
         hide_index=True,
     )
@@ -376,15 +378,15 @@ if not data["fracionamento"].empty and data["fracionamento"].notna().all().all()
 st.header("④ Quem recebeu")
 st.metric(
     "HHI (concentração de fornecedores)",
-    f"{data['hhi']:,.0f}",
+    f"{dados['hhi']:,.0f}",
     help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
 )
-if not data["principais_fornecedores"].empty and data["principais_fornecedores"].notna().all().all():
+if not dados["principais_fornecedores"].empty and dados["principais_fornecedores"].notna().all().all():
     st.subheader("Top 10 Fornecedores")
 
-    # Display main Top 10 table
+    # Exibir tabela principal Top 10
     st.dataframe(
-        data["principais_fornecedores"].rename(
+        dados["principais_fornecedores"].rename(
             columns={"descricao": "Fornecedor", "empenhado": "Empenhado", "percentual": "%"}
         ),
         width="stretch",
@@ -396,15 +398,15 @@ if not data["principais_fornecedores"].empty and data["principais_fornecedores"]
         hide_index=True,
     )
 
-    # New: Supplier-to-Services Correlation Table
+    # Tabela de correlação Fornecedor × Serviços Contratados
     st.subheader("Top Fornecedores e seus Objetos de Contrato")
-    services_df = data["principais_fornecedores_servicos"]
-    top_suppliers_names = data["principais_fornecedores"]["descricao"].unique()
+    df_servicos = dados["principais_fornecedores_servicos"]
+    nomes_top_fornecedores = dados["principais_fornecedores"]["descricao"].unique()
 
-    top_services = historia_saude.get_principais_servicos_por_fornecedor(services_df, top_suppliers_names)
+    top_servicos = historia_saude.get_principais_servicos_por_fornecedor(df_servicos, nomes_top_fornecedores)
 
     st.dataframe(
-        top_services.rename(
+        top_servicos.rename(
             columns={
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto / Serviço",
@@ -421,7 +423,7 @@ st.header("⑤ Insumos e Assistência Farmacêutica")
 
 # Bloco A — Empenhos de Medicamentos e Insumos
 st.subheader("Medicamentos e Insumos (Subfunção 10.303 — Material de Consumo)")
-pharma = data["pharma_empenhos"]
+pharma = dados["pharma_empenhos"]
 st.metric(
     "Total Empenhado em Medicamentos e Insumos",
     fmt_currency(pharma["total"]),
@@ -461,7 +463,7 @@ if not pharma["detail"].empty:
 
 # Bloco B — Licitações de Medicamentos e Insumos
 st.subheader("Licitações de Medicamentos e Insumos")
-pharma_licit = data["pharma_licitacoes"]
+pharma_licit = dados["pharma_licitacoes"]
 if pharma_licit.empty:
     st.info("Sem licitações de medicamentos ou insumos registradas para este ano.")
 else:
@@ -489,7 +491,7 @@ st.caption(
     "Despesas decorrentes de sentenças judiciais (Elemento 3.3.90.91) do Fundo Municipal de Saúde, "
     "separadas das compras programadas de medicamentos e insumos."
 )
-pharma_jud = data["pharma_judicial"]
+pharma_jud = dados["pharma_judicial"]
 st.metric(
     "Total Empenhado por Determinação Judicial",
     fmt_currency(pharma_jud["total"]),

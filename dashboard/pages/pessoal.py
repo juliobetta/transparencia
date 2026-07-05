@@ -19,12 +19,12 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _payroll(conn, year, _extracted_at):
+def _folha_pagamento(conn, year, _extracted_at):
     return folha_vs_servicos.run(conn, list(range(2022, year + 1)))
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _departmental_payroll(conn, year, _extracted_at):
+def _folha_por_departamento(conn, year, _extracted_at):
     return analise_despesas.get_folha_por_orgao(conn, year)
 
 
@@ -39,10 +39,10 @@ st.caption(
     "O cálculo usa o total de receitas arrecadadas como base — os dados do portal não permitem calcular a RCL exata com todas as deduções legais."
 )
 render_partial_year_notice(year, _extracted_at)
-df = _payroll(conn, year, _extracted_at)
-if not df.empty:
+df_folha = _folha_pagamento(conn, year, _extracted_at)
+if not df_folha.empty:
     fig = px.bar(
-        df,
+        df_folha,
         x="ano",
         y="percentual_folha",
         title="Folha de Pessoal como % da Receita Arrecadada",
@@ -79,7 +79,7 @@ if not df.empty:
         f"**limite legal** ({LRF_PESSOAL_LIMITE_LEGAL}%, sujeito a sanções automáticas)"
     )
 
-# Granular Salary Analysis
+# Análise Granular de Remuneração
 st.subheader("Distribuição de Remuneração")
 st.info(
     "O portal não disponibiliza a remuneração líquida individual. "
@@ -89,16 +89,16 @@ st.info(
 df_pessoal = folha_vs_servicos.distribuicao_salarios(conn, year)
 
 if not df_pessoal.empty:
-    fig_hist = px.histogram(
+    fig_histograma = px.histogram(
         df_pessoal,
         x="proventos",
         nbins=30,
         title="Distribuição dos Proventos Brutos",
         labels={"proventos": "Proventos (R$)"},
     )
-    fig_hist.update_traces(hovertemplate="Proventos: R$ %{x:,.2f}<br>Servidores: %{y}")
-    fig_hist.update_layout(yaxis_title="Nº de Servidores", xaxis_tickprefix="R$ ", xaxis_tickformat=",.0f")
-    st.plotly_chart(fig_hist, width="stretch")
+    fig_histograma.update_traces(hovertemplate="Proventos: R$ %{x:,.2f}<br>Servidores: %{y}")
+    fig_histograma.update_layout(yaxis_title="Nº de Servidores", xaxis_tickprefix="R$ ", xaxis_tickformat=",.0f")
+    st.plotly_chart(fig_histograma, width="stretch")
 else:
     st.info("Dados de proventos não disponíveis para este exercício.")
 st.divider()
@@ -118,20 +118,20 @@ st.info(
     icon=":material/info:",
 )
 
-df_dept = _departmental_payroll(conn, year, _extracted_at)
-if not df_dept.empty:
-    st.metric("Total distribuído via responsáveis", fmt_currency(total_folha_por_orgao(df_dept)))
+df_departamentos = _folha_por_departamento(conn, year, _extracted_at)
+if not df_departamentos.empty:
+    st.metric("Total distribuído via responsáveis", fmt_currency(total_folha_por_orgao(df_departamentos)))
 
-    fig_dept = px.bar(
-        df_dept,
+    fig_departamentos = px.bar(
+        df_departamentos,
         x="pago",
         y="descricao",
         orientation="h",
         title=f"Folha distribuída por responsável ({year})",
         labels={"pago": "Total Pago (R$)", "descricao": "Responsável"},
     )
-    fig_dept.update_layout(yaxis={"categoryorder": "total ascending"})
-    st.plotly_chart(fig_dept, use_container_width=True)
+    fig_departamentos.update_layout(yaxis={"categoryorder": "total ascending"})
+    st.plotly_chart(fig_departamentos, use_container_width=True)
 else:
     st.info("Nenhum pagamento deste tipo registrado para este exercício.")
 

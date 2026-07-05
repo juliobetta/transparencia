@@ -17,7 +17,7 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _gaps(conn, year, _extracted_at):
+def _lacunas_licitacao(conn, year, _extracted_at):
     return licitacao_gaps.run(conn, year)
 
 
@@ -40,20 +40,20 @@ conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_extraction_date(conn)
 
-gaps = _gaps(conn, year, _extracted_at)
+lacunas = _lacunas_licitacao(conn, year, _extracted_at)
 adesao = _adesao(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
 anomalias = _anomalias(conn, year, _extracted_at)
 
-acima = licitacao_gaps.filter_above_limit(gaps)
-saude = licitacao_gaps.filter_above_limit_health(gaps)
+acima = licitacao_gaps.filter_above_limit(lacunas)
+saude = licitacao_gaps.filter_above_limit_health(lacunas)
 
 st.header("Licitações e Contratos")
 
-_threshold_fmt = f"R$ {THRESHOLD_COMPRAS_SERVICOS:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+_limite_fmt = f"R$ {THRESHOLD_COMPRAS_SERVICOS:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 st.info(
     "Contratos sem processo licitatório são comuns e frequentemente legais — dispensas de baixo valor "
-    f"e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de {_threshold_fmt}** "
+    f"e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de {_limite_fmt}** "
     "sem licitação, pois nesses casos a lei exige justificativa formal "
     "([Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/))."
 )
@@ -61,10 +61,10 @@ st.info(
 st.subheader("Resumo")
 c1, c2, c3, c4 = st.columns(4)
 c1.metric(
-    f"Acima do limite legal ({_threshold_fmt})",
+    f"Acima do limite legal ({_limite_fmt})",
     len(acima),
     help=(
-        f"Número de contratos firmados sem licitação cujo valor ultrapassa {_threshold_fmt} — "
+        f"Número de contratos firmados sem licitação cujo valor ultrapassa {_limite_fmt} — "
         "o teto legal para dispensa em compras e serviços gerais (Decreto nº 12.807/2025). "
         "Acima desse valor, a lei exige processo licitatório formal com publicação e concorrência. "
         "Cada item listado merece análise da justificativa oficial do processo."
@@ -72,7 +72,7 @@ c1.metric(
 )
 c2.metric(
     "Total sem processo licitatório",
-    len(gaps),
+    len(lacunas),
     help=(
         "Total de contratos identificados sem número de licitação associado. Nem todos são "
         "irregulares — a lei permite contratação direta por dispensa (baixo valor, emergência) "
@@ -101,8 +101,8 @@ c4.metric(
     ),
 )
 
-# Fix gap table
-gaps_display = gaps.rename(
+# Preparar tabela de contratos sem licitação
+lacunas_exibicao = lacunas.rename(
     columns={
         "fornecedor": "Fornecedor",
         "objeto": "Objeto",
@@ -112,11 +112,11 @@ gaps_display = gaps.rename(
 )
 
 with st.expander("Ver contratos sem processo licitatório"):
-    # Drop 'numero' (Nº)
-    cols_to_show = ["Fornecedor", "Objeto", "Valor", "Período"]
-    df_to_show = gaps_display.drop(columns=["numero"], errors="ignore")
+    # Remover coluna 'numero' (Nº)
+    colunas_exibir = ["Fornecedor", "Objeto", "Valor", "Período"]
+    df_exibir = lacunas_exibicao.drop(columns=["numero"], errors="ignore")
     st.dataframe(
-        df_to_show[cols_to_show],
+        df_exibir[colunas_exibir],
         column_config={
             "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
         },
