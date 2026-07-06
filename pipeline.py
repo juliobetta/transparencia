@@ -142,9 +142,12 @@ class DatabaseLoader:
             empresa_id = parts[0]
             year = int(parts[1])
 
+            # Normalize table name for upsert if it's a split table
+            target_table = "despesas_por_exigibilidade" if "despesas_por_exigibilidade" in table else table
+
             rows = json.loads(json_file.read_text(encoding="utf-8"))
             normalised = PipelineHelper.normalize(rows, year, str(empresa_id), post_process)
-            count = upsert(engine, table, normalised, key_cols)  # type: ignore
+            count = upsert(engine, target_table, normalised, key_cols)  # type: ignore
             logger.info("Loaded %s / %s / %d → %d rows", table, empresa_id, year, count)
 
         if extraction_date:
