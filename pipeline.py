@@ -291,13 +291,20 @@ class PipelineRunner:
                     config.extractor_cls,
                 )
 
+                # ... (retry logic) ...
                 try:
                     rows = extractor.extract(empresa_id, int(task["year"]))
-                    raw_path = run_dir / str(config.table) / f"{empresa_id}_{task['year']}.json"
+
+                    # Hack: if it's exigibilidade, we need to know if it's 1 or 2 to save to correct table
+                    target_table = config.table
+                    if "exigibilidade" in target_table:
+                        target_table = "despesas_por_exigibilidade"
+
+                    raw_path = run_dir / str(target_table) / f"{empresa_id}_{task['year']}.json"
                     raw_path.parent.mkdir(parents=True, exist_ok=True)
                     raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
                     normalised = PipelineHelper.normalize(rows, int(task["year"]), str(empresa_id), config.post_process)
-                    count = upsert(engine, str(config.table), normalised, config.key_cols)  # type: ignore
+                    count = upsert(engine, "despesas_por_exigibilidade", normalised, config.key_cols)  # type: ignore
                     logger.info(
                         "Retry successful: %s / %s / %s → %d rows",
                         config.listagem,
@@ -366,7 +373,14 @@ class PipelineRunner:
                             raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
 
                         normalised = PipelineHelper.normalize(rows, year, str(empresa_id), config.post_process)
-                        count = upsert(engine, str(config.table), normalised, config.key_cols)  # type: ignore
+                        # Fix table name for upsert if it was split
+                        target_table_for_upsert = (
+                            "despesas_por_exigibilidade"
+                            if "despesas_por_exigibilidade" in config.table
+                            else str(config.table)
+                        )
+
+                        count = upsert(engine, target_table_for_upsert, normalised, config.key_cols)  # type: ignore
                         logger.info(
                             "[%d/%d] %s / %s / %d → %d rows",
                             done + 1,

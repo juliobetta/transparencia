@@ -83,17 +83,21 @@ def _post_process_despesas_por_exigibilidade(row: dict) -> dict:
 
 class DespesasExtractor(BaseExtractor):
     def get_params(self, empresa_id: int, year: int) -> dict:
+        params = super().get_params(empresa_id, year)
         if self.listagem == "DespesasporExigibilidade":
-            return {
-                "ConectarExercicio": str(year),
-                "Listagem": self.listagem,
-                "DiaInicioPeriodo": f"01.01.{year}",
-                "DiaFinalPeriodo": f"31.12.{year}",
-                "strTipoLista": "1",
-                "Empresa": str(empresa_id),
-            }
-
-        return super().get_params(empresa_id, year)
+            # Override date range for this specific endpoint
+            params.update(
+                {
+                    "DiaInicioPeriodo": f"01.01.{year}",
+                    "DiaFinalPeriodo": f"31.12.{year}",
+                    # "strTipoLista" is already in self.extra
+                }
+            )
+            # Remove keys that are not needed for this endpoint
+            params.pop("MesInicialPeriodo", None)
+            params.pop("MesFinalPeriodo", None)
+            params.pop("Ano", None)
+        return params
 
 
 class ReceitasExtractor(BaseExtractor):
@@ -195,7 +199,7 @@ ENDPOINT_CONFIGS = [
     EndpointConfig(
         base_path="/Transparencia/VersaoJson/Despesas/",
         listagem="DespesasporExigibilidade",
-        table="despesas_por_exigibilidade",
+        table="despesas_por_exigibilidade_1",
         key_cols=["ano", "empresa", "tipo", "empenho"],
         extra={"MostraDadosConsolidado": "False", "strTipoLista": "1"},
         extractor_cls=DespesasExtractor,
@@ -204,7 +208,7 @@ ENDPOINT_CONFIGS = [
     EndpointConfig(
         base_path="/Transparencia/VersaoJson/Despesas/",
         listagem="DespesasporExigibilidade",
-        table="despesas_por_exigibilidade",
+        table="despesas_por_exigibilidade_2",
         key_cols=["ano", "empresa", "tipo", "empenho"],
         extra={"MostraDadosConsolidado": "False", "strTipoLista": "2"},
         extractor_cls=DespesasExtractor,
