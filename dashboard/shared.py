@@ -11,8 +11,8 @@ from streamlit.connections import SQLConnection
 import db
 import glossary
 
-CURRENT_YEAR = date.today().year
-YEARS = list(range(2022, CURRENT_YEAR + 1))
+ANO_ATUAL = date.today().year
+ANOS = list(range(2022, ANO_ATUAL + 1))
 CIDADE_CLEAN = "PORCIUNCULA"  # TODO: move this to .env, keeping a default value
 
 
@@ -21,7 +21,7 @@ def get_conn():
     return conn.engine
 
 
-def get_extraction_date(engine) -> str | None:
+def get_data_extracao(engine) -> str | None:
     return db.get_metadata(engine, "last_extracted_at")
 
 
@@ -39,7 +39,7 @@ def render_sidebar() -> int:
     st.sidebar.caption(
         f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
     )
-    return int(st.session_state.get("sidebar_year", YEARS[-1]))
+    return int(st.session_state.get("sidebar_year", ANOS[-1]))
 
 
 def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:
@@ -70,12 +70,19 @@ SPARK_CFG: dict = {"displayModeBar": False, "staticPlot": True}
 
 
 def pct_delta(series: list) -> str | None:
+    """
+    Calcula a variação percentual entre os dois últimos valores de uma série numérica.
+    Retorna uma string formatada com o valor percentual, ou None se não houver dados suficientes.
+    """
     if len(series) >= 2 and series[-2] != 0:
         return f"{(series[-1] - series[-2]) / series[-2] * 100:+.1f}%"
     return None
 
 
 def sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
+    """
+    Exibe um gráfico de linha compacto (sparkline) usando Plotly, com preenchimento abaixo da linha.
+    """
     fig = go.Figure(go.Scatter(x=x, y=y, mode="lines", line=dict(color=color, width=2), fill="tozeroy"))
     fig.update_layout(
         height=80,
@@ -115,13 +122,15 @@ def partial_year_month(extracted_at: str | None) -> str:
     try:
         from pandas import Timestamp
 
-        return _PT_MONTHS[int(Timestamp(extracted_at).month) - 1]
+        return _PT_MONTHS[int(Timestamp(extracted_at).month) - 2]
     except Exception:
         return "?"
 
 
-def render_partial_year_notice(year: int, extracted_at: str | None, extra_html: str = "") -> None:
-    """Render a small styled notice explaining that `year` shows partial arrecadado data."""
+def render_aviso_ano_parcial(year: int, extracted_at: str | None, extra_html: str = "") -> None:
+    """
+    Exibe um aviso estilizado explicando que o ano atual mostra dados de arrecadação parcial.
+    """
     last_month = partial_year_month(extracted_at)
     body = (
         f"<strong>{year} exibe arrecadação real (parcial, Jan–{last_month}).</strong> "
@@ -137,7 +146,7 @@ def render_partial_year_notice(year: int, extracted_at: str | None, extra_html: 
     )
 
 
-def render_revenue_methodology() -> None:
+def render_metodologia_receita() -> None:
     with st.expander(":material/info: Como os valores de receita são calculados?"):
         st.markdown(
             """

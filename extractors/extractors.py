@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-from .base import BASE_URL, BaseExtractor
+from .base import BASE_URL, BaseExtractor, EndpointConfig
 
 
 # Auxiliar de pós-processamento, mantido aqui por enquanto, pois é específico para Contratos
@@ -71,8 +71,33 @@ def _post_process_transferencias(row: dict) -> dict:
     return row
 
 
+def _post_process_despesas_por_exigibilidade(row: dict) -> dict:
+    # API sends TIPOLISTA; model uses "tipo".
+    if "tipo" not in row or row["tipo"] is None:
+        row["tipo"] = row.get("tipolista")
+    # API sends EMPENHO; model needs it for PK.
+    if "empenho" not in row or row["empenho"] is None:
+        row["empenho"] = row.get("empenho")
+    return row
+
+
 class DespesasExtractor(BaseExtractor):
-    pass
+    def get_params(self, empresa_id: int, year: int) -> dict:
+        params = super().get_params(empresa_id, year)
+        if self.listagem == "DespesasporExigibilidade":
+            # Override date range for this specific endpoint
+            params.update(
+                {
+                    "DiaInicioPeriodo": f"01.01.{year}",
+                    "DiaFinalPeriodo": f"31.12.{year}",
+                    # "strTipoLista" is already in self.extra
+                }
+            )
+            # Remove keys that are not needed for this endpoint
+            params.pop("MesInicialPeriodo", None)
+            params.pop("MesFinalPeriodo", None)
+            params.pop("Ano", None)
+        return params
 
 
 class ReceitasExtractor(BaseExtractor):
@@ -80,6 +105,24 @@ class ReceitasExtractor(BaseExtractor):
 
 
 class LicitacoesExtractor(BaseExtractor):
+    pass
+
+
+class EmendasExtractor(BaseExtractor):
+    def get_params(self, empresa_id: int, year: int) -> dict:
+        if self.listagem in ["EmendasImpositivasArt166A", "CadEmendasImpositivas"]:
+            return {
+                "ConectarExercicio": str(year),
+                "Listagem": self.listagem,
+                "Empresa": str(empresa_id),
+                "MostraDadosConsolidado": "False",
+                **self.extra,
+            }
+
+        return super().get_params(empresa_id, year)
+
+
+class TransferenciasExtractor(BaseExtractor):
     pass
 
 
@@ -97,170 +140,180 @@ class PessoalExtractor(BaseExtractor):
 
 # Define as configurações dos endpoints
 ENDPOINT_CONFIGS = [
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "DespesasPorOrgao",
-        "despesas_por_orgao",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        DespesasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasPorOrgao",
+        table="despesas_por_orgao",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=DespesasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "DespesasPorUnidade",
-        "despesas_por_unidade",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        DespesasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasPorUnidade",
+        table="despesas_por_unidade",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=DespesasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "DespesasPorFornecedor",
-        "despesas_por_fornecedor",
-        ["ano", "empresa", "codigo"],
-        {"MostrarFornecedor": "True", "MostraDadosConsolidado": "False"},
-        DespesasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasPorFornecedor",
+        table="despesas_por_fornecedor",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostrarFornecedor": "True", "MostraDadosConsolidado": "False"},
+        extractor_cls=DespesasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "DespesasGerais",
-        "despesas_gerais",
-        ["ano", "empresa", "numero"],
-        {
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasGerais",
+        table="despesas_gerais",
+        key_cols=["ano", "empresa", "numero"],
+        extra={
             "MostrarFornecedor": "True",
             "MostrarCNPJFornecedor": "True",
             "UFParaFiltroCOVID": "",
             "ApenasIDEmpenho": "False",
         },
-        DespesasExtractor,
-        _post_process_despesas_gerais,
+        extractor_cls=DespesasExtractor,
+        post_process=_post_process_despesas_gerais,
     ),
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "DespesasRestosPagar",
-        "despesas_restos_pagar",
-        ["ano", "empresa", "numero"],
-        {"ApresentaNomeFavorecido": "True", "MostraDadosConsolidado": "False"},
-        DespesasExtractor,
-        _post_process_despesas_restos_pagar,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasRestosPagar",
+        table="despesas_restos_pagar",
+        key_cols=["ano", "empresa", "numero"],
+        extra={"ApresentaNomeFavorecido": "True", "MostraDadosConsolidado": "False"},
+        extractor_cls=DespesasExtractor,
+        post_process=_post_process_despesas_restos_pagar,
     ),
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "DespesasExtraOrcamentaria",
-        "despesas_extra_orcamentaria",
-        ["ano", "empresa", "numero"],
-        {"ApresentaNomeFavorecido": "True", "MostraDadosConsolidado": "False"},
-        DespesasExtractor,
-        _post_process_despesas_extra_orcamentaria,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasExtraOrcamentaria",
+        table="despesas_extra_orcamentaria",
+        key_cols=["ano", "empresa", "numero"],
+        extra={"ApresentaNomeFavorecido": "True", "MostraDadosConsolidado": "False"},
+        extractor_cls=DespesasExtractor,
+        post_process=_post_process_despesas_extra_orcamentaria,
     ),
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "DespesasporExigibilidade",
-        "despesas_por_exigibilidade",
-        ["ano", "empresa", "tipo"],
-        {"MostraDadosConsolidado": "False"},
-        DespesasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasporExigibilidade",
+        table="despesas_por_exigibilidade_1",
+        key_cols=["ano", "empresa", "tipo", "empenho"],
+        extra={"MostraDadosConsolidado": "False", "strTipoLista": "1"},
+        extractor_cls=DespesasExtractor,
+        post_process=_post_process_despesas_por_exigibilidade,
     ),
-    (
-        "/Transparencia/VersaoJson/Despesas/",
-        "Diarias",
-        "diarias",
-        ["ano", "empresa", "numero"],
-        {"MostraDadosConsolidado": "False"},
-        DespesasExtractor,
-        _post_process_diarias,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="DespesasporExigibilidade",
+        table="despesas_por_exigibilidade_2",
+        key_cols=["ano", "empresa", "tipo", "empenho"],
+        extra={"MostraDadosConsolidado": "False", "strTipoLista": "2"},
+        extractor_cls=DespesasExtractor,
+        post_process=_post_process_despesas_por_exigibilidade,
     ),
-    (
-        "/Transparencia/VersaoJson/Receitas/",
-        "ReceitaOrcamentaria",
-        "receita_orcamentaria",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        ReceitasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Despesas/",
+        listagem="Diarias",
+        table="diarias",
+        key_cols=["ano", "empresa", "numero"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=DespesasExtractor,
+        post_process=_post_process_diarias,
     ),
-    (
-        "/Transparencia/VersaoJson/Receitas/",
-        "ReceitaUniao",
-        "receita_uniao",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        ReceitasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Receitas/",
+        listagem="ReceitaOrcamentaria",
+        table="receita_orcamentaria",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=ReceitasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Receitas/",
-        "ReceitaEstado",
-        "receita_estado",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        ReceitasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Receitas/",
+        listagem="ReceitaUniao",
+        table="receita_uniao",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=ReceitasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Receitas/",
-        "ReceitaExtraOrcamentaria",
-        "receita_extra_orcamentaria",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        ReceitasExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Receitas/",
+        listagem="ReceitaEstado",
+        table="receita_estado",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=ReceitasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Receitas/",
-        "DetalhesReceitaOrcamentaria",
-        "receita_detalhes",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        ReceitasExtractor,
-        _post_process_receita_detalhes,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Receitas/",
+        listagem="ReceitaExtraOrcamentaria",
+        table="receita_extra_orcamentaria",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=ReceitasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/LicitacoesEContratos/",
-        "Licitacoes",
-        "licitacoes",
-        ["ano", "empresa", "numero"],
-        {"MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Receitas/",
+        listagem="DetalhesReceitaOrcamentaria",
+        table="receita_detalhes",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=ReceitasExtractor,
+        post_process=_post_process_receita_detalhes,
     ),
-    (
-        "/Transparencia/VersaoJson/LicitacoesEContratos/",
-        "Contratos",
-        "contratos",
-        ["ano", "empresa", "numero"],
-        {"ContratosApenasPublicados": "False", "MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
-        _post_process_contratos,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/LicitacoesEContratos/",
+        listagem="Licitacoes",
+        table="licitacoes",
+        key_cols=["ano", "empresa", "numero"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=LicitacoesExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Transferencias/",
-        "Transf",
-        "transferencias",
-        ["ano", "empresa", "codigo"],
-        {"MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
-        _post_process_transferencias,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/LicitacoesEContratos/",
+        listagem="Contratos",
+        table="contratos",
+        key_cols=["ano", "empresa", "numero"],
+        extra={"ContratosApenasPublicados": "False", "MostraDadosConsolidado": "False"},
+        extractor_cls=LicitacoesExtractor,
+        post_process=_post_process_contratos,
     ),
-    (
-        "/Transparencia/VersaoJson/Transferencias/",
-        "EmendasImpositivasArt",
-        "emendas_impositivas",
-        ["ano", "empresa", "numero"],
-        {"MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Transferencias/",
+        listagem="Transf",
+        table="transferencias",
+        key_cols=["ano", "empresa", "codigo"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=TransferenciasExtractor,
+        post_process=_post_process_transferencias,
     ),
-    (
-        "/Transparencia/VersaoJson/Transferencias/",
-        "CadEmendasImpositivas",
-        "emendas_cad",
-        ["ano", "empresa", "numero"],
-        {"MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
-        _post_process_emendas_cad,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Transferencias/",
+        listagem="EmendasImpositivasArt166A",
+        table="emendas_impositivas",
+        key_cols=["ano", "empresa", "numero"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=EmendasExtractor,
     ),
-    (
-        "/Transparencia/VersaoJson/Pessoal/",
-        "Servidores",
-        "pessoal",
-        ["ano", "empresa", "mes", "matricula"],
-        {},
-        PessoalExtractor,
-        _post_process_pessoal,
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Transferencias/",
+        listagem="CadEmendasImpositivas",
+        table="emendas_cad",
+        key_cols=["ano", "empresa", "numero"],
+        extra={"MostraDadosConsolidado": "False"},
+        extractor_cls=EmendasExtractor,
+        post_process=_post_process_emendas_cad,
+    ),
+    EndpointConfig(
+        base_path="/Transparencia/VersaoJson/Pessoal/",
+        listagem="Servidores",
+        table="pessoal",
+        key_cols=["ano", "empresa", "mes", "matricula"],
+        extra={},
+        extractor_cls=PessoalExtractor,
+        post_process=_post_process_pessoal,
     ),
 ]

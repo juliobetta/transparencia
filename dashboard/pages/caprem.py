@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import fmt_currency, get_conn, get_extraction_date, render_sidebar
+from shared import fmt_currency, get_conn, get_data_extracao, render_sidebar
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -23,7 +23,7 @@ def _caprem(conn, year, _extracted_at):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 st.title("CAPREM (Caixa de Previdência Municipal)")
 st.caption(f"Dados do CAPREM extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")

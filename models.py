@@ -162,7 +162,59 @@ class DespesaPorExigibilidade(SQLModel, table=True):
     ano: int = Field(primary_key=True)
     empresa: str = Field(primary_key=True)
     tipo: str = Field(primary_key=True)
+    empenho: str = Field(primary_key=True)
     valor: Optional[str] = None
+    tipolista: Optional[str] = None
+    codentidade: Optional[str] = None
+    entidade: Optional[str] = None
+    ficha: Optional[str] = None
+    codlo: Optional[str] = None
+    catec: Optional[str] = None
+    fornecedor: Optional[str] = None
+    vadem: Optional[str] = None
+    vapag: Optional[str] = None
+    desco: Optional[str] = None
+    anula: Optional[str] = None
+    pagliq: Optional[str] = None
+    venci: Optional[str] = None
+    dtpag: Optional[str] = None
+    foninduso: Optional[str] = None
+    fongrupo: Optional[str] = None
+    foncodigo: Optional[str] = None
+    vingrupo: Optional[str] = None
+    vincodigo: Optional[str] = None
+    fonro: Optional[str] = None
+    justificativa: Optional[str] = None
+    datajusti: Optional[str] = None
+    justificativa_texto: Optional[str] = None
+    tit_just: Optional[str] = None
+    quebrou: Optional[str] = None
+    fonte_nome: Optional[str] = None
+    unidade_nome: Optional[str] = None
+    contrato: Optional[str] = None
+    contrato_categoria: Optional[str] = None
+    contrato_categoria_descr: Optional[str] = None
+    processoadm: Optional[str] = None
+    proclic: Optional[str] = None
+    numsub: Optional[str] = None
+    dtatesto: Optional[str] = None
+    cgc: Optional[str] = None
+    dtprocesso: Optional[str] = None
+    autorizadordespesa: Optional[str] = None
+    insmf: Optional[str] = None
+    cpf_autorizadordespesa: Optional[str] = None
+    notas: Optional[str] = None
+    nempg: Optional[str] = None
+    anoemp: Optional[str] = None
+    tpem: Optional[str] = None
+    tit_hist: Optional[str] = None
+    produ: Optional[str] = None
+    valor_empenho: Optional[str] = None
+    licit: Optional[str] = None
+    pkemp: Optional[str] = None
+    tipoquebra: Optional[str] = None
+    motivo: Optional[str] = None
+    ordem_liquidacao: Optional[str] = None
 
 
 class Diaria(SQLModel, table=True):

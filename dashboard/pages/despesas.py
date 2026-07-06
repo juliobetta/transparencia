@@ -13,7 +13,7 @@ from shared import (
     fmt_compact,
     fmt_currency,
     get_conn,
-    get_extraction_date,
+    get_data_extracao,
     pct_delta,
     render_sidebar,
     sparkline,
@@ -105,7 +105,7 @@ def _tendencia_pendentes(conn, years, _extracted_at):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 _all_years = list(range(2022, year + 1))
 _hist_metricas = _metricas_por_ano(conn, tuple(_all_years), _extracted_at)

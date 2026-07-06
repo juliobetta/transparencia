@@ -8,13 +8,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import plotly.express as px
 import streamlit as st
 from shared import (
-    CURRENT_YEAR,
+    ANO_ATUAL,
     SPARK_CFG,
     fmt_currency,
     get_conn,
-    get_extraction_date,
+    get_data_extracao,
     pct_delta,
-    render_partial_year_notice,
+    render_aviso_ano_parcial,
     render_sidebar,
     sparkline,
 )
@@ -45,7 +45,7 @@ def _folha_orgao_por_ano(conn, years, _extracted_at):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 st.header("Folha de Pagamento")
 st.caption(
@@ -54,8 +54,8 @@ st.caption(
     "O cálculo usa o total de receitas arrecadadas como base — os dados do portal não permitem calcular a RCL exata com todas as deduções legais."
 )
 
-if year == CURRENT_YEAR:
-    render_partial_year_notice(year, _extracted_at)
+if year == ANO_ATUAL:
+    render_aviso_ano_parcial(year, _extracted_at)
 
 df_folha = _folha_pagamento(conn, year, _extracted_at)
 _all_years = list(range(2022, year + 1))

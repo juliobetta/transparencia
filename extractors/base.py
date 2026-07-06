@@ -1,10 +1,24 @@
 import logging
 from abc import ABC
+from dataclasses import dataclass
+from typing import Any, Callable, Optional
 from urllib.parse import urlencode
 
 from scraper import fetch
 
+# TODO: Mover para config ou env variable
 BASE_URL = "https://transparencia.porciuncula.rj.gov.br"
+
+
+@dataclass
+class EndpointConfig:
+    base_path: str
+    listagem: str
+    table: str
+    key_cols: list[str]
+    extra: dict[str, Any]
+    extractor_cls: Any
+    post_process: Optional[Callable] = None
 
 
 class BaseExtractor(ABC):
@@ -17,7 +31,7 @@ class BaseExtractor(ABC):
         self.post_process = post_process
         self.logger = logging.getLogger(__name__)
 
-    def build_url(self, empresa_id: int, year: int) -> str:
+    def get_params(self, empresa_id: int, year: int) -> dict:
         params = {
             "ConectarExercicio": str(year),
             "Listagem": self.listagem,
@@ -30,6 +44,12 @@ class BaseExtractor(ABC):
             "MostraDadosConsolidado": "False",
             **self.extra,
         }
+
+        return params
+
+    def build_url(self, empresa_id: int, year: int) -> str:
+        params = self.get_params(empresa_id, year)
+
         return f"{BASE_URL}{self.base_path}?{urlencode(params)}"
 
     def extract(self, empresa_id: int, year: int) -> list[dict]:
