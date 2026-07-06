@@ -11,6 +11,6 @@ jobs:
     steps:
       - name: Ping app
         env:
-          APP_URL: ${{ env.APP_URL }}
+          APP_URL: ${{ vars.APP_URL }}
         run: |
           curl -f $APP_URL || exit 0
