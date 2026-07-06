@@ -12,7 +12,7 @@ from sqlalchemy.engine import Engine
 from sqlmodel import SQLModel
 
 from db import create_tables, get_engine, set_metadata, upsert
-from extractors.extractors import ENDPOINT_CONFIGS
+from extractors.extractors import ENDPOINT_CONFIGS, EndpointConfig
 
 START_YEAR = 2022
 RAW_DIR = Path("data/raw")
@@ -130,13 +130,13 @@ class DatabaseLoader:
 
         for json_file in run_dir.rglob("*.json"):
             table = json_file.parent.name
-            config = next((c for c in ENDPOINT_CONFIGS if c[2] == table), None)
+            config = next((c for c in ENDPOINT_CONFIGS if c.table == table), None)
             if not config:
                 logger.warning("Could not find config for table: %s", table)
                 continue
 
-            key_cols = cast(list[str], list(config[3]))  # type: ignore
-            post_process = config[6] if len(config) > 6 else None
+            key_cols = cast(list[str], list(config.key_cols))  # type: ignore
+            post_process = config.post_process
 
             parts = json_file.stem.split("_")
             empresa_id = parts[0]
@@ -191,19 +191,18 @@ class DataExtractor:
 
         endpoints = ENDPOINT_CONFIGS
         if only:
-            valid = [e[1] for e in ENDPOINT_CONFIGS]
+            valid = [e.listagem for e in ENDPOINT_CONFIGS]
             if only not in valid:
                 raise ValueError(f"Unknown listagem: {only!r}")
-            endpoints = [e for e in ENDPOINT_CONFIGS if e[1] == only]
+            endpoints = [e for e in ENDPOINT_CONFIGS if e.listagem == only]
 
-        for config_tuple in cast(list[Any], endpoints):
-            config_list = cast(list[Any], list(cast(list[Any], config_tuple)))
-            path = str(config_list[0])
-            listagem = str(config_list[1])
-            table = str(config_list[2])
-            extractor_cls = config_list[5]
+        for config in cast(list[EndpointConfig], endpoints):
+            path = config.base_path
+            listagem = config.listagem
+            table = config.table
+            extractor_cls = config.extractor_cls
 
-            extra = cast(dict[str, str], dict(config_list[4]))
+            extra = cast(dict[str, str], config.extra)
             extractor = cls.get_extractor(path, listagem, table, [], extra, None, extractor_cls)
 
             for empresa_id, empresa_name in entities.items():
@@ -252,7 +251,7 @@ class PipelineRunner:
             },
         )
 
-        valid = [e[1] for e in ENDPOINT_CONFIGS]
+        valid = [e.listagem for e in ENDPOINT_CONFIGS]
 
         if retry_failed:
             if not FAILED_REQUESTS_FILE.exists():
@@ -272,7 +271,7 @@ class PipelineRunner:
             logger.info("Saving raw retry data to %s", run_dir)
 
             for task in failed_tasks:
-                config = next((c for c in ENDPOINT_CONFIGS if c[1] == task["listagem"]), None)
+                config = next((c for c in ENDPOINT_CONFIGS if c.listagem == task["listagem"]), None)
                 if not config:
                     logger.warning("Could not find config for listagem: %s", task["listagem"])
                     continue
@@ -282,29 +281,37 @@ class PipelineRunner:
                     logger.warning("Could not find ID for empresa: %s", task["empresa"])
                     continue
 
-                raw_data = config
-                if raw_data is None:
-                    continue
-                config_list = cast(list[Any], list(cast(list[Any], raw_data)))
-                path, listagem, table, key_cols, extra, extractor_cls, *post_process = cast(list[Any], config_list)  # type: ignore
-                post_process = post_process[0] if post_process else None  # type: ignore
                 extractor = DataExtractor.get_extractor(
-                    path, listagem, table, key_cols, extra, post_process, extractor_cls
+                    config.base_path,
+                    config.listagem,
+                    config.table,
+                    config.key_cols,
+                    config.extra,
+                    config.post_process,
+                    config.extractor_cls,
                 )
 
                 try:
                     rows = extractor.extract(empresa_id, int(task["year"]))
-                    raw_path = run_dir / str(table) / f"{empresa_id}_{task['year']}.json"
+                    raw_path = run_dir / str(config.table) / f"{empresa_id}_{task['year']}.json"
                     raw_path.parent.mkdir(parents=True, exist_ok=True)
                     raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
-                    normalised = PipelineHelper.normalize(rows, int(task["year"]), str(empresa_id), post_process)
-                    count = upsert(engine, str(table), normalised, key_cols)  # type: ignore
+                    normalised = PipelineHelper.normalize(rows, int(task["year"]), str(empresa_id), config.post_process)
+                    count = upsert(engine, str(config.table), normalised, config.key_cols)  # type: ignore
                     logger.info(
-                        "Retry successful: %s / %s / %s → %d rows", listagem, task["empresa"], task["year"], count
+                        "Retry successful: %s / %s / %s → %d rows",
+                        config.listagem,
+                        task["empresa"],
+                        task["year"],
+                        count,
                     )
                 except Exception as exc:
-                    logger.warning("Retry FAILED: %s / %s / %s: %s", listagem, task["empresa"], task["year"], exc)
-                    DataExtractor.log_failed_request(listagem, task["empresa"], int(task["year"]), exc, run_dir=run_dir)
+                    logger.warning(
+                        "Retry FAILED: %s / %s / %s: %s", config.listagem, task["empresa"], task["year"], exc
+                    )
+                    DataExtractor.log_failed_request(
+                        config.listagem, task["empresa"], int(task["year"]), exc, run_dir=run_dir
+                    )
             return
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -316,28 +323,29 @@ class PipelineRunner:
         if only:
             if only not in valid:
                 raise ValueError(f"Unknown listagem: {only!r}. Valid values: {valid}")
-            endpoints = [e for e in ENDPOINT_CONFIGS if e[1] == only]
+            endpoints = [e for e in ENDPOINT_CONFIGS if e.listagem == only]
         if start_from:
             if start_from not in valid:
                 raise ValueError(f"Unknown listagem: {start_from!r}. Valid values: {valid}")
-            idx = next(i for i, e in enumerate(ENDPOINT_CONFIGS) if e[1] == start_from)
+            idx = next(i for i, e in enumerate(ENDPOINT_CONFIGS) if e.listagem == start_from)
             endpoints = ENDPOINT_CONFIGS[idx:]
 
         entities = DatabaseLoader.get_entities(engine)
         total = sum(len(entities) * len(years) for _ in endpoints)
         done = 0
 
-        for config_tuple in cast(list[Any], endpoints):
-            config_list = cast(list[Any], list(cast(list[Any], config_tuple)))
-            path = str(config_list[0])
-            listagem = str(config_list[1])
-            table = str(config_list[2])
-            key_cols = cast(list[str], list(config_list[3]))
-            extra = cast(dict[str, str], dict(config_list[4]))
-            extractor_cls = config_list[5]
-            post_process = config_list[6] if len(config_list) > 6 else None  # type: ignore
-
-            extractor = DataExtractor.get_extractor(path, listagem, table, key_cols, extra, post_process, extractor_cls)
+        for config in cast(list[EndpointConfig], endpoints):
+            listagem = config.listagem
+            table = config.table
+            extractor = DataExtractor.get_extractor(
+                config.base_path,
+                config.listagem,
+                config.table,
+                config.key_cols,
+                config.extra,
+                config.post_process,
+                config.extractor_cls,
+            )
 
             entities = DatabaseLoader.get_entities(engine)
             for empresa_id, empresa_name in entities.items():
@@ -355,10 +363,16 @@ class PipelineRunner:
                             raw_path.parent.mkdir(parents=True, exist_ok=True)
                             raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
 
-                        normalised = PipelineHelper.normalize(rows, year, str(empresa_id), post_process)
-                        count = upsert(engine, str(table), normalised, key_cols)  # type: ignore
+                        normalised = PipelineHelper.normalize(rows, year, str(empresa_id), config.post_process)
+                        count = upsert(engine, str(config.table), normalised, config.key_cols)  # type: ignore
                         logger.info(
-                            "[%d/%d] %s / %s / %d → %d rows", done + 1, total, listagem, empresa_name, year, count
+                            "[%d/%d] %s / %s / %d → %d rows",
+                            done + 1,
+                            total,
+                            config.listagem,
+                            empresa_name,
+                            year,
+                            count,
                         )
                     except Exception as exc:
                         logger.warning("SKIP %s / %s / %d: %s", listagem, empresa_name, year, exc)
