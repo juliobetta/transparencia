@@ -1,11 +1,23 @@
 import logging
 from abc import ABC
+from dataclasses import dataclass
+from typing import Any, Callable, Optional
 from urllib.parse import urlencode
 
 from scraper import fetch
 
 # TODO: Mover para config ou env variable
 BASE_URL = "https://transparencia.porciuncula.rj.gov.br"
+
+
+@dataclass
+class EndpointConfig:
+    base_path: str
+    listagem: str
+    table: str
+    key_cols: list[str]
+    extra: dict[str, Any]
+    post_process: Optional[Callable] = None
 
 
 class BaseExtractor(ABC):
