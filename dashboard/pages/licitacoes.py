@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import SPARK_CFG, get_conn, get_extraction_date, pct_delta, render_sidebar, sparkline
+from shared import SPARK_CFG, get_conn, get_data_extracao, pct_delta, render_sidebar, sparkline
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -58,7 +58,7 @@ def _adesao_ext_por_ano(conn, years, _extracted_at):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 lacunas = _lacunas_licitacao(conn, year, _extracted_at)
 adesao = _adesao(conn, year, _extracted_at)

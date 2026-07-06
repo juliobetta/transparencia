@@ -10,15 +10,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from shared import (
-    CURRENT_YEAR,
+    ANO_ATUAL,
     SPARK_CFG,
     fmt_compact,
     fmt_percent,
     get_conn,
-    get_extraction_date,
+    get_data_extracao,
     pct_delta,
-    render_partial_year_notice,
-    render_revenue_methodology,
+    render_aviso_ano_parcial,
+    render_metodologia_receita,
     render_sidebar,
     sparkline,
 )
@@ -96,7 +96,7 @@ def _tendencia_pendentes(conn, years, _extracted_at):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 st.title("Transparência Porciúncula / RJ")
 st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL}) do município.")
@@ -141,15 +141,15 @@ with c1:
 with c2:
     if not receita.empty:
         row = receita[receita["ano"] == year].iloc[0] if year in receita["ano"].values else receita.iloc[-1]
-        label = "Receita Arrecadada" if year == CURRENT_YEAR else "Receita Prevista"
-        rev_val = row["total_arrecadado"] if year == CURRENT_YEAR else row["total_previsto"]
+        label = "Receita Arrecadada" if year == ANO_ATUAL else "Receita Prevista"
+        rev_val = row["total_arrecadado"] if year == ANO_ATUAL else row["total_previsto"]
         _rev_totals = receita["total"].tolist()
         delta_rec = (
             float(receita.iloc[-1]["total_pct_change"])
             if len(receita) > 1 and pd.notna(receita.iloc[-1]["total_pct_change"])
             else None
         )
-        help_text = "Total efetivamente arrecadado." if year == CURRENT_YEAR else "Previsão orçamentária do ano."
+        help_text = "Total efetivamente arrecadado." if year == ANO_ATUAL else "Previsão orçamentária do ano."
         st.metric(
             label,
             fmt_compact(float(rev_val)),
@@ -410,7 +410,7 @@ with col_pressao:
     anos_pressao = _pressao["anos"]
     lacuna = _pressao["gap"]
     cores = _pressao["colors"]
-    opacidade = [0.4 if a == CURRENT_YEAR else 1.0 for a in anos_pressao]
+    opacidade = [0.4 if a == ANO_ATUAL else 1.0 for a in anos_pressao]
     fig_pct = go.Figure(
         go.Bar(
             x=anos_pressao,
@@ -421,10 +421,10 @@ with col_pressao:
         )
     )
     fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
-    if CURRENT_YEAR in anos_pressao:
-        lacuna_parcial = lacuna[anos_pressao.index(CURRENT_YEAR)]
+    if ANO_ATUAL in anos_pressao:
+        lacuna_parcial = lacuna[anos_pressao.index(ANO_ATUAL)]
         fig_pct.add_annotation(
-            x=CURRENT_YEAR,
+            x=ANO_ATUAL,
             y=lacuna_parcial,
             text="ano parcial",
             showarrow=False,
@@ -444,7 +444,7 @@ with col_pressao:
         "Barras acima do zero indicam que o total pago cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
     )
 
-render_revenue_methodology()
+render_metodologia_receita()
 
 st.subheader(f"Composição e Execução ({year})")
 col_donut, col_bar = st.columns([4, 6])
@@ -452,7 +452,7 @@ col_donut, col_bar = st.columns([4, 6])
 with col_donut:
     if not receita.empty:
         row = receita[receita["ano"] == year].iloc[0] if year in receita["ano"].values else receita.iloc[-1]
-        eh_parcial = year == CURRENT_YEAR
+        eh_parcial = year == ANO_ATUAL
         titulo_donut = (
             f"Fontes de Receita ({year} — Arrecadado Parcial)"
             if eh_parcial
@@ -488,7 +488,7 @@ with col_donut:
             )
             _pct_cur = float(row["pct_propria"])
             _pct_prev = float(_rows_anteriores.iloc[0]["pct_propria"]) if not _rows_anteriores.empty else 0
-            render_partial_year_notice(
+            render_aviso_ano_parcial(
                 year,
                 _extracted_at,
                 extra_html=(

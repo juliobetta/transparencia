@@ -13,7 +13,7 @@ from shared import (
     fmt_compact,
     fmt_currency,
     get_conn,
-    get_extraction_date,
+    get_data_extracao,
     pct_delta,
     render_sidebar,
     sparkline,
@@ -38,7 +38,7 @@ def _orcamento_by_year(conn, years, _extracted_at):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 st.title("Execução Orçamentária por Órgão")
 st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
