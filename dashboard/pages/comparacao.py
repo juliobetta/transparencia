@@ -7,16 +7,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
 from shared import (
-    CURRENT_YEAR,
-    YEARS,
+    ANO_ATUAL,
+    ANOS,
     comparison_table,
     fmt_currency,
     fmt_delta,
     fmt_percent,
     get_conn,
-    get_extraction_date,
-    render_partial_year_notice,
-    render_revenue_methodology,
+    get_data_extracao,
+    render_aviso_ano_parcial,
+    render_metodologia_receita,
     render_sidebar,
 )
 from sqlalchemy.engine import Engine
@@ -34,7 +34,7 @@ def _comparacao(conn, periodo_a, periodo_b, _extracted_at):
 
 
 conn = get_conn()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 render_sidebar()  # link do portal e metadados na barra lateral; ano não é usado nesta página
 
 st.header("Comparação de Períodos")
@@ -46,14 +46,14 @@ NOMES_MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "O
 col_periodo_a, col_periodo_b = st.columns(2)
 with col_periodo_a:
     st.subheader("Período A")
-    ano_a = st.selectbox("Ano A", YEARS, index=0, key="cmp_year_a")
+    ano_a = st.selectbox("Ano A", ANOS, index=0, key="cmp_year_a")
     mes_inicio_a = st.selectbox(
         "Mês início A", MESES, index=0, format_func=lambda m: NOMES_MESES[m - 1], key="cmp_ms_a"
     )
     mes_fim_a = st.selectbox("Mês fim A", MESES, index=11, format_func=lambda m: NOMES_MESES[m - 1], key="cmp_me_a")
 with col_periodo_b:
     st.subheader("Período B")
-    ano_b = st.selectbox("Ano B", YEARS, index=len(YEARS) - 2, key="cmp_year_b")
+    ano_b = st.selectbox("Ano B", ANOS, index=len(ANOS) - 2, key="cmp_year_b")
     mes_inicio_b = st.selectbox(
         "Mês início B", MESES, index=0, format_func=lambda m: NOMES_MESES[m - 1], key="cmp_ms_b"
     )
@@ -115,9 +115,9 @@ with st.expander("Pessoal"):
         hide_index=True,
     )
 with st.expander("Receitas"):
-    render_revenue_methodology()
-    if ano_a == CURRENT_YEAR or ano_b == CURRENT_YEAR:
-        render_partial_year_notice(CURRENT_YEAR, _extracted_at)
+    render_metodologia_receita()
+    if ano_a == ANO_ATUAL or ano_b == ANO_ATUAL:
+        render_aviso_ano_parcial(ANO_ATUAL, _extracted_at)
     df_receitas = comparison_table(
         resultado["receitas"],
         [

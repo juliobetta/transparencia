@@ -14,7 +14,7 @@ from shared import (
     fmt_compact,
     fmt_currency,
     get_conn,
-    get_extraction_date,
+    get_data_extracao,
     pct_delta,
     render_sidebar,
     sparkline,
@@ -46,7 +46,7 @@ def _pdf(conn, year, _extracted_at):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 col_titulo, col_botao = st.columns([8, 2])
 with col_titulo:

@@ -9,14 +9,14 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import (
-    CURRENT_YEAR,
+    ANO_ATUAL,
     SPARK_CFG,
     fmt_currency,
     get_conn,
-    get_extraction_date,
+    get_data_extracao,
     pct_delta,
-    render_partial_year_notice,
-    render_revenue_methodology,
+    render_aviso_ano_parcial,
+    render_metodologia_receita,
     render_sidebar,
     sparkline,
 )
@@ -40,24 +40,22 @@ def _posicao_fiscal(conn, year, _extracted_at, _v=6):
 
 conn = get_conn()
 year = render_sidebar()
-_extracted_at = get_extraction_date(conn)
+_extracted_at = get_data_extracao(conn)
 
 st.header("Fontes de Receita")
 
 # Aviso sobre limitações históricas dos dados
-if year < CURRENT_YEAR:
+if year < ANO_ATUAL:
     st.info(
         "O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
-        f"mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de {CURRENT_YEAR}.",
+        f"mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de {ANO_ATUAL}.",
         icon=":material/info:",
     )
 else:
-    st.success(
-        f":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente ({CURRENT_YEAR})."
-    )
-    render_partial_year_notice(year, _extracted_at)
+    st.success(f":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente ({ANO_ATUAL}).")
+    render_aviso_ano_parcial(year, _extracted_at)
 
-render_revenue_methodology()
+render_metodologia_receita()
 
 _all_years = list(range(2022, year + 1))
 df_hist = _receita(conn, tuple(_all_years), _extracted_at)
@@ -90,7 +88,7 @@ if not df_ano.empty:
 
     _total_serie = df_hist["total"].tolist()
     with c2:
-        if year == CURRENT_YEAR:
+        if year == ANO_ATUAL:
             st.metric(
                 "Total Arrecadado Real",
                 fmt_currency(row["total_arrecadado"]),
@@ -112,7 +110,7 @@ if not df_ano.empty:
             key="spark_rec_total",
         )
 
-    if year == CURRENT_YEAR:
+    if year == ANO_ATUAL:
         # Progress Bar
         pct_progresso = row["pct_arrecadado"]
         st.markdown(f"**Progresso de Arrecadação Anual: {pct_progresso * 100:.2f}%**")
@@ -123,7 +121,7 @@ if not df_ano.empty:
 
     resumo_df = fontes_receita.tabela_detalhamento(row, year)
 
-    if year == CURRENT_YEAR:
+    if year == ANO_ATUAL:
         # Gráfico de barras: previsto vs. arrecadado
         df_comparativo = resumo_df.melt(
             id_vars=["Fonte"], value_vars=["Previsto", "Arrecadado"], var_name="Métrica", value_name="Valor"
@@ -170,18 +168,18 @@ if not df_ano.empty:
             ":material/warning: Alerta: Receita própria municipal está abaixo de 10% do total. Alta dependência fiscal de repasses federais e estaduais."
         )
 
-if year == CURRENT_YEAR:
+if year == ANO_ATUAL:
     st.divider()
-    st.subheader(f"Situação Fiscal Estimada ({CURRENT_YEAR})")
+    st.subheader(f"Situação Fiscal Estimada ({ANO_ATUAL})")
 
     posicao_fiscal_data = _posicao_fiscal(conn, year, _extracted_at)
 
-    ano_anterior = CURRENT_YEAR - 1
+    ano_anterior = ANO_ATUAL - 1
     st.warning(
         f"""
         **Estimativa baseada em dados públicos — não é um balanço oficial.**\n\n
         * **Fluxo Líquido do Período**: total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos).
-        Não representa o saldo de caixa disponível — não inclui saldo inicial em 01/01/{CURRENT_YEAR}, receitas/despesas extra-orçamentárias nem aplicações financeiras.
+        Não representa o saldo de caixa disponível — não inclui saldo inicial em 01/01/{ANO_ATUAL}, receitas/despesas extra-orçamentárias nem aplicações financeiras.
         * **Obrigações Herdadas**: restos a pagar de exercícios anteriores a {ano_anterior} (dívida da administração anterior) ainda não quitados. \n\n
         Para o valor oficial, consulte Prestação de Contas > Responsabilidade Fiscal - RREO no [portal da transparência]({glossary.PORTAL_URL}).
         """,
@@ -193,12 +191,12 @@ if year == CURRENT_YEAR:
     fc2.metric(
         "Efetivamente Pago — Exercício Corrente",
         fmt_currency(posicao_fiscal_data["despesas_pagas"]),
-        help=f"Despesas do orçamento de {CURRENT_YEAR} pagas no ano.",
+        help=f"Despesas do orçamento de {ANO_ATUAL} pagas no ano.",
     )
     fc3.metric(
         "Restos a Pagar Quitados",
         fmt_currency(posicao_fiscal_data["restos_pagos_no_ano"]),
-        help=f"Pagamentos de empenhos de anos anteriores (Restos a Pagar) realizados em {CURRENT_YEAR}.",
+        help=f"Pagamentos de empenhos de anos anteriores (Restos a Pagar) realizados em {ANO_ATUAL}.",
     )
 
     fc3, fc4 = st.columns(2)
@@ -212,7 +210,7 @@ if year == CURRENT_YEAR:
 
     saldo_apos_restos = posicao_fiscal_data["saldo_apos_restos"]
     st.metric(
-        f"Saldo após Restos Pendentes ({CURRENT_YEAR})",
+        f"Saldo após Restos Pendentes ({ANO_ATUAL})",
         fmt_currency(saldo_apos_restos),
         delta=fmt_currency(saldo_apos_restos) if saldo_apos_restos >= 0 else f"-{fmt_currency(abs(saldo_apos_restos))}",
     )
@@ -251,7 +249,7 @@ if year == CURRENT_YEAR:
 - **Adm. Atual** (exercícios ≥ {ano_anterior}) — obrigações da administração corrente em processamento normal
 
 **Não incluído no Fluxo Líquido:**
-- Saldo inicial de caixa em 01/01/{CURRENT_YEAR}
+- Saldo inicial de caixa em 01/01/{ANO_ATUAL}
 - Receitas e despesas extra-orçamentárias
 - Aplicações financeiras e disponibilidades bancárias
 
