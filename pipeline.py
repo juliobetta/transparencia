@@ -321,10 +321,12 @@ class PipelineRunner:
 
         endpoints = ENDPOINT_CONFIGS
         if only:
+            valid = [e.listagem for e in ENDPOINT_CONFIGS]
             if only not in valid:
                 raise ValueError(f"Unknown listagem: {only!r}. Valid values: {valid}")
             endpoints = [e for e in ENDPOINT_CONFIGS if e.listagem == only]
         if start_from:
+            valid = [e.listagem for e in ENDPOINT_CONFIGS]
             if start_from not in valid:
                 raise ValueError(f"Unknown listagem: {start_from!r}. Valid values: {valid}")
             idx = next(i for i, e in enumerate(ENDPOINT_CONFIGS) if e.listagem == start_from)

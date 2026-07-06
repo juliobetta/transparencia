@@ -35,20 +35,11 @@ test:
 
 # PIPELINE
 
-pipeline:
-	uv run python pipeline.py
-
-pipeline/from:
-	uv run python -c "from pipeline import run; run(start_from='$(FROM)', years=$(if $(YEARS),[$(YEARS)],None))"
-
-pipeline/only:
-	uv run python -c "from pipeline import run; run(only='$(ENDPOINT)', years=$(if $(YEARS),[$(YEARS)],None))"
-
-pipeline/raw:
-	uv run python -c "from pipeline import run; run(raw_only=True, years=$(if $(YEARS),[$(YEARS)],None))"
-
 pipeline/extract:
 	uv run python -c "from pipeline import extract_only; extract_only(years=$(if $(YEARS),[$(YEARS)],None))"
+
+pipeline/extract_only:
+	uv run python -c "from pipeline import extract_only; extract_only(only='$(ENDPOINT)', years=$(if $(YEARS),[$(YEARS)],None))"
 
 pipeline/load:
 	uv run python -c "from pipeline import load_from_dir; load_from_dir('$(DIR)')"
