@@ -72,7 +72,18 @@ def _post_process_transferencias(row: dict) -> dict:
 
 
 class DespesasExtractor(BaseExtractor):
-    pass
+    def get_params(self, empresa_id: int, year: int) -> dict:
+        if self.listagem == "DespesasporExigibilidade":
+            return {
+                "ConectarExercicio": str(year),
+                "Listagem": self.listagem,
+                "DiaInicioPeriodo": f"01.01.{year}",
+                "DiaFinalPeriodo": f"31.12.{year}",
+                "strTipoLista": "1",
+                "Empresa": str(empresa_id),
+            }
+
+        return super().get_params(empresa_id, year)
 
 
 class ReceitasExtractor(BaseExtractor):
@@ -80,6 +91,24 @@ class ReceitasExtractor(BaseExtractor):
 
 
 class LicitacoesExtractor(BaseExtractor):
+    pass
+
+
+class EmendasExtractor(BaseExtractor):
+    def get_params(self, empresa_id: int, year: int) -> dict:
+        if self.listagem in ["EmendasImpositivasArt166A", "CadEmendasImpositivas"]:
+            return {
+                "ConectarExercicio": str(year),
+                "Listagem": self.listagem,
+                "Empresa": str(empresa_id),
+                "MostraDadosConsolidado": "False",
+                **self.extra,
+            }
+
+        return super().get_params(empresa_id, year)
+
+
+class TransferenciasExtractor(BaseExtractor):
     pass
 
 
@@ -234,16 +263,16 @@ ENDPOINT_CONFIGS = [
         "transferencias",
         ["ano", "empresa", "codigo"],
         {"MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
+        TransferenciasExtractor,
         _post_process_transferencias,
     ),
     (
         "/Transparencia/VersaoJson/Transferencias/",
-        "EmendasImpositivasArt",
+        "EmendasImpositivasArt166A",
         "emendas_impositivas",
         ["ano", "empresa", "numero"],
         {"MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
+        EmendasExtractor,
     ),
     (
         "/Transparencia/VersaoJson/Transferencias/",
@@ -251,7 +280,7 @@ ENDPOINT_CONFIGS = [
         "emendas_cad",
         ["ano", "empresa", "numero"],
         {"MostraDadosConsolidado": "False"},
-        LicitacoesExtractor,
+        EmendasExtractor,
         _post_process_emendas_cad,
     ),
     (

@@ -158,10 +158,13 @@ class DataExtractor:
     """Handles communicating with portal APIs to pull down raw JSON datasets."""
 
     @staticmethod
-    def log_failed_request(listagem: str, empresa_name: str, year: int, error: Any) -> None:
+    def log_failed_request(
+        listagem: str, empresa_name: str, year: int, error: Any, run_dir: Path | None = None
+    ) -> None:
         """Persistently logs extraction errors to the failed requests ledger."""
-        file_exists = FAILED_REQUESTS_FILE.exists()
-        with open(FAILED_REQUESTS_FILE, "a", newline="", encoding="utf-8") as f:
+        log_file = run_dir / "failed_requests.csv" if run_dir else FAILED_REQUESTS_FILE
+        file_exists = log_file.exists()
+        with open(log_file, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             if not file_exists:
                 writer.writerow(["timestamp", "listagem", "empresa", "year", "error"])
@@ -181,6 +184,7 @@ class DataExtractor:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_dir = Path(f"data/raw_runs/{timestamp}")
         run_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("Saving raw data to %s", run_dir)
 
         engine = get_engine()
         entities = DatabaseLoader.get_entities(engine)
@@ -212,6 +216,7 @@ class DataExtractor:
                         logger.info("Extracted %s / %s / %d to %s", listagem, empresa_name, year, run_file)
                     except Exception as exc:
                         logger.warning("Failed extraction %s / %s / %d: %s", listagem, empresa_name, year, exc)
+                        cls.log_failed_request(listagem, empresa_name, year, exc, run_dir=run_dir)
 
         logger.info("Extraction complete. Data saved in %s", run_dir)
 
@@ -261,6 +266,11 @@ class PipelineRunner:
             FAILED_REQUESTS_FILE.unlink()
             entity_name_to_id = {v: k for k, v in DatabaseLoader.get_entities(engine).items()}
 
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            run_dir = Path(f"data/raw_runs/{timestamp}")
+            run_dir.mkdir(parents=True, exist_ok=True)
+            logger.info("Saving raw retry data to %s", run_dir)
+
             for task in failed_tasks:
                 config = next((c for c in ENDPOINT_CONFIGS if c[1] == task["listagem"]), None)
                 if not config:
@@ -284,7 +294,7 @@ class PipelineRunner:
 
                 try:
                     rows = extractor.extract(empresa_id, int(task["year"]))
-                    raw_path = RAW_DIR / str(table) / f"{empresa_id}_{task['year']}.json"
+                    raw_path = run_dir / str(table) / f"{empresa_id}_{task['year']}.json"
                     raw_path.parent.mkdir(parents=True, exist_ok=True)
                     raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
                     normalised = PipelineHelper.normalize(rows, int(task["year"]), str(empresa_id), post_process)
@@ -294,8 +304,13 @@ class PipelineRunner:
                     )
                 except Exception as exc:
                     logger.warning("Retry FAILED: %s / %s / %s: %s", listagem, task["empresa"], task["year"], exc)
-                    DataExtractor.log_failed_request(listagem, task["empresa"], int(task["year"]), exc)
+                    DataExtractor.log_failed_request(listagem, task["empresa"], int(task["year"]), exc, run_dir=run_dir)
             return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_dir = Path(f"data/raw_runs/{timestamp}")
+        run_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("Saving raw data to %s", run_dir)
 
         endpoints = ENDPOINT_CONFIGS
         if only:
@@ -327,7 +342,7 @@ class PipelineRunner:
             entities = DatabaseLoader.get_entities(engine)
             for empresa_id, empresa_name in entities.items():
                 for year in years:
-                    raw_path = RAW_DIR / str(table) / f"{empresa_id}_{year}.json"
+                    raw_path = run_dir / str(table) / f"{empresa_id}_{year}.json"
                     try:
                         if raw_only:
                             if not raw_path.exists():
@@ -347,7 +362,7 @@ class PipelineRunner:
                         )
                     except Exception as exc:
                         logger.warning("SKIP %s / %s / %d: %s", listagem, empresa_name, year, exc)
-                        DataExtractor.log_failed_request(listagem, empresa_name, year, exc)
+                        DataExtractor.log_failed_request(listagem, empresa_name, year, exc, run_dir=run_dir)
                     done += 1
 
         set_metadata(engine, "last_extracted_at", datetime.now().isoformat(sep=" ", timespec="seconds"))
