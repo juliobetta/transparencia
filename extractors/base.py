@@ -17,6 +17,7 @@ class EndpointConfig:
     table: str
     key_cols: list[str]
     extra: dict[str, Any]
+    extractor_cls: Any
     post_process: Optional[Callable] = None
 
 
