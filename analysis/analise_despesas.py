@@ -339,28 +339,38 @@ def total_folha_por_orgao(df: pd.DataFrame) -> float:
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def get_analise_intensidade_pessoal(_conn: Any, year: int) -> pd.DataFrame:
+def get_analise_intensidade_pessoal(_conn: Any, years: list[int]) -> pd.DataFrame:
     """
-    Retorna a análise da intensidade de gastos com pessoal por órgão.
-
-    Compara os gastos totais de cada órgão com os gastos específicos de folha de pessoal,
-    calculando a porcentagem que a folha representa no orçamento total de cada órgão.
+    Retorna a análise da intensidade de gastos com pessoal por órgão,
+    utilizando a tabela 'despesas_gerais' para garantir consistência entre
+    o gasto total e o gasto com folha (agrupando por 'ano' e 'nomeempresa').
     """
-    df_total = get_despesas_por_unidade(_conn, year)
-    df_folha = get_folha_por_orgao(_conn, year)
+    query = text("""
+        SELECT 
+            g.ano,
+            COALESCE(u.descricao, 'Outros/Não Identificado') as orgao, 
+            SUM(CAST(NULLIF(REPLACE(REPLACE(g.pago, '.', ''), ',', '.'), '') AS FLOAT)) as gasto_total,
+            SUM(CASE WHEN g.elemento = :elemento_folha THEN CAST(NULLIF(REPLACE(REPLACE(g.pago, '.', ''), ',', '.'), '') AS FLOAT) ELSE 0 END) as gasto_folha
+        FROM despesas_gerais g
+        LEFT JOIN despesas_por_unidade u 
+            ON g.ano = u.ano 
+            AND g.codlo = u.codigo
+        WHERE g.ano IN :anos
+        GROUP BY g.ano, u.descricao
+    """)
+    df = pd.read_sql_query(query, _conn, params={"anos": tuple(years), "elemento_folha": ELEMENTO_FOLHA_PESSOAL})
 
-    df = df_total.merge(df_folha, on="descricao", how="left", suffixes=("", "_folha"))
-    df = df.rename(
-        columns={
-            "descricao": "orgao",
-            "pago": "gasto_total",
-            "pago_folha": "gasto_folha",
-        }
-    )
+    if df.empty:
+        return pd.DataFrame(columns=["ano", "orgao", "gasto_total", "gasto_folha", "pct_folha"])
+
+    df["gasto_total"] = df["gasto_total"].fillna(0)
     df["gasto_folha"] = df["gasto_folha"].fillna(0)
-    df["pct_folha"] = (df["gasto_folha"] / df["gasto_total"] * 100).fillna(0)
+    df["pct_folha"] = (df["gasto_folha"] / df["gasto_total"] * 100).where(df["gasto_total"] > 0, 0)
 
-    return df[["orgao", "gasto_total", "gasto_folha", "pct_folha"]]
+    # Filtra linhas onde não há gasto total nem folha (se houver)
+    df = df[(df["gasto_total"] > 0) | (df["gasto_folha"] > 0)]
+
+    return df.sort_values(["ano", "pct_folha"], ascending=[True, False])
 
 
 def get_metricas_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
@@ -377,3 +387,41 @@ def get_resumo_diarias_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
 
 def total_folha_orgao_por_ano(conn: Any, years: list[int]) -> dict[int, float]:
     return {year: total_folha_por_orgao(get_folha_por_orgao(conn, year)) for year in years}
+
+
+def get_perfil_cargos_confianca(conn: Any, years: list[int]) -> pd.DataFrame:
+    """
+    Retorna o perfil dos cargos de confiança da prefeitura categorizados por vínculo e categoria funcional.
+    """
+    query = text("SELECT ano, vinculo, categoriafuncional, proventos FROM pessoal WHERE ano IN :anos")
+    df = pd.read_sql_query(query, conn, params={"anos": tuple(years)})
+
+    if df.empty:
+        return pd.DataFrame(columns=["ano", "categoria", "total_provento"])
+
+    df["proventos"] = pd.to_numeric(df["proventos"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+
+    def classify(row):
+        v = str(row["vinculo"]).strip().lower()
+        c = str(row["categoriafuncional"]).strip().lower()
+
+        if "comissionado" in v and "efetivo" not in v:
+            return "Comissionado Externo Sem Vínculo (Pure DAS)"
+        elif "efetivo" in v and ("dai" in c or "fg" in c):
+            return "Servidor Efetivo com Função de Confiança (DAI/FG)"
+        elif "efetivo" in v and ("das" in c or "cc" in c):
+            return "Servidor Efetivo com Cargo Comissionado (DAS/CC)"
+        elif "efetivo" in v:
+            return "Servidor Efetivo de Carreira"
+        elif "temporario" in v or "contrato" in v:
+            return "Contrato Temporário"
+        elif "politico" in v or "eletivo" in v:
+            return "Agente Político (Eletivo)"
+        return "Outros"
+
+    df["categoria"] = df.apply(classify, axis=1)
+    return (
+        df.groupby(["ano", "categoria"], as_index=False)["proventos"]
+        .sum()
+        .rename(columns={"proventos": "total_provento"})
+    )

@@ -44,8 +44,8 @@ def _folha_orgao_por_ano(conn, years, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _analise_intensidade_pessoal(conn, year, _extracted_at):
-    return get_analise_intensidade_pessoal(conn, year)
+def _analise_intensidade_pessoal(conn, years, _extracted_at):
+    return get_analise_intensidade_pessoal(conn, list(years))
 
 
 conn = get_conn()
@@ -204,24 +204,56 @@ st.info(
     icon=":material/info:",
 )
 
-df_intensidade = _analise_intensidade_pessoal(conn, year, _extracted_at)
+df_intensidade = _analise_intensidade_pessoal(conn, _all_years, _extracted_at)
+
 if not df_intensidade.empty:
-    fig_intensidade = px.bar(
-        df_intensidade.sort_values("pct_folha", ascending=True),
-        x="pct_folha",
-        y="orgao",
-        orientation="h",
-        title=f"Porcentagem do Orçamento comprometida com Folha ({year})",
-        labels={"pct_folha": "% do Orçamento", "orgao": "Órgão"},
+    df_plot = df_intensidade.copy()
+
+    # Garante a ordenação cronológica e trata 'ano' como texto para evitar eixos numéricos contínuos (binning/2027)
+    df_plot["ano_str"] = df_plot["ano"].astype(str)
+    df_plot = df_plot.sort_values(["orgao", "ano"])
+
+    fig_intensidade = px.line(
+        df_plot,
+        x="ano",
+        y="pct_folha",
+        color="orgao",
+        title="Evolução da % do Orçamento comprometida com Folha por Órgão",
+        labels={"pct_folha": "% do Orçamento", "orgao": "Órgão", "ano": "Ano"},
+        markers=True,
+        custom_data=["orgao", "gasto_total", "gasto_folha"],
+    )
+
+    # Tooltip customizado em português sem somas incorretas
+    fig_intensidade.update_traces(
+        hovertemplate="<b>%{customdata[0]}</b><br>"
+        + "Ano: %{x}<br>"
+        + "Gasto Total: R$ %{customdata[1]:,.2f}<br>"
+        + "Gasto Folha: R$ %{customdata[2]:,.2f}<br>"
+        + "Intensidade (Folha/Total): %{y:.2f}%"
+    )
+
+    fig_intensidade.update_layout(
+        xaxis=dict(title="Ano", tickmode="linear", dtick=1),
+        yaxis=dict(title="% do Orçamento com Pessoal", ticksuffix="%"),
     )
     st.plotly_chart(fig_intensidade, use_container_width=True)
 
-    st.dataframe(
-        df_intensidade.sort_values("pct_folha", ascending=False).style.format(
-            {"gasto_total": "R$ {:,.2f}", "gasto_folha": "R$ {:,.2f}", "pct_folha": "{:.2f}%"}
-        ),
-        use_container_width=True,
-    )
+    st.write(f"### Detalhes do Exercício ({year})")
+    df_ano = df_intensidade[df_intensidade["ano"] == year].copy()
+    if not df_ano.empty:
+        df_table = df_ano[["orgao", "gasto_total", "gasto_folha", "pct_folha"]].copy()
+        df_table.columns = ["Órgão", "Gasto Total", "Gasto com Folha", "% do Orçamento"]
+
+        st.dataframe(
+            df_table.sort_values("% do Orçamento", ascending=False).style.format(
+                {"Gasto Total": "R$ {:,.2f}", "Gasto com Folha": "R$ {:,.2f}", "% do Orçamento": "{:.2f}%"}
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info(f"Sem dados detalhados disponíveis para o ano de {year}.")
 else:
     st.info("Dados de intensidade não disponíveis para este exercício.")
 
