@@ -230,6 +230,7 @@ def test_get_analise_intensidade_pessoal(conn):
                 "empresa": "7",
                 "numero": "20",
                 "nomeempresa": "Saude",
+                "nomefor": "Saude",
                 "codlo": "1",
                 "elemento": "11",  # 11 é ELEMENTO_FOLHA_PESSOAL
                 "pago": "1000",
@@ -238,7 +239,7 @@ def test_get_analise_intensidade_pessoal(conn):
         ["ano", "empresa", "numero"],
     )
 
-    df = get_analise_intensidade_pessoal(conn, [2026])
+    df = get_analise_intensidade_pessoal(conn, 2026)
 
     assert "orgao" in df.columns
     assert "gasto_total" in df.columns
