@@ -6,7 +6,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import SPARK_CFG, get_conn, get_data_extracao, pct_delta, render_sidebar, sparkline
+from shared import (
+    ANO_ATUAL,
+    SPARK_CFG,
+    get_conn,
+    get_data_extracao,
+    pct_delta,
+    render_aviso_ano_parcial,
+    render_sidebar,
+    sparkline,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -82,6 +91,9 @@ _adesao_ext_serie = [_hist_adesao_ext[y] for y in _anos]
 
 st.header("Licitações e Contratos")
 
+if year == ANO_ATUAL:
+    render_aviso_ano_parcial(year, _extracted_at)
+
 _limite_fmt = f"R$ {THRESHOLD_COMPRAS_SERVICOS:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 st.info(
     "Contratos sem processo licitatório são comuns e frequentemente legais — dispensas de baixo valor "
@@ -96,8 +108,8 @@ with c1:
     st.metric(
         f"Acima do limite legal ({_limite_fmt})",
         len(acima),
-        delta=pct_delta(_acima_serie),
-        delta_color="inverse",
+        delta=pct_delta(_acima_serie) if year != ANO_ATUAL else "—",
+        delta_color="inverse" if year != ANO_ATUAL else "off",
         help=(
             f"Número de contratos firmados sem licitação cujo valor ultrapassa {_limite_fmt} — "
             "o teto legal para dispensa em compras e serviços gerais (Decreto nº 12.807/2025). "
@@ -112,8 +124,8 @@ with c2:
     st.metric(
         "Total sem processo licitatório",
         len(lacunas),
-        delta=pct_delta(_totals_serie),
-        delta_color="inverse",
+        delta=pct_delta(_totals_serie) if year != ANO_ATUAL else "—",
+        delta_color="inverse" if year != ANO_ATUAL else "off",
         help=(
             "Total de contratos identificados sem número de licitação associado. Nem todos são "
             "irregulares — a lei permite contratação direta por dispensa (baixo valor, emergência) "
@@ -128,8 +140,8 @@ with c3:
     st.metric(
         "Adesões de Ata (licitações)",
         _hist_adesao[year],
-        delta=pct_delta(_adesao_serie),
-        delta_color="inverse",
+        delta=pct_delta(_adesao_serie) if year != ANO_ATUAL else "—",
+        delta_color="inverse" if year != ANO_ATUAL else "off",
         help=(
             "Quantidade de contratos firmados por adesão à Ata de Registro de Preços — mecanismo "
             "em que a prefeitura aproveita uma licitação já realizada por ela mesma para novas "
@@ -144,8 +156,8 @@ with c4:
     st.metric(
         "Empenhos via Ata Externa",
         adesao_externa["quantidade"],
-        delta=pct_delta(_adesao_ext_serie),
-        delta_color="inverse",
+        delta=pct_delta(_adesao_ext_serie) if year != ANO_ATUAL else "—",
+        delta_color="inverse" if year != ANO_ATUAL else "off",
         help=(
             "Empenhos identificados como 'carona em ata' — a prefeitura utilizou uma Ata de "
             "Registro de Preços aberta por outro ente público (outro município, estado ou órgão "

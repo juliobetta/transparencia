@@ -92,7 +92,8 @@ if not df_ano.empty:
             st.metric(
                 "Total Arrecadado Real",
                 fmt_currency(row["total_arrecadado"]),
-                delta=pct_delta(_total_serie),
+                delta="—",
+                delta_color="off",
                 help=(
                     "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
                     "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
