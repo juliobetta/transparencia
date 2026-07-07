@@ -334,6 +334,24 @@ def total_folha_por_orgao(df: pd.DataFrame) -> float:
     return float(df["pago"].sum()) if not df.empty else 0.0
 
 
+def get_analise_intensidade_pessoal(conn: Any, year: int) -> pd.DataFrame:
+    df_total = get_despesas_por_unidade(conn, year)
+    df_folha = get_folha_por_orgao(conn, year)
+
+    df = df_total.merge(df_folha, on="descricao", how="left", suffixes=("", "_folha"))
+    df = df.rename(
+        columns={
+            "descricao": "orgao",
+            "pago": "gasto_total",
+            "pago_folha": "gasto_folha",
+        }
+    )
+    df["gasto_folha"] = df["gasto_folha"].fillna(0)
+    df["pct_folha"] = (df["gasto_folha"] / df["gasto_total"] * 100).fillna(0)
+
+    return df[["orgao", "gasto_total", "gasto_folha", "pct_folha"]]
+
+
 def get_metricas_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
     return {year: get_metricas_gerais_despesas(conn, year) for year in years}
 

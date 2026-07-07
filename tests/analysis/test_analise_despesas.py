@@ -2,6 +2,7 @@ import pytest
 
 import db
 from analysis.analise_despesas import (
+    get_analise_intensidade_pessoal,
     get_despesas_por_unidade,
     get_impacto_gastos_locais,
     get_impacto_por_ano,
@@ -204,3 +205,38 @@ def test_total_folha_orgao_por_ano(conn):
     result = total_folha_orgao_por_ano(conn, [2026])
     assert 2026 in result
     assert isinstance(result[2026], float)
+
+
+def test_get_analise_intensidade_pessoal(conn):
+    # Inserir dados de folha para teste
+    import db
+
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "numero": "20",
+                "nomefor": "Saude",
+                "elemento": "11",  # 11 é ELEMENTO_FOLHA_PESSOAL
+                "pago": "1000",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
+
+    df = get_analise_intensidade_pessoal(conn, 2026)
+
+    assert "orgao" in df.columns
+    assert "gasto_total" in df.columns
+    assert "gasto_folha" in df.columns
+    assert "pct_folha" in df.columns
+    assert not df.empty
+
+    # Saude: gasto_total = 7000 (do fixture), gasto_folha = 1000
+    saude = df[df["orgao"] == "Saude"].iloc[0]
+    assert saude["gasto_total"] == 7000.0
+    assert saude["gasto_folha"] == 1000.0
+    assert saude["pct_folha"] == pytest.approx(1000 / 7000 * 100, rel=0.01)
