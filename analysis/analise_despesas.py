@@ -331,6 +331,7 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
     if df.empty:
         return pd.DataFrame(columns=["data", "servidor", "cargo", "valor", "unidade", "historico"])
     df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     return df
 
 
