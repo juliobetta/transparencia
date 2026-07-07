@@ -2,11 +2,13 @@ import pytest
 
 import db
 from analysis.analise_despesas import (
+    get_analise_intensidade_pessoal,
     get_despesas_por_unidade,
     get_impacto_gastos_locais,
     get_impacto_por_ano,
     get_metricas_gerais_despesas,
     get_metricas_por_ano,
+    get_perfil_cargos_confianca,
     get_principais_beneficiarios_diarias,
     get_principais_fornecedores_detalhados,
     get_resumo_diarias,
@@ -204,3 +206,100 @@ def test_total_folha_orgao_por_ano(conn):
     result = total_folha_orgao_por_ano(conn, [2026])
     assert 2026 in result
     assert isinstance(result[2026], float)
+
+
+def test_get_analise_intensidade_pessoal(conn):
+    # Inserir dados de despesas gerais para teste
+    import db
+
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "numero": "10",
+                "nomeempresa": "Saude",
+                "codlo": "1",  # Correspondente ao código da 'Saude' em despesas_por_unidade
+                "elemento": "30",
+                "pago": "6000",
+            },
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "numero": "20",
+                "nomeempresa": "Saude",
+                "nomefor": "Saude",
+                "codlo": "1",
+                "elemento": "11",  # 11 é ELEMENTO_FOLHA_PESSOAL
+                "pago": "1000",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
+
+    df = get_analise_intensidade_pessoal(conn, 2026)
+
+    assert "orgao" in df.columns
+    assert "gasto_total" in df.columns
+    assert "gasto_folha" in df.columns
+    assert "pct_folha" in df.columns
+    assert not df.empty
+
+    # Saude: gasto_total = 6000 (elemento 30) + 1000 (elemento 11) = 7000, gasto_folha = 1000
+    saude = df[df["orgao"] == "Saude"].iloc[0]
+    assert saude["gasto_total"] == 7000.0
+    assert saude["gasto_folha"] == 1000.0
+    assert saude["pct_folha"] == pytest.approx(1000 / 7000 * 100, rel=0.01)
+
+
+def test_get_perfil_cargos_confianca(conn):
+    # Inserir dados na tabela pessoal para teste
+    import db
+
+    db.upsert(
+        conn,
+        "pessoal",
+        [
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "mes": "01",
+                "matricula": "M1",
+                "vinculo": "Efetivo",
+                "categoriafuncional": "Efetivos",
+                "proventos": "5000",
+            },
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "mes": "01",
+                "matricula": "M2",
+                "vinculo": "Comissionado",
+                "categoriafuncional": "Cargo comissionado extra-quadro",
+                "proventos": "3000",
+            },
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "mes": "01",
+                "matricula": "M3",
+                "vinculo": "Regime Juridico Unico C FG",
+                "categoriafuncional": "Efetivos",
+                "proventos": "2000",
+            },
+        ],
+        ["ano", "empresa", "mes", "matricula"],
+    )
+
+    df = get_perfil_cargos_confianca(conn, [2026])
+
+    assert not df.empty
+    assert "tipo_vinculo_detalhado" in df.columns
+    assert "total_gasto" in df.columns
+    assert "quantidade" in df.columns
+    # Verificar categorias
+    assert "Servidor Efetivo de Carreira" in df["tipo_vinculo_detalhado"].values
+    assert "Comissionado Externo (DAS/CC - Sem Vínculo)" in df["tipo_vinculo_detalhado"].values
+    assert "Servidor Efetivo com Função de Confiança (DAI/FG)" in df["tipo_vinculo_detalhado"].values

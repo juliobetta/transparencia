@@ -2,7 +2,9 @@ import unicodedata
 from typing import Any
 
 import pandas as pd
+import streamlit as st
 from sqlalchemy import bindparam, text
+from sqlalchemy.engine import Engine
 
 from analysis.constants import (
     DESPESAS_MAP,
@@ -11,6 +13,8 @@ from analysis.constants import (
     FORNECEDORES_NATUREZA_MAP,
 )
 from dashboard.shared import CIDADE_CLEAN
+
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 # Folha de pessoal distribuída via responsáveis de unidade — não por fornecedores individuais
 
@@ -334,6 +338,31 @@ def total_folha_por_orgao(df: pd.DataFrame) -> float:
     return float(df["pago"].sum()) if not df.empty else 0.0
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def get_analise_intensidade_pessoal(_conn: Any, year: int) -> pd.DataFrame:
+    """
+    Retorna a análise da intensidade de gastos com pessoal por órgão.
+
+    Compara os gastos totais de cada órgão com os gastos específicos de folha de pessoal,
+    calculando a porcentagem que a folha representa no orçamento total de cada órgão.
+    """
+    df_total = get_despesas_por_unidade(_conn, year)
+    df_folha = get_folha_por_orgao(_conn, year)
+
+    df = df_total.merge(df_folha, on="descricao", how="left", suffixes=("", "_folha"))
+    df = df.rename(
+        columns={
+            "descricao": "orgao",
+            "pago": "gasto_total",
+            "pago_folha": "gasto_folha",
+        }
+    )
+    df["gasto_folha"] = df["gasto_folha"].fillna(0)
+    df["pct_folha"] = (df["gasto_folha"] / df["gasto_total"] * 100).fillna(0)
+
+    return df[["orgao", "gasto_total", "gasto_folha", "pct_folha"]]
+
+
 def get_metricas_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
     return {year: get_metricas_gerais_despesas(conn, year) for year in years}
 
@@ -348,3 +377,36 @@ def get_resumo_diarias_por_ano(conn: Any, years: list[int]) -> dict[int, dict]:
 
 def total_folha_orgao_por_ano(conn: Any, years: list[int]) -> dict[int, float]:
     return {year: total_folha_por_orgao(get_folha_por_orgao(conn, year)) for year in years}
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def get_perfil_cargos_confianca(_conn: Any, years: list[int]) -> pd.DataFrame:
+    """
+    Retorna o perfil dos cargos de confiança da prefeitura categorizados por vínculo e categoria funcional.
+    """
+    query = text("""
+        SELECT
+            ano,
+            CASE
+                WHEN LOWER(categoriafuncional) LIKE '%inativo%' OR LOWER(categoriafuncional) LIKE '%pensionista%' OR LOWER(vinculo) LIKE '%inativo%' OR LOWER(vinculo) LIKE '%pensionista%' THEN 'Inativos e Pensionistas'
+                WHEN LOWER(cargo) LIKE '%conselheiro%' OR LOWER(categoriafuncional) LIKE '%cedido%' OR LOWER(vinculo) LIKE '%cedido%' OR LOWER(vinculo) IN ('macaeprev', 'macaeprev i', 'funprev', 'funprev active', 'rppsi', 'rpps active') THEN 'Conselhos e Cedidos Externos'
+                WHEN vinculo LIKE '%FG%' THEN 'Servidor Efetivo com Função de Confiança (DAI/FG)'
+                WHEN vinculo LIKE '%CC%' OR categoriafuncional = 'Efetivos ocupantes de cargo comissionado' THEN 'Servidor Efetivo com Cargo Comissionado (DAS/CC)'
+                WHEN categoriafuncional = 'Cargo comissionado extra-quadro' OR vinculo = 'Comissionado INSS' OR LOWER(vinculo) LIKE 'cargo comissionado%' THEN 'Comissionado Externo (DAS/CC - Sem Vínculo)'
+                WHEN formaprovimento = 'CONCURSO PUBLICO' OR categoriafuncional = 'Efetivos' THEN 'Servidor Efetivo de Carreira'
+                WHEN formaprovimento = 'TEMPO DETERMINADO' OR categoriafuncional LIKE '%interesse público%' THEN 'Contrato Temporário'
+                WHEN categoriafuncional = 'Eletivos' OR LOWER(cargo) LIKE '%prefeito%' OR LOWER(cargo) LIKE '%vereador%' OR LOWER(cargo) LIKE '%secretario%' OR LOWER(vinculo) LIKE '%politico%' THEN 'Agente Político (Eletivo/Secretário)'
+                ELSE 'Outros'
+            END as tipo_vinculo_detalhado,
+            COUNT(*) as quantidade,
+            SUM(CAST(NULLIF(REPLACE(REPLACE(proventos, '.', ''), ',', '.'), '') AS FLOAT)) as total_gasto
+        FROM pessoal
+        WHERE ano IN :anos
+        GROUP BY ano, tipo_vinculo_detalhado
+    """)
+    df = pd.read_sql_query(query, _conn, params={"anos": tuple(years)})
+
+    if df.empty:
+        return pd.DataFrame(columns=["ano", "tipo_vinculo_detalhado", "quantidade", "total_gasto"])
+
+    return df
