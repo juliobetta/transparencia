@@ -22,7 +22,7 @@ from sqlalchemy.engine import Engine
 
 import glossary
 from analysis import analise_despesas, folha_vs_servicos
-from analysis.analise_despesas import total_folha_por_orgao
+from analysis.analise_despesas import get_analise_intensidade_pessoal, total_folha_por_orgao
 from analysis.constants import LRF_PESSOAL_LIMITE_ALERTA, LRF_PESSOAL_LIMITE_LEGAL, LRF_PESSOAL_LIMITE_PRUDENCIAL
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -41,6 +41,11 @@ def _folha_por_departamento(conn, year, _extracted_at):
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _folha_orgao_por_ano(conn, years, _extracted_at):
     return analise_despesas.total_folha_orgao_por_ano(conn, list(years))
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _analise_intensidade_pessoal(conn, year, _extracted_at):
+    return get_analise_intensidade_pessoal(conn, year)
 
 
 conn = get_conn()
@@ -188,5 +193,36 @@ if not df_departamentos.empty:
     st.plotly_chart(fig_departamentos, use_container_width=True)
 else:
     st.info("Nenhum pagamento deste tipo registrado para este exercício.")
+
+st.divider()
+
+# Intensidade de Pessoal por Órgão
+st.subheader("Intensidade de Gastos com Pessoal")
+st.info(
+    "Compara o gasto total de cada órgão com os gastos específicos de folha de pessoal, "
+    "calculando a porcentagem que a folha representa no orçamento total.",
+    icon=":material/info:",
+)
+
+df_intensidade = _analise_intensidade_pessoal(conn, year, _extracted_at)
+if not df_intensidade.empty:
+    fig_intensidade = px.bar(
+        df_intensidade.sort_values("pct_folha", ascending=True),
+        x="pct_folha",
+        y="orgao",
+        orientation="h",
+        title=f"Porcentagem do Orçamento comprometida com Folha ({year})",
+        labels={"pct_folha": "% do Orçamento", "orgao": "Órgão"},
+    )
+    st.plotly_chart(fig_intensidade, use_container_width=True)
+
+    st.dataframe(
+        df_intensidade.sort_values("pct_folha", ascending=False).style.format(
+            {"gasto_total": "R$ {:,.2f}", "gasto_folha": "R$ {:,.2f}", "pct_folha": "{:.2f}%"}
+        ),
+        use_container_width=True,
+    )
+else:
+    st.info("Dados de intensidade não disponíveis para este exercício.")
 
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
