@@ -31,7 +31,7 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _folha_pagamento(conn, year, _extracted_at):
-    return folha_vs_servicos.run(conn, list(range(2022, year + 1)))
+    return folha_vs_servicos.run(conn, list(range(ANOS[0], year + 1)))
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -61,24 +61,34 @@ st.caption(
 )
 
 if year == ANO_ATUAL:
-    render_aviso_ano_parcial(year, _extracted_at)
+    render_aviso_ano_parcial(
+        year,
+        _extracted_at,
+        extra_html="<br>Os índices percentuais de folha podem oscilar devido à sazonalidade "
+        "(ex: 13º salário e terço de férias não contabilizados proporcionalmente).",
+    )
 
-df_folha = _folha_pagamento(conn, year, _extracted_at)
 _all_years = list(range(2022, year + 1))
 _anos = _all_years
 _hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), _extracted_at)
 _folha_orgao_serie = [_hist_folha_orgao[y] for y in _anos]
+
+df_folha = _folha_pagamento(conn, year, _extracted_at)
+df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
+df_departamentos = _folha_por_departamento(conn, year, _extracted_at)
+
+kf1, kf2, kf3 = st.columns(3)
+
 if not df_folha.empty:
     _pct_serie = df_folha["percentual_folha"].tolist()
     _anos_folha = df_folha["ano"].tolist()
     _pct_atual = float(df_folha.iloc[-1]["percentual_folha"])
-    kf1, _ = st.columns([1, 3])
     with kf1:
         st.metric(
             "Folha / Receita Arrecadada",
             f"{_pct_atual:.1f}%",
-            delta=pct_delta(_pct_serie),
-            delta_color="inverse",
+            delta=pct_delta(_pct_serie) if year != ANO_ATUAL else "—",
+            delta_color="inverse" if year != ANO_ATUAL else "off",
             help="Percentual da receita arrecadada comprometido com folha de pessoal (proventos brutos).",
         )
         st.plotly_chart(
@@ -87,6 +97,60 @@ if not df_folha.empty:
             config=SPARK_CFG,
             key="spark_pes_pct",
         )
+
+    # Calcular série histórica do percentual de efetivos no comando (até o ano selecionado)
+    _series_pct_efetivos = []
+    _anos_cargos_serie = []
+    for y in sorted(df_cargos["ano"].unique()):
+        if y > year:
+            continue
+        df_y = df_cargos[df_cargos["ano"] == y]
+        qty_map_y = df_y.set_index("tipo_vinculo_detalhado")["quantidade"].to_dict()
+
+        efetivos_confianca = qty_map_y.get("Servidor Efetivo com Função de Confiança (DAI/FG)", 0) + qty_map_y.get(
+            "Servidor Efetivo com Cargo Comissionado (DAS/CC)", 0
+        )
+        comissionados_externos = qty_map_y.get("Comissionado Externo (DAS/CC - Sem Vínculo)", 0)
+        total_confianca = efetivos_confianca + comissionados_externos
+
+        pct_y = (efetivos_confianca / total_confianca * 100) if total_confianca > 0 else 0.0
+        _series_pct_efetivos.append(pct_y)
+        _anos_cargos_serie.append(y)
+
+    _pct_atual = _series_pct_efetivos[-1] if _series_pct_efetivos else 0.0
+    _delta_val = pct_delta(_series_pct_efetivos)
+
+    with kf2:
+        st.metric(
+            label="Efetivos no Comando das Chefias",
+            value=f"{_pct_atual:.1f}%",
+            delta=_delta_val,
+            help="Percentual de cargos de liderança e assessoramento (DAS/DAI) que são ocupados por servidores concursados (de carreira). Quanto maior este percentual, mais técnica e profissionalizada é a gestão pública.",
+        )
+        if len(_series_pct_efetivos) > 1:
+            st.plotly_chart(
+                sparkline(_anos_cargos_serie, _series_pct_efetivos, "#2196F3"),
+                use_container_width=True,
+                config=SPARK_CFG,
+                key="spark_cargos_confianca",
+            )
+
+    _total_folha_atual = total_folha_por_orgao(df_departamentos)
+
+    with kf3:
+        st.metric(
+            "Total distribuído via responsáveis",
+            fmt_currency(_total_folha_atual),
+            delta=pct_delta(_folha_orgao_serie) if year != ANO_ATUAL else "—",
+            delta_color="off",
+        )
+        st.plotly_chart(
+            sparkline(_anos, _folha_orgao_serie, "#607D8B"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pes_folha_orgao",
+        )
+
     fig = px.bar(
         df_folha,
         x="ano",
@@ -147,96 +211,10 @@ if not df_pessoal.empty:
     st.plotly_chart(fig_histograma, width="stretch")
 else:
     st.info("Dados de proventos não disponíveis para este exercício.")
-st.divider()
-st.subheader("Pagamentos via Responsáveis de Secretaria")
-st.info(
-    """
-    **Por que uma pessoa aparece recebendo milhões de reais?**
-
-    No Brasil, é prática comum em municípios que o ordenador de despesas de cada secretaria
-    (o responsável pelo departamento) receba o montante total da folha de pagamento em seu CPF
-    e o distribua entre os servidores da unidade. O sufixo **"E OUTROS"** no nome indica
-    exatamente isso: o valor não é de uso pessoal — representa salários de toda a equipe.
-
-    Esses pagamentos são **excluídos da análise de Fornecedores e Compras Locais** para não
-    distorcer os índices de concentração e compras locais.
-    """,
-    icon=":material/info:",
-)
-
-df_departamentos = _folha_por_departamento(conn, year, _extracted_at)
-if not df_departamentos.empty:
-    _total_folha_atual = total_folha_por_orgao(df_departamentos)
-    kp1, _ = st.columns([1, 3])
-    with kp1:
-        st.metric(
-            "Total distribuído via responsáveis",
-            fmt_currency(_total_folha_atual),
-            delta=pct_delta(_folha_orgao_serie),
-            delta_color="off",
-        )
-        st.plotly_chart(
-            sparkline(_anos, _folha_orgao_serie, "#607D8B"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_pes_folha_orgao",
-        )
-
-    fig_departamentos = px.bar(
-        df_departamentos,
-        x="pago",
-        y="descricao",
-        orientation="h",
-        title=f"Folha distribuída por responsável ({year})",
-        labels={"pago": "Total Pago (R$)", "descricao": "Responsável"},
-    )
-    fig_departamentos.update_layout(yaxis={"categoryorder": "total ascending"})
-    st.plotly_chart(fig_departamentos, use_container_width=True)
-else:
-    st.info("Nenhum pagamento deste tipo registrado para este exercício.")
 
 st.divider()
 st.subheader("Perfil de Cargos de Confiança")
-df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
 if not df_cargos.empty:
-    # Calcular série histórica do percentual de efetivos no comando (2022 até o ano selecionado)
-    _series_pct_efetivos = []
-    _anos_cargos_serie = []
-    for y in sorted(df_cargos["ano"].unique()):
-        if y > year:
-            continue
-        df_y = df_cargos[df_cargos["ano"] == y]
-        qty_map_y = df_y.set_index("tipo_vinculo_detalhado")["quantidade"].to_dict()
-
-        efetivos_confianca = qty_map_y.get("Servidor Efetivo com Função de Confiança (DAI/FG)", 0) + qty_map_y.get(
-            "Servidor Efetivo com Cargo Comissionado (DAS/CC)", 0
-        )
-        comissionados_externos = qty_map_y.get("Comissionado Externo (DAS/CC - Sem Vínculo)", 0)
-        total_confianca = efetivos_confianca + comissionados_externos
-
-        pct_y = (efetivos_confianca / total_confianca * 100) if total_confianca > 0 else 0.0
-        _series_pct_efetivos.append(pct_y)
-        _anos_cargos_serie.append(y)
-
-    _pct_atual = _series_pct_efetivos[-1] if _series_pct_efetivos else 0.0
-    _delta_val = pct_delta(_series_pct_efetivos)
-
-    kpi_col, _ = st.columns([1, 3])
-    with kpi_col:
-        st.metric(
-            label="Efetivos no Comando das Chefias",
-            value=f"{_pct_atual:.1f}%",
-            delta=_delta_val,
-            help="Percentual de cargos de liderança e assessoramento (DAS/DAI) que são ocupados por servidores concursados (de carreira). Quanto maior este percentual, mais técnica e profissionalizada é a gestão pública.",
-        )
-        if len(_series_pct_efetivos) > 1:
-            st.plotly_chart(
-                sparkline(_anos_cargos_serie, _series_pct_efetivos, "#2196F3"),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_cargos_confianca",
-            )
-
     fig_cargos = px.area(
         df_cargos.sort_values("ano"),
         x="ano",
@@ -302,6 +280,37 @@ if not df_cargos.empty:
             """)
 else:
     st.info("Dados de cargos de confiança não disponíveis.")
+
+st.divider()
+st.subheader("Pagamentos via Responsáveis de Secretaria")
+st.info(
+    """
+    **Por que uma pessoa aparece recebendo milhões de reais?**
+
+    No Brasil, é prática comum em municípios que o ordenador de despesas de cada secretaria
+    (o responsável pelo departamento) receba o montante total da folha de pagamento em seu CPF
+    e o distribua entre os servidores da unidade. O sufixo **"E OUTROS"** no nome indica
+    exatamente isso: o valor não é de uso pessoal — representa salários de toda a equipe.
+
+    Esses pagamentos são **excluídos da análise de Fornecedores e Compras Locais** para não
+    distorcer os índices de concentração e compras locais.
+    """,
+    icon=":material/info:",
+)
+
+if not df_departamentos.empty:
+    fig_departamentos = px.bar(
+        df_departamentos,
+        x="pago",
+        y="descricao",
+        orientation="h",
+        title=f"Folha distribuída por responsável ({year})",
+        labels={"pago": "Total Pago (R$)", "descricao": "Responsável"},
+    )
+    fig_departamentos.update_layout(yaxis={"categoryorder": "total ascending"})
+    st.plotly_chart(fig_departamentos, use_container_width=True)
+else:
+    st.info("Nenhum pagamento deste tipo registrado para este exercício.")
 
 st.divider()
 
