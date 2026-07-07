@@ -127,7 +127,9 @@ with c1:
     st.metric(
         "Total Pago",
         fmt_compact(total_gasto),
-        delta=f"{delta_gasto:+.1f}%" if delta_gasto is not None and not pd.isna(delta_gasto) else None,
+        delta=f"{delta_gasto:+.1f}%"
+        if year != ANO_ATUAL and delta_gasto is not None and not pd.isna(delta_gasto)
+        else None,
         delta_color="off",
         help="Valor total liquidado e pago.",
     )
@@ -153,7 +155,9 @@ with c2:
         st.metric(
             label,
             fmt_compact(float(rev_val)),
-            delta=f"{delta_rec:+.1f}%" if delta_rec is not None and not pd.isna(delta_rec) else None,
+            delta=f"{delta_rec:+.1f}%"
+            if year != ANO_ATUAL and delta_rec is not None and not pd.isna(delta_rec)
+            else None,
             help=help_text,
         )
         st.plotly_chart(
@@ -169,8 +173,10 @@ with c3:
         st.metric(
             "Folha / Total Pago",
             fmt_percent(folha.iloc[0]["percentual_folha"]),
-            delta=f"{delta_folha:+.1f}%" if delta_folha is not None and not pd.isna(delta_folha) else None,
-            delta_color="inverse",
+            delta=f"{delta_folha:+.1f}%"
+            if year != ANO_ATUAL and delta_folha is not None and not pd.isna(delta_folha)
+            else None,
+            delta_color="inverse" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
             sparkline(anos, yoy["total_folha"].tolist(), "#FF9800"),
@@ -185,7 +191,9 @@ with c4:
     st.metric(
         "Restos Pagos",
         fmt_compact(restos),
-        delta=f"{delta_restos:+.1f}%" if delta_restos is not None and not pd.isna(delta_restos) else None,
+        delta=f"{delta_restos:+.1f}%"
+        if year != ANO_ATUAL and delta_restos is not None and not pd.isna(delta_restos)
+        else None,
         delta_color="off",
         help="Restos a pagar efetivamente pagos no ano.",
     )

@@ -9,12 +9,14 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import (
+    ANO_ATUAL,
     SPARK_CFG,
     fmt_compact,
     fmt_currency,
     get_conn,
     get_data_extracao,
     pct_delta,
+    render_aviso_ano_parcial,
     render_sidebar,
     sparkline,
 )
@@ -43,6 +45,9 @@ _extracted_at = get_data_extracao(conn)
 st.title("Execução Orçamentária por Órgão")
 st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
 
+if year == ANO_ATUAL:
+    render_aviso_ano_parcial(year, _extracted_at)
+
 df_orcamento = _orcamento(conn, year, _extracted_at)
 totais = execucao_orcamentaria.summarize(df_orcamento)
 
@@ -70,7 +75,7 @@ with c2:
     st.metric(
         "Total Empenhado",
         fmt_compact(totais["total_empenhado"]),
-        delta=pct_delta(_empenhado_serie),
+        delta=pct_delta(_empenhado_serie) if year != ANO_ATUAL else "—",
         delta_color="off",
         help=glossary.tooltip("Empenho"),
     )
@@ -84,7 +89,7 @@ with c3:
     st.metric(
         "Total Liquidado",
         fmt_compact(totais["total_liquidado"]),
-        delta=pct_delta(_liquidado_serie),
+        delta=pct_delta(_liquidado_serie) if year != ANO_ATUAL else "—",
         delta_color="off",
         help=glossary.tooltip("Liquidação"),
     )
@@ -98,7 +103,7 @@ with c4:
     st.metric(
         "Total Pago",
         fmt_compact(totais["total_pago"]),
-        delta=pct_delta(_pago_serie),
+        delta=pct_delta(_pago_serie) if year != ANO_ATUAL else "—",
         delta_color="off",
         help=glossary.tooltip("Pagamento"),
     )

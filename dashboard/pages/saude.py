@@ -10,12 +10,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import plotly.express as px
 import streamlit as st
 from shared import (
+    ANO_ATUAL,
     SPARK_CFG,
     fmt_compact,
     fmt_currency,
     get_conn,
     get_data_extracao,
     pct_delta,
+    render_aviso_ano_parcial,
     render_sidebar,
     sparkline,
 )
@@ -64,6 +66,9 @@ with col_botao:
         use_container_width=True,
     )
 
+if year == ANO_ATUAL:
+    render_aviso_ano_parcial(year, _extracted_at)
+
 dados = _saude(conn, year, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, _extracted_at)
 # Criar coluna MM/AAAA para exibição
@@ -103,7 +108,7 @@ with k2:
     st.metric(
         "Total Empenhado",
         fmt_compact(orcamento["empenhado"]),
-        delta=pct_delta(tendencia_ate_ano["empenhado"].tolist()),
+        delta=pct_delta(tendencia_ate_ano["empenhado"].tolist()) if year != ANO_ATUAL else "—",
         delta_color="off",
         help=glossary.tooltip("Empenho"),
     )
@@ -119,7 +124,8 @@ with k3:
     st.metric(
         "Taxa de Execução",
         f"{orcamento['taxa_execucao']:.1%}",
-        delta=pct_delta(tendencia_ate_ano["taxa"].tolist()),
+        delta=pct_delta(tendencia_ate_ano["taxa"].tolist()) if year != ANO_ATUAL else "—",
+        delta_color="off" if year == ANO_ATUAL else "normal",
     )
     if len(tendencia_ate_ano) >= 2:
         st.plotly_chart(

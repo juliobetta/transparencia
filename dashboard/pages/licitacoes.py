@@ -6,7 +6,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import streamlit as st
-from shared import SPARK_CFG, get_conn, get_data_extracao, pct_delta, render_sidebar, sparkline
+from shared import (
+    ANO_ATUAL,
+    SPARK_CFG,
+    get_conn,
+    get_data_extracao,
+    pct_delta,
+    render_aviso_ano_parcial,
+    render_sidebar,
+    sparkline,
+)
 from sqlalchemy.engine import Engine
 
 import glossary
@@ -81,6 +90,9 @@ _adesao_serie = [_hist_adesao[y] for y in _anos]
 _adesao_ext_serie = [_hist_adesao_ext[y] for y in _anos]
 
 st.header("Licitações e Contratos")
+
+if year == ANO_ATUAL:
+    render_aviso_ano_parcial(year, _extracted_at)
 
 _limite_fmt = f"R$ {THRESHOLD_COMPRAS_SERVICOS:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 st.info(
