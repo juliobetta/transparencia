@@ -321,6 +321,7 @@ with t2:
             color="Mercado",
             color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f", "Prestadores Externos": "#a12c2c"},
             title="Destino Geográfico dos Recursos Públicos Pagos",
+            hole=0.5,
         )
 
         df_cidades = _gastos_por_municipio(conn, year, _extracted_at)
@@ -336,6 +337,7 @@ with t2:
                     color="cidade",
                     color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
                     title="Top 5 Cidades Externas + Outros",
+                    hole=0.5,
                 )
                 st.plotly_chart(fig_cities, use_container_width=True)
     else:
@@ -348,10 +350,10 @@ with t2:
                 color="cidade",
                 color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
                 title="Top 5 Cidades Externas + Outros",
+                hole=0.5,
             )
             st.plotly_chart(fig_cities, use_container_width=True)
 
-    st.markdown("### Concentração de Fornecedores")
     if concentracao["dominante"]:
         st.warning(
             f"{concentracao['dominante']} recebeu mais de 40% do total empenhado a fornecedores.",
@@ -374,13 +376,17 @@ with t2:
         # Adicionar label descritiva para o elemento no gráfico usando a nova função
         df_natureza["label"] = df_natureza["elemento"].apply(analise_despesas.get_elemento_label)
 
-        fig_natureza = px.pie(df_natureza, values="pago", names="label", title="Por Elemento de Despesa")
+        fig_natureza = px.pie(df_natureza, values="pago", names="label", title="Por Elemento de Despesa", hole=0.5)
         st.plotly_chart(fig_natureza, use_container_width=True)
 
     with col_conc:
         pizza_concentracao = piechart_concentracao(top10_concentracao, concentracao["total_all"])
         fig_concentracao = px.pie(
-            pizza_concentracao, values="empenhado", names="Fornecedor", title="Distribuição por Fornecedor (Top 10)"
+            pizza_concentracao,
+            values="empenhado",
+            names="Fornecedor",
+            title="Distribuição por Fornecedor (Top 10)",
+            hole=0.5,
         )
         st.plotly_chart(fig_concentracao, use_container_width=True)
 
@@ -491,6 +497,7 @@ with t3:
             values="Pendente",
             names="Fornecedor",
             title="Top 10 Fornecedores com Maior Pendência",
+            hole=0.5,
         )
         st.plotly_chart(fig_pendentes, use_container_width=True)
 
@@ -618,7 +625,10 @@ with t4:
                         "historico": "Justificativa da Viagem",
                     }
                 ),
-                column_config={"Valor (R$)": st.column_config.NumberColumn(format="R$ %,.2f")},
+                column_config={
+                    "Valor (R$)": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                },
                 use_container_width=True,
                 hide_index=True,
             )
