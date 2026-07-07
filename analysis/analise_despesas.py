@@ -2,7 +2,9 @@ import unicodedata
 from typing import Any
 
 import pandas as pd
+import streamlit as st
 from sqlalchemy import bindparam, text
+from sqlalchemy.engine import Engine
 
 from analysis.constants import (
     DESPESAS_MAP,
@@ -11,6 +13,8 @@ from analysis.constants import (
     FORNECEDORES_NATUREZA_MAP,
 )
 from dashboard.shared import CIDADE_CLEAN
+
+_hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 # Folha de pessoal distribuída via responsáveis de unidade — não por fornecedores individuais
 
@@ -334,9 +338,16 @@ def total_folha_por_orgao(df: pd.DataFrame) -> float:
     return float(df["pago"].sum()) if not df.empty else 0.0
 
 
-def get_analise_intensidade_pessoal(conn: Any, year: int) -> pd.DataFrame:
-    df_total = get_despesas_por_unidade(conn, year)
-    df_folha = get_folha_por_orgao(conn, year)
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def get_analise_intensidade_pessoal(_conn: Any, year: int) -> pd.DataFrame:
+    """
+    Retorna a análise da intensidade de gastos com pessoal por órgão.
+
+    Compara os gastos totais de cada órgão com os gastos específicos de folha de pessoal,
+    calculando a porcentagem que a folha representa no orçamento total de cada órgão.
+    """
+    df_total = get_despesas_por_unidade(_conn, year)
+    df_folha = get_folha_por_orgao(_conn, year)
 
     df = df_total.merge(df_folha, on="descricao", how="left", suffixes=("", "_folha"))
     df = df.rename(
