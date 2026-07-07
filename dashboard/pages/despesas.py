@@ -148,7 +148,7 @@ with t1:
         st.metric(
             "Total Empenhado",
             fmt_currency(metricas["empenhado"]),
-            delta=pct_delta(_emp_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_emp_serie) if year != ANO_ATUAL else None,
             delta_color="off",
             help=(
                 "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
@@ -167,7 +167,7 @@ with t1:
         st.metric(
             "Total Liquidado",
             fmt_currency(metricas["liquidado"]),
-            delta=pct_delta(_liq_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_liq_serie) if year != ANO_ATUAL else None,
             delta_color="off",
             help=(
                 "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
@@ -186,7 +186,7 @@ with t1:
         st.metric(
             "Total Pago Real",
             fmt_currency(metricas["pago"]),
-            delta=pct_delta(_pago_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_pago_serie) if year != ANO_ATUAL else None,
             delta_color="off",
             help=(
                 "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
@@ -261,7 +261,7 @@ with t2:
         st.metric(
             "Efetivamente Pago — Empresas Locais",
             fmt_compact(impacto["local_pago"]),
-            delta=pct_delta(_local_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_local_serie) if year != ANO_ATUAL else None,
             delta_color="normal" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
@@ -274,7 +274,7 @@ with t2:
         st.metric(
             "Efetivamente Pago — Empresas Externas",
             fmt_compact(impacto["externo_pago"]),
-            delta=pct_delta(_ext_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_ext_serie) if year != ANO_ATUAL else None,
             delta_color="inverse" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
@@ -287,7 +287,7 @@ with t2:
         st.metric(
             "Índice de Compras Locais",
             f"{impacto['pct_local']:.2f}%",
-            delta=pct_delta(_pct_local_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_pct_local_serie) if year != ANO_ATUAL else None,
             delta_color="normal" if year != ANO_ATUAL else "off",
             help="Percentual de recursos mantidos na economia local de Porciúncula.",
         )
@@ -301,7 +301,7 @@ with t2:
         st.metric(
             "HHI (concentração)",
             f"{concentracao['hhi']:,.0f}",
-            delta=pct_delta(_hhi_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_hhi_serie) if year != ANO_ATUAL else None,
             delta_color="inverse" if year != ANO_ATUAL else "off",
             help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
         )
@@ -468,8 +468,8 @@ with t3:
             st.metric(
                 "Total Pendente",
                 fmt_currency(resumo["total"]),
-                delta=pct_delta(_val_pendentes) if year != ANO_ATUAL else "—",
-                delta_color="inverse" if year != ANO_ATUAL else "off",
+                delta=pct_delta(_val_pendentes),
+                delta_color="inverse",
                 help="Soma de todos os empenhos ainda não quitados.",
             )
             if _val_pendentes:
@@ -483,8 +483,8 @@ with t3:
             st.metric(
                 "Fornecedores aguardando",
                 resumo["count"],
-                delta=pct_delta(_cnt_pendentes) if year != ANO_ATUAL else "—",
-                delta_color="inverse" if year != ANO_ATUAL else "off",
+                delta=pct_delta(_cnt_pendentes),
+                delta_color="inverse",
             )
             if _cnt_pendentes:
                 st.plotly_chart(
@@ -560,7 +560,7 @@ with t4:
         st.metric(
             "Total Pago em Diárias",
             fmt_currency(resumo_diarias_data["total_valor"]),
-            delta=pct_delta(_diarias_val_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_diarias_val_serie) if year != ANO_ATUAL else None,
             delta_color="inverse" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
@@ -573,7 +573,7 @@ with t4:
         st.metric(
             "Total de Servidores Beneficiários",
             int(resumo_diarias_data["total_viajantes"]),
-            delta=pct_delta(_diarias_cnt_serie) if year != ANO_ATUAL else "—",
+            delta=pct_delta(_diarias_cnt_serie) if year != ANO_ATUAL else None,
             delta_color="off",
         )
         st.plotly_chart(

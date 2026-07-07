@@ -139,7 +139,7 @@ with k4:
     st.metric(
         "Medicamentos e Insumos",
         fmt_compact(dados["pharma_empenhos"]["total"]),
-        delta=pct_delta(tendencia_farma_ate_ano["empenhado"].tolist()) if year != ANO_ATUAL else "—",
+        delta=pct_delta(tendencia_farma_ate_ano["empenhado"].tolist()),
         delta_color="off",
         help="Total empenhado em Material de Consumo na Subfunção 10.303 (Suporte Profilático e Terapêutico).",
     )

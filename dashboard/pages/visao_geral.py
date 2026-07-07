@@ -129,7 +129,7 @@ with c1:
         fmt_compact(total_gasto),
         delta=f"{delta_gasto:+.1f}%"
         if year != ANO_ATUAL and delta_gasto is not None and not pd.isna(delta_gasto)
-        else "—",
+        else None,
         delta_color="off",
         help="Valor total liquidado e pago.",
     )
@@ -157,7 +157,7 @@ with c2:
             fmt_compact(float(rev_val)),
             delta=f"{delta_rec:+.1f}%"
             if year != ANO_ATUAL and delta_rec is not None and not pd.isna(delta_rec)
-            else "—",
+            else None,
             help=help_text,
         )
         st.plotly_chart(
@@ -175,7 +175,7 @@ with c3:
             fmt_percent(folha.iloc[0]["percentual_folha"]),
             delta=f"{delta_folha:+.1f}%"
             if year != ANO_ATUAL and delta_folha is not None and not pd.isna(delta_folha)
-            else "—",
+            else None,
             delta_color="inverse" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
@@ -193,7 +193,7 @@ with c4:
         fmt_compact(restos),
         delta=f"{delta_restos:+.1f}%"
         if year != ANO_ATUAL and delta_restos is not None and not pd.isna(delta_restos)
-        else "—",
+        else None,
         delta_color="off",
         help="Restos a pagar efetivamente pagos no ano.",
     )
