@@ -222,8 +222,8 @@ with lc1:
     st.metric(
         "Acima do limite s/ licitação",
         contratos_sem_licitacao,
-        delta=f"{_delta_contratos:+.1f}%" if year != ANO_ATUAL and _delta_contratos is not None else "—",
-        delta_color="inverse" if year != ANO_ATUAL else "off",
+        delta=f"{_delta_contratos:+.1f}%" if _delta_contratos is not None else None,
+        delta_color="inverse",
         help="Contratos sem licitação acima de R$ 62.725,59 (bens e serviços). [Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/)",
     )
     st.plotly_chart(
@@ -242,8 +242,8 @@ with lc2:
     st.metric(
         "Adesões de Ata (formal)",
         _adesao_map[year],
-        delta=f"{_delta_adesao:+.1f}%" if year != ANO_ATUAL and _delta_adesao is not None else "—",
-        delta_color="inverse" if year != ANO_ATUAL else "off",
+        delta=f"{_delta_adesao:+.1f}%" if _delta_adesao is not None else None,
+        delta_color="inverse",
         help=glossary.tooltip("Adesão de Ata (Carona)"),
     )
     st.plotly_chart(
@@ -262,8 +262,8 @@ with lc3:
     st.metric(
         "Empenhos via Ata Externa",
         _adesao_ext_map[year],
-        delta=f"{_delta_ext:+.1f}%" if year != ANO_ATUAL and _delta_ext is not None else "—",
-        delta_color="inverse" if year != ANO_ATUAL else "off",
+        delta=f"{_delta_ext:+.1f}%" if _delta_ext is not None else None,
+        delta_color="inverse",
         help="Empenhos cuja justificativa contábil referencia um Termo de Adesão Externa a Ata de Registro de Preços de outro ente.",
     )
     st.plotly_chart(
@@ -284,8 +284,8 @@ with lc4:
     st.metric(
         "Possível fracionamento",
         _mapa_fracionamento[year],
-        delta=f"{_delta_fracionamento:+.1f}%" if year != ANO_ATUAL and _delta_fracionamento is not None else "—",
-        delta_color="inverse" if year != ANO_ATUAL else "off",
+        delta=f"{_delta_fracionamento:+.1f}%" if _delta_fracionamento is not None else None,
+        delta_color="inverse",
         help="Contratos do mesmo fornecedor com valores próximos ao limite de dispensa (R$ 62.725,59), sugerindo possível fracionamento.",
     )
     st.plotly_chart(
@@ -311,8 +311,8 @@ if not df_pendentes.empty:
         st.metric(
             "Total a Pagar a Fornecedores",
             fmt_compact(total_pendente),
-            delta=pct_delta(_valores_tendencia) if year != ANO_ATUAL else "—",
-            delta_color="inverse" if year != ANO_ATUAL else "off",
+            delta=pct_delta(_valores_tendencia),
+            delta_color="inverse",
             help="Soma de todos os empenhos ainda não quitados na tabela de Restos a Pagar.",
         )
         if _valores_tendencia:
@@ -327,8 +327,8 @@ if not df_pendentes.empty:
         st.metric(
             "Fornecedores aguardando",
             num_fornecedores,
-            delta=pct_delta(_contagem_tendencia) if year != ANO_ATUAL else "—",
-            delta_color="inverse" if year != ANO_ATUAL else "off",
+            delta=pct_delta(_contagem_tendencia),
+            delta_color="inverse",
             help="Número de fornecedores com pelo menos um empenho não totalmente pago.",
         )
         if _contagem_tendencia:
