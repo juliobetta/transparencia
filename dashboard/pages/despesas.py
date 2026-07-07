@@ -354,7 +354,6 @@ with t2:
             )
             st.plotly_chart(fig_cities, use_container_width=True)
 
-    st.markdown("### Concentração de Fornecedores")
     if concentracao["dominante"]:
         st.warning(
             f"{concentracao['dominante']} recebeu mais de 40% do total empenhado a fornecedores.",
