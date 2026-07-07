@@ -43,6 +43,11 @@ def _folha_orgao_por_ano(conn, years, _extracted_at):
     return analise_despesas.total_folha_orgao_por_ano(conn, list(years))
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _cargos_confianca(conn, years, _extracted_at):
+    return analise_despesas.get_perfil_cargos_confianca(conn, list(years))
+
+
 conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_data_extracao(conn)
@@ -188,6 +193,29 @@ if not df_departamentos.empty:
     st.plotly_chart(fig_departamentos, use_container_width=True)
 else:
     st.info("Nenhum pagamento deste tipo registrado para este exercício.")
+
+st.divider()
+st.subheader("Perfil de Cargos de Confiança")
+df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
+if not df_cargos.empty:
+    tipos = df_cargos["tipo_vinculo_detalhado"].unique().tolist()
+    tipos_selecionados = st.multiselect("Selecione os tipos de vínculo:", options=tipos, default=tipos)
+    df_filtered = df_cargos[df_cargos["tipo_vinculo_detalhado"].isin(tipos_selecionados)]
+    if not df_filtered.empty:
+        fig_cargos = px.area(
+            df_filtered,
+            x="ano",
+            y="quantidade",
+            color="tipo_vinculo_detalhado",
+            title="Evolução da Quantidade de Cargos por Tipo de Vínculo",
+            labels={"ano": "Ano", "quantidade": "Quantidade", "tipo_vinculo_detalhado": "Tipo"},
+        )
+        fig_cargos.update_xaxes(tickmode="linear", dtick=1)
+        st.plotly_chart(fig_cargos, use_container_width=True)
+    else:
+        st.info("Selecione pelo menos um tipo de vínculo.")
+else:
+    st.info("Dados de cargos de confiança não disponíveis.")
 
 st.divider()
 
