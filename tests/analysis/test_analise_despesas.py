@@ -296,9 +296,10 @@ def test_get_perfil_cargos_confianca(conn):
     df = get_perfil_cargos_confianca(conn, [2026])
 
     assert not df.empty
-    assert "categoria" in df.columns
-    assert "total_provento" in df.columns
+    assert "tipo_vinculo_detalhado" in df.columns
+    assert "total_gasto" in df.columns
+    assert "quantidade" in df.columns
     # Verificar categorias
-    assert "Servidor Efetivo de Carreira" in df["categoria"].values
-    assert "Comissionado Externo Sem Vínculo (Pure DAS)" in df["categoria"].values
-    assert "Servidor Efetivo com Função de Confiança (DAI/FG)" in df["categoria"].values
+    assert "Servidor Efetivo de Carreira" in df["tipo_vinculo_detalhado"].values
+    assert "Comissionado Externo Sem Vínculo (Pure DAS)" in df["tipo_vinculo_detalhado"].values
+    assert "Servidor Efetivo com Função de Confiança (DAI/FG)" in df["tipo_vinculo_detalhado"].values

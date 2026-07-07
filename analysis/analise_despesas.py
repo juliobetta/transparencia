@@ -393,15 +393,16 @@ def get_perfil_cargos_confianca(conn: Any, years: list[int]) -> pd.DataFrame:
                    WHEN LOWER(vinculo) LIKE '%temporario%' OR LOWER(vinculo) LIKE '%contrato%' THEN 'Contrato Temporário'
                    WHEN LOWER(vinculo) LIKE '%politico%' OR LOWER(vinculo) LIKE '%eletivo%' THEN 'Agente Político (Eletivo)'
                    ELSE 'Outros'
-               END as categoria,
-               SUM(CAST(NULLIF(REPLACE(proventos, ',', '.'), '') AS FLOAT)) as total_provento
+               END as tipo_vinculo_detalhado,
+               COUNT(*) as quantidade,
+               SUM(CAST(NULLIF(REPLACE(proventos, ',', '.'), '') AS FLOAT)) as total_gasto
         FROM pessoal
         WHERE ano IN :anos
-        GROUP BY ano, categoria
+        GROUP BY ano, tipo_vinculo_detalhado
     """)
     df = pd.read_sql_query(query, conn, params={"anos": tuple(years)})
 
     if df.empty:
-        return pd.DataFrame(columns=["ano", "categoria", "total_provento"])
+        return pd.DataFrame(columns=["ano", "tipo_vinculo_detalhado", "quantidade", "total_gasto"])
 
     return df
