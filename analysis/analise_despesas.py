@@ -379,28 +379,32 @@ def total_folha_orgao_por_ano(conn: Any, years: list[int]) -> dict[int, float]:
     return {year: total_folha_por_orgao(get_folha_por_orgao(conn, year)) for year in years}
 
 
-def get_perfil_cargos_confianca(conn: Any, years: list[int]) -> pd.DataFrame:
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def get_perfil_cargos_confianca(_conn: Any, years: list[int]) -> pd.DataFrame:
     """
     Retorna o perfil dos cargos de confiança da prefeitura categorizados por vínculo e categoria funcional.
     """
     query = text("""
-        SELECT ano,
-               CASE
-                   WHEN LOWER(vinculo) LIKE '%comissionado%' AND LOWER(vinculo) NOT LIKE '%efetivo%' THEN 'Comissionado Externo Sem Vínculo (Pure DAS)'
-                   WHEN LOWER(vinculo) LIKE '%efetivo%' AND (LOWER(categoriafuncional) LIKE '%dai%' OR LOWER(categoriafuncional) LIKE '%fg%') THEN 'Servidor Efetivo com Função de Confiança (DAI/FG)'
-                   WHEN LOWER(vinculo) LIKE '%efetivo%' AND (LOWER(categoriafuncional) LIKE '%das%' OR LOWER(categoriafuncional) LIKE '%cc%') THEN 'Servidor Efetivo com Cargo Comissionado (DAS/CC)'
-                   WHEN LOWER(vinculo) LIKE '%efetivo%' THEN 'Servidor Efetivo de Carreira'
-                   WHEN LOWER(vinculo) LIKE '%temporario%' OR LOWER(vinculo) LIKE '%contrato%' THEN 'Contrato Temporário'
-                   WHEN LOWER(vinculo) LIKE '%politico%' OR LOWER(vinculo) LIKE '%eletivo%' THEN 'Agente Político (Eletivo)'
-                   ELSE 'Outros'
-               END as tipo_vinculo_detalhado,
-               COUNT(*) as quantidade,
-               SUM(CAST(NULLIF(REPLACE(proventos, ',', '.'), '') AS FLOAT)) as total_gasto
+        SELECT
+            ano,
+            CASE
+                WHEN LOWER(categoriafuncional) LIKE '%inativo%' OR LOWER(categoriafuncional) LIKE '%pensionista%' OR LOWER(vinculo) LIKE '%inativo%' OR LOWER(vinculo) LIKE '%pensionista%' THEN 'Inativos e Pensionistas'
+                WHEN LOWER(cargo) LIKE '%conselheiro%' OR LOWER(categoriafuncional) LIKE '%cedido%' OR LOWER(vinculo) LIKE '%cedido%' OR LOWER(vinculo) IN ('macaeprev', 'macaeprev i', 'funprev', 'funprev active', 'rppsi', 'rpps active') THEN 'Conselhos e Cedidos Externos'
+                WHEN vinculo LIKE '%FG%' THEN 'Servidor Efetivo com Função de Confiança (DAI/FG)'
+                WHEN vinculo LIKE '%CC%' OR categoriafuncional = 'Efetivos ocupantes de cargo comissionado' THEN 'Servidor Efetivo com Cargo Comissionado (DAS/CC)'
+                WHEN categoriafuncional = 'Cargo comissionado extra-quadro' OR vinculo = 'Comissionado INSS' OR LOWER(vinculo) LIKE 'cargo comissionado%' THEN 'Comissionado Externo (DAS/CC - Sem Vínculo)'
+                WHEN formaprovimento = 'CONCURSO PUBLICO' OR categoriafuncional = 'Efetivos' THEN 'Servidor Efetivo de Carreira'
+                WHEN formaprovimento = 'TEMPO DETERMINADO' OR categoriafuncional LIKE '%interesse público%' THEN 'Contrato Temporário'
+                WHEN categoriafuncional = 'Eletivos' OR LOWER(cargo) LIKE '%prefeito%' OR LOWER(cargo) LIKE '%vereador%' OR LOWER(cargo) LIKE '%secretario%' OR LOWER(vinculo) LIKE '%politico%' THEN 'Agente Político (Eletivo/Secretário)'
+                ELSE 'Outros'
+            END as tipo_vinculo_detalhado,
+            COUNT(*) as quantidade,
+            SUM(CAST(NULLIF(REPLACE(REPLACE(proventos, '.', ''), ',', '.'), '') AS FLOAT)) as total_gasto
         FROM pessoal
         WHERE ano IN :anos
         GROUP BY ano, tipo_vinculo_detalhado
     """)
-    df = pd.read_sql_query(query, conn, params={"anos": tuple(years)})
+    df = pd.read_sql_query(query, _conn, params={"anos": tuple(years)})
 
     if df.empty:
         return pd.DataFrame(columns=["ano", "tipo_vinculo_detalhado", "quantidade", "total_gasto"])

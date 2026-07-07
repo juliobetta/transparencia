@@ -268,7 +268,7 @@ def test_get_perfil_cargos_confianca(conn):
                 "mes": "01",
                 "matricula": "M1",
                 "vinculo": "Efetivo",
-                "categoriafuncional": "Carreira",
+                "categoriafuncional": "Efetivos",
                 "proventos": "5000",
             },
             {
@@ -277,7 +277,7 @@ def test_get_perfil_cargos_confianca(conn):
                 "mes": "01",
                 "matricula": "M2",
                 "vinculo": "Comissionado",
-                "categoriafuncional": "DAS",
+                "categoriafuncional": "Cargo comissionado extra-quadro",
                 "proventos": "3000",
             },
             {
@@ -285,8 +285,8 @@ def test_get_perfil_cargos_confianca(conn):
                 "empresa": "7",
                 "mes": "01",
                 "matricula": "M3",
-                "vinculo": "Efetivo",
-                "categoriafuncional": "DAI",
+                "vinculo": "Regime Juridico Unico C FG",
+                "categoriafuncional": "Efetivos",
                 "proventos": "2000",
             },
         ],
@@ -301,5 +301,5 @@ def test_get_perfil_cargos_confianca(conn):
     assert "quantidade" in df.columns
     # Verificar categorias
     assert "Servidor Efetivo de Carreira" in df["tipo_vinculo_detalhado"].values
-    assert "Comissionado Externo Sem Vínculo (Pure DAS)" in df["tipo_vinculo_detalhado"].values
+    assert "Comissionado Externo (DAS/CC - Sem Vínculo)" in df["tipo_vinculo_detalhado"].values
     assert "Servidor Efetivo com Função de Confiança (DAI/FG)" in df["tipo_vinculo_detalhado"].values
