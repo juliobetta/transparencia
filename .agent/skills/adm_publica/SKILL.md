@@ -83,3 +83,22 @@ Atuar como Engenheiro de Dados Sênior e Auditor de Finanças Públicas especial
 - **Axioma de Enriquecimento:** Para análises profundas de natureza de despesa, sempre realize `LEFT JOIN` com tabelas de detalhamento transacional (ex: `despesas_gerais`) utilizando chaves compostas (ex: `ano`, `nomefor`).
 - **Validação de Cruzamento:** Sempre agrupe ou use funções de agregação (`MAX`, `SUM`) ao realizar joins para evitar duplicidade de registros caso existam múltiplos registros detalhados para o mesmo agregador.
 - **Filtros Estruturados:** Prefira a filtragem por `elemento` (coluna numérica de classificação contábil) em vez de Regex em strings de descrição para garantir performance e precisão na segregação de tipos de despesa (ex: compras/serviços vs. folha/subvenções).
+
+---
+
+## 9. CLASSIFICAÇÕES TRANSACIONAIS (tpem) E LIQUIDEZ ORÇAMENTÁRIA
+
+- **Sistemática dos Tipos de Empenho (tpem):** No processamento de transações de despesa, a coluna `tpem` determina a natureza orçamentária do lançamento:
+  - **`OR` (Ordinário):** Despesa com valor fixo e conhecido previamente, paga de uma única vez.
+  - **`ES` (Estimativo):** Despesa de valor variável e incerto previamente, reservada por estimativa (clássica para **Folha de Pagamento** e utilidades).
+  - **`GL` (Global):** Despesa contratual de valor exato conhecido, mas quitada em parcelas ao longo do exercício (locações, contratos continuados).
+  - **`AN` (Anulação):** Estorno ou cancelamento de saldo reservado que excede o valor real devido.
+
+- **Axioma do Empenho Líquido (Ajustado):** A soma bruta da coluna `empenhado` em despesas transacionais representa apenas o valor inicial reservado. Para calcular o montante orçamentário real que vinculou os cofres públicos (Empenho Líquido), deve-se computar:
+  $$\text{Empenho Líquido} = \text{Empenho Bruto} + \text{Anulações (Valores Negativos)}$$
+  Nas despesas de folha e 13º salário, o percentual de quitação real (pago vs. empenhado) deve sempre usar o Empenho Líquido no denominador. Caso contrário, sobras orçamentárias estornadas de fim de ano farão a quitação parecer incorretamente inferior a 100%.
+
+- **Blindagem contra Inconsistência de Descrições (Join de Anulações):** Transações do tipo `AN` (Anulação) frequentemente recebem descrições genéricas no sistema (ex: *"Anulação de empenho estimativo"*), o que as faz serem ignoradas por filtros textuais (`ILIKE '%13%'`). Para capturar a liquidez real de uma despesa sem omissões:
+  1. Filtre os empenhos pais (`tpem != 'AN'`) usando critérios específicos (elementos, termos textuais).
+  2. Faça um `LEFT JOIN` com as anulações (`tpem = 'AN'`) relacionando a chave `e.pkemp = a.pkempa` (onde `pkempa` aponta para o ID do empenho original).
+  3. Agregue as anulações agrupadas e some-as ao empenhado bruto original. Isso zera discrepâncias contábeis e traz 100% de integridade matemática ao dashboard.
