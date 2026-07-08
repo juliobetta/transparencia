@@ -224,7 +224,7 @@ if exec_13 is not None and exec_13["empenhado"] > 0:
 
     df_det_13 = folha_vs_servicos.detalhe_decimo_terceiro(conn, year)
     if not df_det_13.empty:
-        with st.expander("🔍 Ver detalhamento do 13º Salário por Secretaria/Órgão"):
+        with st.expander(":material/search: Ver detalhamento do 13º Salário por Secretaria/Órgão"):
             df_show = df_det_13.copy()
             df_show.columns = [
                 "Órgão / Fundo",
