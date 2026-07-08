@@ -70,3 +70,36 @@ def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
     pct_pago = (pag / emp) if emp > 0 else 0.0
 
     return {"empenhado": emp, "liquidado": liq, "pago": pag, "pct_pago": pct_pago}
+
+
+def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
+    """Retorna o detalhamento da execução orçamentária do 13º salário por Órgão e Função."""
+    query = """
+        SELECT
+            nomeempresa as orgao,
+            COALESCE(funcaonome, 'Outros') as funcao,
+            SUM(CAST(REPLACE(empenhado, ',', '.') AS NUMERIC)) as empenhado,
+            SUM(CAST(REPLACE(liquidado, ',', '.') AS NUMERIC)) as liquidado,
+            SUM(CAST(REPLACE(pago, ',', '.') AS NUMERIC)) as pago
+        FROM despesas_gerais
+        WHERE ano = :ano
+          AND elemento IN ('01', '03', '11', '96')
+          AND (produ ILIKE '%13%' OR produ ILIKE '%decimo terceiro%' OR produ ILIKE '%décimo terceiro%')
+          AND produ NOT ILIKE '%anula%'
+          AND produ NOT ILIKE '%136%'
+          AND produ NOT ILIKE '%137%'
+          AND produ NOT ILIKE '%138%'
+          AND produ NOT ILIKE '%139%'
+        GROUP BY nomeempresa, funcaonome
+        ORDER BY pago DESC
+    """
+    df = pd.read_sql_query(text(query), conn, params={"ano": year})
+    if df.empty:
+        return pd.DataFrame(columns=["orgao", "funcao", "empenhado", "liquidado", "pago", "pct_pago"])
+
+    df["empenhado"] = pd.to_numeric(df["empenhado"], errors="coerce").fillna(0.0)
+    df["liquidado"] = pd.to_numeric(df["liquidado"], errors="coerce").fillna(0.0)
+    df["pago"] = pd.to_numeric(df["pago"], errors="coerce").fillna(0.0)
+    df["pct_pago"] = (df["pago"] / df["empenhado"] * 100.0).where(df["empenhado"] > 0, 0.0)
+
+    return df

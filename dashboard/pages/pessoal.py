@@ -216,6 +216,38 @@ if exec_13 is not None and exec_13["empenhado"] > 0:
     # Exibir a barra de progresso de quitação (limitada entre 0 e 100%)
     progress_val = min(max(exec_13["pct_pago"], 0.0), 1.0)
     st.progress(progress_val, text=f"Progresso de Quitação da Folha de 13º Salário: {exec_13['pct_pago'] * 100:.1f}%")
+
+    st.info(
+        "**Nota de Transparência:** A diferença observada entre o valor reservado (empenhado) "
+        "e o pago não representa atraso salarial. Trata-se de **anulações de sobras orçamentárias** "
+        "realizadas no encerramento do exercício (estornos de empenhos estimativos que excederam "
+        "o cálculo exato final da folha). O 13º salário real foi quitada em sua integridade.",
+        icon=":material/info:",
+    )
+
+    df_det_13 = folha_vs_servicos.detalhe_decimo_terceiro(conn, year)
+    if not df_det_13.empty:
+        with st.expander("🔍 Ver detalhamento do 13º Salário por Secretaria/Órgão"):
+            df_show = df_det_13.copy()
+            df_show.columns = [
+                "Órgão / Fundo",
+                "Função/Secretaria",
+                "Reservado (Empenhado)",
+                "Liquidado",
+                "Efetivamente Pago",
+                "Quitado (%)",
+            ]
+            st.dataframe(
+                df_show,
+                column_config={
+                    "Reservado (Empenhado)": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Liquidado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Efetivamente Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Quitado (%)": st.column_config.NumberColumn(format="%.1f%%"),
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
 else:
     st.info(f"Nenhum pagamento de 13º salário registrado para o ano de {year}.")
 st.divider()

@@ -111,3 +111,45 @@ def test_execucao_decimo_terceiro_empty(conn):
 
     result = execucao_decimo_terceiro(conn, 2025)
     assert result is None
+
+
+def test_detalhe_decimo_terceiro(conn):
+    from analysis.folha_vs_servicos import detalhe_decimo_terceiro
+
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            {
+                "ano": 2024,
+                "empresa": "7",
+                "numero": "123",
+                "elemento": "11",
+                "nomeempresa": "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
+                "funcaonome": "Administração",
+                "produ": "PAGAMENTO DE 13º SALÁRIO",
+                "empenhado": "1000,00",
+                "liquidado": "900,00",
+                "pago": "800,00",
+            }
+        ],
+        ["ano", "empresa", "numero"],
+    )
+
+    df = detalhe_decimo_terceiro(conn, 2024)
+    assert not df.empty
+    row = df.iloc[0]
+    assert row["orgao"] == "PREFEITURA MUNICIPAL DE PORCIÚNCULA"
+    assert row["funcao"] == "Administração"
+    assert row["empenhado"] == 1000.0
+    assert row["liquidado"] == 900.0
+    assert row["pago"] == 800.0
+    assert row["pct_pago"] == 80.0
+
+
+def test_detalhe_decimo_terceiro_empty(conn):
+    from analysis.folha_vs_servicos import detalhe_decimo_terceiro
+
+    df = detalhe_decimo_terceiro(conn, 2025)
+    assert df.empty
+    assert list(df.columns) == ["orgao", "funcao", "empenhado", "liquidado", "pago", "pct_pago"]
