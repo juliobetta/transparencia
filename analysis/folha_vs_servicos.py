@@ -40,3 +40,23 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(records)
+
+
+def total_decimo_terceiro(conn: Any, year: int) -> float | None:
+    """Calcula o total pago referente ao 13º salário consultando despesas_gerais."""
+    query = """
+        SELECT SUM(CAST(REPLACE(pago, ',', '.') AS NUMERIC))
+        FROM despesas_gerais
+        WHERE ano = :ano
+          AND elemento IN ('01', '03', '11', '96')
+          AND (produ ILIKE '%13%' OR produ ILIKE '%decimo terceiro%' OR produ ILIKE '%décimo terceiro%')
+          AND produ NOT ILIKE '%anula%'
+          AND produ NOT ILIKE '%136%'
+          AND produ NOT ILIKE '%137%'
+          AND produ NOT ILIKE '%138%'
+          AND produ NOT ILIKE '%139%'
+    """
+    df = pd.read_sql_query(text(query), conn, params={"ano": year})
+    if df.empty or pd.isna(df.iloc[0, 0]):
+        return None
+    return float(df.iloc[0, 0])

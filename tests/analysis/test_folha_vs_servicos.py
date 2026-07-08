@@ -75,3 +75,10 @@ def test_returns_dataframe_with_percentual(conn):
     assert row["rcl_proxy"] == pytest.approx(1200000, rel=0.01)
     # percentual_folha = 600000 / 1200000 * 100 = 50%
     assert row["percentual_folha"] == pytest.approx(50.0, rel=0.01)
+
+
+def test_total_decimo_terceiro(conn):
+    from analysis.folha_vs_servicos import total_decimo_terceiro
+
+    result = total_decimo_terceiro(conn, 2024)
+    assert isinstance(result, (float, type(None)))

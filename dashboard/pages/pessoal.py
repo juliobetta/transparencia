@@ -68,6 +68,20 @@ if year == ANO_ATUAL:
         "(ex: 13º salário e terço de férias não contabilizados proporcionalmente).",
     )
 
+# --- 13º SALÁRIO METRIC ---
+st.subheader("13º Salário (Gratificação Natalina)")
+val_13 = folha_vs_servicos.total_decimo_terceiro(conn, year)
+if val_13 is not None and val_13 > 0:
+    st.metric(
+        "Total Pago (Ano)",
+        fmt_currency(val_13),
+        help="Soma dos pagamentos de 13º salário ao longo do ano (férias, adiantamentos e parcela final). Extraído da despesa geral para maior precisão.",
+    )
+else:
+    st.info(f"Nenhum pagamento de 13º salário registrado para o ano de {year}.")
+st.divider()
+# --- END 13º SALÁRIO METRIC ---
+
 _all_years = list(range(2022, year + 1))
 _anos = _all_years
 _hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), _extracted_at)
