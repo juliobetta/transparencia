@@ -91,8 +91,10 @@ def test_execucao_decimo_terceiro(conn):
                 "elemento": "11",
                 "produ": "PAGAMENTO DE 13º SALÁRIO",
                 "empenhado": "1000,00",
+                "anulado": "-100,00",
                 "liquidado": "900,00",
                 "pago": "800,00",
+                "tpem": "ES",
             }
         ],
         ["ano", "empresa", "numero"],
@@ -100,10 +102,11 @@ def test_execucao_decimo_terceiro(conn):
 
     result = execucao_decimo_terceiro(conn, 2024)
     assert result is not None
-    assert result["empenhado"] == 1000.0
+    assert result["empenhado"] == 900.0
+    assert result["empenhado_bruto"] == 1000.0
     assert result["liquidado"] == 900.0
     assert result["pago"] == 800.0
-    assert result["pct_pago"] == 0.8
+    assert result["pct_pago"] == pytest.approx(800.0 / 900.0)
 
 
 def test_execucao_decimo_terceiro_empty(conn):
@@ -129,8 +132,10 @@ def test_detalhe_decimo_terceiro(conn):
                 "funcaonome": "Administração",
                 "produ": "PAGAMENTO DE 13º SALÁRIO",
                 "empenhado": "1000,00",
+                "anulado": "-100,00",
                 "liquidado": "900,00",
                 "pago": "800,00",
+                "tpem": "ES",
             }
         ],
         ["ano", "empresa", "numero"],
@@ -141,10 +146,10 @@ def test_detalhe_decimo_terceiro(conn):
     row = df.iloc[0]
     assert row["orgao"] == "PREFEITURA MUNICIPAL DE PORCIÚNCULA"
     assert row["funcao"] == "Administração"
-    assert row["empenhado"] == 1000.0
+    assert row["empenhado"] == 900.0
     assert row["liquidado"] == 900.0
     assert row["pago"] == 800.0
-    assert row["pct_pago"] == 80.0
+    assert row["pct_pago"] == pytest.approx(800.0 / 900.0 * 100.0)
 
 
 def test_detalhe_decimo_terceiro_empty(conn):

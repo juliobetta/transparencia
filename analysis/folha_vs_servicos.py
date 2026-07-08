@@ -47,6 +47,7 @@ def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
     query = """
         SELECT
             SUM(CAST(REPLACE(empenhado, ',', '.') AS NUMERIC)) as empenhado,
+            SUM(CAST(REPLACE(anulado, ',', '.') AS NUMERIC)) as anulado,
             SUM(CAST(REPLACE(liquidado, ',', '.') AS NUMERIC)) as liquidado,
             SUM(CAST(REPLACE(pago, ',', '.') AS NUMERIC)) as pago
         FROM despesas_gerais
@@ -58,18 +59,29 @@ def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
           AND produ NOT ILIKE '%137%'
           AND produ NOT ILIKE '%138%'
           AND produ NOT ILIKE '%139%'
+          AND tpem != 'AN'
     """
     df = pd.read_sql_query(text(query), conn, params={"ano": year})
     if df.empty or pd.isna(df.iloc[0]["empenhado"]) or df.iloc[0]["empenhado"] is None:
         return None
 
     emp = float(df.iloc[0]["empenhado"])
+    anul = float(df.iloc[0]["anulado"]) if not pd.isna(df.iloc[0]["anulado"]) else 0.0
     liq = float(df.iloc[0]["liquidado"]) if not pd.isna(df.iloc[0]["liquidado"]) else 0.0
     pag = float(df.iloc[0]["pago"]) if not pd.isna(df.iloc[0]["pago"]) else 0.0
 
-    pct_pago = (pag / emp) if emp > 0 else 0.0
+    # O empenhado líquido (realmente ajustado após os estornos de fim de ano)
+    emp_liq = emp + anul
 
-    return {"empenhado": emp, "liquidado": liq, "pago": pag, "pct_pago": pct_pago}
+    pct_pago = (pag / emp_liq) if emp_liq > 0 else 0.0
+
+    return {
+        "empenhado": emp_liq,
+        "empenhado_bruto": emp,
+        "liquidado": liq,
+        "pago": pag,
+        "pct_pago": pct_pago,
+    }
 
 
 def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
@@ -79,6 +91,7 @@ def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
             nomeempresa as orgao,
             COALESCE(funcaonome, 'Outros') as funcao,
             SUM(CAST(REPLACE(empenhado, ',', '.') AS NUMERIC)) as empenhado,
+            SUM(CAST(REPLACE(anulado, ',', '.') AS NUMERIC)) as anulado,
             SUM(CAST(REPLACE(liquidado, ',', '.') AS NUMERIC)) as liquidado,
             SUM(CAST(REPLACE(pago, ',', '.') AS NUMERIC)) as pago
         FROM despesas_gerais
@@ -90,6 +103,7 @@ def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
           AND produ NOT ILIKE '%137%'
           AND produ NOT ILIKE '%138%'
           AND produ NOT ILIKE '%139%'
+          AND tpem != 'AN'
         GROUP BY nomeempresa, funcaonome
         ORDER BY pago DESC
     """
@@ -98,8 +112,13 @@ def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
         return pd.DataFrame(columns=["orgao", "funcao", "empenhado", "liquidado", "pago", "pct_pago"])
 
     df["empenhado"] = pd.to_numeric(df["empenhado"], errors="coerce").fillna(0.0)
+    df["anulado"] = pd.to_numeric(df["anulado"], errors="coerce").fillna(0.0)
+    df["empenhado_liquido"] = df["empenhado"] + df["anulado"]
     df["liquidado"] = pd.to_numeric(df["liquidado"], errors="coerce").fillna(0.0)
     df["pago"] = pd.to_numeric(df["pago"], errors="coerce").fillna(0.0)
-    df["pct_pago"] = (df["pago"] / df["empenhado"] * 100.0).where(df["empenhado"] > 0, 0.0)
+    df["pct_pago"] = (df["pago"] / df["empenhado_liquido"] * 100.0).where(df["empenhado_liquido"] > 0, 0.0)
 
-    return df
+    # Sobrescreve empenhado com o valor líquido ajustado para consistência na UI
+    df["empenhado"] = df["empenhado_liquido"]
+
+    return df[["orgao", "funcao", "empenhado", "liquidado", "pago", "pct_pago"]]
