@@ -77,8 +77,37 @@ def test_returns_dataframe_with_percentual(conn):
     assert row["percentual_folha"] == pytest.approx(50.0, rel=0.01)
 
 
-def test_total_decimo_terceiro(conn):
-    from analysis.folha_vs_servicos import total_decimo_terceiro
+def test_execucao_decimo_terceiro(conn):
+    from analysis.folha_vs_servicos import execucao_decimo_terceiro
 
-    result = total_decimo_terceiro(conn, 2024)
-    assert isinstance(result, (float, type(None)))
+    db.upsert(
+        conn,
+        "despesas_gerais",
+        [
+            {
+                "ano": 2024,
+                "empresa": "7",
+                "numero": "123",
+                "elemento": "11",
+                "produ": "PAGAMENTO DE 13º SALÁRIO",
+                "empenhado": "1000,00",
+                "liquidado": "900,00",
+                "pago": "800,00",
+            }
+        ],
+        ["ano", "empresa", "numero"],
+    )
+
+    result = execucao_decimo_terceiro(conn, 2024)
+    assert result is not None
+    assert result["empenhado"] == 1000.0
+    assert result["liquidado"] == 900.0
+    assert result["pago"] == 800.0
+    assert result["pct_pago"] == 0.8
+
+
+def test_execucao_decimo_terceiro_empty(conn):
+    from analysis.folha_vs_servicos import execucao_decimo_terceiro
+
+    result = execucao_decimo_terceiro(conn, 2025)
+    assert result is None

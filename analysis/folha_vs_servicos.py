@@ -42,10 +42,13 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def total_decimo_terceiro(conn: Any, year: int) -> float | None:
-    """Calcula o total pago referente ao 13º salário consultando despesas_gerais."""
+def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
+    """Calcula a execução orçamentária do 13º salário consultando despesas_gerais."""
     query = """
-        SELECT SUM(CAST(REPLACE(pago, ',', '.') AS NUMERIC))
+        SELECT
+            SUM(CAST(REPLACE(empenhado, ',', '.') AS NUMERIC)) as empenhado,
+            SUM(CAST(REPLACE(liquidado, ',', '.') AS NUMERIC)) as liquidado,
+            SUM(CAST(REPLACE(pago, ',', '.') AS NUMERIC)) as pago
         FROM despesas_gerais
         WHERE ano = :ano
           AND elemento IN ('01', '03', '11', '96')
@@ -57,6 +60,13 @@ def total_decimo_terceiro(conn: Any, year: int) -> float | None:
           AND produ NOT ILIKE '%139%'
     """
     df = pd.read_sql_query(text(query), conn, params={"ano": year})
-    if df.empty or pd.isna(df.iloc[0, 0]):
+    if df.empty or pd.isna(df.iloc[0]["empenhado"]) or df.iloc[0]["empenhado"] is None:
         return None
-    return float(df.iloc[0, 0])
+
+    emp = float(df.iloc[0]["empenhado"])
+    liq = float(df.iloc[0]["liquidado"]) if not pd.isna(df.iloc[0]["liquidado"]) else 0.0
+    pag = float(df.iloc[0]["pago"]) if not pd.isna(df.iloc[0]["pago"]) else 0.0
+
+    pct_pago = (pag / emp) if emp > 0 else 0.0
+
+    return {"empenhado": emp, "liquidado": liq, "pago": pag, "pct_pago": pct_pago}
