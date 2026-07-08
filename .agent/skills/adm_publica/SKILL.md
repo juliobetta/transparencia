@@ -102,3 +102,21 @@ Atuar como Engenheiro de Dados Sênior e Auditor de Finanças Públicas especial
   1. Filtre os empenhos pais (`tpem != 'AN'`) usando critérios específicos (elementos, termos textuais).
   2. Faça um `LEFT JOIN` com as anulações (`tpem = 'AN'`) relacionando a chave `e.pkemp = a.pkempa` (onde `pkempa` aponta para o ID do empenho original).
   3. Agregue as anulações agrupadas e some-as ao empenhado bruto original. Isso zera discrepâncias contábeis e traz 100% de integridade matemática ao dashboard.
+
+---
+
+## 10. PROTOCOLO DE RECONCILIAÇÃO CRUZADA (Dashboard vs. Report)
+
+- **Single Source of Truth (SSOT):** É mandatório que qualquer dado exibido na interface interativa (`@dashboard/`) e nos relatórios exportados (`@report/`) consuma exatamente as mesmas funções puras definidas na camada `@analysis/`.
+- **Divergência Zero:** Os valores consolidados de dotação, empenho, liquidação e pagamento devem bater ao centavo entre as duas saídas. Qualquer divergência visual ou numérica encontrada durante o processo de auditoria deve disparar imediatamente uma refatoração da camada de apresentação para buscar os dados diretamente de `analysis/`.
+
+---
+
+## 11. GARANTIA DE QUALIDADE DE DADOS E VALIDAÇÃO ESTÁTICA
+
+- **Protocolo de Validação:** Antes de considerar qualquer auditoria de valores concluída, é obrigatório executar:
+  1. **Suite de Testes de Integração:** Executar `uv run pytest` para garantir que todas as regras de integridade de dados codificadas nos testes continuam passando.
+  2. **Análise Estática de Tipos:** Executar `make check` (ou comandos específicos de `mypy` e `ruff`) para validar a conformidade com as regras de qualidade estática de código estabelecidas no repositório.
+- **Auditoria de Baixo Consumo (Otimização de Contexto):** Em auditorias de código ou dados com limitação de consumo de tokens (spend cap), priorize:
+  - Busca cirúrgica com filtros regex (`grep`) em vez de leitura completa de múltiplos arquivos.
+  - O isolamento de tarefas em subagentes curtos e focados para manter o histórico de chat otimizado e de baixo custo.
