@@ -68,38 +68,6 @@ if year == ANO_ATUAL:
         "(ex: 13º salário e terço de férias não contabilizados proporcionalmente).",
     )
 
-# --- 13º SALÁRIO METRIC ---
-st.subheader("13º Salário (Gratificação Natalina)")
-exec_13 = folha_vs_servicos.execucao_decimo_terceiro(conn, year)
-if exec_13 is not None and exec_13["empenhado"] > 0:
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric(
-            "Total Reservado (Empenhado)",
-            fmt_currency(exec_13["empenhado"]),
-            help="Valor que o município reservou formalmente no orçamento para o pagamento do 13º salário.",
-        )
-    with col2:
-        st.metric(
-            "Total Efetivamente Pago",
-            fmt_currency(exec_13["pago"]),
-            help="Soma dos pagamentos de 13º salário efetivamente desembolsados ao longo do ano (férias, adiantamentos e parcela final). Extraído da despesa geral para maior precisão.",
-        )
-    with col3:
-        st.metric(
-            "Percentual Quitado",
-            f"{exec_13['pct_pago'] * 100:.1f}%",
-            help="Proporção do valor empenhado (reservado) que já foi efetivamente pago para os servidores.",
-        )
-
-    # Exibir a barra de progresso de quitação (limitada entre 0 e 100%)
-    progress_val = min(max(exec_13["pct_pago"], 0.0), 1.0)
-    st.progress(progress_val, text=f"Progresso de Quitação da Folha de 13º Salário: {exec_13['pct_pago'] * 100:.1f}%")
-else:
-    st.info(f"Nenhum pagamento de 13º salário registrado para o ano de {year}.")
-st.divider()
-# --- END 13º SALÁRIO METRIC ---
-
 _all_years = list(range(2022, year + 1))
 _anos = _all_years
 _hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), _extracted_at)
@@ -220,6 +188,38 @@ if not df_folha.empty:
         f"**prudencial** ({LRF_PESSOAL_LIMITE_PRUDENCIAL}%, veda novos cargos e reajustes) · "
         f"**limite legal** ({LRF_PESSOAL_LIMITE_LEGAL}%, sujeito a sanções automáticas)"
     )
+
+# --- 13º SALÁRIO METRIC ---
+st.subheader("13º Salário")
+exec_13 = folha_vs_servicos.execucao_decimo_terceiro(conn, year)
+if exec_13 is not None and exec_13["empenhado"] > 0:
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(
+            "Total Reservado (Empenhado)",
+            fmt_currency(exec_13["empenhado"]),
+            help="Valor que o município reservou formalmente no orçamento para o pagamento do 13º salário.",
+        )
+    with col2:
+        st.metric(
+            "Total Efetivamente Pago",
+            fmt_currency(exec_13["pago"]),
+            help="Soma dos pagamentos de 13º salário efetivamente desembolsados ao longo do ano (férias, adiantamentos e parcela final). Extraído da despesa geral para maior precisão.",
+        )
+    with col3:
+        st.metric(
+            "Percentual Quitado",
+            f"{exec_13['pct_pago'] * 100:.1f}%",
+            help="Proporção do valor empenhado (reservado) que já foi efetivamente pago para os servidores.",
+        )
+
+    # Exibir a barra de progresso de quitação (limitada entre 0 e 100%)
+    progress_val = min(max(exec_13["pct_pago"], 0.0), 1.0)
+    st.progress(progress_val, text=f"Progresso de Quitação da Folha de 13º Salário: {exec_13['pct_pago'] * 100:.1f}%")
+else:
+    st.info(f"Nenhum pagamento de 13º salário registrado para o ano de {year}.")
+st.divider()
+# --- END 13º SALÁRIO METRIC ---
 
 # Análise Granular de Remuneração
 st.subheader("Distribuição de Remuneração")
