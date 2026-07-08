@@ -8,7 +8,24 @@ sys.path.insert(0, str(Path(__file__).parent))
 import streamlit as st
 
 st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
-st.html("<style>[data-testid='stStatusWidget'] { display: none; }</style>")
+st.html(
+    """
+    <style>
+    [data-testid='stStatusWidget'] { display: none; }
+
+    /* Desabilita interações nos gráficos em telas menores e dispositivos touch para evitar que o zoom intercepte o scroll da página */
+    @media (max-width: 1024px), (pointer: coarse) {
+        [data-testid="stPlotlyChart"],
+        .js-plotly-plot,
+        .plotly .draglayer,
+        .plotly .draglayer .drag,
+        [class*="stPlotlyChart"] {
+            pointer-events: none !important;
+        }
+    }
+    </style>
+    """
+)
 
 _YEARS = list(range(2022, date.today().year + 1))
 
