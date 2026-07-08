@@ -88,20 +88,34 @@ def test_execucao_decimo_terceiro(conn):
                 "ano": 2024,
                 "empresa": "7",
                 "numero": "123",
+                "pkemp": "12345",
                 "elemento": "11",
                 "produ": "PAGAMENTO DE 13º SALÁRIO",
                 "empenhado": "1000,00",
-                "anulado": "-100,00",
                 "liquidado": "900,00",
                 "pago": "800,00",
                 "tpem": "ES",
-            }
+            },
+            {
+                "ano": 2024,
+                "empresa": "7",
+                "numero": "124",
+                "pkemp": "12346",
+                "pkempa": "12345",
+                "elemento": "11",
+                "produ": "ANULAÇÃO DE SALDO ESTIMADO",
+                "empenhado": "-100,00",
+                "liquidado": "0",
+                "pago": "0",
+                "tpem": "AN",
+            },
         ],
         ["ano", "empresa", "numero"],
     )
 
     result = execucao_decimo_terceiro(conn, 2024)
     assert result is not None
+    # Empenhado líquido = 1000.0 - 100.0 = 900.0
     assert result["empenhado"] == 900.0
     assert result["empenhado_bruto"] == 1000.0
     assert result["liquidado"] == 900.0
@@ -127,16 +141,31 @@ def test_detalhe_decimo_terceiro(conn):
                 "ano": 2024,
                 "empresa": "7",
                 "numero": "123",
+                "pkemp": "12345",
                 "elemento": "11",
                 "nomeempresa": "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
                 "funcaonome": "Administração",
                 "produ": "PAGAMENTO DE 13º SALÁRIO",
                 "empenhado": "1000,00",
-                "anulado": "-100,00",
                 "liquidado": "900,00",
                 "pago": "800,00",
                 "tpem": "ES",
-            }
+            },
+            {
+                "ano": 2024,
+                "empresa": "7",
+                "numero": "124",
+                "pkemp": "12346",
+                "pkempa": "12345",
+                "elemento": "11",
+                "nomeempresa": "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
+                "funcaonome": "Administração",
+                "produ": "ANULAÇÃO DE SALDO ESTIMADO",
+                "empenhado": "-100,00",
+                "liquidado": "0",
+                "pago": "0",
+                "tpem": "AN",
+            },
         ],
         ["ano", "empresa", "numero"],
     )
@@ -146,6 +175,7 @@ def test_detalhe_decimo_terceiro(conn):
     row = df.iloc[0]
     assert row["orgao"] == "PREFEITURA MUNICIPAL DE PORCIÚNCULA"
     assert row["funcao"] == "Administração"
+    # Empenhado líquido = 1000.0 - 100.0 = 900.0
     assert row["empenhado"] == 900.0
     assert row["liquidado"] == 900.0
     assert row["pago"] == 800.0
