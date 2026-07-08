@@ -200,7 +200,7 @@ if year == ANO_ATUAL:
         help=f"Pagamentos de empenhos de anos anteriores (Restos a Pagar) realizados em {ANO_ATUAL}.",
     )
 
-    fc3, fc4 = st.columns(2)
+    fc3, fc4, fc5 = st.columns(3)
     fc3.metric("Fluxo Líquido do Período", fmt_currency(posicao_fiscal_data["saldo_estimado"]))
     herdadas = posicao_fiscal_data.get("restos_pendentes_anteriores", 0.0)
     fc4.metric(
@@ -210,7 +210,7 @@ if year == ANO_ATUAL:
     )
 
     saldo_apos_restos = posicao_fiscal_data["saldo_apos_restos"]
-    st.metric(
+    fc5.metric(
         f"Saldo após Restos Pendentes ({ANO_ATUAL})",
         fmt_currency(saldo_apos_restos),
         delta=fmt_currency(saldo_apos_restos) if saldo_apos_restos >= 0 else f"-{fmt_currency(abs(saldo_apos_restos))}",
