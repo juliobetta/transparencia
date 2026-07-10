@@ -154,6 +154,16 @@ class DatabaseLoader:
             set_metadata(engine, "last_extracted_at", extraction_date)
             logger.info("Set extraction date: %s", extraction_date)
 
+        # Importa as receitas históricas em formato CSV (se existirem na pasta data/csv/receitas)
+        try:
+            logger.info("Iniciando importação de receitas históricas via CSV...")
+            from utils.pipeline.import_receitas_csv import run_import
+
+            run_import()
+            logger.info("Importação de receitas históricas via CSV concluída.")
+        except Exception as csv_exc:
+            logger.warning("Falha ao importar receitas históricas via CSV: %s", csv_exc)
+
         logger.info("Loading complete.")
 
 
