@@ -9,6 +9,7 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    ANO_INICIAL,
     ANOS,
     SPARK_CFG,
     fmt_currency,
@@ -68,7 +69,7 @@ if year == ANO_ATUAL:
         "(ex: 13º salário e terço de férias não contabilizados proporcionalmente).",
     )
 
-_all_years = list(range(2022, year + 1))
+_all_years = list(range(ANO_INICIAL, year + 1))
 _anos = _all_years
 _hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), _extracted_at)
 _folha_orgao_serie = [_hist_folha_orgao[y] for y in _anos]

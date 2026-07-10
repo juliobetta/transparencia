@@ -10,6 +10,7 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     fmt_compact,
     fmt_currency,
@@ -109,7 +110,7 @@ conn = get_conn()
 year = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-_all_years = list(range(2022, year + 1))
+_all_years = list(range(ANO_INICIAL, year + 1))
 _hist_metricas = _metricas_por_ano(conn, tuple(_all_years), _extracted_at)
 _hist_impacto = _impacto_por_ano(conn, tuple(_all_years), _extracted_at)
 _hist_hhi = _hhi_por_ano(conn, tuple(_all_years), _extracted_at)

@@ -10,6 +10,7 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     fmt_currency,
     get_conn,
@@ -57,7 +58,7 @@ else:
 
 render_metodologia_receita()
 
-_all_years = list(range(2022, year + 1))
+_all_years = list(range(ANO_INICIAL, year + 1))
 df_hist = _receita(conn, tuple(_all_years), _extracted_at)
 df_ano = df_hist[df_hist["ano"] == year]
 

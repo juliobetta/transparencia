@@ -10,6 +10,7 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     fmt_compact,
     fmt_currency,
@@ -51,7 +52,7 @@ if year == ANO_ATUAL:
 df_orcamento = _orcamento(conn, year, _extracted_at)
 totais = execucao_orcamentaria.summarize(df_orcamento)
 
-_all_years = list(range(2022, year + 1))
+_all_years = list(range(ANO_INICIAL, year + 1))
 _hist = _orcamento_by_year(conn, tuple(_all_years), _extracted_at)
 _anos = _all_years
 _dotacao_serie = [_hist[y]["total_dotacao"] for y in _anos]
