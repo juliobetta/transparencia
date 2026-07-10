@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     get_conn,
     get_data_extracao,
@@ -77,7 +78,7 @@ anomalias = _anomalias(conn, year, _extracted_at)
 acima = licitacao_gaps.filter_above_limit(lacunas)
 saude = licitacao_gaps.filter_above_limit_health(lacunas)
 
-_all_years = list(range(2022, year + 1))
+_all_years = list(range(ANO_INICIAL, year + 1))
 _anos = _all_years
 _hist_acima = _acima_por_ano(conn, tuple(_all_years), _extracted_at)
 _hist_totals = _totals_sem_lic_por_ano(conn, tuple(_all_years), _extracted_at)

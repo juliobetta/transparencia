@@ -14,7 +14,7 @@ from sqlmodel import SQLModel
 from db import create_tables, get_engine, set_metadata, upsert
 from extractors.extractors import ENDPOINT_CONFIGS, EndpointConfig
 
-START_YEAR = 2022
+START_YEAR = 2017
 RAW_DIR = Path("data/raw")
 FAILED_REQUESTS_FILE = Path("data/failed_requests.csv")
 BASE_HOST = "https://transparencia.porciuncula.rj.gov.br"
@@ -153,6 +153,16 @@ class DatabaseLoader:
         if extraction_date:
             set_metadata(engine, "last_extracted_at", extraction_date)
             logger.info("Set extraction date: %s", extraction_date)
+
+        # Importa as receitas históricas em formato CSV (se existirem na pasta data/csv/receitas)
+        try:
+            logger.info("Iniciando importação de receitas históricas via CSV...")
+            from utils.pipeline.import_receitas_csv import run_import
+
+            run_import()
+            logger.info("Importação de receitas históricas via CSV concluída.")
+        except Exception as csv_exc:
+            logger.warning("Falha ao importar receitas históricas via CSV: %s", csv_exc)
 
         logger.info("Loading complete.")
 

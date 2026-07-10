@@ -27,7 +27,8 @@ st.html(
     """
 )
 
-_YEARS = list(range(2022, date.today().year + 1))
+START_YEAR = 2017
+_YEARS = list(range(START_YEAR, date.today().year + 1))
 
 if "sidebar_year" not in st.session_state:
     st.session_state["sidebar_year"] = _YEARS[-1]

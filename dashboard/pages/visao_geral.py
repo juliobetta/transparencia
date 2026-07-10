@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     fmt_compact,
     fmt_percent,
@@ -102,7 +103,7 @@ st.title("Transparência Porciúncula / RJ")
 st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL}) do município.")
 st.header("Visão Geral")
 
-_all_years = list(range(2022, year + 1))
+_all_years = list(range(ANO_INICIAL, year + 1))
 with st.spinner("Carregando..."):
     orcamento = _orcamento(conn, year, _extracted_at)
     licitacoes = _licitacoes_gaps(conn, year, _extracted_at)

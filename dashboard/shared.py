@@ -11,8 +11,9 @@ from streamlit.connections import SQLConnection
 import db
 import glossary
 
+ANO_INICIAL = 2017
 ANO_ATUAL = date.today().year
-ANOS = list(range(2022, ANO_ATUAL + 1))
+ANOS = list(range(ANO_INICIAL, ANO_ATUAL + 1))
 CIDADE_CLEAN = "PORCIUNCULA"  # TODO: move this to .env, keeping a default value
 
 
