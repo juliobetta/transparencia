@@ -45,22 +45,27 @@ _extracted_at = get_data_extracao(conn)
 
 st.header("Fontes de Receita")
 
-# Aviso sobre limitações históricas dos dados
-if year < ANO_ATUAL:
-    st.info(
-        "O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
-        f"mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de {ANO_ATUAL}.",
-        icon=":material/info:",
-    )
-else:
-    st.success(f":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente ({ANO_ATUAL}).")
-    render_aviso_ano_parcial(year, _extracted_at)
-
 render_metodologia_receita()
 
 _all_years = list(range(ANO_INICIAL, year + 1))
 df_hist = _receita(conn, tuple(_all_years), _extracted_at)
 df_ano = df_hist[df_hist["ano"] == year]
+
+_tem_arrecadado = not df_ano.empty and df_ano.iloc[0]["total_arrecadado"] > 0
+
+if _tem_arrecadado:
+    if year == ANO_ATUAL:
+        st.success(
+            f":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente ({ANO_ATUAL})."
+        )
+        render_aviso_ano_parcial(year, _extracted_at)
+    else:
+        st.success(":material/check: Dados de Arrecadação Realizada disponíveis para este exercício.")
+else:
+    st.info(
+        "Dados de arrecadação efetiva ainda não disponíveis para este exercício. Exibindo apenas a previsão orçamentária.",
+        icon=":material/info:",
+    )
 
 if not df_ano.empty:
     row = df_ano.iloc[0]
@@ -89,11 +94,11 @@ if not df_ano.empty:
 
     _total_serie = df_hist["total"].tolist()
     with c2:
-        if year == ANO_ATUAL:
+        if _tem_arrecadado:
             st.metric(
                 "Total Arrecadado Real",
                 fmt_currency(row["total_arrecadado"]),
-                delta="—",
+                delta="—" if year == ANO_ATUAL else pct_delta(_total_serie),
                 delta_color="off",
                 help=(
                     "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
@@ -104,7 +109,7 @@ if not df_ano.empty:
                 ),
             )
         else:
-            st.metric("Total Arrecadado Real", "N/D (Não Disp. na API)")
+            st.metric("Total Arrecadado Real", "N/D")
         st.plotly_chart(
             sparkline(_anos_hist, _total_serie, "#4CAF50"),
             use_container_width=True,
@@ -112,7 +117,7 @@ if not df_ano.empty:
             key="spark_rec_total",
         )
 
-    if year == ANO_ATUAL:
+    if _tem_arrecadado:
         # Progress Bar
         pct_progresso = row["pct_arrecadado"]
         st.markdown(f"**Progresso de Arrecadação Anual: {pct_progresso * 100:.2f}%**")
@@ -121,9 +126,9 @@ if not df_ano.empty:
     # Tabela de detalhamento
     st.subheader("Previsto vs. Arrecadado por Origem")
 
-    resumo_df = fontes_receita.tabela_detalhamento(row, year)
+    resumo_df = fontes_receita.tabela_detalhamento(row)
 
-    if year == ANO_ATUAL:
+    if _tem_arrecadado:
         # Gráfico de barras: previsto vs. arrecadado
         df_comparativo = resumo_df.melt(
             id_vars=["Fonte"], value_vars=["Previsto", "Arrecadado"], var_name="Métrica", value_name="Valor"

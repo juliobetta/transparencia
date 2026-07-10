@@ -3,6 +3,8 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
+from analysis import fontes_receita
+
 
 def _sum_col(conn: Any, table: str, col: str, year: int, root_only: bool = False) -> float:
     try:
@@ -27,24 +29,17 @@ def _sum_col(conn: Any, table: str, col: str, year: int, root_only: bool = False
 
 def run(conn: Any, years: list[int]) -> pd.DataFrame:
     records = []
-    for year in sorted(years):
+    sorted_years = sorted(years)
+    # Chama o módulo unificado de fontes de receita para obter as receitas de forma consolidada e DRY
+    rev_df = fontes_receita.run(conn, sorted_years)
+    rev_map = dict(zip(rev_df["ano"], rev_df["total_arrecadado"]))
+
+    for year in sorted_years:
         total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year)
         total_folha = _sum_col(conn, "pessoal", "proventos", year)
 
-        propria = _sum_col(conn, "receita_orcamentaria", "arrecadado_total", year, root_only=True)
-        if propria == 0:
-            propria = _sum_col(conn, "receita_orcamentaria", "arrecadado", year, root_only=True)
-
-        uniao = _sum_col(conn, "receita_uniao", "arrecadado_total", year, root_only=True)
-        if uniao == 0:
-            uniao = _sum_col(conn, "receita_uniao", "arrecadado", year, root_only=True)
-
-        estado = _sum_col(conn, "receita_estado", "arrecadado_total", year, root_only=True)
-        if estado == 0:
-            estado = _sum_col(conn, "receita_estado", "arrecadado", year, root_only=True)
-
-        total = propria + uniao + estado
-        receita = total if total > 0 else None
+        total_rec = rev_map.get(year, 0.0)
+        receita = total_rec if total_rec > 0 else None
         restos = _sum_col(conn, "despesas_restos_pagar", "pago", year)
 
         records.append(

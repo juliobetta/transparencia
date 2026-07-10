@@ -46,20 +46,18 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
         total_previsto = propria_previsto + uniao_previsto + estado_previsto
         total_arrecadado = propria_arrecadado + uniao_arrecadado + estado_arrecadado
 
-        propria_compat = propria_arrecadado if (propria_arrecadado > 0 or year == 2026) else propria_previsto
-        uniao_compat = uniao_arrecadado if (uniao_arrecadado > 0 or year == 2026) else uniao_previsto
-        estado_compat = estado_arrecadado if (estado_arrecadado > 0 or year == 2026) else estado_previsto
-        total_compat = propria_compat + uniao_compat + estado_compat
-        pct = propria_compat / total_compat * 100 if total_compat > 0 else 0
+        # Dados de arrecadação real cobrem todo o histórico (import via CSV + API do exercício corrente).
+        # Só recorremos à previsão orçamentária quando não há execução alguma ainda (ex.: virada de ano).
         pct_previsto = propria_previsto / total_previsto * 100 if total_previsto > 0 else 0
+        pct = propria_arrecadado / total_arrecadado * 100 if total_arrecadado > 0 else pct_previsto
 
         records.append(
             {
                 "ano": year,
-                "receita_propria": propria_compat,
-                "transferencias_uniao": uniao_compat,
-                "transferencias_estado": estado_compat,
-                "total": total_compat,
+                "receita_propria": propria_arrecadado,
+                "transferencias_uniao": uniao_arrecadado,
+                "transferencias_estado": estado_arrecadado,
+                "total": total_arrecadado,
                 "pct_propria": pct,
                 "pct_propria_previsto": pct_previsto,
                 "alerta_dependencia": bool(pct < 10),
@@ -80,28 +78,26 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
     return df
 
 
-def tabela_detalhamento(row: "pd.Series", year: int) -> "pd.DataFrame":
+def tabela_detalhamento(row: "pd.Series") -> "pd.DataFrame":
     """Retorna DataFrame de Previsto vs Arrecadado por fonte de receita, pronto para exibição."""
-    current = year == 2026
     data = [
         {
             "Fonte": "Receita Própria (Municipal)",
             "Previsto": row["receita_propria_previsto"],
-            "Arrecadado": row["receita_propria_arrecadado"] if current else None,
+            "Arrecadado": row["receita_propria_arrecadado"],
         },
         {
             "Fonte": "Transferências da União (Federal)",
             "Previsto": row["transferencias_uniao_previsto"],
-            "Arrecadado": row["transferencias_uniao_arrecadado"] if current else None,
+            "Arrecadado": row["transferencias_uniao_arrecadado"],
         },
         {
             "Fonte": "Transferências do Estado",
             "Previsto": row["transferencias_estado_previsto"],
-            "Arrecadado": row["transferencias_estado_arrecadado"] if current else None,
+            "Arrecadado": row["transferencias_estado_arrecadado"],
         },
     ]
     df = pd.DataFrame(data)
-    if current:
-        df["Diferença (Previsto − Arrecadado)"] = df["Previsto"] - df["Arrecadado"]
-        df["Realização (%)"] = (df["Arrecadado"] / df["Previsto"]) * 100
+    df["Diferença (Previsto − Arrecadado)"] = df["Previsto"] - df["Arrecadado"]
+    df["Realização (%)"] = (df["Arrecadado"] / df["Previsto"]) * 100
     return df
