@@ -285,7 +285,7 @@ def get_report_action_id(page, link_text: str) -> str | None:
 
 def is_transparencia_server_error(page) -> bool:
     """Detecta a página de erro do aplicativo ASP.NET do portal."""
-    return page.get_by_text("Erro de Servidor no Aplicativo '/Transparencia'.").count() > 0
+    return bool(page.get_by_text("Erro de Servidor no Aplicativo '/Transparencia'.").count() > 0)
 
 
 def restore_state_for_report(page, year: int, entity_text: str):
