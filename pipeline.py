@@ -14,7 +14,7 @@ from sqlmodel import SQLModel
 from db import create_tables, get_engine, set_metadata, upsert
 from extractors.extractors import ENDPOINT_CONFIGS, EndpointConfig
 
-START_YEAR = 2022
+START_YEAR = 2021
 RAW_DIR = Path("data/raw")
 FAILED_REQUESTS_FILE = Path("data/failed_requests.csv")
 BASE_HOST = "https://transparencia.porciuncula.rj.gov.br"
@@ -154,6 +154,16 @@ class DatabaseLoader:
             set_metadata(engine, "last_extracted_at", extraction_date)
             logger.info("Set extraction date: %s", extraction_date)
 
+        # Importa as receitas históricas em formato CSV (se existirem na pasta data/csv/receitas)
+        try:
+            logger.info("Iniciando importação de receitas históricas via CSV...")
+            from utils.pipeline.import_receitas_csv import run_import
+
+            run_import()
+            logger.info("Importação de receitas históricas via CSV concluída.")
+        except Exception as csv_exc:
+            logger.warning("Falha ao importar receitas históricas via CSV: %s", csv_exc)
+
         logger.info("Loading complete.")
 
 
@@ -190,6 +200,18 @@ class DataExtractor:
         logger.info("Saving raw data to %s", run_dir)
 
         engine = get_engine()
+        create_tables(engine)
+        _insert_entities(
+            engine,
+            {
+                10: "FUNDO DE SOLIDARIEDADE - FUNDESOL",
+                3: "FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL",
+                9: "FUNDO MUNICIPAL DE DEFESA AMBIENTAL",
+                8: "FUNDO MUNICIPAL DE EDUCAÇÃO",
+                2: "FUNDO MUNICIPAL DE SAUDE",
+                7: "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
+            },
+        )
         entities = DatabaseLoader.get_entities(engine)
 
         endpoints = ENDPOINT_CONFIGS

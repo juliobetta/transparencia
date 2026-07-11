@@ -39,7 +39,7 @@ pipeline/extract:
 	uv run python -c "from pipeline import extract_only; extract_only(years=$(if $(YEARS),[$(YEARS)],None))"
 
 pipeline/extract_only:
-	uv run python -c "from pipeline import extract_only; extract_only(only='$(ENDPOINT)', years=$(if $(YEARS),[$(YEARS)],None))"
+	uv run python -c "from pipeline import extract_only; extract_only(only=$(if $(ENDPOINT),'$(ENDPOINT)',None), years=$(if $(YEARS),[$(YEARS)],None))"
 
 pipeline/load:
 	uv run python -c "from pipeline import load_from_dir; load_from_dir('$(DIR)')"

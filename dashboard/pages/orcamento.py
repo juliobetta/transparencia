@@ -9,12 +9,16 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import (
+    ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     fmt_compact,
     fmt_currency,
     get_conn,
     get_data_extracao,
     pct_delta,
+    render_aviso_ano_parcial,
+    render_breadcrumb,
     render_sidebar,
     sparkline,
 )
@@ -27,27 +31,31 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _orcamento(conn, year, _extracted_at):
-    return execucao_orcamentaria.run(conn, year)
+def _orcamento(conn, year, empresa_id, _extracted_at):
+    return execucao_orcamentaria.run(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _orcamento_by_year(conn, years, _extracted_at):
-    return execucao_orcamentaria.summarize_by_year(conn, list(years))
+def _orcamento_by_year(conn, years, empresa_id, _extracted_at):
+    return execucao_orcamentaria.summarize_by_year(conn, list(years), empresa_id=empresa_id)
 
 
 conn = get_conn()
-year = render_sidebar()
+year, empresa_id = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.title("Execução Orçamentária por Órgão")
+render_breadcrumb(year, empresa_id)
 st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
 
-df_orcamento = _orcamento(conn, year, _extracted_at)
+if year == ANO_ATUAL:
+    render_aviso_ano_parcial(year, _extracted_at)
+
+df_orcamento = _orcamento(conn, year, empresa_id, _extracted_at)
 totais = execucao_orcamentaria.summarize(df_orcamento)
 
-_all_years = list(range(2022, year + 1))
-_hist = _orcamento_by_year(conn, tuple(_all_years), _extracted_at)
+_all_years = list(range(ANO_INICIAL, year + 1))
+_hist = _orcamento_by_year(conn, tuple(_all_years), empresa_id, _extracted_at)
 _anos = _all_years
 _dotacao_serie = [_hist[y]["total_dotacao"] for y in _anos]
 _empenhado_serie = [_hist[y]["total_empenhado"] for y in _anos]
@@ -70,7 +78,7 @@ with c2:
     st.metric(
         "Total Empenhado",
         fmt_compact(totais["total_empenhado"]),
-        delta=pct_delta(_empenhado_serie),
+        delta=pct_delta(_empenhado_serie) if year != ANO_ATUAL else "—",
         delta_color="off",
         help=glossary.tooltip("Empenho"),
     )
@@ -84,7 +92,7 @@ with c3:
     st.metric(
         "Total Liquidado",
         fmt_compact(totais["total_liquidado"]),
-        delta=pct_delta(_liquidado_serie),
+        delta=pct_delta(_liquidado_serie) if year != ANO_ATUAL else "—",
         delta_color="off",
         help=glossary.tooltip("Liquidação"),
     )
@@ -98,7 +106,7 @@ with c4:
     st.metric(
         "Total Pago",
         fmt_compact(totais["total_pago"]),
-        delta=pct_delta(_pago_serie),
+        delta=pct_delta(_pago_serie) if year != ANO_ATUAL else "—",
         delta_color="off",
         help=glossary.tooltip("Pagamento"),
     )
@@ -160,7 +168,7 @@ with st.expander("Ver Detalhamento por Órgão"):
 
 # Gráfico de Barras (Função)
 st.markdown("---")
-df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year)
+df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year, empresa_id=empresa_id)
 df_funcional_resumo = (
     df_funcional.groupby("funcaonome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
     .sum()

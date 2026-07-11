@@ -10,12 +10,14 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     fmt_currency,
     get_conn,
     get_data_extracao,
     pct_delta,
     render_aviso_ano_parcial,
+    render_breadcrumb,
     render_metodologia_receita,
     render_sidebar,
     sparkline,
@@ -29,37 +31,38 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _receita(conn, years, _extracted_at):
-    return fontes_receita.run(conn, list(years))
+def _receita(conn, years, empresa_id, _extracted_at):
+    return fontes_receita.run(conn, list(years), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _posicao_fiscal(conn, year, _extracted_at, _v=6):
-    return posicao_fiscal.run(conn, year)
+def _posicao_fiscal(conn, year, empresa_id, _extracted_at, _v=6):
+    return posicao_fiscal.run(conn, year, empresa_id=empresa_id)
 
 
 conn = get_conn()
-year = render_sidebar()
+year, empresa_id = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.header("Fontes de Receita")
-
-# Aviso sobre limitações históricas dos dados
-if year < ANO_ATUAL:
-    st.info(
-        "O portal de transparência municipal disponibiliza previsões orçamentárias detalhadas para todos os anos, "
-        f"mas os dados de arrecadação efetiva estão disponíveis na API apenas a partir do exercício de {ANO_ATUAL}.",
-        icon=":material/info:",
-    )
-else:
-    st.success(f":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente ({ANO_ATUAL}).")
-    render_aviso_ano_parcial(year, _extracted_at)
+render_breadcrumb(year, empresa_id)
 
 render_metodologia_receita()
 
-_all_years = list(range(2022, year + 1))
-df_hist = _receita(conn, tuple(_all_years), _extracted_at)
+_all_years = list(range(ANO_INICIAL, year + 1))
+df_hist = _receita(conn, tuple(_all_years), empresa_id, _extracted_at)
 df_ano = df_hist[df_hist["ano"] == year]
+
+_tem_arrecadado = not df_ano.empty and df_ano.iloc[0]["total_arrecadado"] > 0
+
+if _tem_arrecadado:
+    if year == ANO_ATUAL:
+        render_aviso_ano_parcial(year, _extracted_at)
+else:
+    st.info(
+        "Dados de arrecadação efetiva ainda não disponíveis para este exercício. Exibindo apenas a previsão orçamentária.",
+        icon=":material/info:",
+    )
 
 if not df_ano.empty:
     row = df_ano.iloc[0]
@@ -88,11 +91,12 @@ if not df_ano.empty:
 
     _total_serie = df_hist["total"].tolist()
     with c2:
-        if year == ANO_ATUAL:
+        if _tem_arrecadado:
             st.metric(
                 "Total Arrecadado Real",
                 fmt_currency(row["total_arrecadado"]),
-                delta=pct_delta(_total_serie),
+                delta="—" if year == ANO_ATUAL else pct_delta(_total_serie),
+                delta_color="off",
                 help=(
                     "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
                     "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
@@ -102,7 +106,7 @@ if not df_ano.empty:
                 ),
             )
         else:
-            st.metric("Total Arrecadado Real", "N/D (Não Disp. na API)")
+            st.metric("Total Arrecadado Real", "N/D")
         st.plotly_chart(
             sparkline(_anos_hist, _total_serie, "#4CAF50"),
             use_container_width=True,
@@ -110,7 +114,7 @@ if not df_ano.empty:
             key="spark_rec_total",
         )
 
-    if year == ANO_ATUAL:
+    if _tem_arrecadado:
         # Progress Bar
         pct_progresso = row["pct_arrecadado"]
         st.markdown(f"**Progresso de Arrecadação Anual: {pct_progresso * 100:.2f}%**")
@@ -119,9 +123,9 @@ if not df_ano.empty:
     # Tabela de detalhamento
     st.subheader("Previsto vs. Arrecadado por Origem")
 
-    resumo_df = fontes_receita.tabela_detalhamento(row, year)
+    resumo_df = fontes_receita.tabela_detalhamento(row)
 
-    if year == ANO_ATUAL:
+    if _tem_arrecadado:
         # Gráfico de barras: previsto vs. arrecadado
         df_comparativo = resumo_df.melt(
             id_vars=["Fonte"], value_vars=["Previsto", "Arrecadado"], var_name="Métrica", value_name="Valor"
@@ -172,7 +176,7 @@ if year == ANO_ATUAL:
     st.divider()
     st.subheader(f"Situação Fiscal Estimada ({ANO_ATUAL})")
 
-    posicao_fiscal_data = _posicao_fiscal(conn, year, _extracted_at)
+    posicao_fiscal_data = _posicao_fiscal(conn, year, empresa_id, _extracted_at)
 
     ano_anterior = ANO_ATUAL - 1
     st.warning(
@@ -199,7 +203,7 @@ if year == ANO_ATUAL:
         help=f"Pagamentos de empenhos de anos anteriores (Restos a Pagar) realizados em {ANO_ATUAL}.",
     )
 
-    fc3, fc4 = st.columns(2)
+    fc3, fc4, fc5 = st.columns(3)
     fc3.metric("Fluxo Líquido do Período", fmt_currency(posicao_fiscal_data["saldo_estimado"]))
     herdadas = posicao_fiscal_data.get("restos_pendentes_anteriores", 0.0)
     fc4.metric(
@@ -209,7 +213,7 @@ if year == ANO_ATUAL:
     )
 
     saldo_apos_restos = posicao_fiscal_data["saldo_apos_restos"]
-    st.metric(
+    fc5.metric(
         f"Saldo após Restos Pendentes ({ANO_ATUAL})",
         fmt_currency(saldo_apos_restos),
         delta=fmt_currency(saldo_apos_restos) if saldo_apos_restos >= 0 else f"-{fmt_currency(abs(saldo_apos_restos))}",

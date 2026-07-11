@@ -20,6 +20,7 @@ from analysis import (
     tendencias_anuais,
 )
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS, THRESHOLD_OBRAS_ENGENHARIA, THRESHOLD_VEICULOS
+from dashboard.shared import ANO_INICIAL
 from db import get_metadata
 
 REPORTS_DIR = Path("reports")
@@ -35,9 +36,9 @@ def generate(engine, year: int, month: int) -> Path:
     adesao = adesao_de_ata.run(engine, year, "2")
     bidding_acima = licitacao_gaps.filter_above_limit(bidding).to_dict("records")
     bidding_saude = licitacao_gaps.filter_above_limit_health(bidding)
-    revenue = fontes_receita.run(engine, list(range(2022, year + 1)))
-    payroll = folha_vs_servicos.run(engine, list(range(2022, year + 1)))
-    trends = tendencias_anuais.run(engine, list(range(2022, year + 1)))
+    revenue = fontes_receita.run(engine, list(range(ANO_INICIAL, year + 1)))
+    payroll = folha_vs_servicos.run(engine, list(range(ANO_INICIAL, year + 1)))
+    trends = tendencias_anuais.run(engine, list(range(ANO_INICIAL, year + 1)))
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("template.html")

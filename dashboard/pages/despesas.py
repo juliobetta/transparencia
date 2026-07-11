@@ -9,12 +9,16 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from shared import (
+    ANO_ATUAL,
+    ANO_INICIAL,
     SPARK_CFG,
     fmt_compact,
     fmt_currency,
     get_conn,
     get_data_extracao,
     pct_delta,
+    render_aviso_ano_parcial,
+    render_breadcrumb,
     render_sidebar,
     sparkline,
 )
@@ -29,93 +33,97 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _metricas(conn, year, _extracted_at):
-    return analise_despesas.get_metricas_gerais_despesas(conn, year)
+def _metricas(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_metricas_gerais_despesas(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _por_unidade(conn, year, _extracted_at):
-    return analise_despesas.get_despesas_por_unidade(conn, year)
+def _por_unidade(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_despesas_por_unidade(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _impacto(conn, year, _extracted_at):
-    return analise_despesas.get_impacto_gastos_locais(conn, year)
+def _impacto(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_impacto_gastos_locais(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _top_fornecedores(conn, year, _extracted_at):
-    return analise_despesas.get_principais_fornecedores_detalhados(conn, year)
+def _top_fornecedores(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_principais_fornecedores_detalhados(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _concentracao(conn, year, _extracted_at):
-    return concentracao_fornecedores.run(conn, year)
+def _concentracao(conn, year, empresa_id, _extracted_at):
+    return concentracao_fornecedores.run(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _gastos_por_municipio(conn, year, _extracted_at):
-    return analise_despesas.get_gastos_por_municipio(conn, year, top_n=5)
+def _gastos_por_municipio(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_gastos_por_municipio(conn, year, top_n=5, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _resumo_diarias(conn, year, _extracted_at):
-    return analise_despesas.get_resumo_diarias(conn, year)
+def _resumo_diarias(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_resumo_diarias(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _top_diarias(conn, year, _extracted_at):
-    return analise_despesas.get_principais_beneficiarios_diarias(conn, year)
+def _top_diarias(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_principais_beneficiarios_diarias(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _fornecedores_pendentes(conn, year, _extracted_at):
-    return posicao_fiscal.get_fornecedores_pendentes(conn, year)
+def _fornecedores_pendentes(conn, year, empresa_id, _extracted_at):
+    return posicao_fiscal.get_fornecedores_pendentes(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _restos_baixo_valor(conn, year, _extracted_at):
-    return posicao_fiscal.get_restos_baixo_valor(conn, year=year)
+def _restos_baixo_valor(conn, year, empresa_id, _extracted_at):
+    return posicao_fiscal.get_restos_baixo_valor(conn, year=year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _metricas_por_ano(conn, years, _extracted_at):
-    return analise_despesas.get_metricas_por_ano(conn, list(years))
+def _metricas_por_ano(conn, years, empresa_id, _extracted_at):
+    return analise_despesas.get_metricas_por_ano(conn, list(years), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _impacto_por_ano(conn, years, _extracted_at):
-    return analise_despesas.get_impacto_por_ano(conn, list(years))
+def _impacto_por_ano(conn, years, empresa_id, _extracted_at):
+    return analise_despesas.get_impacto_por_ano(conn, list(years), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _hhi_por_ano(conn, years, _extracted_at):
-    return concentracao_fornecedores.hhi_por_ano(conn, list(years))
+def _hhi_por_ano(conn, years, empresa_id, _extracted_at):
+    return concentracao_fornecedores.hhi_por_ano(conn, list(years), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _resumo_diarias_por_ano(conn, years, _extracted_at):
-    return analise_despesas.get_resumo_diarias_por_ano(conn, list(years))
+def _resumo_diarias_por_ano(conn, years, empresa_id, _extracted_at):
+    return analise_despesas.get_resumo_diarias_por_ano(conn, list(years), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _tendencia_pendentes(conn, years, _extracted_at):
-    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, list(years))
+def _tendencia_pendentes(conn, years, empresa_id, _extracted_at):
+    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, list(years), empresa_id=empresa_id)
 
 
 conn = get_conn()
-year = render_sidebar()
+year, empresa_id = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-_all_years = list(range(2022, year + 1))
-_hist_metricas = _metricas_por_ano(conn, tuple(_all_years), _extracted_at)
-_hist_impacto = _impacto_por_ano(conn, tuple(_all_years), _extracted_at)
-_hist_hhi = _hhi_por_ano(conn, tuple(_all_years), _extracted_at)
-_hist_diarias = _resumo_diarias_por_ano(conn, tuple(_all_years), _extracted_at)
-_hist_pendentes = _tendencia_pendentes(conn, tuple(_all_years), _extracted_at)
+_all_years = list(range(ANO_INICIAL, year + 1))
+_hist_metricas = _metricas_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist_impacto = _impacto_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist_hhi = _hhi_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist_diarias = _resumo_diarias_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_id, _extracted_at)
 
 st.title("Portal de Despesas Detalhadas")
+render_breadcrumb(year, empresa_id)
 st.caption("Detalhes sobre onde e como os recursos públicos estão sendo aplicados.")
+
+if year == ANO_ATUAL:
+    render_aviso_ano_parcial(year, _extracted_at)
 
 # Layout de abas
 t1, t2, t3, t4, t5 = st.tabs(
@@ -132,7 +140,7 @@ t1, t2, t3, t4, t5 = st.tabs(
 with t1:
     st.subheader("Análise de Despesas por Unidade do Governo")
 
-    metricas = _metricas(conn, year, _extracted_at)
+    metricas = _metricas(conn, year, empresa_id, _extracted_at)
 
     _emp_serie = [_hist_metricas[y]["empenhado"] for y in _all_years]
     _liq_serie = [_hist_metricas[y]["liquidado"] for y in _all_years]
@@ -143,7 +151,7 @@ with t1:
         st.metric(
             "Total Empenhado",
             fmt_currency(metricas["empenhado"]),
-            delta=pct_delta(_emp_serie),
+            delta=pct_delta(_emp_serie) if year != ANO_ATUAL else None,
             delta_color="off",
             help=(
                 "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
@@ -162,7 +170,7 @@ with t1:
         st.metric(
             "Total Liquidado",
             fmt_currency(metricas["liquidado"]),
-            delta=pct_delta(_liq_serie),
+            delta=pct_delta(_liq_serie) if year != ANO_ATUAL else None,
             delta_color="off",
             help=(
                 "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
@@ -181,7 +189,7 @@ with t1:
         st.metric(
             "Total Pago Real",
             fmt_currency(metricas["pago"]),
-            delta=pct_delta(_pago_serie),
+            delta=pct_delta(_pago_serie) if year != ANO_ATUAL else None,
             delta_color="off",
             help=(
                 "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
@@ -197,7 +205,7 @@ with t1:
             key="spark_desp_pago",
         )
 
-    df_unidades = _por_unidade(conn, year, _extracted_at)
+    df_unidades = _por_unidade(conn, year, empresa_id, _extracted_at)
     if not df_unidades.empty:
         st.markdown("---")
         fig = px.bar(
@@ -243,8 +251,8 @@ with t2:
         "Foram excluídos pagamentos de folha de pessoal, previdência e dívidas."
     )
 
-    impacto = _impacto(conn, year, _extracted_at)
-    concentracao = _concentracao(conn, year, _extracted_at)
+    impacto = _impacto(conn, year, empresa_id, _extracted_at)
+    concentracao = _concentracao(conn, year, empresa_id, _extracted_at)
 
     _local_serie = [_hist_impacto[y]["local_pago"] for y in _all_years]
     _ext_serie = [_hist_impacto[y]["externo_pago"] for y in _all_years]
@@ -256,8 +264,8 @@ with t2:
         st.metric(
             "Efetivamente Pago — Empresas Locais",
             fmt_compact(impacto["local_pago"]),
-            delta=pct_delta(_local_serie),
-            delta_color="normal",
+            delta=pct_delta(_local_serie) if year != ANO_ATUAL else None,
+            delta_color="normal" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
             sparkline(_all_years, _local_serie, "#4CAF50"),
@@ -269,8 +277,8 @@ with t2:
         st.metric(
             "Efetivamente Pago — Empresas Externas",
             fmt_compact(impacto["externo_pago"]),
-            delta=pct_delta(_ext_serie),
-            delta_color="inverse",
+            delta=pct_delta(_ext_serie) if year != ANO_ATUAL else None,
+            delta_color="inverse" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
             sparkline(_all_years, _ext_serie, "#F44336"),
@@ -282,8 +290,8 @@ with t2:
         st.metric(
             "Índice de Compras Locais",
             f"{impacto['pct_local']:.2f}%",
-            delta=pct_delta(_pct_local_serie),
-            delta_color="normal",
+            delta=pct_delta(_pct_local_serie) if year != ANO_ATUAL else None,
+            delta_color="normal" if year != ANO_ATUAL else "off",
             help="Percentual de recursos mantidos na economia local de Porciúncula.",
         )
         st.plotly_chart(
@@ -296,8 +304,8 @@ with t2:
         st.metric(
             "HHI (concentração)",
             f"{concentracao['hhi']:,.0f}",
-            delta=pct_delta(_hhi_serie),
-            delta_color="inverse",
+            delta=pct_delta(_hhi_serie) if year != ANO_ATUAL else None,
+            delta_color="inverse" if year != ANO_ATUAL else "off",
             help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
         )
         st.plotly_chart(
@@ -321,9 +329,10 @@ with t2:
             color="Mercado",
             color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f", "Prestadores Externos": "#a12c2c"},
             title="Destino Geográfico dos Recursos Públicos Pagos",
+            hole=0.5,
         )
 
-        df_cidades = _gastos_por_municipio(conn, year, _extracted_at)
+        df_cidades = _gastos_por_municipio(conn, year, empresa_id, _extracted_at)
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(fig_pie, use_container_width=True)
@@ -336,10 +345,11 @@ with t2:
                     color="cidade",
                     color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
                     title="Top 5 Cidades Externas + Outros",
+                    hole=0.5,
                 )
                 st.plotly_chart(fig_cities, use_container_width=True)
     else:
-        df_cidades = _gastos_por_municipio(conn, year, _extracted_at)
+        df_cidades = _gastos_por_municipio(conn, year, empresa_id, _extracted_at)
         if not df_cidades.empty:
             fig_cities = px.pie(
                 df_cidades,
@@ -348,10 +358,10 @@ with t2:
                 color="cidade",
                 color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
                 title="Top 5 Cidades Externas + Outros",
+                hole=0.5,
             )
             st.plotly_chart(fig_cities, use_container_width=True)
 
-    st.markdown("### Concentração de Fornecedores")
     if concentracao["dominante"]:
         st.warning(
             f"{concentracao['dominante']} recebeu mais de 40% do total empenhado a fornecedores.",
@@ -361,7 +371,7 @@ with t2:
     top10_concentracao = concentracao["top10"].copy()
 
     # Garantir que df_sup esteja definido antes de ser usado
-    df_fornecedores = _top_fornecedores(conn, year, _extracted_at)
+    df_fornecedores = _top_fornecedores(conn, year, empresa_id, _extracted_at)
 
     # Adicionar o Pie Chart de Natureza da Despesa
     st.markdown("### Distribuição das Compras e Serviços")
@@ -374,13 +384,17 @@ with t2:
         # Adicionar label descritiva para o elemento no gráfico usando a nova função
         df_natureza["label"] = df_natureza["elemento"].apply(analise_despesas.get_elemento_label)
 
-        fig_natureza = px.pie(df_natureza, values="pago", names="label", title="Por Elemento de Despesa")
+        fig_natureza = px.pie(df_natureza, values="pago", names="label", title="Por Elemento de Despesa", hole=0.5)
         st.plotly_chart(fig_natureza, use_container_width=True)
 
     with col_conc:
         pizza_concentracao = piechart_concentracao(top10_concentracao, concentracao["total_all"])
         fig_concentracao = px.pie(
-            pizza_concentracao, values="empenhado", names="Fornecedor", title="Distribuição por Fornecedor (Top 10)"
+            pizza_concentracao,
+            values="empenhado",
+            names="Fornecedor",
+            title="Distribuição por Fornecedor (Top 10)",
+            hole=0.5,
         )
         st.plotly_chart(fig_concentracao, use_container_width=True)
 
@@ -444,7 +458,7 @@ with t3:
                 hide_index=True,
             )
 
-    df_pendentes = _fornecedores_pendentes(conn, year, _extracted_at)
+    df_pendentes = _fornecedores_pendentes(conn, year, empresa_id, _extracted_at)
     if not df_pendentes.empty:
         resumo = resumo_pendentes(df_pendentes)
 
@@ -491,6 +505,7 @@ with t3:
             values="Pendente",
             names="Fornecedor",
             title="Top 10 Fornecedores com Maior Pendência",
+            hole=0.5,
         )
         st.plotly_chart(fig_pendentes, use_container_width=True)
 
@@ -516,7 +531,7 @@ with t3:
     else:
         st.info("Nenhum fornecedor com pagamento pendente para este exercício.")
 
-    df_baixo_valor = _restos_baixo_valor(conn, year, _extracted_at)
+    df_baixo_valor = _restos_baixo_valor(conn, year, empresa_id, _extracted_at)
     if not df_baixo_valor.empty:
         with st.expander(
             f":material/warning: {len(df_baixo_valor)} registro(s) com empenhado abaixo de R$ 10,00 — verificar"
@@ -538,7 +553,7 @@ with t3:
 with t4:
     st.subheader("Diárias e Auxílios de Viagem a Serviço")
 
-    resumo_diarias_data = _resumo_diarias(conn, year, _extracted_at)
+    resumo_diarias_data = _resumo_diarias(conn, year, empresa_id, _extracted_at)
 
     _diarias_val_serie = [_hist_diarias[y]["total_valor"] for y in _all_years]
     _diarias_cnt_serie = [_hist_diarias[y]["total_viajantes"] for y in _all_years]
@@ -548,8 +563,8 @@ with t4:
         st.metric(
             "Total Pago em Diárias",
             fmt_currency(resumo_diarias_data["total_valor"]),
-            delta=pct_delta(_diarias_val_serie),
-            delta_color="inverse",
+            delta=pct_delta(_diarias_val_serie) if year != ANO_ATUAL else None,
+            delta_color="inverse" if year != ANO_ATUAL else "off",
         )
         st.plotly_chart(
             sparkline(_all_years, _diarias_val_serie, "#FF9800"),
@@ -561,7 +576,7 @@ with t4:
         st.metric(
             "Total de Servidores Beneficiários",
             int(resumo_diarias_data["total_viajantes"]),
-            delta=pct_delta(_diarias_cnt_serie),
+            delta=pct_delta(_diarias_cnt_serie) if year != ANO_ATUAL else None,
             delta_color="off",
         )
         st.plotly_chart(
@@ -584,7 +599,7 @@ with t4:
         )
 
     st.markdown("---")
-    df_top_diarias = _top_diarias(conn, year, _extracted_at)
+    df_top_diarias = _top_diarias(conn, year, empresa_id, _extracted_at)
     if not df_top_diarias.empty:
         st.markdown("### Top 10 Servidores que Receberam Diárias")
         st.dataframe(
@@ -618,7 +633,10 @@ with t4:
                         "historico": "Justificativa da Viagem",
                     }
                 ),
-                column_config={"Valor (R$)": st.column_config.NumberColumn(format="R$ %,.2f")},
+                column_config={
+                    "Valor (R$)": st.column_config.NumberColumn(format="R$ %,.2f"),
+                    "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                },
                 use_container_width=True,
                 hide_index=True,
             )

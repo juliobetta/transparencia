@@ -3,10 +3,15 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
+from analysis import fontes_receita
 
-def _sum_col(conn: Any, table: str, col: str, year: int, root_only: bool = False) -> float:
+
+def _sum_col(
+    conn: Any, table: str, col: str, year: int, root_only: bool = False, empresa_id: str | None = None
+) -> float:
     try:
-        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano"
+        empresa_clause = "AND t.empresa = :empresa" if empresa_id else ""
+        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano {empresa_clause}"
         if root_only:
             sql += (
                 f" AND NOT EXISTS ("
@@ -17,7 +22,10 @@ def _sum_col(conn: Any, table: str, col: str, year: int, root_only: bool = False
                 f" AND LENGTH(RTRIM(t2.codigo, '0.')) < LENGTH(RTRIM(t.codigo, '0.'))"
                 f")"
             )
-        df = pd.read_sql_query(text(sql), conn, params={"ano": year})
+        params: dict = {"ano": year}
+        if empresa_id:
+            params["empresa"] = empresa_id
+        df = pd.read_sql_query(text(sql), conn, params=params)
         if df.empty:
             return 0.0
         return float(pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum())
@@ -25,32 +33,27 @@ def _sum_col(conn: Any, table: str, col: str, year: int, root_only: bool = False
         return 0.0
 
 
-def run(conn: Any, years: list[int]) -> pd.DataFrame:
+def run(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFrame:
     records = []
-    for year in sorted(years):
-        total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year)
-        total_folha = _sum_col(conn, "pessoal", "proventos", year)
+    sorted_years = sorted(years)
+    # Chama o módulo unificado de fontes de receita para obter as receitas de forma consolidada e DRY
+    rev_df = fontes_receita.run(conn, sorted_years, empresa_id=empresa_id)
+    rev_map = dict(zip(rev_df["ano"], rev_df["total_arrecadado"]))
 
-        propria = _sum_col(conn, "receita_orcamentaria", "arrecadado_total", year, root_only=True)
-        if propria == 0:
-            propria = _sum_col(conn, "receita_orcamentaria", "arrecadado", year, root_only=True)
+    for year in sorted_years:
+        total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year, empresa_id=empresa_id)
+        total_empenhado = _sum_col(conn, "despesas_por_orgao", "empenhado", year, empresa_id=empresa_id)
+        total_folha = _sum_col(conn, "pessoal", "proventos", year)  # pessoal usa empresa='001', não filtra por entidade
 
-        uniao = _sum_col(conn, "receita_uniao", "arrecadado_total", year, root_only=True)
-        if uniao == 0:
-            uniao = _sum_col(conn, "receita_uniao", "arrecadado", year, root_only=True)
-
-        estado = _sum_col(conn, "receita_estado", "arrecadado_total", year, root_only=True)
-        if estado == 0:
-            estado = _sum_col(conn, "receita_estado", "arrecadado", year, root_only=True)
-
-        total = propria + uniao + estado
-        receita = total if total > 0 else None
-        restos = _sum_col(conn, "despesas_restos_pagar", "pago", year)
+        total_rec = rev_map.get(year, 0.0)
+        receita = total_rec if total_rec > 0 else None
+        restos = _sum_col(conn, "despesas_restos_pagar", "pago", year, empresa_id=empresa_id)
 
         records.append(
             {
                 "ano": year,
                 "total_gasto": total_gasto,
+                "total_empenhado": total_empenhado,
                 "total_folha": total_folha,
                 "total_receita": receita,
                 "restos_a_pagar": restos,
@@ -58,7 +61,7 @@ def run(conn: Any, years: list[int]) -> pd.DataFrame:
         )
 
     df = pd.DataFrame(records)
-    for col in ["total_gasto", "total_folha", "total_receita", "restos_a_pagar"]:
+    for col in ["total_gasto", "total_empenhado", "total_folha", "total_receita", "restos_a_pagar"]:
         df[f"{col}_pct_change"] = df[col].pct_change() * 100
     return df
 

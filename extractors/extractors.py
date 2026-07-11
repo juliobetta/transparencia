@@ -101,7 +101,20 @@ class DespesasExtractor(BaseExtractor):
 
 
 class ReceitasExtractor(BaseExtractor):
-    pass
+    def extract(self, empresa_id: int, year: int) -> list[dict]:
+        import datetime
+
+        current_year = datetime.date.today().year
+        if year != current_year:
+            reason = (
+                f"O extractor de receitas aceita apenas o ano atual ({current_year}). "
+                f"O portal de transparência municipal possui um bug estrutural na API JSON que ignora parâmetros históricos e "
+                f"retorna dados incorretos (valores de {current_year} zerados) para anos anteriores. "
+                f"Para carregar dados históricos anteriores a {current_year}, utilize o script de importação de CSV correspondente."
+            )
+            self.logger.warning(reason)
+            raise ValueError(reason)
+        return super().extract(empresa_id, year)
 
 
 class LicitacoesExtractor(BaseExtractor):

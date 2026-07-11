@@ -15,12 +15,20 @@ for _p in (str(DASHBOARD_DIR), str(PAGES_DIR)):
 _YEAR = 2024  # year used for all seeded test data
 
 
+class _SidebarMock:
+    def selectbox(self, _label, options, index=0, **_kwargs):
+        return list(options)[index]
+
+    def __getattr__(self, name):
+        return MagicMock()
+
+
 class _StreamlitMock:
     """Minimal Streamlit stand-in that returns sensible defaults so page top-level code runs."""
 
     session_state: dict = {"sidebar_year": _YEAR}
     column_config = MagicMock()
-    sidebar = MagicMock()
+    sidebar = _SidebarMock()
 
     def cache_data(self, func=None, **_kwargs):
         if func is not None:
@@ -61,6 +69,27 @@ def _seeded_engine(engine):
     emp = "7"
 
     with engine.connect() as conn:
+        db.upsert(conn, "empresas", [{"id": 7, "nome": "PREFEITURA MUNICIPAL DE PORCIÚNCULA"}], ["id"])
+        db.upsert(
+            conn,
+            "despesas_gerais",
+            [
+                {
+                    "ano": year,
+                    "empresa": emp,
+                    "numero": "001",
+                    "elemento": "11",
+                    "tpem": "OR",
+                    "empenhado": "50000",
+                    "liquidado": "45000",
+                    "pago": "40000",
+                    "nomefor": "FORNECEDOR TESTE",
+                    "produ": "VENCIMENTOS",
+                    "nomeempresa": "SAUDE",
+                }
+            ],
+            ["ano", "empresa", "numero"],
+        )
         db.upsert(
             conn,
             "despesas_por_orgao",

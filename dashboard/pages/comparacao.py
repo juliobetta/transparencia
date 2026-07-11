@@ -35,7 +35,7 @@ def _comparacao(conn, periodo_a, periodo_b, _extracted_at):
 
 conn = get_conn()
 _extracted_at = get_data_extracao(conn)
-render_sidebar()  # link do portal e metadados na barra lateral; ano não é usado nesta página
+_, _ = render_sidebar()  # sidebar com entidade e ano; valores ignorados nesta página
 
 st.header("Comparação de Períodos")
 st.caption("Compare dois períodos e veja as variações em cada dimensão.")

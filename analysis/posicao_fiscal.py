@@ -28,10 +28,13 @@ def _sum_varchar_col(conn: Any, table: str, col: str, year: int) -> float:
         return 0.0
 
 
-def run(conn: Any, year: int) -> dict:
+def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
     # 1. Total receitas arrecadadas (reutiliza lógica de raiz existente)
-    rev_df = fontes_receita.run(conn, [year])
+    rev_df = fontes_receita.run(conn, [year], empresa_id=empresa_id)
     total_arrecadado = float(rev_df.iloc[0]["total_arrecadado"]) if not rev_df.empty else 0.0
+
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    empresa_params: dict = {"empresa": empresa_id} if empresa_id else {}
 
     # 2. Despesas correntes pagas no ano
     despesas_pagas = _sum_varchar_col(conn, "despesas_por_orgao", "pago", year)
@@ -43,8 +46,9 @@ def run(conn: Any, year: int) -> dict:
     restos_pendentes = []
     try:
         df = pd.read_sql_query(
-            text("SELECT ano, empenhado, pago FROM despesas_restos_pagar ORDER BY ano"),
+            text(f"SELECT ano, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause} ORDER BY ano"),
             conn,
+            params=empresa_params,
         )
         df["emp_f"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
         df["pago_f"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
@@ -75,8 +79,9 @@ def run(conn: Any, year: int) -> dict:
     top_credores_adm_atual = []
     try:
         df_cred = pd.read_sql_query(
-            text("SELECT descricao, empenhado, pago FROM despesas_restos_pagar WHERE ano >= 2025"),
+            text(f"SELECT descricao, empenhado, pago FROM despesas_restos_pagar WHERE ano >= 2025 {empresa_clause}"),
             conn,
+            params=empresa_params,
         )
         df_cred["emp_f"] = pd.to_numeric(
             df_cred["empenhado"].astype(str).str.replace(",", "."), errors="coerce"
@@ -111,11 +116,14 @@ def run(conn: Any, year: int) -> dict:
     }
 
 
-def get_fornecedores_pendentes(conn: Any, year: int | None = None) -> pd.DataFrame:
+def get_fornecedores_pendentes(conn: Any, year: int | None = None, empresa_id: str | None = None) -> pd.DataFrame:
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {"empresa": empresa_id} if empresa_id else {}
     try:
         df = pd.read_sql_query(
-            text("SELECT descricao, ano, empenhado, pago FROM despesas_restos_pagar"),
+            text(f"SELECT descricao, ano, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"),
             conn,
+            params=params,
         )
     except Exception:
         return pd.DataFrame()
@@ -144,11 +152,14 @@ def get_fornecedores_pendentes(conn: Any, year: int | None = None) -> pd.DataFra
     )
 
 
-def get_tendencia_fornecedores_pendentes(conn: Any, years: list[int]) -> pd.DataFrame:
+def get_tendencia_fornecedores_pendentes(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFrame:
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {"empresa": empresa_id} if empresa_id else {}
     try:
         df = pd.read_sql_query(
-            text("SELECT ano, descricao, empenhado, pago FROM despesas_restos_pagar"),
+            text(f"SELECT ano, descricao, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"),
             conn,
+            params=params,
         )
     except Exception:
         return pd.DataFrame()
@@ -218,11 +229,18 @@ def get_pendentes_por_exercicio(conn: Any) -> pd.DataFrame:
     )
 
 
-def get_restos_baixo_valor(conn: Any, year: int | None = None, threshold: float = 10.0) -> pd.DataFrame:
+def get_restos_baixo_valor(
+    conn: Any, year: int | None = None, threshold: float = 10.0, empresa_id: str | None = None
+) -> pd.DataFrame:
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {"empresa": empresa_id} if empresa_id else {}
     try:
         df = pd.read_sql_query(
-            text("SELECT descricao, ano, numero, empenhado, pago FROM despesas_restos_pagar"),
+            text(
+                f"SELECT descricao, ano, numero, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"
+            ),
             conn,
+            params=params,
         )
     except Exception:
         return pd.DataFrame()
