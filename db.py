@@ -18,7 +18,9 @@ def get_engine() -> Engine:
     global _engine
     if _engine is None:
         load_dotenv()
-        url = os.environ["DATABASE_URL"]
+        url = os.environ.get("DATABASE_URL")
+        if not url:
+            raise RuntimeError("DATABASE_URL environment variable is not set")
         _engine = create_engine(url)
     return _engine
 
