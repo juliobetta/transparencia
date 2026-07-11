@@ -6,14 +6,19 @@ from sqlalchemy import text
 from analysis.constants import NEAR_THRESHOLD_PCT, dispensation_threshold
 
 
-def contagens_fracionamento_por_ano(conn: Any, years: list[int]) -> dict[int, int]:
+def contagens_fracionamento_por_ano(conn: Any, years: list[int], empresa_id: str | None = None) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {}
+    if empresa_id:
+        params["empresa"] = empresa_id
     df = pd.read_sql_query(
         text(
             f"SELECT ano, empresa, fornecedor, valcon, numobra, tipocoobra, objeto"
-            f" FROM contratos WHERE ano IN ({placeholders})"
+            f" FROM contratos WHERE ano IN ({placeholders}) {empresa_clause}"
         ),
         conn,
+        params=params,
     )
     df["valor_num"] = pd.to_numeric(df["valcon"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["limite"] = df.apply(
@@ -31,15 +36,19 @@ def contagens_fracionamento_por_ano(conn: Any, years: list[int]) -> dict[int, in
     return result
 
 
-def run(conn: Any, year: int) -> dict:
+def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {"ano": year}
+    if empresa_id:
+        params["empresa"] = empresa_id
     contratos = pd.read_sql_query(
         text(
             "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes,"
             " numobra, tipocoobra"
-            " FROM contratos WHERE ano = :ano"
+            f" FROM contratos WHERE ano = :ano {empresa_clause}"
         ),
         conn,
-        params={"ano": year},
+        params=params,
     )
     contratos["valor_num"] = pd.to_numeric(
         contratos["valcon"].astype(str).str.replace(",", "."), errors="coerce"
@@ -68,10 +77,11 @@ def run(conn: Any, year: int) -> dict:
     orgao_fornecedor["pct"] = orgao_fornecedor["quantidade"] / orgao_fornecedor["total"]
     fornecedor_recorrente = orgao_fornecedor[orgao_fornecedor["pct"] > 0.5].copy()
 
+    empresa_clause_l = "AND empresa = :empresa" if empresa_id else ""
     licitacoes = pd.read_sql_query(
-        text("SELECT numero, modalidade, objeto, data_abertura FROM licitacoes WHERE ano = :ano"),
+        text(f"SELECT numero, modalidade, objeto, data_abertura FROM licitacoes WHERE ano = :ano {empresa_clause_l}"),
         conn,
-        params={"ano": year},
+        params=params,
     )
     janela_curta = pd.DataFrame()
     if not licitacoes.empty and "data_abertura" in licitacoes.columns:

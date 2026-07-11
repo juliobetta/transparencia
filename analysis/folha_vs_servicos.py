@@ -13,20 +13,30 @@ def distribuicao_salarios(conn: Any, year: int) -> pd.DataFrame:
     return df[df["proventos"] > 0].dropna()
 
 
-def run(conn: Any, years: list[int]) -> pd.DataFrame:
+def run(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFrame:
+    # pessoal usa empresa='001' (código retornado pela API, não mapeado para as entidades do dashboard)
+    # — a folha é um dado municipal consolidado e não deve ser filtrada por empresa_id.
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
     records = []
     for year in years:
-        folha = pd.read_sql_query(text("SELECT proventos FROM pessoal WHERE ano = :ano"), conn, params={"ano": year})
+        folha = pd.read_sql_query(
+            text("SELECT proventos FROM pessoal WHERE ano = :ano"),
+            conn,
+            params={"ano": year},
+        )
         total_folha = pd.to_numeric(folha["proventos"].str.replace(",", "."), errors="coerce").fillna(0).sum()
 
+        pago_params: dict = {"ano": year}
+        if empresa_id:
+            pago_params["empresa"] = empresa_id
         pago = pd.read_sql_query(
-            text("SELECT pago FROM despesas_por_orgao WHERE ano = :ano"), conn, params={"ano": year}
+            text(f"SELECT pago FROM despesas_por_orgao WHERE ano = :ano {empresa_clause}"),
+            conn,
+            params=pago_params,
         )
         total_pago = pd.to_numeric(pago["pago"].str.replace(",", "."), errors="coerce").fillna(0).sum()
 
-        # Usa total de receita como proxy da RCL (LRF Art. 20, III, b exige RCL como denominador).
-        # "total" usa arrecadado quando disponível, previsto como fallback para anos históricos.
-        rev_df = fontes_receita.run(conn, [year])
+        rev_df = fontes_receita.run(conn, [year], empresa_id=empresa_id)
         rcl_proxy = float(rev_df.iloc[0]["total"]) if not rev_df.empty else 0.0
 
         percentual = total_folha / rcl_proxy * 100 if rcl_proxy > 0 else 0

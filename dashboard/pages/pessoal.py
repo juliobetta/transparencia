@@ -17,6 +17,7 @@ from shared import (
     get_data_extracao,
     pct_delta,
     render_aviso_ano_parcial,
+    render_breadcrumb,
     render_sidebar,
     sparkline,
 )
@@ -31,30 +32,31 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _folha_pagamento(conn, year, _extracted_at):
-    return folha_vs_servicos.run(conn, list(range(ANOS[0], year + 1)))
+def _folha_pagamento(conn, year, empresa_id, _extracted_at):
+    return folha_vs_servicos.run(conn, list(range(ANOS[0], year + 1)), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _folha_por_departamento(conn, year, _extracted_at):
-    return analise_despesas.get_folha_por_orgao(conn, year)
+def _folha_por_departamento(conn, year, empresa_id, _extracted_at):
+    return analise_despesas.get_folha_por_orgao(conn, year, empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _folha_orgao_por_ano(conn, years, _extracted_at):
-    return analise_despesas.total_folha_orgao_por_ano(conn, list(years))
+def _folha_orgao_por_ano(conn, years, empresa_id, _extracted_at):
+    return analise_despesas.total_folha_orgao_por_ano(conn, list(years), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _cargos_confianca(conn, years, _extracted_at):
-    return analise_despesas.get_perfil_cargos_confianca(conn, list(years))
+def _cargos_confianca(conn, years, empresa_id, _extracted_at):
+    return analise_despesas.get_perfil_cargos_confianca(conn, list(years), empresa_id=empresa_id)
 
 
 conn = get_conn()
-year = render_sidebar()
+year, empresa_id = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.header("Folha de Pagamento")
+render_breadcrumb(year, empresa_id)
 st.caption(
     "Quanto da receita municipal arrecadada é comprometido com salários e proventos de servidores. "
     "A Lei de Responsabilidade Fiscal (LRF) limita esse gasto a **54% da receita corrente líquida** para o Poder Executivo. "
@@ -71,12 +73,12 @@ if year == ANO_ATUAL:
 
 _all_years = list(range(ANO_INICIAL, year + 1))
 _anos = _all_years
-_hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), _extracted_at)
+_hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
 _folha_orgao_serie = [_hist_folha_orgao[y] for y in _anos]
 
-df_folha = _folha_pagamento(conn, year, _extracted_at)
-df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
-df_departamentos = _folha_por_departamento(conn, year, _extracted_at)
+df_folha = _folha_pagamento(conn, year, empresa_id, _extracted_at)
+df_cargos = _cargos_confianca(conn, tuple(_all_years), empresa_id, _extracted_at)
+df_departamentos = _folha_por_departamento(conn, year, empresa_id, _extracted_at)
 
 kf1, kf2, kf3 = st.columns(3)
 

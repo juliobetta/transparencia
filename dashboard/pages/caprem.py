@@ -22,10 +22,10 @@ def _caprem(conn, year, _extracted_at):
 
 
 conn = get_conn()
-year = render_sidebar()
+year, _ = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-st.title("CAPREM (Caixa de Previdência Municipal)")
+st.title(f"CAPREM (Caixa de Previdência Municipal) - {year}")
 st.caption(f"Dados do CAPREM extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
 
 data = _caprem(conn, year, _extracted_at)

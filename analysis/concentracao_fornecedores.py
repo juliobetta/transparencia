@@ -6,22 +6,28 @@ from sqlalchemy import bindparam, text
 from analysis.constants import FORNECEDORES_NATUREZA_MAP
 
 
-def run(conn: Any, year: int) -> dict:
+def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
+    empresa_clause = "AND f.empresa = :empresa" if empresa_id else ""
+    params: dict = {"ano": year}
+    if empresa_id:
+        params["empresa"] = empresa_id
+
     sql = text(
-        """
+        f"""
         SELECT f.codigo, f.descricao, f.empenhado
         FROM despesas_por_fornecedor f
         LEFT JOIN despesas_gerais g
           ON f.ano = g.ano
           AND f.descricao = g.nomefor
         WHERE f.ano = :ano
+        {empresa_clause}
         AND g.elemento IN :elementos
         """
     ).bindparams(
         bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
     )
 
-    df = pd.read_sql_query(sql, conn, params={"ano": year})
+    df = pd.read_sql_query(sql, conn, params=params)
     df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
     df = df.groupby(["codigo", "descricao"], as_index=False)["empenhado"].sum()
     total = df["empenhado"].sum()
@@ -37,20 +43,21 @@ def run(conn: Any, year: int) -> dict:
     # total_all inclui entradas "E OUTROS" excluídas do top10 para que a fatia "Outros" do piechart seja precisa
     df_all = pd.read_sql_query(
         text(
-            """
+            f"""
             SELECT f.empenhado
             FROM despesas_por_fornecedor f
             LEFT JOIN despesas_gerais g
               ON f.ano = g.ano
               AND f.descricao = g.nomefor
             WHERE f.ano = :ano
+            {empresa_clause}
             AND g.elemento IN :elementos
             """
         ).bindparams(
             bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
         ),
         conn,
-        params={"ano": year},
+        params=params,
     )
     df_all["empenhado"] = pd.to_numeric(df_all["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
     total_all = float(df_all["empenhado"].sum())
@@ -66,5 +73,5 @@ def piechart_concentracao(top10: pd.DataFrame, total_all: float) -> pd.DataFrame
     return slices
 
 
-def hhi_por_ano(conn: Any, years: list[int]) -> dict[int, float]:
-    return {year: run(conn, year)["hhi"] for year in years}
+def hhi_por_ano(conn: Any, years: list[int], empresa_id: str | None = None) -> dict[int, float]:
+    return {year: run(conn, year, empresa_id=empresa_id)["hhi"] for year in years}

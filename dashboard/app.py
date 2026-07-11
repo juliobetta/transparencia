@@ -7,6 +7,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
 
+import db
+
 st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
 st.html(
     """
@@ -31,7 +33,7 @@ START_YEAR = 2021
 _YEARS = list(reversed(range(START_YEAR, date.today().year + 1)))
 
 if "sidebar_year" not in st.session_state:
-    st.session_state["sidebar_year"] = _YEARS[-1]
+    st.session_state["sidebar_year"] = _YEARS[0]
 
 st.session_state["sidebar_year"] = st.sidebar.selectbox(
     "Ano",
@@ -39,6 +41,20 @@ st.session_state["sidebar_year"] = st.sidebar.selectbox(
     key="sidebar_year_selector",
     index=_YEARS.index(st.session_state["sidebar_year"]),
 )
+
+_engine = db.get_engine()
+_empresas = db.get_empresas(_engine)
+_emp_ids = list(_empresas.keys())
+_emp_labels = list(_empresas.values())
+_EMPRESA_PADRAO = "7"
+if "sidebar_empresa" not in st.session_state:
+    st.session_state["sidebar_empresa"] = _EMPRESA_PADRAO
+_emp_current = st.session_state["sidebar_empresa"]
+_emp_idx = _emp_ids.index(_emp_current) if _emp_current in _emp_ids else 0
+_selected_label = st.sidebar.selectbox("Entidade", _emp_labels, index=_emp_idx, key="sidebar_empresa_selector")
+st.session_state["sidebar_empresa"] = _emp_ids[_emp_labels.index(_selected_label)]
+st.session_state["sidebar_empresa_nome"] = _selected_label
+st.session_state["_empresas"] = _empresas
 
 pages = {
     "": [

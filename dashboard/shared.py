@@ -2,6 +2,8 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
+import glossary
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.graph_objects as go
@@ -9,7 +11,6 @@ import streamlit as st
 from streamlit.connections import SQLConnection
 
 import db
-import glossary
 
 ANO_INICIAL = 2021
 ANO_ATUAL = date.today().year
@@ -26,7 +27,12 @@ def get_data_extracao(engine) -> str | None:
     return db.get_metadata(engine, "last_extracted_at")
 
 
-def render_sidebar() -> int:
+EMPRESA_PADRAO = "7"
+
+
+def render_sidebar() -> tuple[int, str]:
+    """Lê ano e entidade do session_state (definidos em app.py). Sem renderização de sidebar."""
+
     engine = get_conn()
     _last_extracted = db.get_metadata(engine, "last_extracted_at")
     if _last_extracted:
@@ -40,7 +46,15 @@ def render_sidebar() -> int:
     st.sidebar.caption(
         f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
     )
-    return int(st.session_state.get("sidebar_year", ANOS[-1]))
+
+    year = int(st.session_state.get("sidebar_year", ANOS[-1]))
+    empresa_id = str(st.session_state.get("sidebar_empresa", EMPRESA_PADRAO))
+    return year, empresa_id
+
+
+def render_breadcrumb(year: int, empresa_id: str) -> None:
+    nome = st.session_state.get("sidebar_empresa_nome", empresa_id)
+    st.caption(f"{year} / {nome}")
 
 
 def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:

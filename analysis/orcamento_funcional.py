@@ -2,13 +2,17 @@ import pandas as pd
 from sqlalchemy import text
 
 
-def get_orcamento_funcional(conn, year: int) -> pd.DataFrame:
-    query = text("""
+def get_orcamento_funcional(conn, year: int, empresa_id: str | None = None) -> pd.DataFrame:
+    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    params: dict = {"ano": year}
+    if empresa_id:
+        params["empresa"] = empresa_id
+    query = text(f"""
         SELECT funcaonome, dotacatualizada, subfuncaonome, empenhado, liquidado, pago
         FROM despesas_gerais
-        WHERE ano = :ano AND funcaonome IS NOT NULL
+        WHERE ano = :ano AND funcaonome IS NOT NULL {empresa_clause}
     """)
-    df = pd.read_sql_query(query, conn, params={"ano": year})
+    df = pd.read_sql_query(query, conn, params=params)
 
     # Converte colunas monetárias em texto para numérico
     for col in ["dotacatualizada", "empenhado", "liquidado", "pago"]:
