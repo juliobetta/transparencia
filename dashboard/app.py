@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
+from shared import get_conn
 
 import db
 
@@ -42,7 +43,7 @@ st.session_state["sidebar_year"] = st.sidebar.selectbox(
     index=_YEARS.index(st.session_state["sidebar_year"]),
 )
 
-_engine = db.get_engine()
+_engine = get_conn()
 _empresas = db.get_empresas(_engine)
 _emp_ids = list(_empresas.keys())
 _emp_labels = list(_empresas.values())
