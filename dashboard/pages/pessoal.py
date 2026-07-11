@@ -47,8 +47,8 @@ def _folha_orgao_por_ano(conn, years, empresa_id, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _cargos_confianca(conn, years, empresa_id, _extracted_at):
-    return analise_despesas.get_perfil_cargos_confianca(conn, list(years), empresa_id=empresa_id)
+def _cargos_confianca(conn, years, _extracted_at):
+    return analise_despesas.get_perfil_cargos_confianca(conn, list(years))
 
 
 conn = get_conn()
@@ -77,7 +77,7 @@ _hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), empresa_id, _e
 _folha_orgao_serie = [_hist_folha_orgao[y] for y in _anos]
 
 df_folha = _folha_pagamento(conn, year, empresa_id, _extracted_at)
-df_cargos = _cargos_confianca(conn, tuple(_all_years), empresa_id, _extracted_at)
+df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
 df_departamentos = _folha_por_departamento(conn, year, empresa_id, _extracted_at)
 
 kf1, kf2, kf3 = st.columns(3)
