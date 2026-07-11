@@ -111,6 +111,10 @@ def run_import():
             print(f"\nIgnorando arquivo '{filename}': endpoint desconhecido '{endpoint_raw}'.")
             continue
 
+        if file_path.stat().st_size == 0:
+            print(f"\nIgnorando arquivo '{filename}': arquivo vazio.")
+            continue
+
         # Tenta ler o arquivo CSV
         try:
             # Sep=None com engine=python detecta delimitadores automaticamente (como , ou ;)
