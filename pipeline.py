@@ -14,7 +14,7 @@ from sqlmodel import SQLModel
 from db import create_tables, get_engine, set_metadata, upsert
 from extractors.extractors import ENDPOINT_CONFIGS, EndpointConfig
 
-START_YEAR = 2017
+START_YEAR = 2021
 RAW_DIR = Path("data/raw")
 FAILED_REQUESTS_FILE = Path("data/failed_requests.csv")
 BASE_HOST = "https://transparencia.porciuncula.rj.gov.br"
