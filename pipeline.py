@@ -200,6 +200,18 @@ class DataExtractor:
         logger.info("Saving raw data to %s", run_dir)
 
         engine = get_engine()
+        create_tables(engine)
+        _insert_entities(
+            engine,
+            {
+                10: "FUNDO DE SOLIDARIEDADE - FUNDESOL",
+                3: "FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL",
+                9: "FUNDO MUNICIPAL DE DEFESA AMBIENTAL",
+                8: "FUNDO MUNICIPAL DE EDUCAÇÃO",
+                2: "FUNDO MUNICIPAL DE SAUDE",
+                7: "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
+            },
+        )
         entities = DatabaseLoader.get_entities(engine)
 
         endpoints = ENDPOINT_CONFIGS
