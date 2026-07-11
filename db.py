@@ -80,3 +80,14 @@ def get_metadata(db: Connectable, key: str) -> str | None:
     else:
         row = db.execute(query, {"key": key}).fetchone()
     return row[0] if row else None
+
+
+def get_empresas(conn: Connectable) -> dict[str, str]:
+    """Retorna {id_str: nome} das entidades cadastradas no banco."""
+    query = text("SELECT id, nome FROM empresas ORDER BY id")
+    if isinstance(conn, Engine):
+        with conn.connect() as c:
+            rows = c.execute(query).fetchall()
+    else:
+        rows = conn.execute(query).fetchall()
+    return {str(row[0]): row[1] for row in rows}

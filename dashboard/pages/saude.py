@@ -47,12 +47,12 @@ def _pdf(conn, year, _extracted_at):
 
 
 conn = get_conn()
-year = render_sidebar()
+year, _ = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 col_titulo, col_botao = st.columns([8, 2])
 with col_titulo:
-    st.title("Fundo Municipal de Saúde")
+    st.title(f"Fundo Municipal de Saúde - {year}")
     st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
 with col_botao:
     st.write("")

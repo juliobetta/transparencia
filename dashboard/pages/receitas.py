@@ -17,6 +17,7 @@ from shared import (
     get_data_extracao,
     pct_delta,
     render_aviso_ano_parcial,
+    render_breadcrumb,
     render_metodologia_receita,
     render_sidebar,
     sparkline,
@@ -30,37 +31,33 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _receita(conn, years, _extracted_at):
-    return fontes_receita.run(conn, list(years))
+def _receita(conn, years, empresa_id, _extracted_at):
+    return fontes_receita.run(conn, list(years), empresa_id=empresa_id)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _posicao_fiscal(conn, year, _extracted_at, _v=6):
-    return posicao_fiscal.run(conn, year)
+def _posicao_fiscal(conn, year, empresa_id, _extracted_at, _v=6):
+    return posicao_fiscal.run(conn, year, empresa_id=empresa_id)
 
 
 conn = get_conn()
-year = render_sidebar()
+year, empresa_id = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.header("Fontes de Receita")
+render_breadcrumb(year, empresa_id)
 
 render_metodologia_receita()
 
 _all_years = list(range(ANO_INICIAL, year + 1))
-df_hist = _receita(conn, tuple(_all_years), _extracted_at)
+df_hist = _receita(conn, tuple(_all_years), empresa_id, _extracted_at)
 df_ano = df_hist[df_hist["ano"] == year]
 
 _tem_arrecadado = not df_ano.empty and df_ano.iloc[0]["total_arrecadado"] > 0
 
 if _tem_arrecadado:
     if year == ANO_ATUAL:
-        st.success(
-            f":material/check: Dados de Arrecadação Realizados disponíveis para o exercício corrente ({ANO_ATUAL})."
-        )
         render_aviso_ano_parcial(year, _extracted_at)
-    else:
-        st.success(":material/check: Dados de Arrecadação Realizada disponíveis para este exercício.")
 else:
     st.info(
         "Dados de arrecadação efetiva ainda não disponíveis para este exercício. Exibindo apenas a previsão orçamentária.",
@@ -179,7 +176,7 @@ if year == ANO_ATUAL:
     st.divider()
     st.subheader(f"Situação Fiscal Estimada ({ANO_ATUAL})")
 
-    posicao_fiscal_data = _posicao_fiscal(conn, year, _extracted_at)
+    posicao_fiscal_data = _posicao_fiscal(conn, year, empresa_id, _extracted_at)
 
     ano_anterior = ANO_ATUAL - 1
     st.warning(

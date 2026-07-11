@@ -7,6 +7,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
 
+import db
+
 st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
 st.html(
     """
@@ -27,11 +29,11 @@ st.html(
     """
 )
 
-START_YEAR = 2017
-_YEARS = list(range(START_YEAR, date.today().year + 1))
+START_YEAR = 2021
+_YEARS = list(reversed(range(START_YEAR, date.today().year + 1)))
 
 if "sidebar_year" not in st.session_state:
-    st.session_state["sidebar_year"] = _YEARS[-1]
+    st.session_state["sidebar_year"] = _YEARS[0]
 
 st.session_state["sidebar_year"] = st.sidebar.selectbox(
     "Ano",
@@ -40,20 +42,38 @@ st.session_state["sidebar_year"] = st.sidebar.selectbox(
     index=_YEARS.index(st.session_state["sidebar_year"]),
 )
 
+_engine = db.get_engine()
+_empresas = db.get_empresas(_engine)
+_emp_ids = list(_empresas.keys())
+_emp_labels = list(_empresas.values())
+_EMPRESA_PADRAO = "7"
+if "sidebar_empresa" not in st.session_state:
+    st.session_state["sidebar_empresa"] = _EMPRESA_PADRAO
+_emp_current = st.session_state["sidebar_empresa"]
+_emp_idx = _emp_ids.index(_emp_current) if _emp_current in _emp_ids else 0
+_selected_label = st.sidebar.selectbox("Entidade", _emp_labels, index=_emp_idx, key="sidebar_empresa_selector")
+st.session_state["sidebar_empresa"] = _emp_ids[_emp_labels.index(_selected_label)]
+st.session_state["sidebar_empresa_nome"] = _selected_label
+st.session_state["_empresas"] = _empresas
+
 pages = {
     "": [
         st.Page("pages/visao_geral.py", title="Visão Geral", icon=":material/home:"),
+    ],
+    "Administrativo": [
         st.Page("pages/receitas.py", title="Receitas", icon=":material/payments:"),
         st.Page("pages/orcamento.py", title="Execução Orçamentária", icon=":material/account_balance_wallet:"),
         st.Page("pages/despesas.py", title="Despesas Detalhadas", icon=":material/receipt_long:"),
         st.Page("pages/licitacoes.py", title="Licitações e Contratos", icon=":material/gavel:"),
         st.Page("pages/pessoal.py", title="Pessoal", icon=":material/group:"),
-        st.Page("pages/comparacao.py", title="Comparação", icon=":material/compare_arrows:"),
-        st.Page("pages/dados_brutos.py", title="Dados Brutos", icon=":material/table:"),
     ],
-    "Setores": [
+    "Temas": [
         st.Page("pages/saude.py", title="Saúde", icon=":material/health_and_safety:"),
         st.Page("pages/caprem.py", title="CAPREM", icon=":material/account_balance:"),
+    ],
+    "Outros": [
+        st.Page("pages/comparacao.py", title="Comparação", icon=":material/compare_arrows:"),
+        st.Page("pages/dados_brutos.py", title="Dados Brutos", icon=":material/table:"),
     ],
 }
 
