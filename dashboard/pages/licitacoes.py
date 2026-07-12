@@ -264,13 +264,12 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
 if not acima.empty:
     st.subheader("Contratos acima do limite legal sem licitação")
     st.dataframe(
-        acima[["empresa", "fornecedor", "objeto", "valcon", "orgao_saude", "periodo"]].rename(
+        acima[["empresa", "fornecedor", "objeto", "valcon", "periodo"]].rename(
             columns={
                 "empresa": "Entidade",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
                 "valcon": "Valor",
-                "orgao_saude": "Saúde?",
                 "periodo": "Período",
             }
         ),
