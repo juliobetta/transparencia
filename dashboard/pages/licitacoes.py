@@ -28,63 +28,63 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _lacunas_licitacao(conn, year, empresa_id, _extracted_at):
-    return licitacao_gaps.run(conn, year, empresa_id=empresa_id)
+def _lacunas_licitacao(conn, year, empresa_ids, _extracted_at):
+    return licitacao_gaps.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao(conn, year, empresa_id, _extracted_at):
-    return adesao_de_ata.run(conn, year, empresa_id=empresa_id)
+def _adesao(conn, year, empresa_ids, _extracted_at):
+    return adesao_de_ata.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao_externa(conn, year, empresa_id, _extracted_at):
-    return adesao_de_ata.run_external(conn, year, empresa_id=empresa_id)
+def _adesao_externa(conn, year, empresa_ids, _extracted_at):
+    return adesao_de_ata.run_external(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _anomalias(conn, year, empresa_id, _extracted_at):
-    return anomalias_contratuais.run(conn, year, empresa_id=empresa_id)
+def _anomalias(conn, year, empresa_ids, _extracted_at):
+    return anomalias_contratuais.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _acima_por_ano(conn, years, empresa_id, _extracted_at):
-    return licitacao_gaps.counts_by_year(conn, list(years), empresa_id=empresa_id)
+def _acima_por_ano(conn, years, empresa_ids, _extracted_at):
+    return licitacao_gaps.counts_by_year(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _totals_sem_lic_por_ano(conn, years, empresa_id, _extracted_at):
-    return licitacao_gaps.totals_sem_licitacao_por_ano(conn, list(years), empresa_id=empresa_id)
+def _totals_sem_lic_por_ano(conn, years, empresa_ids, _extracted_at):
+    return licitacao_gaps.totals_sem_licitacao_por_ano(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao_por_ano(conn, years, empresa_id, _extracted_at):
-    return adesao_de_ata.formal_counts_by_year(conn, list(years), empresa_id=empresa_id)
+def _adesao_por_ano(conn, years, empresa_ids, _extracted_at):
+    return adesao_de_ata.formal_counts_by_year(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao_ext_por_ano(conn, years, empresa_id, _extracted_at):
-    return adesao_de_ata.external_counts_by_year(conn, list(years), empresa_id=empresa_id)
+def _adesao_ext_por_ano(conn, years, empresa_ids, _extracted_at):
+    return adesao_de_ata.external_counts_by_year(conn, list(years), empresa_ids=empresa_ids)
 
 
 conn = get_conn()
-year, empresa_id = render_sidebar()
+year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-lacunas = _lacunas_licitacao(conn, year, empresa_id, _extracted_at)
-adesao = _adesao(conn, year, empresa_id, _extracted_at)
-adesao_externa = _adesao_externa(conn, year, empresa_id, _extracted_at)
-anomalias = _anomalias(conn, year, empresa_id, _extracted_at)
+lacunas = _lacunas_licitacao(conn, year, empresa_ids, _extracted_at)
+adesao = _adesao(conn, year, empresa_ids, _extracted_at)
+adesao_externa = _adesao_externa(conn, year, empresa_ids, _extracted_at)
+anomalias = _anomalias(conn, year, empresa_ids, _extracted_at)
 
 acima = licitacao_gaps.filter_above_limit(lacunas)
 saude = licitacao_gaps.filter_above_limit_health(lacunas)
 
 _all_years = list(range(ANO_INICIAL, year + 1))
 _anos = _all_years
-_hist_acima = _acima_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
-_hist_totals = _totals_sem_lic_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
-_hist_adesao = _adesao_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
-_hist_adesao_ext = _adesao_ext_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist_acima = _acima_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
+_hist_totals = _totals_sem_lic_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
+_hist_adesao = _adesao_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
+_hist_adesao_ext = _adesao_ext_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
 
 _acima_serie = [_hist_acima[y] for y in _anos]
 _totals_serie = [_hist_totals[y] for y in _anos]
@@ -92,7 +92,7 @@ _adesao_serie = [_hist_adesao[y] for y in _anos]
 _adesao_ext_serie = [_hist_adesao_ext[y] for y in _anos]
 
 st.header("Licitações e Contratos")
-render_breadcrumb(year, empresa_id)
+render_breadcrumb(year, empresa_ids)
 
 if year == ANO_ATUAL:
     render_aviso_ano_parcial(year, _extracted_at)

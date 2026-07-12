@@ -36,7 +36,7 @@ def _saude(conn, year, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _adesao_externa(conn, year, _extracted_at):
-    return adesao_de_ata.run_external(conn, year, empresa_id="2")
+    return adesao_de_ata.run_external(conn, year, empresa_ids=["2"])
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)

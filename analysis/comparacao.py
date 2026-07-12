@@ -101,7 +101,7 @@ def run(conn: Any, spec_a: PeriodSpec, spec_b: PeriodSpec) -> dict:
         return {"hhi": float(result["hhi"])}
 
     def _adesao(spec: PeriodSpec) -> dict:
-        result = adesao_de_ata.run(conn, spec.year, "2")
+        result = adesao_de_ata.run(conn, spec.year, ["2"])
         return {
             "quantidade": float(result["quantidade"]),
             "valor_licitacao": float(result["total_licitacao"]),

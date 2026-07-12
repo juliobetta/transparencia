@@ -40,84 +40,84 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _orcamento(conn, year, empresa_id, _extracted_at):
-    return execucao_orcamentaria.run(conn, year, empresa_id=empresa_id)
+def _orcamento(conn, year, empresa_ids, _extracted_at):
+    return execucao_orcamentaria.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _licitacoes_gaps(conn, year, empresa_id, _extracted_at):
-    return licitacao_gaps.run(conn, year, empresa_id=empresa_id)
+def _licitacoes_gaps(conn, year, empresa_ids, _extracted_at):
+    return licitacao_gaps.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _contagens_licitacoes(conn, years, empresa_id, _extracted_at):
-    return licitacao_gaps.counts_by_year(conn, years, empresa_id=empresa_id)
+def _contagens_licitacoes(conn, years, empresa_ids, _extracted_at):
+    return licitacao_gaps.counts_by_year(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _receita(conn, years, empresa_id, _extracted_at):
-    return fontes_receita.run(conn, years, empresa_id=empresa_id)
+def _receita(conn, years, empresa_ids, _extracted_at):
+    return fontes_receita.run(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _yoy(conn, years, empresa_id, _extracted_at):
-    return tendencias_anuais.run(conn, years, empresa_id=empresa_id)
+def _yoy(conn, years, empresa_ids, _extracted_at):
+    return tendencias_anuais.run(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao_counts(conn, years, empresa_id, _extracted_at):
-    return adesao_de_ata.formal_counts_by_year(conn, years, empresa_id=empresa_id)
+def _adesao_counts(conn, years, empresa_ids, _extracted_at):
+    return adesao_de_ata.formal_counts_by_year(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao_externa_counts(conn, years, empresa_id, _extracted_at):
-    return adesao_de_ata.external_counts_by_year(conn, years, empresa_id=empresa_id)
+def _adesao_externa_counts(conn, years, empresa_ids, _extracted_at):
+    return adesao_de_ata.external_counts_by_year(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _contagens_fracionamento(conn, years, empresa_id, _extracted_at):
-    return anomalias_contratuais.contagens_fracionamento_por_ano(conn, years, empresa_id=empresa_id)
+def _contagens_fracionamento(conn, years, empresa_ids, _extracted_at):
+    return anomalias_contratuais.contagens_fracionamento_por_ano(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _fornecedores_pendentes(conn, year, empresa_id, _extracted_at):
-    return posicao_fiscal.get_fornecedores_pendentes(conn, year, empresa_id=empresa_id)
+def _fornecedores_pendentes(conn, year, empresa_ids, _extracted_at):
+    return posicao_fiscal.get_fornecedores_pendentes(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _tendencia_pendentes(conn, years, empresa_id, _extracted_at):
-    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, years, empresa_id=empresa_id)
+def _tendencia_pendentes(conn, years, empresa_ids, _extracted_at):
+    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _composicao(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_composicao_despesa(conn, year, empresa_id=empresa_id)
+def _composicao(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_composicao_despesa(conn, year, empresa_ids=empresa_ids)
 
 
 conn = get_conn()
-year, empresa_id = render_sidebar()
+year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.title("Transparência Porciúncula / RJ")
 st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL}) do município.")
 st.header("Visão Geral")
-render_breadcrumb(year, empresa_id)
+render_breadcrumb(year, empresa_ids)
 
 _all_years = list(range(ANO_INICIAL, year + 1))
 with st.spinner("Carregando..."):
-    orcamento = _orcamento(conn, year, empresa_id, _extracted_at)
-    licitacoes = _licitacoes_gaps(conn, year, empresa_id, _extracted_at)
-    receita = _receita(conn, _all_years, empresa_id, _extracted_at)
-    yoy = _yoy(conn, _all_years, empresa_id, _extracted_at)
-    df_composicao = _composicao(conn, year, empresa_id, _extracted_at)
-    _adesao_map = _adesao_counts(conn, _all_years, empresa_id, _extracted_at)
-    _adesao_ext_map = _adesao_externa_counts(conn, _all_years, empresa_id, _extracted_at)
-    _mapa_fracionamento = _contagens_fracionamento(conn, _all_years, empresa_id, _extracted_at)
-    df_pendentes = _fornecedores_pendentes(conn, year, empresa_id, _extracted_at)
-    tendencia_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_id, _extracted_at)
+    orcamento = _orcamento(conn, year, empresa_ids, _extracted_at)
+    licitacoes = _licitacoes_gaps(conn, year, empresa_ids, _extracted_at)
+    receita = _receita(conn, _all_years, empresa_ids, _extracted_at)
+    yoy = _yoy(conn, _all_years, empresa_ids, _extracted_at)
+    df_composicao = _composicao(conn, year, empresa_ids, _extracted_at)
+    _adesao_map = _adesao_counts(conn, _all_years, empresa_ids, _extracted_at)
+    _adesao_ext_map = _adesao_externa_counts(conn, _all_years, empresa_ids, _extracted_at)
+    _mapa_fracionamento = _contagens_fracionamento(conn, _all_years, empresa_ids, _extracted_at)
+    df_pendentes = _fornecedores_pendentes(conn, year, empresa_ids, _extracted_at)
+    tendencia_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_ids, _extracted_at)
 
 anos = yoy["ano"].tolist()
-_mapa_contagens = _contagens_licitacoes(conn, anos, empresa_id, _extracted_at)
+_mapa_contagens = _contagens_licitacoes(conn, anos, empresa_ids, _extracted_at)
 _contagens_contratos = [_mapa_contagens[y] for y in anos]
 
 st.subheader("Execução Orçamentária")

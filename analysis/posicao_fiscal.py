@@ -28,13 +28,13 @@ def _sum_varchar_col(conn: Any, table: str, col: str, year: int) -> float:
         return 0.0
 
 
-def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
+def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     # 1. Total receitas arrecadadas (reutiliza lógica de raiz existente)
-    rev_df = fontes_receita.run(conn, [year], empresa_id=empresa_id)
+    rev_df = fontes_receita.run(conn, [year], empresa_ids=empresa_ids)
     total_arrecadado = float(rev_df.iloc[0]["total_arrecadado"]) if not rev_df.empty else 0.0
 
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
-    empresa_params: dict = {"empresa": empresa_id} if empresa_id else {}
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_params: dict = {"empresas": empresa_ids} if empresa_ids else {}
 
     # 2. Despesas correntes pagas no ano
     despesas_pagas = _sum_varchar_col(conn, "despesas_por_orgao", "pago", year)
@@ -116,9 +116,11 @@ def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
     }
 
 
-def get_fornecedores_pendentes(conn: Any, year: int | None = None, empresa_id: str | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
-    params: dict = {"empresa": empresa_id} if empresa_id else {}
+def get_fornecedores_pendentes(
+    conn: Any, year: int | None = None, empresa_ids: list[str] | None = None
+) -> pd.DataFrame:
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     try:
         df = pd.read_sql_query(
             text(f"SELECT descricao, ano, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"),
@@ -152,9 +154,11 @@ def get_fornecedores_pendentes(conn: Any, year: int | None = None, empresa_id: s
     )
 
 
-def get_tendencia_fornecedores_pendentes(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
-    params: dict = {"empresa": empresa_id} if empresa_id else {}
+def get_tendencia_fornecedores_pendentes(
+    conn: Any, years: list[int], empresa_ids: list[str] | None = None
+) -> pd.DataFrame:
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     try:
         df = pd.read_sql_query(
             text(f"SELECT ano, descricao, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"),
@@ -230,10 +234,10 @@ def get_pendentes_por_exercicio(conn: Any) -> pd.DataFrame:
 
 
 def get_restos_baixo_valor(
-    conn: Any, year: int | None = None, threshold: float = 10.0, empresa_id: str | None = None
+    conn: Any, year: int | None = None, threshold: float = 10.0, empresa_ids: list[str] | None = None
 ) -> pd.DataFrame:
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
-    params: dict = {"empresa": empresa_id} if empresa_id else {}
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     try:
         df = pd.read_sql_query(
             text(
