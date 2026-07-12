@@ -53,14 +53,29 @@ def render_sidebar() -> tuple[int, list[str] | None]:
 
 
 def render_breadcrumb(year: int, empresa_ids: list[str] | None) -> None:
-    nomes: list[str] = st.session_state.get("sidebar_empresa_nomes", [])
-    if not nomes or empresa_ids is None:
-        label = "Todas as Entidades"
-    elif len(nomes) == 1:
-        label = nomes[0]
-    else:
-        label = ", ".join(nomes)
-    st.caption(f"{year} / {label}")
+    _empresas: dict = st.session_state.get("_empresas", {})
+    _emp_ids = list(_empresas.keys())
+    _emp_labels = list(_empresas.values())
+    _years = list(reversed(range(ANO_INICIAL, ANO_ATUAL + 1)))
+    current_nomes: list[str] = st.session_state.get("sidebar_empresa_nomes", [])
+
+    c1, c2 = st.columns([1, 4])
+    with c1:
+        new_year: int = st.selectbox("Ano", _years, index=_years.index(year))
+        if new_year != year:
+            st.session_state["sidebar_year"] = new_year
+            st.rerun()
+    with c2:
+        new_labels: list[str] = st.multiselect("Entidades", _emp_labels, default=current_nomes)
+        new_ids = [_emp_ids[_emp_labels.index(label)] for label in new_labels]
+        new_ids_or_none: list[str] | None = new_ids if new_ids else None
+        # Normaliza: vazio e None representam o mesmo estado (todas as entidades)
+        current_set = set(empresa_ids) if empresa_ids else set(_emp_ids)
+        new_set = set(new_ids) if new_ids else set(_emp_ids)
+        if new_set != current_set:
+            st.session_state["sidebar_empresa_ids"] = new_ids_or_none
+            st.session_state["sidebar_empresa_nomes"] = new_labels
+            st.rerun()
 
 
 def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:

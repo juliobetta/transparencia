@@ -17,6 +17,29 @@ st.html(
     <style>
     [data-testid='stStatusWidget'] { display: none; }
 
+    /* Remove truncamento nos itens do multiselect */
+    .stMain {
+        [data-baseweb="menu"] [role="option"],
+        [data-baseweb="menu"] li {
+            height: auto !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+        [data-baseweb="menu"] [role="option"] span,
+        [data-baseweb="menu"] li span {
+            overflow: visible !important;
+            text-overflow: unset !important;
+            white-space: normal !important;
+        }
+        [data-baseweb="tag"],
+        [data-baseweb="tag"] span {
+            max-width: none !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            white-space: normal !important;
+        }
+    }
+
     /* Desabilita interações nos gráficos em telas menores e dispositivos touch para evitar que o zoom intercepte o scroll da página */
     @media (max-width: 1024px), (pointer: coarse) {
         [data-testid="stPlotlyChart"],
@@ -66,7 +89,6 @@ if "sidebar_year" not in st.session_state:
 st.session_state["sidebar_year"] = st.sidebar.selectbox(
     "Ano",
     _YEARS,
-    key="sidebar_year_selector",
     index=_YEARS.index(st.session_state["sidebar_year"]),
 )
 
@@ -77,11 +99,9 @@ _emp_labels = list(_empresas.values())
 _selected_labels: list[str] = st.sidebar.multiselect(
     "Entidade",
     _emp_labels,
-    default=[],
-    key="sidebar_empresa_selector",
+    default=st.session_state.get("sidebar_empresa_nomes", _emp_labels),
 )
 _selected_ids = [_emp_ids[_emp_labels.index(label)] for label in _selected_labels]
-# None when all entities are selected — avoids unnecessary SQL IN clause
 st.session_state["sidebar_empresa_ids"] = None if set(_selected_ids) == set(_emp_ids) else _selected_ids or None
 st.session_state["sidebar_empresa_nomes"] = _selected_labels
 st.session_state["_empresas"] = _empresas

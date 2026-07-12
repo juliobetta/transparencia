@@ -98,7 +98,7 @@ Atuar como Engenheiro de Dados Sênior e Auditor de Finanças Públicas especial
   $$\text{Empenho Líquido} = \text{Empenho Bruto} + \text{Anulações (Valores Negativos)}$$
   Nas despesas de folha e 13º salário, o percentual de quitação real (pago vs. empenhado) deve sempre usar o Empenho Líquido no denominador. Caso contrário, sobras orçamentárias estornadas de fim de ano farão a quitação parecer incorretamente inferior a 100%.
 
-- **Blindagem contra Inconsistência de Descrições (Join de Anulações):** Transações do tipo `AN` (Anulação) frequentemente recebem descrições genéricas no sistema (ex: *"Anulação de empenho estimativo"*), o que as faz serem ignoradas por filtros textuais (`ILIKE '%13%'`). Para capturar a liquidez real de uma despesa sem omissões:
+- **Blindagem contra Inconsistência de Descrições (Join de Anulações):** Transações do tipo `AN` (Anulação) frequentemente recebem descrições genéricas no sistema (ex: _"Anulação de empenho estimativo"_), o que as faz serem ignoradas por filtros textuais (`ILIKE '%13%'`). Para capturar a liquidez real de uma despesa sem omissões:
   1. Filtre os empenhos pais (`tpem != 'AN'`) usando critérios específicos (elementos, termos textuais).
   2. Faça um `LEFT JOIN` com as anulações (`tpem = 'AN'`) relacionando a chave `e.pkemp = a.pkempa` (onde `pkempa` aponta para o ID do empenho original).
   3. Agregue as anulações agrupadas e some-as ao empenhado bruto original. Isso zera discrepâncias contábeis e traz 100% de integridade matemática ao dashboard.
@@ -133,7 +133,7 @@ Atuar como Engenheiro de Dados Sênior e Auditor de Finanças Públicas especial
 
 ### 12.2 Filtro Global de Entidade
 
-- **Padrão do Componente:** `st.sidebar.multiselect("Entidade", ...)` com `default=_emp_labels` (todas selecionadas). Posicionado no topo da sidebar, antes do filtro de ano.
+- **Padrão do Componente:** `st.sidebar.multiselect("Entidades", ...)` com `default=_emp_labels` (todas selecionadas). Posicionado no topo da sidebar, antes do filtro de ano.
 - **Contrato da Camada de Análise:** As funções `analysis/` recebem `empresa_ids: list[str] | None`:
   - `None` → sem filtro SQL (retorna todas as entidades — comportamento eficiente)
   - `list[str]` → `AND empresa = ANY(:empresas)` no PostgreSQL
