@@ -12,7 +12,7 @@ from sqlalchemy import text
 import glossary
 
 conn = get_conn()
-year, empresa_id = render_sidebar()
+year, empresa_ids = render_sidebar()
 
 _COLUMN_LABELS = {
     "ano": "Ano",
@@ -77,15 +77,19 @@ _TABLE_LABELS = {
 }
 
 st.header("Dados Brutos")
-render_breadcrumb(year, empresa_id)
+render_breadcrumb(year, empresa_ids)
 allowed_tables = list(_TABLE_LABELS.keys())
 table = st.selectbox("Tabela", allowed_tables, format_func=lambda t: _TABLE_LABELS[t])
 if table not in allowed_tables:
     raise ValueError(f"Tabela inválida: {table}")
+_empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+_params: dict = {"ano": year}
+if empresa_ids:
+    _params["empresas"] = empresa_ids
 df = pd.read_sql_query(
-    text(f"SELECT * FROM {table} WHERE ano = :ano AND empresa = :empresa_id"),
+    text(f"SELECT * FROM {table} WHERE ano = :ano {_empresa_clause}"),
     conn,
-    params={"ano": year, "empresa_id": empresa_id},
+    params=_params,
 )
 config = {
     _COLUMN_LABELS[col]: st.column_config.NumberColumn(format="R$ %,.2f")

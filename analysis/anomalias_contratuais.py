@@ -6,12 +6,14 @@ from sqlalchemy import text
 from analysis.constants import NEAR_THRESHOLD_PCT, dispensation_threshold
 
 
-def contagens_fracionamento_por_ano(conn: Any, years: list[int], empresa_id: str | None = None) -> dict[int, int]:
+def contagens_fracionamento_por_ano(
+    conn: Any, years: list[int], empresa_ids: list[str] | None = None
+) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
             f"SELECT ano, empresa, fornecedor, valcon, numobra, tipocoobra, objeto"
@@ -36,11 +38,11 @@ def contagens_fracionamento_por_ano(conn: Any, years: list[int], empresa_id: str
     return result
 
 
-def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     contratos = pd.read_sql_query(
         text(
             "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes,"
@@ -77,7 +79,7 @@ def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
     orgao_fornecedor["pct"] = orgao_fornecedor["quantidade"] / orgao_fornecedor["total"]
     fornecedor_recorrente = orgao_fornecedor[orgao_fornecedor["pct"] > 0.5].copy()
 
-    empresa_clause_l = "AND empresa = :empresa" if empresa_id else ""
+    empresa_clause_l = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     licitacoes = pd.read_sql_query(
         text(f"SELECT numero, modalidade, objeto, data_abertura FROM licitacoes WHERE ano = :ano {empresa_clause_l}"),
         conn,

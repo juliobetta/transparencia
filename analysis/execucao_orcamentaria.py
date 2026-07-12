@@ -4,11 +4,11 @@ import pandas as pd
 from sqlalchemy import text
 
 
-def run(conn: Any, year: int, empresa_id: str | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
             f"SELECT ano, empresa, codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_orgao WHERE ano = :ano {empresa_clause}"
@@ -69,5 +69,5 @@ def top_orgaos_por_dotacao(df: pd.DataFrame, n: int = 10) -> pd.DataFrame:
     return por_orgao.nlargest(n, "dotacao_atualizada").copy()
 
 
-def summarize_by_year(conn: Any, years: list[int], empresa_id: str | None = None) -> dict[int, dict]:
-    return {year: summarize(run(conn, year, empresa_id=empresa_id)) for year in years}
+def summarize_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, dict]:
+    return {year: summarize(run(conn, year, empresa_ids=empresa_ids)) for year in years}

@@ -120,3 +120,40 @@ Atuar como Engenheiro de Dados Sênior e Auditor de Finanças Públicas especial
 - **Auditoria de Baixo Consumo (Otimização de Contexto):** Em auditorias de código ou dados com limitação de consumo de tokens (spend cap), priorize:
   - Busca cirúrgica com filtros regex (`grep`) em vez de leitura completa de múltiplos arquivos.
   - O isolamento de tarefas em subagentes curtos e focados para manter o histórico de chat otimizado e de baixo custo.
+
+---
+
+## 12. CONSOLIDAÇÃO MULTI-ENTIDADE E TRANSFERÊNCIAS INTRAORÇAMENTÁRIAS
+
+### 12.1 Visão Agregada como Padrão (Default View)
+
+- **Axioma do Painel Consolidado:** O estado inicial de qualquer dashboard deve exibir os grandes números (Receita Total, Despesa Total, Investimentos) **somando todas as entidades do município** (Prefeitura, Fundos Municipais, Autarquias). O filtro de entidade vem marcado como "Todas as Entidades" por padrão (multiselect com todos os itens selecionados). Forçar o usuário a somar painéis individuais por entidade é um antipadrão de transparência pública.
+- **Valor para o Controle Social:** Um cidadão que pergunta "Quanto a cidade gastou com saúde este ano?" não deve precisar acessar dois painéis distintos para obter a resposta.
+- **Consistência Técnica:** A agregação multi-entidade é válida desde que respeitadas duas invariantes: mesma moeda (R$) e mesmo período fiscal (ex: exercício 2026). Nunca agregue entidades com diferentes anos-base.
+
+### 12.2 Filtro Global de Entidade
+
+- **Padrão do Componente:** `st.sidebar.multiselect("Entidade", ...)` com `default=_emp_labels` (todas selecionadas). Posicionado no topo da sidebar, antes do filtro de ano.
+- **Contrato da Camada de Análise:** As funções `analysis/` recebem `empresa_ids: list[str] | None`:
+  - `None` → sem filtro SQL (retorna todas as entidades — comportamento eficiente)
+  - `list[str]` → `AND empresa = ANY(:empresas)` no PostgreSQL
+- **Comportamento Reativo:** A seleção altera todos os KPIs, gráficos e tabelas da página simultaneamente. Nenhum componente pode ter filtro de entidade independente do filtro global.
+
+### 12.3 ⚠️ REGRA CRÍTICA: Prevenção de Dupla Contagem Intraorçamentária
+
+**Esta é a regra mais importante da consolidação multi-entidade. Violá-la produz totais fictícios.**
+
+- **O Problema:** Quando a Prefeitura transfere recursos ao Fundo Municipal de Saúde, o portal de transparência registra:
+  1. **Despesa** da Prefeitura: a transferência enviada
+  2. **Receita** do Fundo: o recurso recebido
+
+  Uma consolidação ingênua (soma direta de `receita_orcamentaria` de todas as entidades) conta o mesmo dinheiro **duas vezes** na receita total.
+
+- **Regra Algorítmica Mandatória:** A deduplicação **DEVE** ocorrer na camada `analysis/`, nunca delegada a um aviso na UI. Em `fontes_receita.py`:
+  - A constante `_INTRA_PREFIXES` define os prefixos de `codigo` que identificam transferências intraorçamentárias (ex: `("17", "27")` para Transferências Correntes e de Capital recebidas de outras entidades do mesmo município)
+  - A função `_intra_exclusion_clause()` injeta automaticamente `AND NOT (codigo LIKE '17%' OR codigo LIKE '27%')` na query de `receita_orcamentaria` **somente quando** `empresa_ids` tiver 2+ entidades
+  - As tabelas `receita_uniao` e `receita_estado` não sofrem dupla contagem (representam fontes externas distintas por entidade) e não recebem o filtro intra
+
+- **Calibração dos Prefixos:** `_INTRA_PREFIXES` em `analysis/fontes_receita.py` deve ser revisado contra os dados reais do portal (`SELECT DISTINCT LEFT(codigo, 3) FROM receita_orcamentaria WHERE descricao ILIKE '%transfer%'`). Os prefixos padrão `("17", "27")` cobrem o padrão STN vigente, mas podem variar por implementação de portal.
+
+- **Benchmark de Validação:** O total consolidado calculado pelo dashboard deve ser cotejado com o **RREO — Anexo 1** (Demonstrativo da Execução das Receitas) publicado no Siconfi, que já apresenta receitas deduzidas de transferências intraorçamentárias. Divergências superiores a 2% indicam necessidade de revisão dos prefixos.

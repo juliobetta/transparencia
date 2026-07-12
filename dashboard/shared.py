@@ -30,8 +30,8 @@ def get_data_extracao(engine) -> str | None:
 EMPRESA_PADRAO = "7"
 
 
-def render_sidebar() -> tuple[int, str]:
-    """Lê ano e entidade do session_state (definidos em app.py). Sem renderização de sidebar."""
+def render_sidebar() -> tuple[int, list[str] | None]:
+    """Lê ano e entidades do session_state (definidos em app.py). Sem renderização de sidebar."""
 
     engine = get_conn()
     _last_extracted = db.get_metadata(engine, "last_extracted_at")
@@ -48,13 +48,19 @@ def render_sidebar() -> tuple[int, str]:
     )
 
     year = int(st.session_state.get("sidebar_year", ANOS[-1]))
-    empresa_id = str(st.session_state.get("sidebar_empresa", EMPRESA_PADRAO))
-    return year, empresa_id
+    empresa_ids: list[str] | None = st.session_state.get("sidebar_empresa_ids", None)
+    return year, empresa_ids
 
 
-def render_breadcrumb(year: int, empresa_id: str) -> None:
-    nome = st.session_state.get("sidebar_empresa_nome", empresa_id)
-    st.caption(f"{year} / {nome}")
+def render_breadcrumb(year: int, empresa_ids: list[str] | None) -> None:
+    nomes: list[str] = st.session_state.get("sidebar_empresa_nomes", [])
+    if not nomes or empresa_ids is None:
+        label = "Todas as Entidades"
+    elif len(nomes) == 1:
+        label = nomes[0]
+    else:
+        label = ", ".join(nomes)
+    st.caption(f"{year} / {label}")
 
 
 def fmt_delta(d: dict, fmt: str = "{:+,.0f}") -> str:

@@ -6,11 +6,11 @@ from sqlalchemy import bindparam, text
 from analysis.constants import FORNECEDORES_NATUREZA_MAP
 
 
-def run(conn: Any, year: int, empresa_id: str | None = None) -> dict:
-    empresa_clause = "AND f.empresa = :empresa" if empresa_id else ""
+def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
+    empresa_clause = "AND f.empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
 
     sql = text(
         f"""
@@ -73,5 +73,5 @@ def piechart_concentracao(top10: pd.DataFrame, total_all: float) -> pd.DataFrame
     return slices
 
 
-def hhi_por_ano(conn: Any, years: list[int], empresa_id: str | None = None) -> dict[int, float]:
-    return {year: run(conn, year, empresa_id=empresa_id)["hhi"] for year in years}
+def hhi_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, float]:
+    return {year: run(conn, year, empresa_ids=empresa_ids)["hhi"] for year in years}

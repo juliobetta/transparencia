@@ -33,7 +33,7 @@ def generate(engine, year: int, month: int) -> Path:
     budget = execucao_orcamentaria.run(engine, year)
     supplier = concentracao_fornecedores.run(engine, year)
     bidding = licitacao_gaps.run(engine, year)
-    adesao = adesao_de_ata.run(engine, year, "2")
+    adesao = adesao_de_ata.run(engine, year, ["2"])
     bidding_acima = licitacao_gaps.filter_above_limit(bidding).to_dict("records")
     bidding_saude = licitacao_gaps.filter_above_limit_health(bidding)
     revenue = fontes_receita.run(engine, list(range(ANO_INICIAL, year + 1)))

@@ -6,6 +6,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
+import streamlit.components.v1 as components
 from shared import get_conn
 
 import db
@@ -27,7 +28,33 @@ st.html(
         }
     }
     </style>
+"""
+)
+
+components.html(
     """
+    <script>
+    (function () {
+        const T = {
+            "Select all": "Selecionar tudo",
+            "Deselect all": "Desmarcar tudo",
+            "Choose options": "Escolha as opções",
+            "No results": "Sem resultados"
+        };
+        const doc = window.parent.document;
+        function translate() {
+            const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null);
+            let n;
+            while ((n = walker.nextNode())) {
+                if (T[n.textContent]) n.textContent = T[n.textContent];
+            }
+        }
+        new MutationObserver(translate).observe(doc.body, { childList: true, subtree: true });
+        translate();
+    })();
+    </script>
+    """,
+    height=0,
 )
 
 START_YEAR = 2021
@@ -47,14 +74,16 @@ _engine = get_conn()
 _empresas = db.get_empresas(_engine)
 _emp_ids = list(_empresas.keys())
 _emp_labels = list(_empresas.values())
-_EMPRESA_PADRAO = "7"
-if "sidebar_empresa" not in st.session_state:
-    st.session_state["sidebar_empresa"] = _EMPRESA_PADRAO
-_emp_current = st.session_state["sidebar_empresa"]
-_emp_idx = _emp_ids.index(_emp_current) if _emp_current in _emp_ids else 0
-_selected_label = st.sidebar.selectbox("Entidade", _emp_labels, index=_emp_idx, key="sidebar_empresa_selector")
-st.session_state["sidebar_empresa"] = _emp_ids[_emp_labels.index(_selected_label)]
-st.session_state["sidebar_empresa_nome"] = _selected_label
+_selected_labels: list[str] = st.sidebar.multiselect(
+    "Entidade",
+    _emp_labels,
+    default=[],
+    key="sidebar_empresa_selector",
+)
+_selected_ids = [_emp_ids[_emp_labels.index(label)] for label in _selected_labels]
+# None when all entities are selected — avoids unnecessary SQL IN clause
+st.session_state["sidebar_empresa_ids"] = None if set(_selected_ids) == set(_emp_ids) else _selected_ids or None
+st.session_state["sidebar_empresa_nomes"] = _selected_labels
 st.session_state["_empresas"] = _empresas
 
 pages = {

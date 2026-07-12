@@ -3,13 +3,29 @@ from typing import Any
 import pandas as pd
 from sqlalchemy import text
 
+# Prefixos de código na receita_orcamentaria que representam transferências recebidas de outras
+# entidades do mesmo município (ex: Prefeitura → Fundo de Saúde). Excluídos na visão consolidada
+# para evitar dupla contagem. Ajustar conforme a codificação do portal de cada município.
+_INTRA_PREFIXES: tuple[str, ...] = ("17", "27")
+
+
+def _intra_exclusion_clause(table: str, empresa_ids: list[str] | None) -> str:
+    """Retorna cláusula SQL para excluir transferências intraorçamentárias ao consolidar
+    múltiplas entidades. Só se aplica a receita_orcamentaria; as demais tabelas já são
+    separadas por origem (união/estado) e não sofrem dupla contagem."""
+    if table != "receita_orcamentaria" or not empresa_ids or len(empresa_ids) <= 1:
+        return ""
+    conditions = " OR ".join(f"t.codigo LIKE '{p}%'" for p in _INTRA_PREFIXES)
+    return f"AND NOT ({conditions})"
+
 
 def _sum_column(
-    conn: Any, table: str, col: str, year: int, root_only: bool = False, empresa_id: str | None = None
+    conn: Any, table: str, col: str, year: int, root_only: bool = False, empresa_ids: list[str] | None = None
 ) -> float:
     try:
-        empresa_clause = "AND t.empresa = :empresa" if empresa_id else ""
-        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano {empresa_clause}"
+        empresa_clause = "AND t.empresa = ANY(:empresas)" if empresa_ids else ""
+        intra_clause = _intra_exclusion_clause(table, empresa_ids)
+        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano {empresa_clause} {intra_clause}"
         if root_only:
             sql += (
                 f" AND NOT EXISTS ("
@@ -22,8 +38,8 @@ def _sum_column(
                 f")"
             )
         params: dict = {"ano": year}
-        if empresa_id:
-            params["empresa"] = empresa_id
+        if empresa_ids:
+            params["empresas"] = empresa_ids
         df = pd.read_sql_query(text(sql), conn, params=params)
         if df.empty:
             return 0.0
@@ -32,40 +48,40 @@ def _sum_column(
         return 0.0
 
 
-def run(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFrame:
+def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd.DataFrame:
     records = []
     for year in years:
         propria_previsto = _sum_column(
-            conn, "receita_orcamentaria", "previsao_atualizada", year, root_only=True, empresa_id=empresa_id
+            conn, "receita_orcamentaria", "previsao_atualizada", year, root_only=True, empresa_ids=empresa_ids
         )
         propria_arrecadado = _sum_column(
-            conn, "receita_orcamentaria", "arrecadado_total", year, root_only=True, empresa_id=empresa_id
+            conn, "receita_orcamentaria", "arrecadado_total", year, root_only=True, empresa_ids=empresa_ids
         )
         if propria_arrecadado == 0:
             propria_arrecadado = _sum_column(
-                conn, "receita_orcamentaria", "arrecadado", year, root_only=True, empresa_id=empresa_id
+                conn, "receita_orcamentaria", "arrecadado", year, root_only=True, empresa_ids=empresa_ids
             )
 
         uniao_previsto = _sum_column(
-            conn, "receita_uniao", "previsao_atualizada", year, root_only=True, empresa_id=empresa_id
+            conn, "receita_uniao", "previsao_atualizada", year, root_only=True, empresa_ids=empresa_ids
         )
         uniao_arrecadado = _sum_column(
-            conn, "receita_uniao", "arrecadado_total", year, root_only=True, empresa_id=empresa_id
+            conn, "receita_uniao", "arrecadado_total", year, root_only=True, empresa_ids=empresa_ids
         )
         if uniao_arrecadado == 0:
             uniao_arrecadado = _sum_column(
-                conn, "receita_uniao", "arrecadado", year, root_only=True, empresa_id=empresa_id
+                conn, "receita_uniao", "arrecadado", year, root_only=True, empresa_ids=empresa_ids
             )
 
         estado_previsto = _sum_column(
-            conn, "receita_estado", "previsao_atualizada", year, root_only=True, empresa_id=empresa_id
+            conn, "receita_estado", "previsao_atualizada", year, root_only=True, empresa_ids=empresa_ids
         )
         estado_arrecadado = _sum_column(
-            conn, "receita_estado", "arrecadado_total", year, root_only=True, empresa_id=empresa_id
+            conn, "receita_estado", "arrecadado_total", year, root_only=True, empresa_ids=empresa_ids
         )
         if estado_arrecadado == 0:
             estado_arrecadado = _sum_column(
-                conn, "receita_estado", "arrecadado", year, root_only=True, empresa_id=empresa_id
+                conn, "receita_estado", "arrecadado", year, root_only=True, empresa_ids=empresa_ids
             )
 
         total_previsto = propria_previsto + uniao_previsto + estado_previsto

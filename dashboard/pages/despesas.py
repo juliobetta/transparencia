@@ -33,93 +33,93 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _metricas(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_metricas_gerais_despesas(conn, year, empresa_id=empresa_id)
+def _metricas(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_metricas_gerais_despesas(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _por_unidade(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_despesas_por_unidade(conn, year, empresa_id=empresa_id)
+def _por_unidade(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_despesas_por_unidade(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _impacto(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_impacto_gastos_locais(conn, year, empresa_id=empresa_id)
+def _impacto(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_impacto_gastos_locais(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _top_fornecedores(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_principais_fornecedores_detalhados(conn, year, empresa_id=empresa_id)
+def _top_fornecedores(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_principais_fornecedores_detalhados(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _concentracao(conn, year, empresa_id, _extracted_at):
-    return concentracao_fornecedores.run(conn, year, empresa_id=empresa_id)
+def _concentracao(conn, year, empresa_ids, _extracted_at):
+    return concentracao_fornecedores.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _gastos_por_municipio(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_gastos_por_municipio(conn, year, top_n=5, empresa_id=empresa_id)
+def _gastos_por_municipio(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_gastos_por_municipio(conn, year, top_n=5, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _resumo_diarias(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_resumo_diarias(conn, year, empresa_id=empresa_id)
+def _resumo_diarias(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_resumo_diarias(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _top_diarias(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_principais_beneficiarios_diarias(conn, year, empresa_id=empresa_id)
+def _top_diarias(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_principais_beneficiarios_diarias(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _fornecedores_pendentes(conn, year, empresa_id, _extracted_at):
-    return posicao_fiscal.get_fornecedores_pendentes(conn, year, empresa_id=empresa_id)
+def _fornecedores_pendentes(conn, year, empresa_ids, _extracted_at):
+    return posicao_fiscal.get_fornecedores_pendentes(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _restos_baixo_valor(conn, year, empresa_id, _extracted_at):
-    return posicao_fiscal.get_restos_baixo_valor(conn, year=year, empresa_id=empresa_id)
+def _restos_baixo_valor(conn, year, empresa_ids, _extracted_at):
+    return posicao_fiscal.get_restos_baixo_valor(conn, year=year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _metricas_por_ano(conn, years, empresa_id, _extracted_at):
-    return analise_despesas.get_metricas_por_ano(conn, list(years), empresa_id=empresa_id)
+def _metricas_por_ano(conn, years, empresa_ids, _extracted_at):
+    return analise_despesas.get_metricas_por_ano(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _impacto_por_ano(conn, years, empresa_id, _extracted_at):
-    return analise_despesas.get_impacto_por_ano(conn, list(years), empresa_id=empresa_id)
+def _impacto_por_ano(conn, years, empresa_ids, _extracted_at):
+    return analise_despesas.get_impacto_por_ano(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _hhi_por_ano(conn, years, empresa_id, _extracted_at):
-    return concentracao_fornecedores.hhi_por_ano(conn, list(years), empresa_id=empresa_id)
+def _hhi_por_ano(conn, years, empresa_ids, _extracted_at):
+    return concentracao_fornecedores.hhi_por_ano(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _resumo_diarias_por_ano(conn, years, empresa_id, _extracted_at):
-    return analise_despesas.get_resumo_diarias_por_ano(conn, list(years), empresa_id=empresa_id)
+def _resumo_diarias_por_ano(conn, years, empresa_ids, _extracted_at):
+    return analise_despesas.get_resumo_diarias_por_ano(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _tendencia_pendentes(conn, years, empresa_id, _extracted_at):
-    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, list(years), empresa_id=empresa_id)
+def _tendencia_pendentes(conn, years, empresa_ids, _extracted_at):
+    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, list(years), empresa_ids=empresa_ids)
 
 
 conn = get_conn()
-year, empresa_id = render_sidebar()
+year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 _all_years = list(range(ANO_INICIAL, year + 1))
-_hist_metricas = _metricas_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
-_hist_impacto = _impacto_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
-_hist_hhi = _hhi_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
-_hist_diarias = _resumo_diarias_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
-_hist_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist_metricas = _metricas_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
+_hist_impacto = _impacto_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
+_hist_hhi = _hhi_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
+_hist_diarias = _resumo_diarias_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
+_hist_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_ids, _extracted_at)
 
 st.title("Portal de Despesas Detalhadas")
-render_breadcrumb(year, empresa_id)
+render_breadcrumb(year, empresa_ids)
 st.caption("Detalhes sobre onde e como os recursos públicos estão sendo aplicados.")
 
 if year == ANO_ATUAL:
@@ -140,7 +140,7 @@ t1, t2, t3, t4, t5 = st.tabs(
 with t1:
     st.subheader("Análise de Despesas por Unidade do Governo")
 
-    metricas = _metricas(conn, year, empresa_id, _extracted_at)
+    metricas = _metricas(conn, year, empresa_ids, _extracted_at)
 
     _emp_serie = [_hist_metricas[y]["empenhado"] for y in _all_years]
     _liq_serie = [_hist_metricas[y]["liquidado"] for y in _all_years]
@@ -205,7 +205,7 @@ with t1:
             key="spark_desp_pago",
         )
 
-    df_unidades = _por_unidade(conn, year, empresa_id, _extracted_at)
+    df_unidades = _por_unidade(conn, year, empresa_ids, _extracted_at)
     if not df_unidades.empty:
         st.markdown("---")
         fig = px.bar(
@@ -251,8 +251,8 @@ with t2:
         "Foram excluídos pagamentos de folha de pessoal, previdência e dívidas."
     )
 
-    impacto = _impacto(conn, year, empresa_id, _extracted_at)
-    concentracao = _concentracao(conn, year, empresa_id, _extracted_at)
+    impacto = _impacto(conn, year, empresa_ids, _extracted_at)
+    concentracao = _concentracao(conn, year, empresa_ids, _extracted_at)
 
     _local_serie = [_hist_impacto[y]["local_pago"] for y in _all_years]
     _ext_serie = [_hist_impacto[y]["externo_pago"] for y in _all_years]
@@ -332,7 +332,7 @@ with t2:
             hole=0.5,
         )
 
-        df_cidades = _gastos_por_municipio(conn, year, empresa_id, _extracted_at)
+        df_cidades = _gastos_por_municipio(conn, year, empresa_ids, _extracted_at)
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(fig_pie, use_container_width=True)
@@ -349,7 +349,7 @@ with t2:
                 )
                 st.plotly_chart(fig_cities, use_container_width=True)
     else:
-        df_cidades = _gastos_por_municipio(conn, year, empresa_id, _extracted_at)
+        df_cidades = _gastos_por_municipio(conn, year, empresa_ids, _extracted_at)
         if not df_cidades.empty:
             fig_cities = px.pie(
                 df_cidades,
@@ -371,7 +371,7 @@ with t2:
     top10_concentracao = concentracao["top10"].copy()
 
     # Garantir que df_sup esteja definido antes de ser usado
-    df_fornecedores = _top_fornecedores(conn, year, empresa_id, _extracted_at)
+    df_fornecedores = _top_fornecedores(conn, year, empresa_ids, _extracted_at)
 
     # Adicionar o Pie Chart de Natureza da Despesa
     st.markdown("### Distribuição das Compras e Serviços")
@@ -458,7 +458,7 @@ with t3:
                 hide_index=True,
             )
 
-    df_pendentes = _fornecedores_pendentes(conn, year, empresa_id, _extracted_at)
+    df_pendentes = _fornecedores_pendentes(conn, year, empresa_ids, _extracted_at)
     if not df_pendentes.empty:
         resumo = resumo_pendentes(df_pendentes)
 
@@ -531,7 +531,7 @@ with t3:
     else:
         st.info("Nenhum fornecedor com pagamento pendente para este exercício.")
 
-    df_baixo_valor = _restos_baixo_valor(conn, year, empresa_id, _extracted_at)
+    df_baixo_valor = _restos_baixo_valor(conn, year, empresa_ids, _extracted_at)
     if not df_baixo_valor.empty:
         with st.expander(
             f":material/warning: {len(df_baixo_valor)} registro(s) com empenhado abaixo de R$ 10,00 — verificar"
@@ -553,7 +553,7 @@ with t3:
 with t4:
     st.subheader("Diárias e Auxílios de Viagem a Serviço")
 
-    resumo_diarias_data = _resumo_diarias(conn, year, empresa_id, _extracted_at)
+    resumo_diarias_data = _resumo_diarias(conn, year, empresa_ids, _extracted_at)
 
     _diarias_val_serie = [_hist_diarias[y]["total_valor"] for y in _all_years]
     _diarias_cnt_serie = [_hist_diarias[y]["total_viajantes"] for y in _all_years]
@@ -599,7 +599,7 @@ with t4:
         )
 
     st.markdown("---")
-    df_top_diarias = _top_diarias(conn, year, empresa_id, _extracted_at)
+    df_top_diarias = _top_diarias(conn, year, empresa_ids, _extracted_at)
     if not df_top_diarias.empty:
         st.markdown("### Top 10 Servidores que Receberam Diárias")
         st.dataframe(

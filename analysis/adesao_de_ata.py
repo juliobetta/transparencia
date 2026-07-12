@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from sqlalchemy import text
@@ -8,9 +8,9 @@ def _to_float(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series.astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
 
-def run(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
-    empresa_clausula_c = "AND c.empresa = :empresa" if empresa_id else ""
-    empresa_clausula_l = "AND l.empresa = :empresa" if empresa_id else ""
+def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
+    empresa_clausula_c = "AND c.empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clausula_l = "AND l.empresa = ANY(:empresas)" if empresa_ids else ""
     # União de duas partes:
     # 1. Contratos assinados neste ano cuja licitação tem carona='S' (licitação de qualquer ano)
     # 2. Licitações carona criadas neste ano que ainda não possuem contratos
@@ -50,8 +50,8 @@ def run(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
           )
     """)
     params: dict = {"ano": year}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     try:
         raw = pd.read_sql_query(query, conn, params=params)
 
@@ -91,10 +91,10 @@ def run(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
         }
 
 
-def formal_counts_by_year(conn: Any, years: list[int], empresa_id: Optional[str] = None) -> dict[int, int]:
+def formal_counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clausula = "AND empresa = :empresa" if empresa_id else ""
-    params: dict = {"empresa": empresa_id} if empresa_id else {}
+    empresa_clausula = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     df = pd.read_sql_query(
         text(f"SELECT ano FROM licitacoes WHERE ano IN ({placeholders}) AND carona = 'S' {empresa_clausula}"),
         conn,
@@ -104,12 +104,12 @@ def formal_counts_by_year(conn: Any, years: list[int], empresa_id: Optional[str]
     return {y: int(counts.get(y, 0)) for y in years}
 
 
-def external_counts_by_year(conn: Any, years: list[int], empresa_id: Optional[str] = None) -> dict[int, int]:
+def external_counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clausula = "AND empresa = :empresa" if empresa_id else ""
+    empresa_clausula = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(f"""
             SELECT ano FROM despesas_gerais
@@ -130,17 +130,17 @@ def external_counts_by_year(conn: Any, years: list[int], empresa_id: Optional[st
     return {y: int(counts.get(y, 0)) for y in years}
 
 
-def run_external(conn: Any, year: int, empresa_id: Optional[str] = None) -> dict:
+def run_external(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     """Encontrar empenhos cujo texto de justificativa referencia uma ata de adesão externa.
 
     São registros de despesa em que o município aderiu à Ata de Registro de Preços
     de outra entidade (TERMO DE ADESÃO EXTERNA), que podem não aparecer
     na tabela licitacoes com carona='S'.
     """
-    empresa_clausula = "AND dg.empresa = :empresa" if empresa_id else ""
+    empresa_clausula = "AND dg.empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
 
     query = text(f"""
         SELECT
