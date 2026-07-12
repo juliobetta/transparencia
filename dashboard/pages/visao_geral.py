@@ -156,7 +156,6 @@ with h2:
         help=glossary.tooltip("Empenho"),
     )
     st.progress(min(_pct_emp, 1.0))
-    st.caption("Abaixo de 70% ao fim do ano indica sub-execução." if year == ANO_ATUAL else "")
 
 with h3:
     st.metric(
