@@ -4,6 +4,8 @@ from typing import Any
 
 import pandas as pd
 
+import constants
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -78,7 +80,7 @@ _extracted_at = get_data_extracao(conn)
 col_titulo, col_botao = st.columns([8, 2])
 with col_titulo:
     st.title(f"Fundo Municipal de Saúde - {year}")
-    st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+    st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({constants.PORTAL_URL}).")
 with col_botao:
     st.write("")
     st.write("")
@@ -792,4 +794,4 @@ elif not pharma_jud["detail"].empty:
 st.page_link("pages/licitacoes.py", label="Ver detalhes em Licitações e Contratos →", icon=":material/arrow_forward:")
 
 st.divider()
-st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
+st.caption(f"Fonte: [Portal de Transparência]({constants.PORTAL_URL})")

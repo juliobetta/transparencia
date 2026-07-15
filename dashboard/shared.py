@@ -2,7 +2,7 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-import glossary
+import constants
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -39,7 +39,7 @@ def render_sidebar() -> tuple[int, list[str] | None]:
         fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
         _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
     st.sidebar.markdown(
-        f"### :material/link: Portal Oficial\n[Ver fonte oficial →]({glossary.PORTAL_URL})",
+        f"### :material/link: Portal Oficial\n[Ver fonte oficial →]({constants.PORTAL_URL})",
         unsafe_allow_html=True,
     )
     st.sidebar.markdown("---")

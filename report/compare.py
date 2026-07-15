@@ -4,6 +4,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import constants
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from jinja2 import Environment, FileSystemLoader
@@ -28,7 +30,7 @@ def generate(conn, spec_a: PeriodSpec, spec_b: PeriodSpec) -> Path:
         spec_a=spec_a,
         spec_b=spec_b,
         last_extracted=last_extracted,
-        portal_url=glossary.PORTAL_URL,
+        portal_url=constants.PORTAL_URL,
         glossario=glossary.TERMS,
         result=result,
     )
