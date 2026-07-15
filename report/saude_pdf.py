@@ -33,8 +33,13 @@ GRAY_TEXT = (107, 114, 128)
 WARN_BG = BLUE_LIGHT
 WARN_BORDER = (234, 153, 76)
 
-_HEADING_STYLE = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
-_ROW_WHITE = FontFace(fill_color=(255, 255, 255))  # explicit white to prevent heading color bleed
+FONT_SIZE_NORMAL = 9
+FONT_SIZE_SMALL = 8
+FONT_SIZE_HEADER = 11
+FONT_SIZE_SUBHEADER = 10
+
+_HEADING_STYLE = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=FONT_SIZE_NORMAL)
+_ROW_WHITE = FontFace(fill_color=(255, 255, 255), size_pt=FONT_SIZE_NORMAL)
 
 
 def _fmt_brl(value: float) -> str:
@@ -42,7 +47,7 @@ def _fmt_brl(value: float) -> str:
 
 
 def _section_header(pdf: FPDF, title: str) -> None:
-    pdf.set_font("NotoSans", "B", 11)
+    pdf.set_font("NotoSans", "B", FONT_SIZE_HEADER)
     pdf.set_text_color(*BLUE_ACCENT)
     pdf.cell(0, 7, title, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
@@ -66,11 +71,11 @@ def _metric_row(pdf: FPDF, cards: list[tuple[str, str]]) -> None:
         x = start_x + i * (w + gap)
         pdf.set_xy(x, start_y)
         pdf.set_fill_color(*BLUE_LIGHT)
-        pdf.set_font("NotoSans", "", 8)
+        pdf.set_font("NotoSans", "", FONT_SIZE_SMALL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(w, 7, label, fill=True, new_x="RIGHT", new_y="TOP")
         pdf.set_xy(x, start_y + 7)
-        pdf.set_font("NotoSans", "B", 12)
+        pdf.set_font("NotoSans", "B", FONT_SIZE_HEADER)
         pdf.set_text_color(*BLUE_DARK)
         pdf.cell(w, 9, value, fill=True)
 
@@ -87,10 +92,10 @@ def _budget_chart_png(budget_trend: pd.DataFrame) -> bytes:
     ax.bar([i - w / 2 for i in x], dotacao, w, label="Dotação", color="#3A7FC1")
     ax.bar([i + w / 2 for i in x], empenhado, w, label="Empenhado", color="#1C3A5E")
     ax.set_xticks(x)
-    ax.set_xticklabels(anos, fontsize=8)
-    ax.set_ylabel("R$ milhões", fontsize=8)
-    ax.tick_params(axis="y", labelsize=8)
-    ax.legend(fontsize=8)
+    ax.set_xticklabels(anos, fontsize=FONT_SIZE_SMALL)
+    ax.set_ylabel("R$ milhões", fontsize=FONT_SIZE_SMALL)
+    ax.tick_params(axis="y", labelsize=FONT_SIZE_SMALL)
+    ax.legend(fontsize=FONT_SIZE_SMALL)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     fig.tight_layout(pad=0.5)
@@ -114,7 +119,7 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
     if budget.get("alerta_sub_execucao"):
         y0 = pdf.get_y()
         pdf.set_fill_color(*WARN_BG)
-        pdf.set_font("NotoSans", "", 9)
+        pdf.set_font("NotoSans", "", FONT_SIZE_NORMAL)
         pdf.set_x(pdf.l_margin + 3)
         pdf.multi_cell(pdf.epw - 3, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
         y1 = pdf.get_y()
@@ -133,7 +138,7 @@ def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float
     _section_header(pdf, "2. EMENDAS PARLAMENTARES")
     if emendas_total <= 0:
         pdf.set_fill_color(*BLUE_LIGHT)
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 6, "Sem emendas parlamentares registradas.", fill=True, new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
@@ -173,7 +178,7 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
 
     if top_suppliers.empty:
         pdf.set_fill_color(*BLUE_LIGHT)
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 6, "Sem dados de fornecedores.", fill=True, new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
@@ -202,7 +207,7 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
 
 def _truncation_note(pdf: FPDF, total: int, shown: int = 10) -> None:
     if total > shown:
-        pdf.set_font("NotoSans", "I", 8)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_SMALL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 5, f"Exibindo os {shown} primeiros de {total} registros.", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
@@ -261,7 +266,7 @@ def _draw_alertas_section(
     has_alert = any(count > 0 for count, _ in alerts)
     if not has_alert and exempt.empty:
         pdf.set_fill_color(*BLUE_LIGHT)
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.multi_cell(0, 6, "Nenhum alerta identificado para o período.", fill=True)
         pdf.set_text_color(0, 0, 0)
@@ -272,7 +277,7 @@ def _draw_alertas_section(
         if count > 0:
             y0 = pdf.get_y()
             pdf.set_fill_color(*WARN_BG)
-            pdf.set_font("NotoSans", "", 9)
+            pdf.set_font("NotoSans", "", FONT_SIZE_NORMAL)
             pdf.set_x(pdf.l_margin + 3)
             pdf.multi_cell(pdf.epw - 3, 6, f"[!]  {msg}", fill=True)
             y1 = pdf.get_y()
@@ -287,7 +292,7 @@ def _draw_alertas_section(
 
     if not irregular.empty:
         pdf.ln(2)
-        pdf.set_font("NotoSans", "B", 9)
+        pdf.set_font("NotoSans", "B", FONT_SIZE_HEADER)
         pdf.set_text_color(0, 0, 0)
         pdf.cell(
             0,
@@ -301,7 +306,7 @@ def _draw_alertas_section(
 
     if not exempt.empty:
         pdf.ln(3)
-        pdf.set_font("NotoSans", "B", 9)
+        pdf.set_font("NotoSans", "B", FONT_SIZE_HEADER)
         pdf.set_text_color(0, 0, 0)
         pdf.cell(
             0,
@@ -329,14 +334,14 @@ def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial
     detail: pd.DataFrame = pharma_empenhos.get("detail", pd.DataFrame())
     if detail.empty:
         pdf.set_fill_color(*BLUE_LIGHT)
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 6, "Sem dados de insumos farmacêuticos.", fill=True, new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
-    pdf.set_font("NotoSans", "B", 9)
+    pdf.set_font("NotoSans", "B", FONT_SIZE_HEADER)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(0, 5, "Top fornecedores de insumos farmacêuticos:", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
@@ -377,16 +382,22 @@ class _SaudePDF(FPDF):
             except Exception:
                 pass
         self.set_xy(40, 10)
-        self.set_font("NotoSans", "B", 14)
+        self.set_font("NotoSans", "B", int(FONT_SIZE_HEADER * 1.25))
         self.set_text_color(*BLUE_DARK)
         self.cell(0, 7, f"Fundo Municipal de Saúde — {self.year}", new_x="LMARGIN", new_y="NEXT")
         self.set_xy(40, 17)
-        self.set_font("NotoSans", "", 10)
+        self.set_font("NotoSans", "", FONT_SIZE_SUBHEADER)
         self.set_text_color(*GRAY_TEXT)
         self.cell(0, 5, "Município de Porciúncula / RJ", new_x="LMARGIN", new_y="NEXT")
         self.set_xy(40, 22)
-        self.set_font("NotoSans", "", 9)
-        self.cell(0, 5, f"Dados extraídos em: {self.last_extracted}", new_x="LMARGIN", new_y="NEXT")
+        self.set_font("NotoSans", "", FONT_SIZE_SMALL)
+        self.cell(
+            0,
+            5,
+            f"Dados extraídos do Portal da Transparência da Prefeitura Municipal de Porciúncula em: {self.last_extracted}",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
         self.set_draw_color(*BLUE_ACCENT)
         self.set_line_width(0.4)
         self.line(15, 36, 195, 36)
@@ -396,7 +407,7 @@ class _SaudePDF(FPDF):
 
     def footer(self) -> None:
         self.set_y(-15)
-        self.set_font("NotoSans", "I", 8)
+        self.set_font("NotoSans", "I", FONT_SIZE_SMALL)
         self.set_text_color(*GRAY_TEXT)
         now = datetime.now().strftime("%d/%m/%Y %H:%M")
         self.cell(0, 10, f"Gerado em: {now}   |   Página {self.page_no()}", align="C")
