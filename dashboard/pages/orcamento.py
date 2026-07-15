@@ -2,6 +2,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import constants
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -306,4 +308,4 @@ with col_pressao:
         "Barras acima do zero indicam que o total pago cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
     )
 
-st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
+st.caption(f"[Ver no portal oficial →]({constants.PORTAL_URL})")

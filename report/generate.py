@@ -8,6 +8,7 @@ from jinja2 import Environment, FileSystemLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import constants
 import db
 import glossary
 from analysis import (
@@ -49,7 +50,7 @@ def generate(engine, year: int, month: int) -> Path:
         year=year,
         month=month,
         last_extracted=last_extracted,
-        portal_url=glossary.PORTAL_URL,
+        portal_url=constants.PORTAL_URL,
         glossario=glossary.TERMS,
         budget=budget,
         supplier=supplier,

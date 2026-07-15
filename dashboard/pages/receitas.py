@@ -24,7 +24,7 @@ from shared import (
 )
 from sqlalchemy.engine import Engine
 
-import glossary
+import constants
 from analysis import fontes_receita, posicao_fiscal
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -185,7 +185,7 @@ if year == ANO_ATUAL:
         * **Fluxo Líquido do Período**: total arrecadado menos pagamentos efetivamente realizados no ano (orçamento corrente + restos pagos).
         Não representa o saldo de caixa disponível — não inclui saldo inicial em 01/01/{ANO_ATUAL}, receitas/despesas extra-orçamentárias nem aplicações financeiras.
         * **Obrigações Herdadas**: restos a pagar de exercícios anteriores a {ano_anterior} (dívida da administração anterior) ainda não quitados. \n\n
-        Para o valor oficial, consulte Prestação de Contas > Responsabilidade Fiscal - RREO no [portal da transparência]({glossary.PORTAL_URL}).
+        Para o valor oficial, consulte Prestação de Contas > Responsabilidade Fiscal - RREO no [portal da transparência]({constants.PORTAL_URL}).
         """,
         icon=":material/warning:",
     )
@@ -263,4 +263,4 @@ Para o valor oficial, consulte o **RREO Anexo 5** no portal de transparência.
 
     st.info("Detalhamento completo por fornecedor disponível em **Despesas → Restos a Pagar**.", icon=":material/info:")
 
-st.caption(f"[Ver portal oficial de transparência →]({glossary.PORTAL_URL})")
+st.caption(f"[Ver portal oficial de transparência →]({constants.PORTAL_URL})")

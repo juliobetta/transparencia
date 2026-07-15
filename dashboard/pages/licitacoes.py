@@ -20,7 +20,7 @@ from shared import (
 )
 from sqlalchemy.engine import Engine
 
-import glossary
+import constants
 from analysis import adesao_de_ata, anomalias_contratuais, licitacao_gaps
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS
 
@@ -297,4 +297,4 @@ if not anomalias["fracionamento"].empty:
         width="stretch",
         hide_index=True,
     )
-st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
+st.caption(f"[Ver no portal oficial →]({constants.PORTAL_URL})")

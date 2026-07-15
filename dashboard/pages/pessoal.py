@@ -23,7 +23,7 @@ from shared import (
 )
 from sqlalchemy.engine import Engine
 
-import glossary
+import constants
 from analysis import analise_despesas, folha_vs_servicos
 from analysis.analise_despesas import total_folha_por_orgao
 from analysis.constants import LRF_PESSOAL_LIMITE_ALERTA, LRF_PESSOAL_LIMITE_LEGAL, LRF_PESSOAL_LIMITE_PRUDENCIAL
@@ -343,4 +343,4 @@ else:
 
 st.divider()
 
-st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")
+st.caption(f"[Ver no portal oficial →]({constants.PORTAL_URL})")
