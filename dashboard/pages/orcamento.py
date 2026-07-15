@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     ANO_ATUAL,
@@ -25,37 +26,42 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import glossary
-from analysis import execucao_orcamentaria, orcamento_funcional
+from analysis import execucao_orcamentaria, orcamento_funcional, tendencias_anuais
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _orcamento(conn, year, empresa_id, _extracted_at):
-    return execucao_orcamentaria.run(conn, year, empresa_id=empresa_id)
+def _orcamento(conn, year, empresa_ids, _extracted_at):
+    return execucao_orcamentaria.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _orcamento_by_year(conn, years, empresa_id, _extracted_at):
-    return execucao_orcamentaria.summarize_by_year(conn, list(years), empresa_id=empresa_id)
+def _orcamento_by_year(conn, years, empresa_ids, _extracted_at):
+    return execucao_orcamentaria.summarize_by_year(conn, list(years), empresa_ids=empresa_ids)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _yoy(conn, years, empresa_ids, _extracted_at):
+    return tendencias_anuais.run(conn, years, empresa_ids=empresa_ids)
 
 
 conn = get_conn()
-year, empresa_id = render_sidebar()
+year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.title("Execução Orçamentária por Órgão")
-render_breadcrumb(year, empresa_id)
+render_breadcrumb(year, empresa_ids)
 st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
 
 if year == ANO_ATUAL:
     render_aviso_ano_parcial(year, _extracted_at)
 
-df_orcamento = _orcamento(conn, year, empresa_id, _extracted_at)
+df_orcamento = _orcamento(conn, year, empresa_ids, _extracted_at)
 totais = execucao_orcamentaria.summarize(df_orcamento)
 
 _all_years = list(range(ANO_INICIAL, year + 1))
-_hist = _orcamento_by_year(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist = _orcamento_by_year(conn, tuple(_all_years), empresa_ids, _extracted_at)
 _anos = _all_years
 _dotacao_serie = [_hist[y]["total_dotacao"] for y in _anos]
 _empenhado_serie = [_hist[y]["total_empenhado"] for y in _anos]
@@ -65,7 +71,7 @@ _pago_serie = [_hist[y]["total_pago"] for y in _anos]
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.metric(
-        "Total Dotação",
+        "Dotação Atualizada",
         fmt_compact(totais["total_dotacao"]),
         delta=pct_delta(_dotacao_serie),
         delta_color="off",
@@ -168,7 +174,7 @@ with st.expander("Ver Detalhamento por Órgão"):
 
 # Gráfico de Barras (Função)
 st.markdown("---")
-df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year, empresa_id=empresa_id)
+df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year, empresa_ids=empresa_ids)
 df_funcional_resumo = (
     df_funcional.groupby("funcaonome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
     .sum()
@@ -218,6 +224,86 @@ with st.expander("Ver Detalhamento por Função"):
             "Total Liquidado",
             "Total Pago",
         ],
+    )
+
+st.markdown("---")
+st.subheader("Tendências Históricas")
+
+yoy = _yoy(conn, _all_years, empresa_ids, _extracted_at)
+anos_yoy = yoy["ano"].tolist()
+
+col_tendencia, col_pressao = st.columns([6, 4])
+
+with col_tendencia:
+    fig_trend = go.Figure()
+    fig_trend.add_trace(
+        go.Bar(
+            x=anos_yoy,
+            y=yoy["total_empenhado"].tolist(),
+            name="Empenhado",
+            marker_color="rgba(33,150,243,0.35)",
+        )
+    )
+    fig_trend.add_trace(
+        go.Bar(
+            x=anos_yoy,
+            y=yoy["total_gasto"].tolist(),
+            name="Pago",
+            marker_color="#2196F3",
+        )
+    )
+    fig_trend.update_layout(
+        title="Empenhado vs Pago por Ano",
+        barmode="overlay",
+        xaxis=dict(dtick=1, tickformat="d"),
+        yaxis=dict(tickformat=",.0f", tickprefix="R$ "),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        margin=dict(l=0, r=0, t=40, b=60),
+    )
+    st.plotly_chart(fig_trend, use_container_width=True)
+    st.caption(
+        "A barra clara mostra o total comprometido (empenhado); a barra sólida mostra o que efetivamente saiu para fornecedores (pago). "
+        "Quanto menor a diferença entre as duas, maior a eficiência de pagamento no exercício."
+    )
+
+with col_pressao:
+    _pressao = tendencias_anuais.gap_pressao_fiscal(yoy)
+    anos_pressao = _pressao["anos"]
+    lacuna = _pressao["gap"]
+    cores = _pressao["colors"]
+    opacidade = [0.4 if a == ANO_ATUAL else 1.0 for a in anos_pressao]
+    fig_pct = go.Figure(
+        go.Bar(
+            x=anos_pressao,
+            y=lacuna,
+            marker_color=cores,
+            marker_opacity=opacidade,
+            hovertemplate="%{x}<br>Pressão: %{y:+.2f}%<extra></extra>",
+        )
+    )
+    fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
+    if ANO_ATUAL in anos_pressao:
+        lacuna_parcial = lacuna[anos_pressao.index(ANO_ATUAL)]
+        fig_pct.add_annotation(
+            x=ANO_ATUAL,
+            y=lacuna_parcial,
+            text="ano parcial",
+            showarrow=False,
+            yshift=10 if lacuna_parcial >= 0 else -16,
+            font=dict(size=10, color="rgba(0,0,0,0.45)"),
+        )
+    fig_pct.update_layout(
+        title="Pressão Fiscal Anual",
+        xaxis=dict(dtick=1, tickformat="d"),
+        yaxis=dict(ticksuffix="%"),
+        hovermode="x unified",
+        showlegend=False,
+        margin=dict(l=0, r=0, t=40, b=60),
+    )
+    st.plotly_chart(fig_pct, use_container_width=True)
+    st.caption(
+        "Barras acima do zero indicam que o total pago cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
     )
 
 st.caption(f"[Ver no portal oficial →]({glossary.PORTAL_URL})")

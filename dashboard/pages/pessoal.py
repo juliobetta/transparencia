@@ -32,18 +32,18 @@ _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _folha_pagamento(conn, year, empresa_id, _extracted_at):
-    return folha_vs_servicos.run(conn, list(range(ANOS[0], year + 1)), empresa_id=empresa_id)
+def _folha_pagamento(conn, year, empresa_ids, _extracted_at):
+    return folha_vs_servicos.run(conn, list(range(ANOS[0], year + 1)), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _folha_por_departamento(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_folha_por_orgao(conn, year, empresa_id=empresa_id)
+def _folha_por_departamento(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_folha_por_orgao(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _folha_orgao_por_ano(conn, years, empresa_id, _extracted_at):
-    return analise_despesas.total_folha_orgao_por_ano(conn, list(years), empresa_id=empresa_id)
+def _folha_orgao_por_ano(conn, years, empresa_ids, _extracted_at):
+    return analise_despesas.total_folha_orgao_por_ano(conn, list(years), empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -52,11 +52,11 @@ def _cargos_confianca(conn, years, _extracted_at):
 
 
 conn = get_conn()
-year, empresa_id = render_sidebar()
+year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.header("Folha de Pagamento")
-render_breadcrumb(year, empresa_id)
+render_breadcrumb(year, empresa_ids)
 st.caption(
     "Quanto da receita municipal arrecadada é comprometido com salários e proventos de servidores. "
     "A Lei de Responsabilidade Fiscal (LRF) limita esse gasto a **54% da receita corrente líquida** para o Poder Executivo. "
@@ -73,12 +73,12 @@ if year == ANO_ATUAL:
 
 _all_years = list(range(ANO_INICIAL, year + 1))
 _anos = _all_years
-_hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), empresa_id, _extracted_at)
+_hist_folha_orgao = _folha_orgao_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
 _folha_orgao_serie = [_hist_folha_orgao[y] for y in _anos]
 
-df_folha = _folha_pagamento(conn, year, empresa_id, _extracted_at)
+df_folha = _folha_pagamento(conn, year, empresa_ids, _extracted_at)
 df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
-df_departamentos = _folha_por_departamento(conn, year, empresa_id, _extracted_at)
+df_departamentos = _folha_por_departamento(conn, year, empresa_ids, _extracted_at)
 
 kf1, kf2, kf3 = st.columns(3)
 
@@ -142,7 +142,7 @@ if not df_folha.empty:
 
     with kf3:
         st.metric(
-            "Total distribuído via responsáveis",
+            "Total Pago em Folha",
             fmt_currency(_total_folha_atual),
             delta=pct_delta(_folha_orgao_serie) if year != ANO_ATUAL else "—",
             delta_color="off",
@@ -293,31 +293,6 @@ if not df_cargos.empty:
     )
     st.plotly_chart(fig_cargos, use_container_width=True)
 
-    # Calcular dados históricos dinamicamente para o expander explicativo
-    df_2024 = df_cargos[df_cargos["ano"] == 2024]  # final gestao anterior
-    df_2026 = df_cargos[df_cargos["ano"] == 2026]  # gestao atual, apos reforma administrativa
-
-    qty_map_2024 = df_2024.set_index("tipo_vinculo_detalhado")["quantidade"].to_dict() if not df_2024.empty else {}
-    qty_map_2026 = df_2026.set_index("tipo_vinculo_detalhado")["quantidade"].to_dict() if not df_2026.empty else {}
-
-    # 2024
-    efetivos_conf_2024 = qty_map_2024.get("Servidor Efetivo com Função de Confiança (DAI/FG)", 0) + qty_map_2024.get(
-        "Servidor Efetivo com Cargo Comissionado (DAS/CC)", 0
-    )
-    comissionados_ext_2024 = qty_map_2024.get("Comissionado Externo (DAS/CC - Sem Vínculo)", 0)
-    total_conf_2024 = efetivos_conf_2024 + comissionados_ext_2024
-    pct_efetivos_2024 = (efetivos_conf_2024 / total_conf_2024 * 100) if total_conf_2024 > 0 else 0.0
-
-    # 2026
-    efetivos_conf_2026 = qty_map_2026.get("Servidor Efetivo com Função de Confiança (DAI/FG)", 0) + qty_map_2026.get(
-        "Servidor Efetivo com Cargo Comissionado (DAS/CC)", 0
-    )
-    comissionados_ext_2026 = qty_map_2026.get("Comissionado Externo (DAS/CC - Sem Vínculo)", 0)
-    total_conf_2026 = efetivos_conf_2026 + comissionados_ext_2026
-    pct_efetivos_2026 = (efetivos_conf_2026 / total_conf_2026 * 100) if total_conf_2026 > 0 else 0.0
-
-    has_verificacao_data = total_conf_2024 > 0 and total_conf_2026 > 0
-
     with st.expander(":material/info: Entenda as categorias e a importância desses dados"):
         st.markdown("""
         ### O que são Cargos de Confiança?
@@ -332,16 +307,6 @@ if not df_cargos.empty:
         *   **Valorização dos Servidores:** Valoriza o quadro funcional de carreira da prefeitura com oportunidades reais de crescimento e liderança.
         """)
 
-        if has_verificacao_data:
-            st.markdown(f"""
-            ### Verificação Matemática da Reforma Administrativa
-            O prefeito declarou que a transformação de cargos DAS em DAI ampliou em mais de 90% a presença de servidores efetivos na estrutura de confiança em relação a 2024.
-
-            **O que os dados reais da prefeitura provam:**
-            *   Em **2024**, os nomeados externos sem concurso ocupavam a maior parte das chefias (**{comissionados_ext_2024} cargos**), com os concursados detendo apenas **{pct_efetivos_2024:.1f}%** das vagas de liderança.
-            *   Em **2026**, após a reforma, o número de nomeados externos despencou para **apenas {comissionados_ext_2026}**, com os servidores de carreira (efetivos) assumindo **{pct_efetivos_2026:.1f}%** de toda a estrutura de confiança.
-            *   **A fala do prefeito está perfeitamente validada e confirmada por esta base de dados.**
-            """)
 else:
     st.info("Dados de cargos de confiança não disponíveis.")
 

@@ -395,6 +395,94 @@ def run(conn: Any, year: int, empresa_id: str = SAUDE_EMPRESA) -> dict:
     }
 
 
+def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
+    """Multi-year trend series for KPI sparklines on the saúde page."""
+
+    def _safe_df(query: str, params: dict) -> pd.DataFrame:
+        try:
+            return pd.read_sql_query(text(query), conn, params=params)
+        except Exception:
+            return pd.DataFrame()
+
+    p = {"empresa": empresa_id}
+
+    emendas = _safe_df(
+        "SELECT ano, SUM(CAST(NULLIF(REPLACE(valor_total::text, ',', '.'), '') AS FLOAT)) AS total"
+        " FROM emendas_cad WHERE empresa = :empresa GROUP BY ano ORDER BY ano",
+        p,
+    )
+    if not emendas.empty:
+        emendas["total"] = _to_float(emendas["total"])
+
+    transferencias = _safe_df(
+        "SELECT ano,"
+        " SUM(CAST(NULLIF(REPLACE(repasse::text, ',', '.'), '') AS FLOAT))"
+        " - SUM(CAST(NULLIF(REPLACE(COALESCE(devolucao::text, '0'), ',', '.'), '') AS FLOAT)) AS total"
+        " FROM transferencias WHERE empresa = '7' AND UPPER(entidade_recebedora) LIKE '%SAUDE%'"
+        " GROUP BY ano ORDER BY ano",
+        {},
+    )
+    if not transferencias.empty:
+        transferencias["total"] = _to_float(transferencias["total"])
+
+    adesao = _safe_df(
+        """
+        SELECT l.ano,
+          SUM(CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)) AS valor,
+          COUNT(DISTINCT CASE
+            WHEN CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT) > 0 THEN l.numero
+          END) AS contratos_linked
+        FROM licitacoes l
+        LEFT JOIN contratos c
+          ON c.licitacao_numero = l.numero AND c.ano = l.ano AND c.empresa = l.empresa
+        WHERE l.empresa = :empresa AND l.carona = 'S'
+        GROUP BY l.ano ORDER BY l.ano
+        """,
+        p,
+    )
+    if not adesao.empty:
+        adesao["valor"] = _to_float(adesao["valor"])
+        adesao["contratos_linked"] = adesao["contratos_linked"].fillna(0).astype(int)
+
+    fornecedores_all = _safe_df(
+        "SELECT ano, descricao,"
+        " SUM(CAST(NULLIF(REPLACE(empenhado::text, ',', '.'), '') AS FLOAT)) AS empenhado"
+        " FROM despesas_por_fornecedor WHERE empresa = :empresa GROUP BY ano, descricao",
+        p,
+    )
+    hhi_trend: pd.DataFrame
+    if not fornecedores_all.empty:
+        fornecedores_all["empenhado"] = _to_float(fornecedores_all["empenhado"])
+
+        def _hhi_for_group(grp: pd.DataFrame) -> float:
+            total = grp["empenhado"].sum()
+            if total <= 0:
+                return 0.0
+            shares = grp["empenhado"] / total
+            return float((shares**2).sum() * 10000)
+
+        hhi_trend = fornecedores_all.groupby("ano").apply(_hhi_for_group).reset_index(name="hhi")
+    else:
+        hhi_trend = pd.DataFrame(columns=["ano", "hhi"])
+
+    pharma_judicial = _safe_df(
+        "SELECT ano, SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS total"
+        " FROM despesas_gerais WHERE empresa = :empresa AND elemento = '91'"
+        " GROUP BY ano ORDER BY ano",
+        p,
+    )
+    if not pharma_judicial.empty:
+        pharma_judicial["total"] = _to_float(pharma_judicial["total"])
+
+    return {
+        "emendas_por_ano": emendas,
+        "transferencias_por_ano": transferencias,
+        "adesao_por_ano": adesao,
+        "hhi_por_ano": hhi_trend,
+        "pharma_judicial_por_ano": pharma_judicial,
+    }
+
+
 def get_principais_servicos_por_fornecedor(
     services_df: "pd.DataFrame", top_supplier_names: "pd.Series", n: int = 3
 ) -> "pd.DataFrame":

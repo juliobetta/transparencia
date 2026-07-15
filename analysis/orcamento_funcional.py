@@ -2,11 +2,11 @@ import pandas as pd
 from sqlalchemy import text
 
 
-def get_orcamento_funcional(conn, year: int, empresa_id: str | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+def get_orcamento_funcional(conn, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     query = text(f"""
         SELECT funcaonome, dotacatualizada, subfuncaonome, empenhado, liquidado, pago
         FROM despesas_gerais

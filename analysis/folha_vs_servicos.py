@@ -13,10 +13,10 @@ def distribuicao_salarios(conn: Any, year: int) -> pd.DataFrame:
     return df[df["proventos"] > 0].dropna()
 
 
-def run(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFrame:
+def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd.DataFrame:
     # pessoal usa empresa='001' (código retornado pela API, não mapeado para as entidades do dashboard)
-    # — a folha é um dado municipal consolidado e não deve ser filtrada por empresa_id.
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    # — a folha é um dado municipal consolidado e não deve ser filtrada por empresa_ids.
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     records = []
     for year in years:
         folha = pd.read_sql_query(
@@ -27,8 +27,8 @@ def run(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFr
         total_folha = pd.to_numeric(folha["proventos"].str.replace(",", "."), errors="coerce").fillna(0).sum()
 
         pago_params: dict = {"ano": year}
-        if empresa_id:
-            pago_params["empresa"] = empresa_id
+        if empresa_ids:
+            pago_params["empresas"] = empresa_ids
         pago = pd.read_sql_query(
             text(f"SELECT pago FROM despesas_por_orgao WHERE ano = :ano {empresa_clause}"),
             conn,
@@ -36,7 +36,7 @@ def run(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFr
         )
         total_pago = pd.to_numeric(pago["pago"].str.replace(",", "."), errors="coerce").fillna(0).sum()
 
-        rev_df = fontes_receita.run(conn, [year], empresa_id=empresa_id)
+        rev_df = fontes_receita.run(conn, [year], empresa_ids=empresa_ids)
         rcl_proxy = float(rev_df.iloc[0]["total"]) if not rev_df.empty else 0.0
 
         percentual = total_folha / rcl_proxy * 100 if rcl_proxy > 0 else 0

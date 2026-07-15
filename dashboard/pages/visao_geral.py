@@ -30,96 +30,204 @@ from analysis import (
     analise_despesas,
     anomalias_contratuais,
     execucao_orcamentaria,
+    folha_vs_servicos,
     fontes_receita,
     licitacao_gaps,
     posicao_fiscal,
-    tendencias_anuais,
 )
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _orcamento(conn, year, empresa_id, _extracted_at):
-    return execucao_orcamentaria.run(conn, year, empresa_id=empresa_id)
+def _orcamento(conn, year, empresa_ids, _extracted_at):
+    return execucao_orcamentaria.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _licitacoes_gaps(conn, year, empresa_id, _extracted_at):
-    return licitacao_gaps.run(conn, year, empresa_id=empresa_id)
+def _licitacoes_gaps(conn, year, empresa_ids, _extracted_at):
+    return licitacao_gaps.run(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _contagens_licitacoes(conn, years, empresa_id, _extracted_at):
-    return licitacao_gaps.counts_by_year(conn, years, empresa_id=empresa_id)
+def _contagens_licitacoes(conn, years, empresa_ids, _extracted_at):
+    return licitacao_gaps.counts_by_year(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _receita(conn, years, empresa_id, _extracted_at):
-    return fontes_receita.run(conn, years, empresa_id=empresa_id)
+def _receita(conn, years, empresa_ids, _extracted_at):
+    return fontes_receita.run(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _yoy(conn, years, empresa_id, _extracted_at):
-    return tendencias_anuais.run(conn, years, empresa_id=empresa_id)
+def _adesao_counts(conn, years, empresa_ids, _extracted_at):
+    return adesao_de_ata.formal_counts_by_year(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao_counts(conn, years, empresa_id, _extracted_at):
-    return adesao_de_ata.formal_counts_by_year(conn, years, empresa_id=empresa_id)
+def _adesao_externa_counts(conn, years, empresa_ids, _extracted_at):
+    return adesao_de_ata.external_counts_by_year(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _adesao_externa_counts(conn, years, empresa_id, _extracted_at):
-    return adesao_de_ata.external_counts_by_year(conn, years, empresa_id=empresa_id)
+def _contagens_fracionamento(conn, years, empresa_ids, _extracted_at):
+    return anomalias_contratuais.contagens_fracionamento_por_ano(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _contagens_fracionamento(conn, years, empresa_id, _extracted_at):
-    return anomalias_contratuais.contagens_fracionamento_por_ano(conn, years, empresa_id=empresa_id)
+def _fornecedores_pendentes(conn, year, empresa_ids, _extracted_at):
+    return posicao_fiscal.get_fornecedores_pendentes(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _fornecedores_pendentes(conn, year, empresa_id, _extracted_at):
-    return posicao_fiscal.get_fornecedores_pendentes(conn, year, empresa_id=empresa_id)
+def _tendencia_pendentes(conn, years, empresa_ids, _extracted_at):
+    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, years, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _tendencia_pendentes(conn, years, empresa_id, _extracted_at):
-    return posicao_fiscal.get_tendencia_fornecedores_pendentes(conn, years, empresa_id=empresa_id)
+def _composicao(conn, year, empresa_ids, _extracted_at):
+    return analise_despesas.get_composicao_despesa(conn, year, empresa_ids=empresa_ids)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _composicao(conn, year, empresa_id, _extracted_at):
-    return analise_despesas.get_composicao_despesa(conn, year, empresa_id=empresa_id)
+def _folha(conn, years, empresa_ids, _extracted_at):
+    return folha_vs_servicos.run(conn, years, empresa_ids=empresa_ids)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _cargos_confianca(conn, years, _extracted_at):
+    return analise_despesas.get_perfil_cargos_confianca(conn, list(years))
 
 
 conn = get_conn()
-year, empresa_id = render_sidebar()
+year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
 st.title("Transparência Porciúncula / RJ")
 st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL}) do município.")
 st.header("Visão Geral")
-render_breadcrumb(year, empresa_id)
+render_breadcrumb(year, empresa_ids)
 
 _all_years = list(range(ANO_INICIAL, year + 1))
-with st.spinner("Carregando..."):
-    orcamento = _orcamento(conn, year, empresa_id, _extracted_at)
-    licitacoes = _licitacoes_gaps(conn, year, empresa_id, _extracted_at)
-    receita = _receita(conn, _all_years, empresa_id, _extracted_at)
-    yoy = _yoy(conn, _all_years, empresa_id, _extracted_at)
-    df_composicao = _composicao(conn, year, empresa_id, _extracted_at)
-    _adesao_map = _adesao_counts(conn, _all_years, empresa_id, _extracted_at)
-    _adesao_ext_map = _adesao_externa_counts(conn, _all_years, empresa_id, _extracted_at)
-    _mapa_fracionamento = _contagens_fracionamento(conn, _all_years, empresa_id, _extracted_at)
-    df_pendentes = _fornecedores_pendentes(conn, year, empresa_id, _extracted_at)
-    tendencia_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_id, _extracted_at)
+anos = _all_years
 
-anos = yoy["ano"].tolist()
-_mapa_contagens = _contagens_licitacoes(conn, anos, empresa_id, _extracted_at)
+with st.spinner("Carregando..."):
+    orcamento = _orcamento(conn, year, empresa_ids, _extracted_at)
+    licitacoes = _licitacoes_gaps(conn, year, empresa_ids, _extracted_at)
+    receita = _receita(conn, _all_years, empresa_ids, _extracted_at)
+    df_composicao = _composicao(conn, year, empresa_ids, _extracted_at)
+    _adesao_map = _adesao_counts(conn, _all_years, empresa_ids, _extracted_at)
+    _adesao_ext_map = _adesao_externa_counts(conn, _all_years, empresa_ids, _extracted_at)
+    _mapa_fracionamento = _contagens_fracionamento(conn, _all_years, empresa_ids, _extracted_at)
+    df_pendentes = _fornecedores_pendentes(conn, year, empresa_ids, _extracted_at)
+    tendencia_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_ids, _extracted_at)
+    df_folha_resumo = _folha(conn, _all_years, empresa_ids, _extracted_at)
+    df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
+
+_mapa_contagens = _contagens_licitacoes(conn, anos, empresa_ids, _extracted_at)
 _contagens_contratos = [_mapa_contagens[y] for y in anos]
 
+# ── RECEITAS ──────────────────────────────────────────────────────────────────
+st.subheader("Receitas")
+render_metodologia_receita()
+
+_receita_row = (
+    receita[receita["ano"] == year].iloc[0]
+    if (not receita.empty and year in receita["ano"].values)
+    else (receita.iloc[-1] if not receita.empty else None)
+)
+_tem_arrecadado = _receita_row is not None and float(_receita_row["total_arrecadado"]) > 0
+
+r1, r2, r3, _ = st.columns(4)
+if _receita_row is not None:
+    _prev_serie = receita["total_previsto"].tolist()
+    _total_serie = receita["total"].tolist()
+    _anos_rec = receita["ano"].tolist()
+    with r1:
+        st.metric(
+            "Previsão Orçamentária",
+            fmt_compact(float(_receita_row["total_previsto"])),
+            delta=pct_delta(_prev_serie),
+            delta_color="off",
+            help="Valor total de receitas que a prefeitura planejou arrecadar no ano, conforme aprovado na Lei Orçamentária Anual (LOA).",
+        )
+        st.plotly_chart(
+            sparkline(_anos_rec, _prev_serie, "#2196F3"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_rec_prev",
+        )
+    with r2:
+        if _tem_arrecadado:
+            st.metric(
+                "Total Arrecadado Real",
+                fmt_compact(float(_receita_row["total_arrecadado"])),
+                delta="—" if year == ANO_ATUAL else pct_delta(_total_serie),
+                delta_color="off",
+                help="Valor efetivamente recebido pela prefeitura — impostos, FPM, FUNDEB, ICMS e demais transferências.",
+            )
+            st.plotly_chart(
+                sparkline(_anos_rec, _total_serie, "#4CAF50"),
+                use_container_width=True,
+                config=SPARK_CFG,
+                key="spark_rec_total",
+            )
+        else:
+            st.metric("Total Arrecadado Real", "N/D")
+    with r3:
+        if _tem_arrecadado:
+            _pct_rec = float(_receita_row["pct_arrecadado"])
+            st.metric(
+                "% Realizado",
+                f"{_pct_rec:.1%}",
+                delta_color="off",
+                help="Quanto da previsão orçamentária já foi efetivamente arrecadado.",
+            )
+            st.progress(min(_pct_rec, 1.0))
+    if year == ANO_ATUAL:
+        render_aviso_ano_parcial(year, _extracted_at)
+else:
+    st.info("Dados de receita não disponíveis.")
+
+if not receita.empty:
+    row_rec = receita[receita["ano"] == year].iloc[0] if year in receita["ano"].values else receita.iloc[-1]
+    eh_parcial = year == ANO_ATUAL
+    titulo_donut = (
+        f"Fontes de Receita ({year} — Arrecadado Parcial)"
+        if eh_parcial
+        else f"Fontes de Receita ({year} — Previsão Orçamentária)"
+    )
+    fig_donut = go.Figure(
+        go.Pie(
+            labels=["Receita Própria", "Transferências União", "Transferências Estado"],
+            values=[
+                float(row_rec["receita_propria"]),
+                float(row_rec["transferencias_uniao"]),
+                float(row_rec["transferencias_estado"]),
+            ],
+            hole=0.5,
+            marker=dict(colors=["#2196F3", "#4CAF50", "#FF9800"]),
+            textinfo="percent",
+            textposition="inside",
+            automargin=True,
+            hovertemplate="%{label}<br>R$ %{value:,.0f}<br>%{percent}<extra></extra>",
+        )
+    )
+    fig_donut.update_layout(
+        title=titulo_donut,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5),
+        margin=dict(l=0, r=0, t=40, b=80),
+    )
+    st.plotly_chart(fig_donut, use_container_width=True)
+    st.caption(
+        "Alta dependência de transferências federais e estaduais fragiliza o município diante de mudanças na política fiscal nacional. "
+        "Receita própria elevada indica maior autonomia."
+    )
+
+st.page_link("pages/receitas.py", label="Ver detalhes em Fontes de Receita →", icon=":material/arrow_forward:")
+
+# ── EXECUÇÃO ORÇAMENTÁRIA ─────────────────────────────────────────────────────
 st.subheader("Execução Orçamentária")
 _dot = float(orcamento["dotacao_atualizada"].sum()) if not orcamento.empty else 0.0
 _emp = float(orcamento["empenhado"].sum()) if not orcamento.empty else 0.0
@@ -149,18 +257,17 @@ with h1:
 
 with h2:
     st.metric(
-        "Empenhado",
+        "Total Empenhado",
         fmt_compact(_emp),
         delta=f"{_pct_emp:.1%} da dotação",
         delta_color=_exec_delta_color,
         help=glossary.tooltip("Empenho"),
     )
     st.progress(min(_pct_emp, 1.0))
-    st.caption("Abaixo de 70% ao fim do ano indica sub-execução." if year == ANO_ATUAL else "")
 
 with h3:
     st.metric(
-        "Liquidado",
+        "Total Liquidado",
         fmt_compact(_liq),
         delta=f"{_pct_liq:.1%} da dotação",
         delta_color="off",
@@ -170,7 +277,7 @@ with h3:
 
 with h4:
     st.metric(
-        "Pago",
+        "Total Pago",
         fmt_compact(_pago),
         delta=f"{_pct_pago:.1%} da dotação",
         delta_color="off",
@@ -183,6 +290,10 @@ st.info(
     "Cada etapa é um estágio legal: reservar, confirmar entrega e pagar.",
     icon=":material/info:",
 )
+st.page_link("pages/orcamento.py", label="Ver detalhes em Execução Orçamentária →", icon=":material/arrow_forward:")
+
+# ── DESPESAS DETALHADAS ───────────────────────────────────────────────────────
+st.subheader("Despesas Detalhadas")
 
 if not df_pendentes.empty:
     total_pendente = df_pendentes["pendente"].sum()
@@ -193,12 +304,11 @@ if not df_pendentes.empty:
     _contagem_tendencia = tendencia_pendentes["num_fornecedores"].tolist() if not tendencia_pendentes.empty else []
     _anos_tendencia = tendencia_pendentes["ano"].tolist() if not tendencia_pendentes.empty else []
 
-    st.subheader("Restos a Pagar — Obrigações Pendentes")
     rp1, rp2, rp3, _ = st.columns(4)
 
     with rp1:
         st.metric(
-            "Total a Pagar a Fornecedores",
+            "Total Pendente (Restos a Pagar)",
             fmt_compact(total_pendente),
             delta=pct_delta(_valores_tendencia),
             delta_color="inverse",
@@ -234,12 +344,36 @@ if not df_pendentes.empty:
             str(ano_mais_antigo),
             help="Exercício do empenho mais antigo ainda com saldo pendente.",
         )
+else:
+    st.info("Nenhum empenho com Restos a Pagar para o período selecionado.")
 
-    st.info(
-        "Detalhamento completo por fornecedor disponível em **Despesas → Restos a Pagar**.",
-        icon=":material/info:",
+if not df_composicao.empty:
+    fig_comp = go.Figure(
+        go.Pie(
+            labels=df_composicao["categoria"].tolist(),
+            values=df_composicao["pago"].tolist(),
+            hole=0.5,
+            textinfo="percent",
+            textposition="inside",
+            automargin=True,
+            hovertemplate="%{label}<br>R$ %{value:,.0f}<br>%{percent}<extra></extra>",
+        )
+    )
+    fig_comp.update_layout(
+        title=f"Como o dinheiro é gasto ({year})",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5),
+        margin=dict(l=0, r=0, t=40, b=80),
+    )
+    st.plotly_chart(fig_comp, use_container_width=True)
+    st.caption(
+        "Composição do total pago por natureza de despesa — revela se o orçamento é rígido (dominado por pessoal) "
+        "ou tem espaço para serviços e investimentos."
     )
 
+st.page_link("pages/despesas.py", label="Ver detalhes em Despesas →", icon=":material/arrow_forward:")
+
+# ── LICITAÇÕES E CONTRATOS ────────────────────────────────────────────────────
 st.subheader("Licitações e Contratos")
 _lista_licitacoes = [_mapa_contagens[y] for y in anos]
 _adesao_counts_list = [_adesao_map[y] for y in anos]
@@ -331,202 +465,85 @@ with lc4:
         key="spark_lc_split",
     )
 
+st.page_link("pages/licitacoes.py", label="Ver detalhes em Licitações e Contratos →", icon=":material/arrow_forward:")
 
-st.subheader("Tendências Históricas")
-col_tendencia, col_pressao = st.columns([6, 4])
+# ── PESSOAL ───────────────────────────────────────────────────────────────────
+st.subheader("Pessoal")
 
-with col_tendencia:
-    fig_trend = go.Figure()
-    fig_trend.add_trace(
-        go.Bar(
-            x=anos,
-            y=yoy["total_empenhado"].tolist(),
-            name="Empenhado",
-            marker_color="rgba(33,150,243,0.35)",
+p1, p2, p3, _ = st.columns(4)
+
+if not df_folha_resumo.empty:
+    _folha_ano = df_folha_resumo[df_folha_resumo["ano"] == year]
+    _row_folha = _folha_ano.iloc[0] if not _folha_ano.empty else df_folha_resumo.iloc[-1]
+    _total_folha = float(_row_folha["total_folha"])
+    _pct_folha = float(_row_folha["percentual_folha"])
+    _pct_serie = df_folha_resumo["percentual_folha"].tolist()
+    _folha_serie = df_folha_resumo["total_folha"].tolist()
+    _anos_folha = df_folha_resumo["ano"].tolist()
+
+    with p1:
+        st.metric(
+            "Total Pago em Folha",
+            fmt_compact(_total_folha),
+            delta=pct_delta(_folha_serie) if year != ANO_ATUAL else "—",
+            delta_color="off",
+            help="Total de proventos brutos pagos a servidores no ano.",
         )
-    )
-    fig_trend.add_trace(
-        go.Bar(
-            x=anos,
-            y=yoy["total_gasto"].tolist(),
-            name="Pago",
-            marker_color="#2196F3",
+        st.plotly_chart(
+            sparkline(_anos_folha, _folha_serie, "#607D8B"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pes_folha",
         )
-    )
-    fig_trend.update_layout(
-        title="Empenhado vs Pago por Ano",
-        barmode="overlay",
-        xaxis=dict(dtick=1, tickformat="d"),
-        yaxis=dict(tickformat=",.0f", tickprefix="R$ "),
-        hovermode="x unified",
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
-        margin=dict(l=0, r=0, t=40, b=60),
-    )
-    st.plotly_chart(fig_trend, use_container_width=True)
-    st.caption(
-        "A barra clara mostra o total comprometido (empenhado); a barra sólida mostra o que efetivamente saiu para fornecedores (pago). "
-        "Quanto menor a diferença entre as duas, maior a eficiência de pagamento no exercício."
-    )
 
-with col_pressao:
-    _pressao = tendencias_anuais.gap_pressao_fiscal(yoy)
-    anos_pressao = _pressao["anos"]
-    lacuna = _pressao["gap"]
-    cores = _pressao["colors"]
-    opacidade = [0.4 if a == ANO_ATUAL else 1.0 for a in anos_pressao]
-    fig_pct = go.Figure(
-        go.Bar(
-            x=anos_pressao,
-            y=lacuna,
-            marker_color=cores,
-            marker_opacity=opacidade,
-            hovertemplate="%{x}<br>Pressão: %{y:+.2f}%<extra></extra>",
+    with p2:
+        st.metric(
+            "Folha / Receita Arrecadada",
+            f"{_pct_folha:.1f}%",
+            delta=pct_delta(_pct_serie) if year != ANO_ATUAL else "—",
+            delta_color="inverse" if year != ANO_ATUAL else "off",
+            help="Percentual da receita arrecadada comprometido com folha de pessoal. A LRF limita a 54% da RCL para o Poder Executivo.",
         )
-    )
-    fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
-    if ANO_ATUAL in anos_pressao:
-        lacuna_parcial = lacuna[anos_pressao.index(ANO_ATUAL)]
-        fig_pct.add_annotation(
-            x=ANO_ATUAL,
-            y=lacuna_parcial,
-            text="ano parcial",
-            showarrow=False,
-            yshift=10 if lacuna_parcial >= 0 else -16,
-            font=dict(size=10, color="rgba(0,0,0,0.45)"),
+        st.plotly_chart(
+            sparkline(_anos_folha, _pct_serie, "#FF9800"),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pes_pct",
         )
-    fig_pct.update_layout(
-        title="Pressão Fiscal Anual",
-        xaxis=dict(dtick=1, tickformat="d"),
-        yaxis=dict(ticksuffix="%"),
-        hovermode="x unified",
-        showlegend=False,
-        margin=dict(l=0, r=0, t=40, b=60),
-    )
-    st.plotly_chart(fig_pct, use_container_width=True)
-    st.caption(
-        "Barras acima do zero indicam que o total pago cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
-    )
+else:
+    st.info("Dados de folha de pagamento não disponíveis.")
 
-render_metodologia_receita()
-
-st.subheader(f"Composição e Execução ({year})")
-col_donut, col_funcional = st.columns(2)
-
-with col_donut:
-    if not receita.empty:
-        row = receita[receita["ano"] == year].iloc[0] if year in receita["ano"].values else receita.iloc[-1]
-        eh_parcial = year == ANO_ATUAL
-        titulo_donut = (
-            f"Fontes de Receita ({year} — Arrecadado Parcial)"
-            if eh_parcial
-            else f"Fontes de Receita ({year} — Previsão Orçamentária)"
+if not df_cargos.empty:
+    _series_pct_efetivos = []
+    _anos_cargos_serie = []
+    for _y in sorted(df_cargos["ano"].unique()):
+        if _y > year:
+            continue
+        _qty = df_cargos[df_cargos["ano"] == _y].set_index("tipo_vinculo_detalhado")["quantidade"].to_dict()
+        _efetivos = _qty.get("Servidor Efetivo com Função de Confiança (DAI/FG)", 0) + _qty.get(
+            "Servidor Efetivo com Cargo Comissionado (DAS/CC)", 0
         )
-        fig_donut = go.Figure(
-            go.Pie(
-                labels=["Receita Própria", "Transferências União", "Transferências Estado"],
-                values=[
-                    float(row["receita_propria"]),
-                    float(row["transferencias_uniao"]),
-                    float(row["transferencias_estado"]),
-                ],
-                hole=0.5,
-                marker=dict(colors=["#2196F3", "#4CAF50", "#FF9800"]),
-                textinfo="percent",
-                textposition="inside",
-                automargin=True,
-                hovertemplate="%{label}<br>R$ %{value:,.0f}<br>%{percent}<extra></extra>",
+        _total_conf = _efetivos + _qty.get("Comissionado Externo (DAS/CC - Sem Vínculo)", 0)
+        _series_pct_efetivos.append((_efetivos / _total_conf * 100) if _total_conf > 0 else 0.0)
+        _anos_cargos_serie.append(_y)
+
+    if _series_pct_efetivos:
+        with p3:
+            st.metric(
+                "Efetivos no Comando das Chefias",
+                f"{_series_pct_efetivos[-1]:.1f}%",
+                delta=pct_delta(_series_pct_efetivos),
+                help="Percentual de cargos de liderança (DAS/DAI) ocupados por servidores concursados. Quanto maior, mais técnica e profissionalizada é a gestão.",
             )
-        )
-        fig_donut.update_layout(
-            title=titulo_donut,
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5),
-            margin=dict(l=0, r=0, t=40, b=80),
-        )
-        st.plotly_chart(fig_donut, use_container_width=True)
-        if eh_parcial:
-            _rows_anteriores = receita[receita["ano"] == year - 1]
-            _propria_cur = fmt_compact(float(row["receita_propria_previsto"]))
-            _propria_prev = (
-                fmt_compact(float(_rows_anteriores.iloc[0]["receita_propria_previsto"]))
-                if not _rows_anteriores.empty
-                else "N/D"
-            )
-            _pct_cur = float(row["pct_propria"])
-            _pct_prev = float(_rows_anteriores.iloc[0]["pct_propria"]) if not _rows_anteriores.empty else 0
-            render_aviso_ano_parcial(
-                year,
-                _extracted_at,
-                extra_html=(
-                    f"O salto de ~{_pct_prev:.0f}% ({year - 1}) para ~{_pct_cur:.0f}% ({year}) reflete também uma mudança na "
-                    f"previsão orçamentária: a receita própria foi orçada em {_propria_cur} em {year}, frente a {_propria_prev} em {year - 1}."
-                ),
-            )
-        else:
-            st.caption(
-                "Alta dependência de transferências federais e estaduais fragiliza o município diante de mudanças na política fiscal nacional. Receita própria elevada indica maior autonomia."
-            )
-    else:
-        st.info("Dados de receita não disponíveis.")
+            if len(_series_pct_efetivos) > 1:
+                st.plotly_chart(
+                    sparkline(_anos_cargos_serie, _series_pct_efetivos, "#2196F3"),
+                    use_container_width=True,
+                    config=SPARK_CFG,
+                    key="spark_pes_cargos",
+                )
 
-with col_funcional:
-    if not df_composicao.empty:
-        fig_comp = go.Figure(
-            go.Pie(
-                labels=df_composicao["categoria"].tolist(),
-                values=df_composicao["pago"].tolist(),
-                hole=0.5,
-                textinfo="percent",
-                textposition="inside",
-                automargin=True,
-                hovertemplate="%{label}<br>R$ %{value:,.0f}<br>%{percent}<extra></extra>",
-            )
-        )
-        fig_comp.update_layout(
-            title=f"Como o dinheiro é gasto ({year})",
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5),
-            margin=dict(l=0, r=0, t=40, b=80),
-        )
-        st.plotly_chart(fig_comp, use_container_width=True)
-        st.caption(
-            "Composição do total pago por natureza de despesa — revela se o orçamento é rígido (dominado por pessoal) ou tem espaço para serviços e investimentos."
-        )
-    else:
-        st.info("Dados de composição de despesa não disponíveis.")
-
-with st.expander(":material/bar_chart: Dados detalhados por ano"):
-    st.dataframe(
-        yoy.rename(
-            columns={
-                "ano": "Ano",
-                "total_gasto": "Total Pago",
-                "total_empenhado": "Total Empenhado",
-                "total_folha": "Total Folha",
-                "total_receita": "Total Receita",
-                "restos_a_pagar": "Restos Pago",
-                "total_gasto_pct_change": "Δ% Total Pago",
-                "total_empenhado_pct_change": "Δ% Empenhado",
-                "total_folha_pct_change": "Δ% Folha",
-                "total_receita_pct_change": "Δ% Receita",
-                "restos_a_pagar_pct_change": "Δ% Restos",
-            }
-        ),
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Total Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Total Folha": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Total Receita": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Restos Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Δ% Total Pago": st.column_config.NumberColumn(format="%.2f%%"),
-            "Δ% Empenhado": st.column_config.NumberColumn(format="%.2f%%"),
-            "Δ% Folha": st.column_config.NumberColumn(format="%.2f%%"),
-            "Δ% Receita": st.column_config.NumberColumn(format="%.2f%%"),
-            "Δ% Restos": st.column_config.NumberColumn(format="%.2f%%"),
-        },
-    )
+st.page_link("pages/pessoal.py", label="Ver detalhes em Pessoal →", icon=":material/arrow_forward:")
 
 st.info(
     f":material/link: Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})"

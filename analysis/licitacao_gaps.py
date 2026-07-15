@@ -8,13 +8,13 @@ from analysis.constants import dispensation_threshold
 SAUDE_EMPRESA = "2"
 
 
-def counts_by_year(conn: Any, years: list[int], empresa_id: str | None = None) -> dict[int, int]:
+def counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     """Retorna {ano: contagem_acima_do_limite} usando o limite aplicável por contrato."""
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
             f"SELECT ano, licitacao_numero, valcon, numobra, tipocoobra, objeto"
@@ -33,13 +33,13 @@ def counts_by_year(conn: Any, years: list[int], empresa_id: str | None = None) -
     return {y: int(counts.get(y, 0)) for y in years}
 
 
-def totals_sem_licitacao_por_ano(conn: Any, years: list[int], empresa_id: str | None = None) -> dict[int, int]:
+def totals_sem_licitacao_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     """Retorna {ano: total_contratos_sem_licitacao} para todos os valores (acima e abaixo do limite)."""
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(f"SELECT ano, licitacao_numero FROM contratos WHERE ano IN ({placeholders}) {empresa_clause}"),
         conn,
@@ -50,11 +50,11 @@ def totals_sem_licitacao_por_ano(conn: Any, years: list[int], empresa_id: str | 
     return {y: int(counts.get(y, 0)) for y in years}
 
 
-def run(conn: Any, year: int, empresa_id: str | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = :empresa" if empresa_id else ""
+def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
+    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
-    if empresa_id:
-        params["empresa"] = empresa_id
+    if empresa_ids:
+        params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
             "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes,"

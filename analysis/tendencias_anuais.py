@@ -7,10 +7,10 @@ from analysis import fontes_receita
 
 
 def _sum_col(
-    conn: Any, table: str, col: str, year: int, root_only: bool = False, empresa_id: str | None = None
+    conn: Any, table: str, col: str, year: int, root_only: bool = False, empresa_ids: list[str] | None = None
 ) -> float:
     try:
-        empresa_clause = "AND t.empresa = :empresa" if empresa_id else ""
+        empresa_clause = "AND t.empresa = ANY(:empresas)" if empresa_ids else ""
         sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano {empresa_clause}"
         if root_only:
             sql += (
@@ -23,8 +23,8 @@ def _sum_col(
                 f")"
             )
         params: dict = {"ano": year}
-        if empresa_id:
-            params["empresa"] = empresa_id
+        if empresa_ids:
+            params["empresas"] = empresa_ids
         df = pd.read_sql_query(text(sql), conn, params=params)
         if df.empty:
             return 0.0
@@ -33,21 +33,21 @@ def _sum_col(
         return 0.0
 
 
-def run(conn: Any, years: list[int], empresa_id: str | None = None) -> pd.DataFrame:
+def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd.DataFrame:
     records = []
     sorted_years = sorted(years)
     # Chama o módulo unificado de fontes de receita para obter as receitas de forma consolidada e DRY
-    rev_df = fontes_receita.run(conn, sorted_years, empresa_id=empresa_id)
+    rev_df = fontes_receita.run(conn, sorted_years, empresa_ids=empresa_ids)
     rev_map = dict(zip(rev_df["ano"], rev_df["total_arrecadado"]))
 
     for year in sorted_years:
-        total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year, empresa_id=empresa_id)
-        total_empenhado = _sum_col(conn, "despesas_por_orgao", "empenhado", year, empresa_id=empresa_id)
+        total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year, empresa_ids=empresa_ids)
+        total_empenhado = _sum_col(conn, "despesas_por_orgao", "empenhado", year, empresa_ids=empresa_ids)
         total_folha = _sum_col(conn, "pessoal", "proventos", year)  # pessoal usa empresa='001', não filtra por entidade
 
         total_rec = rev_map.get(year, 0.0)
         receita = total_rec if total_rec > 0 else None
-        restos = _sum_col(conn, "despesas_restos_pagar", "pago", year, empresa_id=empresa_id)
+        restos = _sum_col(conn, "despesas_restos_pagar", "pago", year, empresa_ids=empresa_ids)
 
         records.append(
             {
