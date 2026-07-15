@@ -199,23 +199,26 @@ st.divider()
 st.header("④ Por Função de Governo")
 funcoes = data.get("funcoes")
 if funcoes is not None and not funcoes.empty:
+    _func_order = funcoes.groupby("funcaonome")["empenhado"].sum().sort_values(ascending=False).index.tolist()
     fig_func = px.bar(
         funcoes,
         x="funcaonome",
         y="empenhado",
-        labels={"funcaonome": "Função", "empenhado": "Empenhado (R$)"},
+        color="subfuncaonome",
+        labels={"funcaonome": "Função", "empenhado": "Empenhado (R$)", "subfuncaonome": "Subfunção"},
         title=f"Repasses por Função de Governo — {year}",
-        color_discrete_sequence=["#3A7FC1"],
+        category_orders={"funcaonome": _func_order},
     )
-    fig_func.update_traces(hovertemplate="%{x}<br>R$ %{y:,.0f}<extra></extra>")
+    fig_func.update_traces(hovertemplate="%{fullData.name}<br>R$ %{y:,.0f}<extra></extra>")
     fig_func.update_layout(
         yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
         xaxis=dict(tickangle=0),
+        showlegend=False,
     )
     st.plotly_chart(fig_func, use_container_width=True)
 
     st.dataframe(
-        funcoes.rename(
+        funcoes.sort_values(["funcaonome", "empenhado", "subfuncaonome"], ascending=[True, False, True]).rename(
             columns={
                 "funcaonome": "Função",
                 "subfuncaonome": "Subfunção",
