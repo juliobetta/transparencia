@@ -142,7 +142,7 @@ if not df_folha.empty:
 
     with kf3:
         st.metric(
-            "Total distribuído via responsáveis",
+            "Total Pago em Folha",
             fmt_currency(_total_folha_atual),
             delta=pct_delta(_folha_orgao_serie) if year != ANO_ATUAL else "—",
             delta_color="off",
