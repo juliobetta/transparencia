@@ -25,11 +25,13 @@ ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BRASAO_PATH = ASSETS_DIR / "brasao-porciuncula.svg"
 FONTS_DIR = ASSETS_DIR / "fonts"
 
-BLUE_DARK = (26, 82, 118)
-BLUE_MID = (26, 122, 191)
-GRAY_LIGHT = (240, 244, 248)
-GRAY_TEXT = (102, 102, 102)
-WARN_BG = (255, 243, 205)
+BLUE_ACCENT = (58, 127, 193)
+BLUE_DARK = (28, 58, 94)
+BLUE_MID = (37, 99, 160)
+BLUE_LIGHT = (235, 243, 251)
+GRAY_TEXT = (107, 114, 128)
+WARN_BG = BLUE_LIGHT
+WARN_BORDER = (234, 153, 76)
 
 _HEADING_STYLE = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
 _ROW_WHITE = FontFace(fill_color=(255, 255, 255))  # explicit white to prevent heading color bleed
@@ -40,11 +42,16 @@ def _fmt_brl(value: float) -> str:
 
 
 def _section_header(pdf: FPDF, title: str) -> None:
-    pdf.set_fill_color(*BLUE_DARK)
-    pdf.set_text_color(255, 255, 255)
     pdf.set_font("NotoSans", "B", 11)
-    pdf.cell(0, 8, title, fill=True, new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(3)
+    pdf.set_text_color(*BLUE_ACCENT)
+    pdf.cell(0, 7, title, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(1)
+    pdf.set_draw_color(*BLUE_ACCENT)
+    pdf.set_line_width(0.4)
+    y = pdf.get_y()
+    pdf.line(pdf.l_margin, y, pdf.l_margin + pdf.epw, y)
+    pdf.set_line_width(0.2)
+    pdf.ln(4)
     pdf.set_text_color(0, 0, 0)
 
 
@@ -58,16 +65,16 @@ def _metric_row(pdf: FPDF, cards: list[tuple[str, str]]) -> None:
     for i, (label, value) in enumerate(cards):
         x = start_x + i * (w + gap)
         pdf.set_xy(x, start_y)
-        pdf.set_fill_color(*GRAY_LIGHT)
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "", 8)
         pdf.set_text_color(*GRAY_TEXT)
-        pdf.cell(w, 6, label, fill=True, new_x="RIGHT", new_y="TOP")
-        pdf.set_xy(x, start_y + 6)
+        pdf.cell(w, 7, label, fill=True, new_x="RIGHT", new_y="TOP")
+        pdf.set_xy(x, start_y + 7)
         pdf.set_font("NotoSans", "B", 12)
         pdf.set_text_color(*BLUE_DARK)
-        pdf.cell(w, 8, value, fill=True)
+        pdf.cell(w, 9, value, fill=True)
 
-    pdf.set_xy(pdf.l_margin, start_y + 18)
+    pdf.set_xy(pdf.l_margin, start_y + 20)
 
 
 def _budget_chart_png(budget_trend: pd.DataFrame) -> bytes:
@@ -77,8 +84,8 @@ def _budget_chart_png(budget_trend: pd.DataFrame) -> bytes:
     x = list(range(len(anos)))
     w = 0.35
     fig, ax = plt.subplots(figsize=(7, 2.8))
-    ax.bar([i - w / 2 for i in x], dotacao, w, label="Dotação", color="#1a7abf", alpha=0.85)
-    ax.bar([i + w / 2 for i in x], empenhado, w, label="Empenhado", color="#1a5276")
+    ax.bar([i - w / 2 for i in x], dotacao, w, label="Dotação", color="#3A7FC1")
+    ax.bar([i + w / 2 for i in x], empenhado, w, label="Empenhado", color="#1C3A5E")
     ax.set_xticks(x)
     ax.set_xticklabels(anos, fontsize=8)
     ax.set_ylabel("R$ milhões", fontsize=8)
@@ -105,9 +112,16 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
         ],
     )
     if budget.get("alerta_sub_execucao"):
+        y0 = pdf.get_y()
         pdf.set_fill_color(*WARN_BG)
         pdf.set_font("NotoSans", "", 9)
-        pdf.multi_cell(0, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
+        pdf.set_x(pdf.l_margin + 3)
+        pdf.multi_cell(pdf.epw - 3, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
+        y1 = pdf.get_y()
+        pdf.set_draw_color(*WARN_BORDER)
+        pdf.set_line_width(1.5)
+        pdf.line(pdf.l_margin, y0, pdf.l_margin, y1)
+        pdf.set_line_width(0.2)
         pdf.ln(3)
     if not budget_trend.empty and len(budget_trend) >= 2:
         chart_bytes = _budget_chart_png(budget_trend)
@@ -118,8 +132,11 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
 def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float) -> None:
     _section_header(pdf, "2. EMENDAS PARLAMENTARES")
     if emendas_total <= 0:
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "I", 9)
-        pdf.cell(0, 6, "Sem emendas parlamentares registradas.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(*GRAY_TEXT)
+        pdf.cell(0, 6, "Sem emendas parlamentares registradas.", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
@@ -155,8 +172,11 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
     _metric_row(pdf, [("Índice HHI (concentração de mercado)", f"{hhi:,.0f} — {hhi_label}")])
 
     if top_suppliers.empty:
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "I", 9)
-        pdf.cell(0, 6, "Sem dados de fornecedores.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(*GRAY_TEXT)
+        pdf.cell(0, 6, "Sem dados de fornecedores.", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
@@ -240,17 +260,26 @@ def _draw_alertas_section(
 
     has_alert = any(count > 0 for count, _ in alerts)
     if not has_alert and exempt.empty:
-        pdf.set_fill_color(212, 237, 218)
-        pdf.set_font("NotoSans", "", 9)
+        pdf.set_fill_color(*BLUE_LIGHT)
+        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_text_color(*GRAY_TEXT)
         pdf.multi_cell(0, 6, "Nenhum alerta identificado para o período.", fill=True)
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
     for count, msg in alerts:
         if count > 0:
+            y0 = pdf.get_y()
             pdf.set_fill_color(*WARN_BG)
             pdf.set_font("NotoSans", "", 9)
-            pdf.multi_cell(0, 6, f"[!]  {msg}", fill=True)
+            pdf.set_x(pdf.l_margin + 3)
+            pdf.multi_cell(pdf.epw - 3, 6, f"[!]  {msg}", fill=True)
+            y1 = pdf.get_y()
+            pdf.set_draw_color(*WARN_BORDER)
+            pdf.set_line_width(1.5)
+            pdf.line(pdf.l_margin, y0, pdf.l_margin, y1)
+            pdf.set_line_width(0.2)
             pdf.ln(2)
 
     _COL_HEADERS = ["Fornecedor", "Objeto", "Modalidade", "Valor (R$)"]
@@ -299,8 +328,11 @@ def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial
 
     detail: pd.DataFrame = pharma_empenhos.get("detail", pd.DataFrame())
     if detail.empty:
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "I", 9)
-        pdf.cell(0, 6, "Sem dados de insumos farmacêuticos.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(*GRAY_TEXT)
+        pdf.cell(0, 6, "Sem dados de insumos farmacêuticos.", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
@@ -355,8 +387,10 @@ class _SaudePDF(FPDF):
         self.set_xy(40, 22)
         self.set_font("NotoSans", "", 9)
         self.cell(0, 5, f"Dados extraídos em: {self.last_extracted}", new_x="LMARGIN", new_y="NEXT")
-        self.set_draw_color(*BLUE_DARK)
+        self.set_draw_color(*BLUE_ACCENT)
+        self.set_line_width(0.4)
         self.line(15, 36, 195, 36)
+        self.set_line_width(0.2)
         self.set_xy(self.l_margin, 42)
         self.set_text_color(0, 0, 0)
 
