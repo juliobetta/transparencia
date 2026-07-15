@@ -30,8 +30,13 @@ BLUE_MID = (37, 99, 160)
 BLUE_LIGHT = (235, 243, 251)
 GRAY_TEXT = (107, 114, 128)
 
-_HEADING_STYLE = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
-_ROW_WHITE = FontFace(fill_color=(255, 255, 255))
+FONT_SIZE_NORMAL = 9
+FONT_SIZE_SMALL = 8
+FONT_SIZE_HEADER = 11
+FONT_SIZE_SUBHEADER = 10
+
+_HEADING_STYLE = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=FONT_SIZE_NORMAL)
+_ROW_WHITE = FontFace(fill_color=(255, 255, 255), size_pt=FONT_SIZE_NORMAL)
 
 
 def _fmt_brl(value: float) -> str:
@@ -39,7 +44,7 @@ def _fmt_brl(value: float) -> str:
 
 
 def _section_header(pdf: FPDF, title: str) -> None:
-    pdf.set_font("NotoSans", "B", 11)
+    pdf.set_font("NotoSans", "B", FONT_SIZE_HEADER)
     pdf.set_text_color(*BLUE_ACCENT)
     pdf.cell(0, 7, title, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(1)
@@ -63,11 +68,11 @@ def _metric_row(pdf: FPDF, cards: list[tuple[str, str]]) -> None:
         x = start_x + i * (w + gap)
         pdf.set_xy(x, start_y)
         pdf.set_fill_color(*BLUE_LIGHT)
-        pdf.set_font("NotoSans", "", 8)
+        pdf.set_font("NotoSans", "", FONT_SIZE_SMALL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(w, 7, label, fill=True, new_x="RIGHT", new_y="TOP")
         pdf.set_xy(x, start_y + 7)
-        pdf.set_font("NotoSans", "B", 12)
+        pdf.set_font("NotoSans", "B", FONT_SIZE_HEADER)
         pdf.set_text_color(*BLUE_DARK)
         pdf.cell(w, 9, value, fill=True)
 
@@ -84,10 +89,10 @@ def _trend_chart_png(trend: pd.DataFrame) -> bytes:
     ax.bar([i - w / 2 for i in x], empenhado, w, label="Empenhado", color="#3A7FC1")
     ax.bar([i + w / 2 for i in x], pago, w, label="Pago", color="#1C3A5E")
     ax.set_xticks(x)
-    ax.set_xticklabels(anos, fontsize=8)
-    ax.set_ylabel("R$ milhões", fontsize=8)
-    ax.tick_params(axis="y", labelsize=8)
-    ax.legend(fontsize=8)
+    ax.set_xticklabels(anos, fontsize=FONT_SIZE_SMALL)
+    ax.set_ylabel("R$ milhões", fontsize=FONT_SIZE_SMALL)
+    ax.tick_params(axis="y", labelsize=FONT_SIZE_SMALL)
+    ax.legend(fontsize=FONT_SIZE_SMALL)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     fig.tight_layout(pad=0.5)
@@ -115,7 +120,7 @@ def _draw_repasses_section(pdf: FPDF, data: dict) -> None:
 def _draw_tendencia_section(pdf: FPDF, trend: pd.DataFrame) -> None:
     _section_header(pdf, "2. TENDÊNCIA HISTÓRICA")
     if trend.empty or len(trend) < 2:
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 6, "Dados históricos insuficientes.", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
@@ -129,7 +134,7 @@ def _draw_tendencia_section(pdf: FPDF, trend: pd.DataFrame) -> None:
 def _draw_entidades_section(pdf: FPDF, entidades: pd.DataFrame) -> None:
     _section_header(pdf, "3. REPASSES POR ENTIDADE")
     if entidades.empty:
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 6, "Sem dados de entidades.", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
@@ -157,7 +162,7 @@ def _draw_entidades_section(pdf: FPDF, entidades: pd.DataFrame) -> None:
 def _draw_funcoes_section(pdf: FPDF, funcoes: pd.DataFrame) -> None:
     _section_header(pdf, "4. REPASSES POR FUNÇÃO DE GOVERNO")
     if funcoes.empty:
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 6, "Sem dados por função.", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
@@ -185,7 +190,7 @@ def _draw_funcoes_section(pdf: FPDF, funcoes: pd.DataFrame) -> None:
 def _draw_natureza_section(pdf: FPDF, natureza: pd.DataFrame) -> None:
     _section_header(pdf, "5. NATUREZA DO REPASSE")
     if natureza.empty:
-        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_font("NotoSans", "I", FONT_SIZE_NORMAL)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(0, 6, "Sem dados de natureza.", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
@@ -227,16 +232,22 @@ class _CapremPDF(FPDF):
             except Exception:
                 pass
         self.set_xy(40, 10)
-        self.set_font("NotoSans", "B", 14)
+        self.set_font("NotoSans", "B", FONT_SIZE_HEADER * 1.25)
         self.set_text_color(*BLUE_DARK)
         self.cell(0, 7, f"CAPREM — Caixa de Previdência Municipal — {self.year}", new_x="LMARGIN", new_y="NEXT")
         self.set_xy(40, 17)
-        self.set_font("NotoSans", "", 10)
+        self.set_font("NotoSans", "", FONT_SIZE_SUBHEADER)
         self.set_text_color(*GRAY_TEXT)
         self.cell(0, 5, "Município de Porciúncula / RJ", new_x="LMARGIN", new_y="NEXT")
         self.set_xy(40, 22)
-        self.set_font("NotoSans", "", 9)
-        self.cell(0, 5, f"Dados extraídos em: {self.last_extracted}", new_x="LMARGIN", new_y="NEXT")
+        self.set_font("NotoSans", "", FONT_SIZE_SMALL)
+        self.cell(
+            0,
+            5,
+            f"Dados extraídos do Portal da Transparência da Prefeitura Municipal de Porciúncula em: {self.last_extracted}",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
         self.set_draw_color(*BLUE_ACCENT)
         self.set_line_width(0.4)
         self.line(15, 36, 195, 36)
@@ -246,7 +257,7 @@ class _CapremPDF(FPDF):
 
     def footer(self) -> None:
         self.set_y(-15)
-        self.set_font("NotoSans", "I", 8)
+        self.set_font("NotoSans", "I", FONT_SIZE_SMALL)
         self.set_text_color(*GRAY_TEXT)
         now = datetime.now().strftime("%d/%m/%Y %H:%M")
         self.cell(0, 10, f"Gerado em: {now}   |   Página {self.page_no()}", align="C")
