@@ -25,11 +25,13 @@ ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BRASAO_PATH = ASSETS_DIR / "brasao-porciuncula.svg"
 FONTS_DIR = ASSETS_DIR / "fonts"
 
-BLUE_DARK = (26, 82, 118)
-BLUE_MID = (26, 122, 191)
-GRAY_LIGHT = (240, 244, 248)
-GRAY_TEXT = (102, 102, 102)
-WARN_BG = (255, 243, 205)
+BLUE_ACCENT = (58, 127, 193)
+BLUE_DARK = (28, 58, 94)
+BLUE_MID = (37, 99, 160)
+BLUE_LIGHT = (235, 243, 251)
+GRAY_TEXT = (107, 114, 128)
+WARN_BG = BLUE_LIGHT
+WARN_BORDER = (234, 153, 76)
 
 _HEADING_STYLE = FontFace(fill_color=BLUE_MID, color=(255, 255, 255), emphasis="BOLD", size_pt=9)
 _ROW_WHITE = FontFace(fill_color=(255, 255, 255))  # explicit white to prevent heading color bleed
@@ -40,11 +42,16 @@ def _fmt_brl(value: float) -> str:
 
 
 def _section_header(pdf: FPDF, title: str) -> None:
-    pdf.set_fill_color(*BLUE_DARK)
-    pdf.set_text_color(255, 255, 255)
     pdf.set_font("NotoSans", "B", 11)
-    pdf.cell(0, 8, title, fill=True, new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(3)
+    pdf.set_text_color(*BLUE_ACCENT)
+    pdf.cell(0, 7, title, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(1)
+    pdf.set_draw_color(*BLUE_ACCENT)
+    pdf.set_line_width(0.4)
+    y = pdf.get_y()
+    pdf.line(pdf.l_margin, y, pdf.l_margin + pdf.epw, y)
+    pdf.set_line_width(0.2)
+    pdf.ln(4)
     pdf.set_text_color(0, 0, 0)
 
 
@@ -58,7 +65,7 @@ def _metric_row(pdf: FPDF, cards: list[tuple[str, str]]) -> None:
     for i, (label, value) in enumerate(cards):
         x = start_x + i * (w + gap)
         pdf.set_xy(x, start_y)
-        pdf.set_fill_color(*GRAY_LIGHT)
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "", 8)
         pdf.set_text_color(*GRAY_TEXT)
         pdf.cell(w, 6, label, fill=True, new_x="RIGHT", new_y="TOP")
@@ -355,8 +362,10 @@ class _SaudePDF(FPDF):
         self.set_xy(40, 22)
         self.set_font("NotoSans", "", 9)
         self.cell(0, 5, f"Dados extraídos em: {self.last_extracted}", new_x="LMARGIN", new_y="NEXT")
-        self.set_draw_color(*BLUE_DARK)
+        self.set_draw_color(*BLUE_ACCENT)
+        self.set_line_width(0.4)
         self.line(15, 36, 195, 36)
+        self.set_line_width(0.2)
         self.set_xy(self.l_margin, 42)
         self.set_text_color(0, 0, 0)
 
