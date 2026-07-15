@@ -68,13 +68,13 @@ def _metric_row(pdf: FPDF, cards: list[tuple[str, str]]) -> None:
         pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "", 8)
         pdf.set_text_color(*GRAY_TEXT)
-        pdf.cell(w, 6, label, fill=True, new_x="RIGHT", new_y="TOP")
-        pdf.set_xy(x, start_y + 6)
+        pdf.cell(w, 7, label, fill=True, new_x="RIGHT", new_y="TOP")
+        pdf.set_xy(x, start_y + 7)
         pdf.set_font("NotoSans", "B", 12)
         pdf.set_text_color(*BLUE_DARK)
-        pdf.cell(w, 8, value, fill=True)
+        pdf.cell(w, 9, value, fill=True)
 
-    pdf.set_xy(pdf.l_margin, start_y + 18)
+    pdf.set_xy(pdf.l_margin, start_y + 20)
 
 
 def _budget_chart_png(budget_trend: pd.DataFrame) -> bytes:
@@ -112,9 +112,16 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
         ],
     )
     if budget.get("alerta_sub_execucao"):
+        y0 = pdf.get_y()
         pdf.set_fill_color(*WARN_BG)
         pdf.set_font("NotoSans", "", 9)
-        pdf.multi_cell(0, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
+        pdf.set_x(pdf.l_margin + 3)
+        pdf.multi_cell(pdf.epw - 3, 6, "[!] Taxa de execução abaixo de 70% para ano encerrado.", fill=True)
+        y1 = pdf.get_y()
+        pdf.set_draw_color(*WARN_BORDER)
+        pdf.set_line_width(1.5)
+        pdf.line(pdf.l_margin, y0, pdf.l_margin, y1)
+        pdf.set_line_width(0.2)
         pdf.ln(3)
     if not budget_trend.empty and len(budget_trend) >= 2:
         chart_bytes = _budget_chart_png(budget_trend)
@@ -125,8 +132,11 @@ def _draw_orcamento_section(pdf: FPDF, budget: dict, budget_trend: pd.DataFrame)
 def _draw_emendas_section(pdf: FPDF, emendas: pd.DataFrame, emendas_total: float) -> None:
     _section_header(pdf, "2. EMENDAS PARLAMENTARES")
     if emendas_total <= 0:
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "I", 9)
-        pdf.cell(0, 6, "Sem emendas parlamentares registradas.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(*GRAY_TEXT)
+        pdf.cell(0, 6, "Sem emendas parlamentares registradas.", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
@@ -162,8 +172,11 @@ def _draw_fornecedores_section(pdf: FPDF, top_suppliers: pd.DataFrame, hhi: floa
     _metric_row(pdf, [("Índice HHI (concentração de mercado)", f"{hhi:,.0f} — {hhi_label}")])
 
     if top_suppliers.empty:
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "I", 9)
-        pdf.cell(0, 6, "Sem dados de fornecedores.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(*GRAY_TEXT)
+        pdf.cell(0, 6, "Sem dados de fornecedores.", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
@@ -247,17 +260,26 @@ def _draw_alertas_section(
 
     has_alert = any(count > 0 for count, _ in alerts)
     if not has_alert and exempt.empty:
-        pdf.set_fill_color(212, 237, 218)
-        pdf.set_font("NotoSans", "", 9)
+        pdf.set_fill_color(*BLUE_LIGHT)
+        pdf.set_font("NotoSans", "I", 9)
+        pdf.set_text_color(*GRAY_TEXT)
         pdf.multi_cell(0, 6, "Nenhum alerta identificado para o período.", fill=True)
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
     for count, msg in alerts:
         if count > 0:
+            y0 = pdf.get_y()
             pdf.set_fill_color(*WARN_BG)
             pdf.set_font("NotoSans", "", 9)
-            pdf.multi_cell(0, 6, f"[!]  {msg}", fill=True)
+            pdf.set_x(pdf.l_margin + 3)
+            pdf.multi_cell(pdf.epw - 3, 6, f"[!]  {msg}", fill=True)
+            y1 = pdf.get_y()
+            pdf.set_draw_color(*WARN_BORDER)
+            pdf.set_line_width(1.5)
+            pdf.line(pdf.l_margin, y0, pdf.l_margin, y1)
+            pdf.set_line_width(0.2)
             pdf.ln(2)
 
     _COL_HEADERS = ["Fornecedor", "Objeto", "Modalidade", "Valor (R$)"]
@@ -306,8 +328,11 @@ def _draw_medicamentos_section(pdf: FPDF, pharma_empenhos: dict, pharma_judicial
 
     detail: pd.DataFrame = pharma_empenhos.get("detail", pd.DataFrame())
     if detail.empty:
+        pdf.set_fill_color(*BLUE_LIGHT)
         pdf.set_font("NotoSans", "I", 9)
-        pdf.cell(0, 6, "Sem dados de insumos farmacêuticos.", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(*GRAY_TEXT)
+        pdf.cell(0, 6, "Sem dados de insumos farmacêuticos.", fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(4)
         return
 
