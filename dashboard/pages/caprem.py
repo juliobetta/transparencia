@@ -20,7 +20,7 @@ from shared import (
 )
 from sqlalchemy.engine import Engine
 
-import glossary
+import constants
 from analysis import historia_caprem
 from report.caprem import generate
 
@@ -59,7 +59,7 @@ _extracted_at = get_data_extracao(conn)
 col_titulo, col_botao = st.columns([8, 2])
 with col_titulo:
     st.title(f"CAPREM (Caixa de Previdência Municipal) - {year}")
-    st.caption(f"Dados do CAPREM extraídos do [Portal de Transparência]({glossary.PORTAL_URL}).")
+    st.caption(f"Dados do CAPREM extraídos do [Portal de Transparência]({constants.PORTAL_URL}).")
 with col_botao:
     st.write("")
     st.write("")
@@ -285,4 +285,4 @@ else:
     st.info("Sem dados de natureza para este ano.")
 
 st.divider()
-st.caption(f"Fonte: [Portal de Transparência]({glossary.PORTAL_URL})")
+st.caption(f"Fonte: [Portal de Transparência]({constants.PORTAL_URL})")

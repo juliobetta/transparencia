@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import constants
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -103,8 +105,26 @@ conn = get_conn()
 year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-st.title("Transparência Porciúncula / RJ")
-st.caption(f"Dados extraídos do [Portal de Transparência]({glossary.PORTAL_URL}) do município.")
+_brasao_path = Path(__file__).parent.parent.parent / "assets" / "brasao-porciuncula.svg"
+_svg = _brasao_path.read_text()
+st.markdown(
+    f"""<div style="display:flex;align-items:center;gap:14px;margin-bottom:0.25rem">
+    <div style="flex-shrink:0;width:80px">{_svg}</div>
+    <h1 style="margin:0;padding:0;line-height:1.1">Transparência Porciúncula / RJ</h1>
+    </div>""",
+    unsafe_allow_html=True,
+)
+
+st.caption(f"Dados extraídos do [Portal de Transparência]({constants.PORTAL_URL}) do município.")
+
+st.info(
+    "Esta é uma **iniciativa livre e apartidária**, sem vínculo com a administração municipal. "
+    f"Nosso objetivo é apresentar os dados do [Portal da Transparência]({constants.PORTAL_URL}) "
+    "de forma mais acessível e compreensível para todos os cidadãos. "
+    f"O código-fonte está disponível no [GitHub]({constants.GITHUB_URL}) — contribuições com sugestões de melhorias e correções são muito bem-vindas.",
+    icon=":material/info:",
+)
+
 st.header("Visão Geral")
 render_breadcrumb(year, empresa_ids)
 
@@ -546,5 +566,5 @@ if not df_cargos.empty:
 st.page_link("pages/pessoal.py", label="Ver detalhes em Pessoal →", icon=":material/arrow_forward:")
 
 st.info(
-    f":material/link: Para informações detalhadas, acesse o portal oficial: [{glossary.PORTAL_URL}]({glossary.PORTAL_URL})"
+    f":material/link: Para informações detalhadas, acesse o portal oficial: [{constants.PORTAL_URL}]({constants.PORTAL_URL})"
 )

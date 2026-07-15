@@ -9,8 +9,8 @@ from jinja2 import Environment, FileSystemLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import constants
 import db
-import glossary
 from analysis import historia_saude
 
 REPORTS_DIR = Path("reports")
@@ -77,7 +77,7 @@ def generate(conn, year: int) -> Path:
     html = template.render(
         year=year,
         last_extracted=last_extracted,
-        portal_url=glossary.PORTAL_URL,
+        portal_url=constants.PORTAL_URL,
         emendas_total=data["emendas_total"],
         emendas=emendas_df.to_dict("records") if not emendas_df.empty else [],
         budget=data["orcamento"],

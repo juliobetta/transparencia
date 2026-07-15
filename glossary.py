@@ -1,5 +1,3 @@
-PORTAL_URL = "https://transparencia.porciuncula.rj.gov.br/transparencia/"
-
 TERMS: dict[str, str] = {
     "Dotação Orçamentária": "O total do orçamento aprovado pela Câmara Municipal para o ano — o limite de gastos.",
     "Dotação Atualizada": "O orçamento aprovado, somado aos créditos adicionais e subtraído pelas anulações. É como o limite de um cartão de crédito: o valor pode subir com um aumento de limite ou descer com um bloqueio.",
