@@ -31,7 +31,13 @@ def conn(conn):
 def test_run_returns_expected_structure(conn):
     result = run(conn, 2023)
     assert result["total_transferencias"] == pytest.approx(1556335.93, rel=0.01)
+    assert result["total_liquidado"] == pytest.approx(1556335.93, rel=0.01)
+    assert result["total_pago"] == pytest.approx(1556335.93, rel=0.01)
+    assert result["taxa_execucao"] == pytest.approx(1.0, rel=0.01)
     assert result["count_operacoes"] == 1
     assert isinstance(result["despesas"], pd.DataFrame)
-    assert result["transferencias_por_tipo"] == []
-    assert result["orcamento"] == {"dotacao": 0, "empenhado": 0, "taxa_execucao": 0}
+    assert isinstance(result["entidades"], pd.DataFrame)
+    assert isinstance(result["tendencia_anual"], pd.DataFrame)
+    assert isinstance(result["funcoes"], pd.DataFrame)
+    assert isinstance(result["mensal"], pd.DataFrame)
+    assert isinstance(result["natureza"], pd.DataFrame)

@@ -1,26 +1,9 @@
 from __future__ import annotations
 
-import sqlite3
-from pathlib import Path
+from typing import Any
 
-from jinja2 import Environment, FileSystemLoader
-
-import glossary
-from analysis import historia_caprem
-
-REPORTS_DIR = Path("reports")
-TEMPLATE_DIR = Path(__file__).parent
+from report import caprem_pdf
 
 
-def generate(conn: sqlite3.Connection, year: int) -> Path:
-    REPORTS_DIR.mkdir(exist_ok=True)
-    data = historia_caprem.run(conn, year)
-
-    env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
-    template = env.get_template("caprem_template.html")
-
-    html = template.render(year=year, portal_url=glossary.PORTAL_URL, **data)
-
-    out = REPORTS_DIR / f"caprem-{year}.html"
-    out.write_text(html, encoding="utf-8")
-    return out
+def generate(conn: Any, year: int) -> bytes:
+    return caprem_pdf.generate(conn, year)
