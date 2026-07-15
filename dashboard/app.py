@@ -121,10 +121,6 @@ pages = {
         st.Page("pages/saude.py", title="Saúde", icon=":material/health_and_safety:"),
         st.Page("pages/caprem.py", title="CAPREM", icon=":material/account_balance:"),
     ],
-    "Outros": [
-        st.Page("pages/comparacao.py", title="Comparação", icon=":material/compare_arrows:"),
-        st.Page("pages/dados_brutos.py", title="Dados Brutos", icon=":material/table:"),
-    ],
 }
 
 pg = st.navigation(pages)
