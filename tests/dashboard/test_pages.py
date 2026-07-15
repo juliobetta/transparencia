@@ -20,8 +20,6 @@ PAGES = [
     "orcamento",
     "saude",
     "caprem",
-    "comparacao",
-    "dados_brutos",
 ]
 
 
