@@ -469,7 +469,7 @@ with t3:
         rc1, rc2, rc3 = st.columns(3)
         with rc1:
             st.metric(
-                "Total Pendente",
+                "Total Pendente (Restos a Pagar)",
                 fmt_currency(resumo["total"]),
                 delta=pct_delta(_val_pendentes),
                 delta_color="inverse",

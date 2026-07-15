@@ -109,7 +109,7 @@ st.subheader("Resumo")
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.metric(
-        f"Acima do limite legal ({_limite_fmt})",
+        f"Acima do limite s/ licitação ({_limite_fmt})",
         len(acima),
         delta=pct_delta(_acima_serie),
         delta_color="inverse",
