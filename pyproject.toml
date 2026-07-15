@@ -1,6 +1,6 @@
 [project]
 name = "transparencia"
-version = "0.13.0"
+version = "0.13.1"
 description = "Transparência fiscal e gestão orçamentária"
 requires-python = ">=3.12"
 dependencies = [
