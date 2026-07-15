@@ -84,8 +84,8 @@ def _budget_chart_png(budget_trend: pd.DataFrame) -> bytes:
     x = list(range(len(anos)))
     w = 0.35
     fig, ax = plt.subplots(figsize=(7, 2.8))
-    ax.bar([i - w / 2 for i in x], dotacao, w, label="Dotação", color="#1a7abf", alpha=0.85)
-    ax.bar([i + w / 2 for i in x], empenhado, w, label="Empenhado", color="#1a5276")
+    ax.bar([i - w / 2 for i in x], dotacao, w, label="Dotação", color="#3A7FC1")
+    ax.bar([i + w / 2 for i in x], empenhado, w, label="Empenhado", color="#1C3A5E")
     ax.set_xticks(x)
     ax.set_xticklabels(anos, fontsize=8)
     ax.set_ylabel("R$ milhões", fontsize=8)
