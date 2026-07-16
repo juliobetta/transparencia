@@ -33,11 +33,12 @@ env = {
 
 cmd = [
     "dbt",
+    sys.argv[1],
     "--profiles-dir",
     profiles_dir,
     "--project-dir",
     project_dir,
-    *sys.argv[1:],
+    *sys.argv[2:],
 ]
 result = subprocess.run(cmd, env=env)
 sys.exit(result.returncode)

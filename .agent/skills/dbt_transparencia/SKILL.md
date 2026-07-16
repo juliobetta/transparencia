@@ -23,6 +23,7 @@ raw_<portal_slug>.*        ← carregado por elt/load/run.py
 - **Keywords em lowercase**: `select`, `from`, `where`, `left join`, `group by`, `with`, `as`, `coalesce`, `nullif`, `extract`, `distinct on`
 - **Sem alinhamento de colunas**: não use espaços para alinhar `as`; deixa cada coluna na mesma indentação
 - **Tipos**: sempre `text`, nunca `varchar`. Numéricos: `numeric(15, 2)`. Inteiros: `int`
+- **Nunca use `select *`**: sempre liste as colunas explicitamente em todos os models (staging, intermediate e marts)
 
 ```sql
 -- ✅ correto
@@ -88,14 +89,21 @@ renamed as (
     select
         ano::int as ano,
         empresa as empresa_id,
-        -- ... casts e renomeações
+        -- ... casts e renomeações (liste TODAS as colunas explicitamente)
     from source
 )
 
-select * from renamed
+-- ✅ liste as colunas — nunca use select *
+select
+    ano,
+    empresa_id,
+    -- ... todas as colunas do CTE renamed
+from renamed
 ```
 
 Source declarado em `models/staging/<portal>/_sources.yml`, schema: `raw_<portal_slug>`.
+
+> **Proibido**: `select * from renamed`, `select *` em qualquer camada. Sempre liste as colunas.
 
 ---
 
@@ -103,12 +111,22 @@ Source declarado em `models/staging/<portal>/_sources.yml`, schema: `raw_<portal
 
 ```sql
 with porciuncula as (
-    select 'porciuncula_prefeitura' as portal_slug, *
+    select
+        'porciuncula_prefeitura' as portal_slug,
+        ano,
+        empresa_id,
+        -- ... liste todas as colunas do staging (nunca use *)
     from {{ ref('stg_porciuncula_prefeitura__<tabela>') }}
 )
 
 -- novo portal: adicionar CTE + union all
-select * from porciuncula
+-- ✅ liste as colunas — nunca use select *
+select
+    portal_slug,
+    ano,
+    empresa_id
+    -- ...
+from porciuncula
 ```
 
 ---
