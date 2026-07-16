@@ -1,29 +1,29 @@
 -- Dimensão: credores/fornecedores únicos por portal
 
-WITH base AS (
-    SELECT
+with base as (
+    select
         portal_slug,
         fornecedor_cpf_cnpj,
         fornecedor_nome,
-        COUNT(*) AS total_empenhos
-    FROM {{ ref('int_despesas_consolidadas') }}
-    WHERE fornecedor_nome IS NOT NULL
-    GROUP BY portal_slug, fornecedor_cpf_cnpj, fornecedor_nome
+        count(*) as total_empenhos
+    from {{ ref('int_despesas_consolidadas') }}
+    where fornecedor_nome is not null
+    group by portal_slug, fornecedor_cpf_cnpj, fornecedor_nome
 ),
 
-deduplicado AS (
+deduplicado as (
     -- Mantém a ocorrência mais frequente do nome para cada CPF/CNPJ
-    SELECT DISTINCT ON (portal_slug, fornecedor_cpf_cnpj)
+    select distinct on (portal_slug, fornecedor_cpf_cnpj)
         portal_slug,
         fornecedor_cpf_cnpj,
         fornecedor_nome
-    FROM base
-    ORDER BY portal_slug, fornecedor_cpf_cnpj, total_empenhos DESC
+    from base
+    order by portal_slug, fornecedor_cpf_cnpj, total_empenhos desc
 )
 
-SELECT
-    MD5(COALESCE(portal_slug, '') || '|' || COALESCE(fornecedor_cpf_cnpj, '')) AS credor_id,
+select
+    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'fornecedor_cpf_cnpj']) }} as credor_id,
     portal_slug,
     fornecedor_cpf_cnpj,
     fornecedor_nome
-FROM deduplicado
+from deduplicado

@@ -1,18 +1,17 @@
 -- Dimensão: calendário diário de 2021 a 2035
--- Gerado via generate_series para evitar CSV grande
 
-WITH date_spine AS (
-    SELECT generate_series('2021-01-01'::DATE, '2035-12-31'::DATE, '1 day'::INTERVAL)::DATE AS data
+with date_spine as (
+    select generate_series('2021-01-01'::date, '2035-12-31'::date, '1 day'::interval)::date as data
 )
 
-SELECT
+select
     data,
-    EXTRACT(YEAR FROM data)::INT AS ano,
-    EXTRACT(MONTH FROM data)::INT AS mes_num,
-    EXTRACT(DAY FROM data)::INT AS dia,
-    EXTRACT(DOW FROM data)::INT AS dia_semana,
-    TO_CHAR(data, 'TMMonth') AS mes_nome,
-    DATE_TRUNC('month', data)::DATE AS inicio_mes,
-    (DATE_TRUNC('month', data) + INTERVAL '1 month - 1 day')::DATE AS fim_mes,
-    EXTRACT(QUARTER FROM data)::INT AS trimestre
-FROM date_spine
+    extract(year from data)::int as ano,
+    extract(month from data)::int as mes_num,
+    extract(day from data)::int as dia,
+    extract(dow from data)::int as dia_semana,
+    to_char(data, 'TMMonth') as mes_nome,
+    date_trunc('month', data)::date as inicio_mes,
+    (date_trunc('month', data) + interval '1 month - 1 day')::date as fim_mes,
+    extract(quarter from data)::int as trimestre
+from date_spine

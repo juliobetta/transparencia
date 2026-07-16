@@ -27,7 +27,7 @@ from config import PortalConfig as _PortalConfig  # noqa: E402
 _portal_cfg = _PortalConfig.load()
 BASE_URL: str = _portal_cfg.portal_url
 YEARS: list[int] = list(range(_portal_cfg.ano_inicial, date.today().year))
-_entities_map = _portal_cfg.load_entities()
+_entities_map = _portal_cfg.load_orgaos()
 ENTITIES: list[tuple[str, str]] = [(nome, eid) for eid, nome in _entities_map.items()]
 
 CHROME_EXECUTABLE = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"

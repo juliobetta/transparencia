@@ -24,16 +24,16 @@ class PortalConfig:
         return f"raw_{self.slug}"
 
     @property
-    def entities_csv_path(self) -> Path:
-        return Path("elt/transform/seeds") / f"{self.slug}_entities.csv"
+    def orgaos_csv_path(self) -> Path:
+        return Path("elt/transform/seeds") / f"{self.slug}_orgaos.csv"
 
-    def load_entities(self) -> dict[str, str]:
+    def load_orgaos(self) -> dict[str, str]:
         """Returns {empresa_id: nome} from the seed CSV."""
-        entities: dict[str, str] = {}
-        with open(self.entities_csv_path, newline="", encoding="utf-8") as f:
+        orgaos: dict[str, str] = {}
+        with open(self.orgaos_csv_path, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
-                entities[row["empresa_id"]] = row["nome"]
-        return entities
+                orgaos[row["empresa_id"]] = row["nome"]
+        return orgaos
 
     @classmethod
     def load(cls, slug: str | None = None) -> "PortalConfig":

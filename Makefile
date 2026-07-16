@@ -1,6 +1,6 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard elt config.py constants.py
 
-.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load dbt/deps dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs
 
 # SETUP TASKS
 
@@ -102,6 +102,9 @@ migrate/grant:
 	psql "$$DATABASE_URL" -f migrations/grant_readonly.sql
 
 # DBT TRANSFORM
+
+dbt/deps:
+	uv run python scripts/run_dbt.py deps
 
 dbt/seed:
 	uv run python scripts/run_dbt.py seed

@@ -1,7 +1,7 @@
 version: 2
 
 seeds:
-  - name: porciuncula_prefeitura_entities
+  - name: porciuncula_prefeitura_orgaos
     description: "Entidades municipais de Porciúncula (prefeitura + fundos)"
     config:
       schema: seeds

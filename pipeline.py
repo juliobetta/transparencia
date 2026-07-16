@@ -185,7 +185,7 @@ class DataExtractor:
 
         engine = get_engine()
         create_tables(engine)
-        entities = _portal.load_entities()
+        entities = _portal.load_orgaos()
 
         endpoints = ENDPOINT_CONFIGS
         if only:
@@ -251,7 +251,7 @@ class PipelineRunner:
                 failed_tasks = list(reader)
 
             FAILED_REQUESTS_FILE.unlink()
-            entity_name_to_id = {v: k for k, v in _portal.load_entities().items()}
+            entity_name_to_id = {v: k for k, v in _portal.load_orgaos().items()}
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             run_dir = Path(f"data/raw_runs/{timestamp}")
@@ -328,7 +328,7 @@ class PipelineRunner:
             idx = next(i for i, e in enumerate(ENDPOINT_CONFIGS) if e.listagem == start_from)
             endpoints = ENDPOINT_CONFIGS[idx:]
 
-        entities = _portal.load_entities()
+        entities = _portal.load_orgaos()
         total = sum(len(entities) * len(years) for _ in endpoints)
         done = 0
 
@@ -346,7 +346,7 @@ class PipelineRunner:
                 base_url=config.base_url,
             )
 
-            entities = _portal.load_entities()
+            entities = _portal.load_orgaos()
             for empresa_id, nome_empresa in entities.items():
                 for year in years:
                     raw_path = run_dir / str(table) / f"{empresa_id}_{year}.json"

@@ -50,7 +50,7 @@ def main() -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
     logger.info("Saving raw data to %s", run_dir)
 
-    entities = portal.load_entities()
+    entities = portal.load_orgaos()
 
     for config in endpoints:
         extractor = config.extractor_cls(
