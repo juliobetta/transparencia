@@ -1,6 +1,6 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard elt config.py constants.py
 
-.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load
 
 # SETUP TASKS
 
@@ -43,6 +43,20 @@ pipeline/extract_only:
 
 pipeline/load:
 	uv run python -c "from pipeline import load_from_dir; load_from_dir('$(DIR)')"
+
+# ELT — extract/load separados por portal
+
+elt/extract:
+ifndef PORTAL
+	$(error PORTAL is required. Usage: make elt/extract PORTAL=porciuncula_prefeitura [YEARS="2024 2025"] [ONLY=DespesasGerais])
+endif
+	uv run python elt/extract/run.py --portal $(PORTAL) $(if $(YEARS),--years $(YEARS)) $(if $(ONLY),--only $(ONLY))
+
+elt/load:
+ifndef PORTAL
+	$(error PORTAL is required. Usage: make elt/load PORTAL=porciuncula_prefeitura [DIR=data/raw_runs/20250101_120000])
+endif
+	uv run python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
 
 # REPORTS
 
