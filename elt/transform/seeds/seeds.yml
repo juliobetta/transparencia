@@ -7,8 +7,8 @@ seeds:
       schema: seeds
     columns:
       - name: portal_slug
-        data_type: varchar
+        data_type: text
       - name: empresa_id
-        data_type: varchar
+        data_type: text
       - name: nome
-        data_type: varchar
+        data_type: text

@@ -8,12 +8,12 @@ models:
         enforced: true
     columns:
       - name: despesa_id
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
         description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | empenho_id)"
       - name: portal_slug
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: ano
@@ -21,62 +21,62 @@ models:
         constraints:
           - type: not_null
       - name: empresa_id
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: empenho_id
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: pk_empenho
-        data_type: varchar
+        data_type: text
       - name: tipo_empenho
-        data_type: varchar
+        data_type: text
         description: "OR=Ordinário, ES=Estimativo, GL=Global (anulações AN excluídas desta tabela)"
       - name: orgao_codigo
-        data_type: varchar
+        data_type: text
       - name: funcao
-        data_type: varchar
+        data_type: text
       - name: funcao_nome
-        data_type: varchar
+        data_type: text
       - name: subfuncao
-        data_type: varchar
+        data_type: text
       - name: subfuncao_nome
-        data_type: varchar
+        data_type: text
       - name: elemento
-        data_type: varchar
+        data_type: text
       - name: natureza_despesa
-        data_type: varchar
+        data_type: text
       - name: grupo_natureza
-        data_type: varchar
+        data_type: text
       - name: modalidade
-        data_type: varchar
+        data_type: text
       - name: programa
-        data_type: varchar
+        data_type: text
       - name: programa_nome
-        data_type: varchar
+        data_type: text
       - name: proj_atividade
-        data_type: varchar
+        data_type: text
       - name: projeto_atividade_nome
-        data_type: varchar
+        data_type: text
       - name: mes
-        data_type: varchar
+        data_type: text
       - name: fornecedor_nome
-        data_type: varchar
+        data_type: text
       - name: fornecedor_cpf_cnpj
-        data_type: varchar
+        data_type: text
       - name: licitacao_numero
-        data_type: varchar
+        data_type: text
       - name: licitacao_modalidade
-        data_type: varchar
+        data_type: text
       - name: fonte_recurso_desc
-        data_type: varchar
+        data_type: text
       - name: descricao
-        data_type: varchar
+        data_type: text
       - name: credor_id
-        data_type: varchar
+        data_type: text
       - name: orgao_id
-        data_type: varchar
+        data_type: text
       - name: data_empenho
         data_type: date
       - name: empenhado
@@ -106,17 +106,17 @@ models:
         enforced: true
     columns:
       - name: credor_id
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: portal_slug
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: fornecedor_cpf_cnpj
-        data_type: varchar
+        data_type: text
       - name: fornecedor_nome
-        data_type: varchar
+        data_type: text
 
   - name: dim_orgao
     description: "Entidades municipais (prefeitura + fundos) por portal"
@@ -125,19 +125,19 @@ models:
         enforced: true
     columns:
       - name: orgao_id
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: portal_slug
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: empresa_id
-        data_type: varchar
+        data_type: text
         constraints:
           - type: not_null
       - name: orgao_nome
-        data_type: varchar
+        data_type: text
 
   - name: dim_date
     description: "Dimensão calendário diário de 2021 a 2035"
@@ -160,7 +160,7 @@ models:
       - name: dia_semana
         data_type: integer
       - name: mes_nome
-        data_type: varchar
+        data_type: text
       - name: inicio_mes
         data_type: date
       - name: fim_mes
