@@ -1,6 +1,6 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard elt config.py constants.py
 
-.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs
 
 # SETUP TASKS
 
@@ -100,6 +100,26 @@ migrate/history:
 
 migrate/grant:
 	psql "$$DATABASE_URL" -f migrations/grant_readonly.sql
+
+# DBT TRANSFORM
+
+dbt/seed:
+	uv run python scripts/run_dbt.py seed
+
+dbt/run:
+	uv run python scripts/run_dbt.py run $(if $(SELECT),--select $(SELECT))
+
+dbt/test:
+	uv run python scripts/run_dbt.py test
+
+dbt/debug:
+	uv run python scripts/run_dbt.py debug
+
+dbt/compile:
+	uv run python scripts/run_dbt.py compile
+
+dbt/docs:
+	uv run python scripts/run_dbt.py docs generate && uv run python scripts/run_dbt.py docs serve
 
 # DASHBOARD
 

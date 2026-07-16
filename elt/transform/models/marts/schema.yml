@@ -1,0 +1,169 @@
+version: 2
+
+models:
+  - name: fct_despesas
+    description: "Fato de despesas consolidadas com empenho líquido calculado (exclui anulações do fluxo principal)"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: despesa_id
+        data_type: varchar
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | empenho_id)"
+      - name: portal_slug
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+      - name: empresa_id
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: empenho_id
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: pk_empenho
+        data_type: varchar
+      - name: tipo_empenho
+        data_type: varchar
+        description: "OR=Ordinário, ES=Estimativo, GL=Global (anulações AN excluídas desta tabela)"
+      - name: orgao_codigo
+        data_type: varchar
+      - name: funcao
+        data_type: varchar
+      - name: funcao_nome
+        data_type: varchar
+      - name: subfuncao
+        data_type: varchar
+      - name: subfuncao_nome
+        data_type: varchar
+      - name: elemento
+        data_type: varchar
+      - name: natureza_despesa
+        data_type: varchar
+      - name: grupo_natureza
+        data_type: varchar
+      - name: modalidade
+        data_type: varchar
+      - name: programa
+        data_type: varchar
+      - name: programa_nome
+        data_type: varchar
+      - name: proj_atividade
+        data_type: varchar
+      - name: projeto_atividade_nome
+        data_type: varchar
+      - name: mes
+        data_type: varchar
+      - name: fornecedor_nome
+        data_type: varchar
+      - name: fornecedor_cpf_cnpj
+        data_type: varchar
+      - name: licitacao_numero
+        data_type: varchar
+      - name: licitacao_modalidade
+        data_type: varchar
+      - name: fonte_recurso_desc
+        data_type: varchar
+      - name: descricao
+        data_type: varchar
+      - name: credor_id
+        data_type: varchar
+      - name: orgao_id
+        data_type: varchar
+      - name: data_empenho
+        data_type: date
+      - name: empenhado
+        data_type: numeric
+      - name: empenhado_liquido
+        data_type: numeric
+        description: "Empenhado bruto + anulações (valores negativos). Denominador correto para taxas de quitação."
+      - name: liquidado
+        data_type: numeric
+      - name: pago
+        data_type: numeric
+      - name: dotacao_inicial
+        data_type: numeric
+      - name: alteracao_dotacao
+        data_type: numeric
+      - name: dotacao_atualizada
+        data_type: numeric
+      - name: reforco
+        data_type: numeric
+      - name: valor_anulacoes
+        data_type: numeric
+
+  - name: dim_credor
+    description: "Credores/fornecedores únicos por portal"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: credor_id
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: portal_slug
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: fornecedor_cpf_cnpj
+        data_type: varchar
+      - name: fornecedor_nome
+        data_type: varchar
+
+  - name: dim_orgao
+    description: "Entidades municipais (prefeitura + fundos) por portal"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: orgao_id
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: portal_slug
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: empresa_id
+        data_type: varchar
+        constraints:
+          - type: not_null
+      - name: orgao_nome
+        data_type: varchar
+
+  - name: dim_date
+    description: "Dimensão calendário diário de 2021 a 2035"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: data
+        data_type: date
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+      - name: mes_num
+        data_type: integer
+      - name: dia
+        data_type: integer
+      - name: dia_semana
+        data_type: integer
+      - name: mes_nome
+        data_type: varchar
+      - name: inicio_mes
+        data_type: date
+      - name: fim_mes
+        data_type: date
+      - name: trimestre
+        data_type: integer

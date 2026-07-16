@@ -1,0 +1,41 @@
+version: 2
+
+sources:
+  - name: porciuncula_prefeitura
+    schema: raw_porciuncula_prefeitura
+    description: "Dados brutos extraídos do portal de transparência de Porciúncula via ELT"
+    tables:
+      - name: despesas_gerais
+        description: "Empenhos, liquidações e pagamentos individuais"
+      - name: despesas_por_orgao
+        description: "Despesas agregadas por órgão/secretaria"
+      - name: despesas_por_unidade
+        description: "Despesas agregadas por unidade orçamentária"
+      - name: despesas_por_fornecedor
+        description: "Despesas agregadas por fornecedor"
+      - name: despesas_restos_pagar
+        description: "Restos a pagar de exercícios anteriores"
+      - name: despesas_extra_orcamentaria
+        description: "Despesas extra-orçamentárias"
+      - name: receita_orcamentaria
+        description: "Receitas orçamentárias detalhadas"
+      - name: receita_uniao
+        description: "Transferências recebidas da União"
+      - name: receita_estado
+        description: "Transferências recebidas do Estado"
+      - name: receita_extra_orcamentaria
+        description: "Receitas extra-orçamentárias"
+      - name: licitacoes
+        description: "Processos licitatórios"
+      - name: contratos
+        description: "Contratos celebrados"
+      - name: diarias
+        description: "Diárias pagas a servidores"
+      - name: emendas_impositivas
+        description: "Emendas parlamentares impositivas"
+      - name: emendas_cad
+        description: "Cadastro detalhado de emendas"
+      - name: pessoal
+        description: "Folha de pessoal"
+      - name: transferencias
+        description: "Transferências a terceiros"
