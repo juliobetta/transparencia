@@ -13,7 +13,7 @@ renamed as (
         nullif(replace(valor, ',', '.'), '')::numeric(15, 2) as valor,
         nullif(trim(favorecido), '') as favorecido,
         nullif(trim(cargo), '') as cargo,
-        nullif(data, '')::date as data,
+        to_timestamp(nullif(data, ''), 'DD/MM/YYYY HH24:MI:SS')::date as data,
         nullif(trim(unidade), '') as unidade,
         nullif(trim(descricao), '') as descricao
     from source

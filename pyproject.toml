@@ -14,7 +14,6 @@ dependencies = [
     "sqlmodel>=0.0.21",
     "psycopg2-binary>=2.9",
     "python-dotenv>=1.0",
-    "alembic>=1.13",
     "fpdf2>=2.7",
     "playwright>=1.61.0",
     "pyyaml>=6.0.3",
