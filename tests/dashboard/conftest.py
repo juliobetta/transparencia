@@ -4,15 +4,19 @@ from unittest.mock import MagicMock
 
 import pytest
 
-DASHBOARD_DIR = Path(__file__).parent.parent.parent / "dashboard"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DASHBOARD_DIR = PROJECT_ROOT / "dashboard"
 PAGES_DIR = DASHBOARD_DIR / "pages"
 
-# Make `shared` and `pages` importable without a Streamlit runtime
-for _p in (str(DASHBOARD_DIR), str(PAGES_DIR)):
+# Make `shared`, `pages` and project root importable without a Streamlit runtime
+for _p in (str(DASHBOARD_DIR), str(PAGES_DIR), str(PROJECT_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+from config import PortalConfig  # noqa: E402
+
 _YEAR = 2024  # year used for all seeded test data
+_PORTAL_CONFIG = PortalConfig.load("porciuncula_prefeitura")
 
 
 class _SidebarMock:
@@ -26,7 +30,7 @@ class _SidebarMock:
 class _StreamlitMock:
     """Minimal Streamlit stand-in that returns sensible defaults so page top-level code runs."""
 
-    session_state: dict = {"sidebar_year": _YEAR}
+    session_state: dict = {"sidebar_year": _YEAR, "portal_config": _PORTAL_CONFIG}
     column_config = MagicMock()
     sidebar = _SidebarMock()
 

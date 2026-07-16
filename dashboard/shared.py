@@ -2,20 +2,20 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-import constants
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.graph_objects as go
 import streamlit as st
 from streamlit.connections import SQLConnection
 
+import constants
 import db
 
-ANO_INICIAL = 2021
 ANO_ATUAL = date.today().year
+_portal_cfg = st.session_state.get("portal_config")
+ANO_INICIAL: int = _portal_cfg.ano_inicial if _portal_cfg is not None else 2021
 ANOS = list(range(ANO_INICIAL, ANO_ATUAL + 1))
-CIDADE_CLEAN = "PORCIUNCULA"  # TODO: move this to .env, keeping a default value
+del _portal_cfg
 
 
 def get_conn():
@@ -25,9 +25,6 @@ def get_conn():
 
 def get_data_extracao(engine) -> str | None:
     return db.get_metadata(engine, "last_extracted_at")
-
-
-EMPRESA_PADRAO = "7"
 
 
 def render_sidebar() -> tuple[int, list[str] | None]:

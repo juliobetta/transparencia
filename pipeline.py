@@ -1,4 +1,5 @@
 import csv
+import importlib
 import json
 import logging
 import re
@@ -6,18 +7,17 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, cast
 
-from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.engine import Engine
-from sqlmodel import SQLModel
-
+from config import PortalConfig
 from db import create_tables, get_engine, set_metadata, upsert
-from extractors.extractors import ENDPOINT_CONFIGS, EndpointConfig
+from elt.extract.base import EndpointConfig
 
-START_YEAR = 2021
+_portal = PortalConfig.load()
+_extractor_module = importlib.import_module(f"elt.extract.{_portal.slug}.api_endpoints")
+ENDPOINT_CONFIGS: list[EndpointConfig] = _extractor_module.ENDPOINT_CONFIGS
+START_YEAR = _portal.ano_inicial
+BASE_HOST = _portal.base_host
 RAW_DIR = Path("data/raw")
 FAILED_REQUESTS_FILE = Path("data/failed_requests.csv")
-BASE_HOST = "https://transparencia.porciuncula.rj.gov.br"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -87,24 +87,8 @@ class PipelineHelper:
         return out
 
 
-def _insert_entities(engine: Engine, entities: dict[int, str]) -> None:
-    table = SQLModel.metadata.tables["empresas"]
-    with engine.connect() as conn:
-        for eid, ename in entities.items():
-            stmt = pg_insert(table).values(id=eid, nome=ename).on_conflict_do_nothing()
-            conn.execute(stmt)
-        conn.commit()
-
-
 class DatabaseLoader:
     """Manages loading standard schemas and raw JSON datasets into the PostgreSQL database."""
-
-    @staticmethod
-    def get_entities(engine: Engine) -> dict[int, str]:
-        """Retrieves mapped corporate/fund entities from the database."""
-        with engine.connect() as conn:
-            rows = conn.execute(text("SELECT id, nome FROM empresas")).fetchall()
-        return {row[0]: row[1] for row in rows}
 
     @classmethod
     def load_from_dir(cls, dir_path: str | None) -> None:
@@ -184,9 +168,9 @@ class DataExtractor:
             writer.writerow([datetime.now().isoformat(), listagem, empresa_name, year, str(error)])
 
     @staticmethod
-    def get_extractor(path, listagem, table, key_cols, extra, post_process, extractor_cls):
+    def get_extractor(path, listagem, table, key_cols, extra, post_process, extractor_cls, base_url: str = ""):
         """Constructs an isolated API extractor client instance."""
-        return extractor_cls(path, listagem, table, key_cols, extra, post_process)
+        return extractor_cls(path, listagem, table, key_cols, extra, post_process, base_url=base_url)
 
     @classmethod
     def extract_only(cls, years: list[int] | None = None, only: str | None = None) -> None:
@@ -201,18 +185,7 @@ class DataExtractor:
 
         engine = get_engine()
         create_tables(engine)
-        _insert_entities(
-            engine,
-            {
-                10: "FUNDO DE SOLIDARIEDADE - FUNDESOL",
-                3: "FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL",
-                9: "FUNDO MUNICIPAL DE DEFESA AMBIENTAL",
-                8: "FUNDO MUNICIPAL DE EDUCAÇÃO",
-                2: "FUNDO MUNICIPAL DE SAUDE",
-                7: "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
-            },
-        )
-        entities = DatabaseLoader.get_entities(engine)
+        entities = _portal.load_entities()
 
         endpoints = ENDPOINT_CONFIGS
         if only:
@@ -228,7 +201,9 @@ class DataExtractor:
             extractor_cls = config.extractor_cls
 
             extra = cast(dict[str, str], config.extra)
-            extractor = cls.get_extractor(path, listagem, table, [], extra, None, extractor_cls)
+            extractor = cls.get_extractor(
+                path, listagem, table, [], extra, None, extractor_cls, base_url=config.base_url
+            )
 
             for empresa_id, empresa_name in entities.items():
                 for year in years:
@@ -264,18 +239,6 @@ class PipelineRunner:
         engine = get_engine()
         create_tables(engine)
 
-        _insert_entities(
-            engine,
-            {
-                10: "FUNDO DE SOLIDARIEDADE - FUNDESOL",
-                3: "FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL",
-                9: "FUNDO MUNICIPAL DE DEFESA AMBIENTAL",
-                8: "FUNDO MUNICIPAL DE EDUCAÇÃO",
-                2: "FUNDO MUNICIPAL DE SAUDE",
-                7: "PREFEITURA MUNICIPAL DE PORCIÚNCULA",
-            },
-        )
-
         valid = [e.listagem for e in ENDPOINT_CONFIGS]
 
         if retry_failed:
@@ -288,7 +251,7 @@ class PipelineRunner:
                 failed_tasks = list(reader)
 
             FAILED_REQUESTS_FILE.unlink()
-            entity_name_to_id = {v: k for k, v in DatabaseLoader.get_entities(engine).items()}
+            entity_name_to_id = {v: k for k, v in _portal.load_entities().items()}
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             run_dir = Path(f"data/raw_runs/{timestamp}")
@@ -314,6 +277,7 @@ class PipelineRunner:
                     config.extra,
                     config.post_process,
                     config.extractor_cls,
+                    base_url=config.base_url,
                 )
 
                 # ... (retry logic) ...
@@ -364,7 +328,7 @@ class PipelineRunner:
             idx = next(i for i, e in enumerate(ENDPOINT_CONFIGS) if e.listagem == start_from)
             endpoints = ENDPOINT_CONFIGS[idx:]
 
-        entities = DatabaseLoader.get_entities(engine)
+        entities = _portal.load_entities()
         total = sum(len(entities) * len(years) for _ in endpoints)
         done = 0
 
@@ -379,16 +343,17 @@ class PipelineRunner:
                 config.extra,
                 config.post_process,
                 config.extractor_cls,
+                base_url=config.base_url,
             )
 
-            entities = DatabaseLoader.get_entities(engine)
-            for empresa_id, empresa_name in entities.items():
+            entities = _portal.load_entities()
+            for empresa_id, nome_empresa in entities.items():
                 for year in years:
                     raw_path = run_dir / str(table) / f"{empresa_id}_{year}.json"
                     try:
                         if raw_only:
                             if not raw_path.exists():
-                                logger.info("Skipping %s / %s / %d (raw file not found)", listagem, empresa_name, year)
+                                logger.info("Skipping %s / %s / %d (raw file not found)", listagem, nome_empresa, year)
                                 done += 1
                                 continue
                             rows = json.loads(raw_path.read_text(encoding="utf-8"))
@@ -397,7 +362,7 @@ class PipelineRunner:
                             raw_path.parent.mkdir(parents=True, exist_ok=True)
                             raw_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2))
 
-                        normalised = PipelineHelper.normalize(rows, year, str(empresa_id), config.post_process)
+                        normalised = PipelineHelper.normalize(rows, year, empresa_id, config.post_process)
                         # Fix table name for upsert if it was split
                         target_table_for_upsert = (
                             "despesas_por_exigibilidade"
@@ -411,13 +376,13 @@ class PipelineRunner:
                             done + 1,
                             total,
                             config.listagem,
-                            empresa_name,
+                            nome_empresa,
                             year,
                             count,
                         )
                     except Exception as exc:
-                        logger.warning("SKIP %s / %s / %d: %s", listagem, empresa_name, year, exc)
-                        DataExtractor.log_failed_request(listagem, empresa_name, year, exc, run_dir=run_dir)
+                        logger.warning("SKIP %s / %s / %d: %s", listagem, nome_empresa, year, exc)
+                        DataExtractor.log_failed_request(listagem, nome_empresa, year, exc, run_dir=run_dir)
                     done += 1
 
         set_metadata(engine, "last_extracted_at", datetime.now().isoformat(sep=" ", timespec="seconds"))

@@ -7,6 +7,7 @@ Isto se deve ao fato de um bug na API do Portal das Transparencia, que não carr
 
 import json
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -18,8 +19,17 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
-BASE_URL = "https://transparencia.porciuncula.rj.gov.br/transparencia/"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from config import PortalConfig as _PortalConfig  # noqa: E402
+
+_portal_cfg = _PortalConfig.load()
+BASE_URL: str = _portal_cfg.portal_url
+YEARS: list[int] = list(range(_portal_cfg.ano_inicial, date.today().year))
+_entities_map = _portal_cfg.load_entities()
+ENTITIES: list[tuple[str, str]] = [(nome, eid) for eid, nome in _entities_map.items()]
+
 CHROME_EXECUTABLE = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 CHROME_REMOTE_DEBUGGING_PORT = 9222
 
@@ -30,20 +40,6 @@ BASE_DOWNLOAD_DIR = PROJECT_ROOT / "data" / "csv" / "receitas"
 # incluindo o cookie de "clearance" do Cloudflare após resolver o desafio)
 USER_DATA_DIR = PROJECT_ROOT / ".local_browsers" / "chrome_profile_transparencia"
 
-
-# Anos para os quais os relatórios serão baixados. O ano atual fica sempre de
-# fora: os dados dele ainda estão em andamento e mudam a cada execução.
-YEARS = list(range(2017, date.today().year))
-
-# texto exibido no dropdown -> nome da pasta
-ENTITIES = [
-    ("FUNDO DE SOLIDARIEDADE - FUNDESOL", "10"),
-    ("FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL", "3"),
-    ("FUNDO MUNICIPAL DE DEFESA AMBIENTAL", "9"),
-    ("FUNDO MUNICIPAL DE EDUCAÇÃO", "8"),
-    ("FUNDO MUNICIPAL DE SAUDE", "2"),
-    ("PREFEITURA MUNICIPAL DE PORCIÚNCULA", "7"),
-]
 
 # texto do link no submenu Receitas -> nome do arquivo
 REPORTS = [

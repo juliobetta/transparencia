@@ -40,7 +40,7 @@ def test_run_upserts_data_for_all_entities(mock_engine):
                 return rows
         return []
 
-    with patch("extractors.base.fetch", side_effect=fake_fetch):
+    with patch("elt.extract.base.fetch", side_effect=fake_fetch):
         pipeline.run(years=[2025])
 
     with mock_engine.connect() as conn:
@@ -54,7 +54,7 @@ def test_run_logs_and_skips_on_fetch_error(mock_engine, caplog):  # noqa: ARG001
             raise RuntimeError("timeout")
         return []
 
-    with patch("extractors.base.fetch", side_effect=bad_fetch):
+    with patch("elt.extract.base.fetch", side_effect=bad_fetch):
         with caplog.at_level(logging.WARNING):
             pipeline.run(years=[2025])
 

@@ -12,7 +12,6 @@ from analysis.constants import (
     ELEMENTO_SUBVENCOES_SOCIAIS,
     FORNECEDORES_NATUREZA_MAP,
 )
-from dashboard.shared import CIDADE_CLEAN
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -153,7 +152,9 @@ def get_principais_fornecedores_detalhados(conn: Any, year: int, empresa_ids: li
     )
 
 
-def get_impacto_gastos_locais(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
+def get_impacto_gastos_locais(
+    conn: Any, year: int, empresa_ids: list[str] | None = None, cidade_clean: str = ""
+) -> dict:
     empresa_clause = "AND f.empresa = ANY(:empresas)" if empresa_ids else ""
     sql = text(
         f"""
@@ -187,7 +188,7 @@ def get_impacto_gastos_locais(conn: Any, year: int, empresa_ids: list[str] | Non
         .apply(lambda x: unicodedata.normalize("NFD", x).encode("ascii", "ignore").decode("ascii"))
     )
 
-    is_local = df["cidade_clean"] == CIDADE_CLEAN
+    is_local = df["cidade_clean"] == cidade_clean
     local_pago = df[is_local]["pago"].sum()
     externo_pago = df[~is_local]["pago"].sum()
     total_pago = local_pago + externo_pago
@@ -201,7 +202,7 @@ def get_impacto_gastos_locais(conn: Any, year: int, empresa_ids: list[str] | Non
 
 
 def get_gastos_por_municipio(
-    conn: Any, year: int, empresa_ids: list[str] | None = None, top_n: int = 5
+    conn: Any, year: int, empresa_ids: list[str] | None = None, top_n: int = 5, cidade_clean: str = ""
 ) -> pd.DataFrame:
     empresa_clause = "AND f.empresa = ANY(:empresas)" if empresa_ids else ""
     sql = text(
@@ -238,12 +239,12 @@ def get_gastos_por_municipio(
     df["cidade_label"] = df["cidade"].fillna("").astype(str).str.strip().str.title()
     # treat blank or numeric-only values as unknown
     df.loc[df["cidade_label"].str.fullmatch(r"\d*"), "cidade_label"] = "Não Informado"
-    df.loc[df["cidade_clean"] == CIDADE_CLEAN, "cidade_label"] = "Negócios Locais (Porciúncula)"
+    df.loc[df["cidade_clean"] == cidade_clean, "cidade_label"] = "local"
 
     by_city = df.groupby("cidade_label", as_index=False)["pago"].sum().sort_values("pago", ascending=False)  # type: ignore
 
-    local_row = by_city[by_city["cidade_label"] == "Negócios Locais (Porciúncula)"].copy()
-    external = by_city[by_city["cidade_label"] != "Negócios Locais (Porciúncula)"].copy()
+    local_row = by_city[by_city["cidade_label"] == "local"].copy()
+    external = by_city[by_city["cidade_label"] != "local"].copy()
 
     unknown = external[external["cidade_label"] == "Não Informado"]
     ranked = external[external["cidade_label"] != "Não Informado"].sort_values("pago", ascending=False)
@@ -409,8 +410,10 @@ def get_metricas_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | N
     return {year: get_metricas_gerais_despesas(conn, year, empresa_ids) for year in years}
 
 
-def get_impacto_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, dict]:
-    return {year: get_impacto_gastos_locais(conn, year, empresa_ids) for year in years}
+def get_impacto_por_ano(
+    conn: Any, years: list[int], empresa_ids: list[str] | None = None, cidade_clean: str = ""
+) -> dict[int, dict]:
+    return {year: get_impacto_gastos_locais(conn, year, empresa_ids, cidade_clean=cidade_clean) for year in years}
 
 
 def get_resumo_diarias_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, dict]:

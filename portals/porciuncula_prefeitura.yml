@@ -1,0 +1,11 @@
+slug: porciuncula_prefeitura
+display_name: Porciúncula
+uf: RJ
+portal_url: https://transparencia.porciuncula.rj.gov.br/transparencia/
+base_host: https://transparencia.porciuncula.rj.gov.br
+cidade_clean: PORCIUNCULA
+ano_inicial: 2021
+empresa_padrao: "7"
+github_url: https://github.com/juliobetta/transparencia
+assets:
+  brasao: assets/brasao-porciuncula.svg

@@ -1,0 +1,43 @@
+import csv
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+
+@dataclass
+class PortalConfig:
+    slug: str
+    display_name: str
+    uf: str
+    portal_url: str
+    base_host: str
+    cidade_clean: str
+    ano_inicial: int
+    empresa_padrao: str
+    github_url: str
+    assets: dict[str, str]
+
+    @property
+    def raw_schema(self) -> str:
+        return f"raw_{self.slug}"
+
+    @property
+    def entities_csv_path(self) -> Path:
+        return Path("elt/transform/seeds") / f"{self.slug}_entities.csv"
+
+    def load_entities(self) -> dict[str, str]:
+        """Returns {empresa_id: nome} from the seed CSV."""
+        entities: dict[str, str] = {}
+        with open(self.entities_csv_path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                entities[row["empresa_id"]] = row["nome"]
+        return entities
+
+    @classmethod
+    def load(cls, slug: str | None = None) -> "PortalConfig":
+        slug = slug or os.environ["PORTAL_SLUG"]
+        path = Path("portals") / f"{slug}.yml"
+        data = yaml.safe_load(path.read_text())
+        return cls(**data)
