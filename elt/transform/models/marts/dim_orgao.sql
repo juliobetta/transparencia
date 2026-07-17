@@ -6,4 +6,4 @@ select
     portal_slug,
     empresa_id::text as empresa_id,
     nome as orgao_nome
-from {{ ref('porciuncula_prefeitura_orgaos') }}
+from {{ ref('seed_porciuncula_prefeitura_orgaos') }}

@@ -25,7 +25,7 @@ class PortalConfig:
 
     @property
     def orgaos_csv_path(self) -> Path:
-        return Path("elt/transform/seeds") / f"{self.slug}_orgaos.csv"
+        return Path("elt/transform/seeds") / f"seed_{self.slug}_orgaos.csv"
 
     def load_orgaos(self) -> dict[str, str]:
         """Returns {empresa_id: nome} from the seed CSV."""

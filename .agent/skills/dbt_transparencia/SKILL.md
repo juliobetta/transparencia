@@ -43,12 +43,12 @@ SELECT
 
 ## Casts Padrão (dados raw são todos `text`)
 
-| Tipo de dado | Cast |
-|---|---|
-| Inteiro | `col::int` |
-| Decimal BR (vírgula) | `nullif(replace(col, ',', '.'), '')::numeric(15, 2)` |
-| Data `dd/mm/yyyy hh:mm:ss` | `nullif(col, '')::date` |
-| Texto limpo | `nullif(trim(col), '')` |
+| Tipo de dado               | Cast                                                 |
+| -------------------------- | ---------------------------------------------------- |
+| Inteiro                    | `col::int`                                           |
+| Decimal BR (vírgula)       | `nullif(replace(col, ',', '.'), '')::numeric(15, 2)` |
+| Data `dd/mm/yyyy hh:mm:ss` | `nullif(col, '')::date`                              |
+| Texto limpo                | `nullif(trim(col), '')`                              |
 
 ---
 
@@ -66,13 +66,13 @@ Instalar via `make dbt/deps` (requer `packages.yml` com `dbt-labs/dbt_utils`).
 
 ## Naming
 
-| Camada | Padrão | Exemplo |
-|---|---|---|
-| Staging | `stg_<portal>__<tabela>.sql` | `stg_porciuncula_prefeitura__licitacoes.sql` |
-| Intermediate | `int_<nome>.sql` | `int_licitacoes_consolidadas.sql` |
-| Mart dimensão | `dim_<nome>.sql` | `dim_licitacao.sql` |
-| Mart fato | `fct_<nome>.sql` | `fct_despesas.sql` |
-| Seed | `<portal>_<nome_pt>.sql` | `porciuncula_prefeitura_orgaos.csv` |
+| Camada        | Padrão                        | Exemplo                                      |
+| ------------- | ----------------------------- | -------------------------------------------- |
+| Staging       | `stg_<portal>__<tabela>.sql`  | `stg_porciuncula_prefeitura__licitacoes.sql` |
+| Intermediate  | `int_<nome>.sql`              | `int_licitacoes_consolidadas.sql`            |
+| Mart dimensão | `dim_<nome>.sql`              | `dim_licitacao.sql`                          |
+| Mart fato     | `fct_<nome>.sql`              | `fct_despesas.sql`                           |
+| Seed          | `seed_<portal>_<nome_pt>.csv` | `seed_porciuncula_prefeitura_orgaos.csv`     |
 
 **Seeds:** nomes em português. Nunca usar termos em inglês (`entities` → `orgaos`, `suppliers` → `fornecedores`).
 
