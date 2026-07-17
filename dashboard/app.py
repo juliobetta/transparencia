@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -12,7 +13,8 @@ from shared import get_conn
 import db
 from config import PortalConfig
 
-_config = PortalConfig.load()
+_slug = st.secrets.get("PORTAL_SLUG") or os.environ.get("PORTAL_SLUG")
+_config = PortalConfig.load(_slug)
 st.session_state["portal_config"] = _config
 
 st.set_page_config(page_title=f"Transparência {_config.display_name}", layout="wide")
