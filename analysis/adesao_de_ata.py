@@ -21,8 +21,8 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
             l.valor AS licitacao_valor,
             l.carona,
             c.mes,
-            CAST(NULLIF(REPLACE(c.valor_contrato, ',', '.'), '') AS FLOAT) AS c_valor,
-            CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT) AS c_empenhado
+            c.valor_contrato AS c_valor,
+            c.empenhado AS c_empenhado
         FROM fct_contratos c
         JOIN fct_licitacoes l
             ON l.licitacao_numero = c.licitacao_numero
@@ -159,7 +159,7 @@ def run_external(conn: Any, year: int, empresa_ids: list[str] | None = None) -> 
               OR UPPER(dg.descricao) LIKE '%TERMO DE ADESÃO%'
               OR UPPER(dg.descricao) LIKE '%TERMO DE ADESAO%'
           )
-        ORDER BY CAST(NULLIF(REPLACE(dg.pago, ',', '.'), '') AS FLOAT) DESC
+        ORDER BY dg.pago DESC
     """)
 
     try:

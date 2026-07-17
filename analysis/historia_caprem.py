@@ -17,7 +17,7 @@ def _entity_breakdown(conn: Any, year: int) -> pd.DataFrame:
             FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
             JOIN empresas e ON e.id::text = f.empresa
             WHERE f.codigo = :codigo AND f.ano = :ano
-            ORDER BY CAST(NULLIF(REPLACE(f.empenhado, ',', '.'), '') AS FLOAT) DESC NULLS LAST
+            ORDER BY f.empenhado DESC NULLS LAST
         """),
         conn,
         params={"codigo": CAPREM_CODE, "ano": year},
@@ -31,9 +31,9 @@ def _annual_trend(conn: Any) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
             SELECT ano,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado,
-                   SUM(CAST(NULLIF(REPLACE(liquidado, ',', '.'), '') AS FLOAT)) AS liquidado,
-                   SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) AS pago
+                   SUM(empenhado) AS empenhado,
+                   SUM(liquidado) AS liquidado,
+                   SUM(pago) AS pago
             FROM raw_porciuncula_prefeitura.despesas_por_fornecedor
             WHERE codigo = :codigo
             GROUP BY ano ORDER BY ano
@@ -50,8 +50,8 @@ def _function_breakdown(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
             SELECT funcao_nome, subfuncao_nome,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado,
-                   SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) AS pago
+                   SUM(empenhado) AS empenhado,
+                   SUM(pago) AS pago
             FROM fct_despesas
             WHERE fornecedor_nome ILIKE '%CAPREM%' AND ano = :ano AND tipo_empenho != 'AN'
             GROUP BY funcao_nome, subfuncao_nome
@@ -69,8 +69,8 @@ def _monthly_trend(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
             SELECT mes,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado,
-                   SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) AS pago
+                   SUM(empenhado) AS empenhado,
+                   SUM(pago) AS pago
             FROM fct_despesas
             WHERE fornecedor_nome ILIKE '%CAPREM%' AND ano = :ano AND tipo_empenho != 'AN'
             GROUP BY mes ORDER BY mes
@@ -96,7 +96,7 @@ def _nature_breakdown(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
             SELECT elemento, natureza_despesa AS natureza,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado
+                   SUM(empenhado) AS empenhado
             FROM fct_despesas
             WHERE fornecedor_nome ILIKE '%CAPREM%' AND ano = :ano AND tipo_empenho != 'AN'
             GROUP BY elemento, natureza_despesa

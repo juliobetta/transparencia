@@ -9,7 +9,7 @@ from analysis import fontes_receita
 def distribuicao_salarios(conn: Any, year: int) -> pd.DataFrame:
     """Retorna proventos positivos para exibição em histograma (estornos excluídos — apenas visualização)."""
     df = pd.read_sql_query(text("SELECT proventos FROM fct_pessoal WHERE ano = :ano"), conn, params={"ano": year})
-    df["proventos"] = pd.to_numeric(df["proventos"].str.replace(",", "."), errors="coerce")
+    df["proventos"] = pd.to_numeric(df["proventos"].astype(str).str.replace(",", "."), errors="coerce")
     return df[df["proventos"] > 0].dropna()
 
 
@@ -24,7 +24,9 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
             conn,
             params={"ano": year},
         )
-        total_folha = pd.to_numeric(folha["proventos"].str.replace(",", "."), errors="coerce").fillna(0).sum()
+        total_folha = (
+            pd.to_numeric(folha["proventos"].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
+        )
 
         pago_params: dict = {"ano": year}
         if empresa_ids:
@@ -34,7 +36,7 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
             conn,
             params=pago_params,
         )
-        total_pago = pd.to_numeric(pago["pago"].str.replace(",", "."), errors="coerce").fillna(0).sum()
+        total_pago = pd.to_numeric(pago["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
 
         rev_df = fontes_receita.run(conn, [year], empresa_ids=empresa_ids)
         rcl_proxy = float(rev_df.iloc[0]["total"]) if not rev_df.empty else 0.0
@@ -58,9 +60,9 @@ def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
         WITH empenhos_13 AS (
             SELECT
                 pk_empenho,
-                CAST(REPLACE(empenhado, ',', '.') AS NUMERIC) as empenhado,
-                CAST(REPLACE(liquidado, ',', '.') AS NUMERIC) as liquidado,
-                CAST(REPLACE(pago, ',', '.') AS NUMERIC) as pago
+                empenhado as empenhado,
+                liquidado as liquidado,
+                pago as pago
             FROM fct_despesas
             WHERE ano = :ano
               AND elemento IN ('01', '03', '11', '96')
@@ -75,7 +77,7 @@ def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
         anulacoes AS (
             SELECT
                 pk_empenho_pai,
-                SUM(CAST(REPLACE(empenhado, ',', '.') AS NUMERIC)) as tot_anulado
+                SUM(empenhado) as tot_anulado
             FROM fct_despesas
             WHERE ano = :ano AND tipo_empenho = 'AN'
             GROUP BY pk_empenho_pai
@@ -116,9 +118,9 @@ def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
                 pk_empenho,
                 COALESCE(empresa_nome, empresa_id) as orgao,
                 COALESCE(funcao_nome, 'Outros') as funcao,
-                CAST(REPLACE(empenhado, ',', '.') AS NUMERIC) as empenhado,
-                CAST(REPLACE(liquidado, ',', '.') AS NUMERIC) as liquidado,
-                CAST(REPLACE(pago, ',', '.') AS NUMERIC) as pago
+                empenhado as empenhado,
+                liquidado as liquidado,
+                pago as pago
             FROM fct_despesas
             WHERE ano = :ano
               AND elemento IN ('01', '03', '11', '96')
@@ -133,7 +135,7 @@ def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
         anulacoes AS (
             SELECT
                 pk_empenho_pai,
-                SUM(CAST(REPLACE(empenhado, ',', '.') AS NUMERIC)) as tot_anulado
+                SUM(empenhado) as tot_anulado
             FROM fct_despesas
             WHERE ano = :ano AND tipo_empenho = 'AN'
             GROUP BY pk_empenho_pai

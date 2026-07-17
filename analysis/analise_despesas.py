@@ -68,10 +68,12 @@ def get_despesas_por_unidade(conn: Any, year: int, empresa_ids: list[str] | None
     if df.empty:
         return pd.DataFrame(columns=["descricao", "empenhado", "liquidado", "pago", "dotacao_atualizada"])
 
-    df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["dotacao_atualizada"] = pd.to_numeric(df["dotacao_atualizada"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["empenhado"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["liquidado"] = pd.to_numeric(df["liquidado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["dotacao_atualizada"] = pd.to_numeric(
+        df["dotacao_atualizada"].astype(str).str.replace(",", "."), errors="coerce"
+    ).fillna(0)
 
     return (
         df.groupby("descricao", as_index=False)[["empenhado", "liquidado", "pago", "dotacao_atualizada"]]
@@ -139,9 +141,9 @@ def get_principais_fornecedores_detalhados(conn: Any, year: int, empresa_ids: li
             ]
         )
 
-    df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["empenhado"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["liquidado"] = pd.to_numeric(df["liquidado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
     return (
         df.groupby(["fornecedor", "insmf", "cidade", "codigo", "elemento"], as_index=False)[
@@ -178,7 +180,7 @@ def get_impacto_gastos_locais(
     if df.empty:
         return {"local_pago": 0.0, "externo_pago": 0.0, "total_pago": 0.0, "pct_local": 0.0}
 
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["cidade_clean"] = (
         df["cidade"]
         .fillna("")
@@ -269,7 +271,7 @@ def get_folha_por_orgao(conn: Any, year: int, empresa_ids: list[str] | None = No
     if empresa_ids:
         params["empresas"] = empresa_ids
     query = text(f"""
-        SELECT fornecedor_nome as descricao, SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) as pago
+        SELECT fornecedor_nome as descricao, SUM(pago) as pago
         FROM fct_despesas
         WHERE ano = :ano AND elemento = :elemento {empresa_clause}
         GROUP BY fornecedor_nome
@@ -292,7 +294,7 @@ def get_resumo_diarias(conn: Any, year: int, empresa_ids: list[str] | None = Non
     if df.empty:
         return {"total_valor": 0.0, "total_viajantes": 0, "media_reembolso": 0.0}
 
-    df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor"] = pd.to_numeric(df["valor"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     total_valor = df["valor"].sum()
     total_viajantes = df["favorecido"].nunique()
 
@@ -314,7 +316,7 @@ def get_principais_beneficiarios_diarias(conn: Any, year: int, empresa_ids: list
     if df.empty:
         return pd.DataFrame(columns=["favorecido", "cargo", "valor", "viagens"])
 
-    df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor"] = pd.to_numeric(df["valor"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
     summary = df.groupby(["favorecido", "cargo"], as_index=False).agg(
         valor=("valor", "sum"), viagens=("valor", "count")
@@ -328,7 +330,7 @@ def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 5
             SELECT data_empenho as data, fornecedor_nome as fornecedor, pago, empresa_id as unidade, descricao
             FROM fct_despesas
             WHERE ano = :ano AND (fornecedor_nome ILIKE :search OR descricao ILIKE :search OR empresa_id ILIKE :search)
-            ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
+            ORDER BY pago DESC
             LIMIT :lim
         """)
         params = {"ano": year, "search": f"%{query}%", "lim": limit}
@@ -337,7 +339,7 @@ def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 5
             SELECT data_empenho as data, fornecedor_nome as fornecedor, pago, empresa_id as unidade, descricao
             FROM fct_despesas
             WHERE ano = :ano
-            ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
+            ORDER BY pago DESC
             LIMIT :lim
         """)
         params = {"ano": year, "lim": limit}
@@ -346,7 +348,7 @@ def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 5
     if df.empty:
         return pd.DataFrame(columns=["data", "fornecedor", "pago", "unidade", "descricao"])
 
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     return df
 
@@ -372,7 +374,7 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
     df = pd.read_sql_query(sql, conn, params=params)
     if df.empty:
         return pd.DataFrame(columns=["data", "servidor", "cargo", "valor", "unidade", "historico"])
-    df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor"] = pd.to_numeric(df["valor"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     return df
 
@@ -447,7 +449,7 @@ def get_perfil_cargos_confianca(_conn: Any, years: list[int]) -> pd.DataFrame:
                 ELSE 'Outros'
             END as tipo_vinculo_detalhado,
             COUNT(*) as quantidade,
-            SUM(CAST(NULLIF(REPLACE(REPLACE(proventos, '.', ''), ',', '.'), '') AS FLOAT)) as total_gasto
+            SUM(proventos) as total_gasto
         FROM fct_pessoal
         WHERE ano IN :anos
         GROUP BY ano, tipo_vinculo_detalhado
@@ -485,7 +487,7 @@ def get_composicao_despesa(conn: Any, year: int, empresa_ids: list[str] | None =
                         THEN 'Investimentos'
                     ELSE 'Outros'
                 END AS categoria,
-                CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS NUMERIC) AS pago
+                pago AS pago
             FROM fct_despesas
             WHERE ano = :ano AND tipo_empenho != 'AN' {empresa_clause}
         ) sub

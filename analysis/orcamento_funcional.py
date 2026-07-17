@@ -16,7 +16,7 @@ def get_orcamento_funcional(conn, year: int, empresa_ids: list[str] | None = Non
 
     # Converte colunas monetárias em texto para numérico
     for col in ["dotacao_atualizada", "empenhado", "liquidado", "pago"]:
-        df[col] = pd.to_numeric(df[col].str.replace(",", "."), errors="coerce").fillna(0)
+        df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
     return df.groupby(["funcao_nome", "subfuncao_nome"], as_index=False).agg(
         dotacao_atualizada=("dotacao_atualizada", "sum"),

@@ -24,9 +24,42 @@ def _create_test_views(eng) -> None:
     with eng.connect() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS raw_porciuncula_prefeitura"))
 
-        # Raw tables that stayed in raw schema — simple pass-through views
-        for tbl in ("despesas_por_orgao", "despesas_por_unidade", "despesas_por_fornecedor"):
-            conn.execute(text(f"CREATE OR REPLACE VIEW raw_porciuncula_prefeitura.{tbl} AS SELECT * FROM public.{tbl}"))
+        # Raw tables that stayed in raw schema — cast financial columns to numeric
+        conn.execute(
+            text("""
+            CREATE OR REPLACE VIEW raw_porciuncula_prefeitura.despesas_por_orgao AS
+            SELECT
+                empresa, ano, codigo, descricao,
+                nullif(replace(empenhado, ',', '.'), '')::numeric AS empenhado,
+                nullif(replace(liquidado, ',', '.'), '')::numeric AS liquidado,
+                nullif(replace(pago, ',', '.'), '')::numeric AS pago,
+                nullif(replace(dotacao_atualizada, ',', '.'), '')::numeric AS dotacao_atualizada
+            FROM public.despesas_por_orgao
+        """)
+        )
+        conn.execute(
+            text("""
+            CREATE OR REPLACE VIEW raw_porciuncula_prefeitura.despesas_por_unidade AS
+            SELECT
+                empresa, ano, codigo, descricao,
+                nullif(replace(empenhado, ',', '.'), '')::numeric AS empenhado,
+                nullif(replace(liquidado, ',', '.'), '')::numeric AS liquidado,
+                nullif(replace(pago, ',', '.'), '')::numeric AS pago,
+                nullif(replace(dotacao_atualizada, ',', '.'), '')::numeric AS dotacao_atualizada
+            FROM public.despesas_por_unidade
+        """)
+        )
+        conn.execute(
+            text("""
+            CREATE OR REPLACE VIEW raw_porciuncula_prefeitura.despesas_por_fornecedor AS
+            SELECT
+                empresa, ano, codigo, descricao, insmf, cepci,
+                nullif(replace(empenhado, ',', '.'), '')::numeric AS empenhado,
+                nullif(replace(liquidado, ',', '.'), '')::numeric AS liquidado,
+                nullif(replace(pago, ',', '.'), '')::numeric AS pago
+            FROM public.despesas_por_fornecedor
+        """)
+        )
 
         # fct_despesas — merges despesas_gerais (exercicio) + despesas_restos_pagar (restos_a_pagar)
         conn.execute(
@@ -59,12 +92,12 @@ def _create_test_views(eng) -> None:
                     elemento,
                     mes,
                     nomeempresa AS empresa_nome,
-                    COALESCE(NULLIF(empenhado, ''), '0') AS empenhado,
-                    COALESCE(NULLIF(liquidado, ''), '0') AS liquidado,
-                    COALESCE(NULLIF(pago, ''), '0') AS pago,
-                    dotacatualizada AS dotacao_atualizada,
-                    dotac AS dotacao_inicial,
-                    altdo AS alteracao_dotacao
+                    COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
+                    COALESCE(nullif(replace(liquidado, ',', '.'), '')::numeric, 0) AS liquidado,
+                    COALESCE(nullif(replace(pago, ',', '.'), '')::numeric, 0) AS pago,
+                    nullif(replace(dotacatualizada, ',', '.'), '')::numeric AS dotacao_atualizada,
+                    nullif(replace(dotac, ',', '.'), '')::numeric AS dotacao_inicial,
+                    nullif(replace(altdo, ',', '.'), '')::numeric AS alteracao_dotacao
                 FROM despesas_gerais
                 UNION ALL
                 SELECT
@@ -94,9 +127,9 @@ def _create_test_views(eng) -> None:
                     NULL AS programa_nome,
                     NULL AS elemento,
                     NULL AS mes,
-                    COALESCE(NULLIF(empenhado, ''), '0') AS empenhado,
-                    COALESCE(NULLIF(liquidado, ''), '0') AS liquidado,
-                    COALESCE(NULLIF(pago, ''), '0') AS pago,
+                    COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
+                    COALESCE(nullif(replace(liquidado, ',', '.'), '')::numeric, 0) AS liquidado,
+                    COALESCE(nullif(replace(pago, ',', '.'), '')::numeric, 0) AS pago,
                     NULL AS dotacao_atualizada,
                     NULL AS dotacao_inicial,
                     NULL AS alteracao_dotacao
@@ -114,13 +147,13 @@ def _create_test_views(eng) -> None:
                     numero AS contrato_numero,
                     fornecedor AS fornecedor_nome,
                     objeto,
-                    valcon AS valor_contrato,
+                    nullif(replace(valcon, ',', '.'), '')::numeric AS valor_contrato,
                     licitacao_numero,
                     modali AS modalidade,
                     mes,
                     tipocoobra AS tipo_obra,
                     numobra AS numero_obra,
-                    empenhado,
+                    COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
                     fundlegal
                 FROM contratos
             """)
@@ -137,7 +170,7 @@ def _create_test_views(eng) -> None:
                     modalidade,
                     objeto,
                     discr AS discriminacao,
-                    valor,
+                    nullif(replace(valor, ',', '.'), '')::numeric AS valor,
                     situacao,
                     data_abertura,
                     carona
@@ -153,7 +186,7 @@ def _create_test_views(eng) -> None:
                     empresa AS empresa_id,
                     ano,
                     numero AS diaria_id,
-                    valor,
+                    nullif(replace(valor, ',', '.'), '')::numeric AS valor,
                     favorecido,
                     cargo,
                     data,
@@ -170,7 +203,7 @@ def _create_test_views(eng) -> None:
                 SELECT
                     empresa AS empresa_id,
                     ano,
-                    proventos,
+                    nullif(replace(proventos, ',', '.'), '')::numeric AS proventos,
                     categoriafuncional AS categoria_funcional,
                     vinculo,
                     cargo,
@@ -188,8 +221,8 @@ def _create_test_views(eng) -> None:
                     ano,
                     numero_emenda,
                     resumo,
-                    valor_total,
-                    empenhado,
+                    nullif(replace(valor_total, ',', '.'), '')::numeric AS valor_total,
+                    COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
                     autor,
                     tipo_emenda_descr AS tipo_emenda,
                     esfera_origem,
@@ -209,8 +242,8 @@ def _create_test_views(eng) -> None:
                     mes,
                     entidade_pagadora,
                     entidade_recebedora,
-                    repasse,
-                    devolucao
+                    nullif(replace(repasse, ',', '.'), '')::numeric AS repasse,
+                    nullif(replace(devolucao, ',', '.'), '')::numeric AS devolucao
                 FROM transferencias
             """)
         )
@@ -225,8 +258,8 @@ def _create_test_views(eng) -> None:
                     'orcamentaria' AS tipo_receita,
                     codigo,
                     descricao,
-                    previsao_atualizada,
-                    COALESCE(arrecadado_total, arrecadado) AS arrecadado
+                    nullif(replace(previsao_atualizada, ',', '.'), '')::numeric AS previsao_atualizada,
+                    COALESCE(nullif(replace(arrecadado_total, ',', '.'), '')::numeric, nullif(replace(arrecadado, ',', '.'), '')::numeric) AS arrecadado
                 FROM receita_orcamentaria
                 UNION ALL
                 SELECT
@@ -235,8 +268,8 @@ def _create_test_views(eng) -> None:
                     'uniao' AS tipo_receita,
                     codigo,
                     descricao,
-                    previsao_atualizada,
-                    COALESCE(arrecadado_total, arrecadado) AS arrecadado
+                    nullif(replace(previsao_atualizada, ',', '.'), '')::numeric AS previsao_atualizada,
+                    COALESCE(nullif(replace(arrecadado_total, ',', '.'), '')::numeric, nullif(replace(arrecadado, ',', '.'), '')::numeric) AS arrecadado
                 FROM receita_uniao
                 UNION ALL
                 SELECT
@@ -245,8 +278,8 @@ def _create_test_views(eng) -> None:
                     'estado' AS tipo_receita,
                     codigo,
                     descricao,
-                    previsao_atualizada,
-                    COALESCE(arrecadado_total, arrecadado) AS arrecadado
+                    nullif(replace(previsao_atualizada, ',', '.'), '')::numeric AS previsao_atualizada,
+                    COALESCE(nullif(replace(arrecadado_total, ',', '.'), '')::numeric, nullif(replace(arrecadado, ',', '.'), '')::numeric) AS arrecadado
                 FROM receita_estado
             """)
         )
