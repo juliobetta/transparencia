@@ -21,7 +21,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
             l.valor AS licitacao_valor,
             l.carona,
             c.mes,
-            CAST(NULLIF(REPLACE(c.valor_contrato, ',', '.'), '') AS FLOAT)    AS c_valor,
+            CAST(NULLIF(REPLACE(c.valor_contrato, ',', '.'), '') AS FLOAT) AS c_valor,
             CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT) AS c_empenhado
         FROM fct_contratos c
         JOIN fct_licitacoes l
@@ -38,9 +38,9 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
             l.discriminacao AS objeto,
             l.valor AS licitacao_valor,
             l.carona,
-            NULL    AS mes,
-            0       AS c_valor,
-            0       AS c_empenhado
+            NULL AS mes,
+            0 AS c_valor,
+            0 AS c_empenhado
         FROM fct_licitacoes l
         WHERE l.ano = :ano AND l.carona = 'S'
           {empresa_clausula_l}
