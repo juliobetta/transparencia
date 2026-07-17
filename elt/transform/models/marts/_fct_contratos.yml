@@ -54,5 +54,7 @@ models:
         data_type: text
       - name: numero_obra
         data_type: text
+      - name: fundlegal
+        data_type: text
       - name: empenhado
         data_type: numeric

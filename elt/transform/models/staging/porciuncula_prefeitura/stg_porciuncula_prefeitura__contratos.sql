@@ -18,6 +18,7 @@ renamed as (
         nullif(trim(mes), '') as mes,
         nullif(trim(tipocoobra), '') as tipo_obra,
         nullif(trim(numobra), '') as numero_obra,
+        nullif(trim(fundlegal), '') as fundlegal,
         nullif(replace(empenhado, ',', '.'), '')::numeric(15, 2) as empenhado
     from source
 )
@@ -34,5 +35,6 @@ select
     mes,
     tipo_obra,
     numero_obra,
+    fundlegal,
     empenhado
 from renamed

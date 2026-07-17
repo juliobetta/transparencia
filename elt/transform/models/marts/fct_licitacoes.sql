@@ -10,6 +10,7 @@ with licitacoes as (
         objeto,
         discriminacao,
         valor,
+        situacao,
         data_abertura,
         carona
     from {{ ref('int_licitacoes_consolidadas') }}
@@ -25,6 +26,7 @@ select
     objeto,
     discriminacao,
     valor,
+    situacao,
     data_abertura,
     carona
 from licitacoes

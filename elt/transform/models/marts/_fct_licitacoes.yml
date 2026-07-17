@@ -46,6 +46,8 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               row_condition: "valor is not null"
+      - name: situacao
+        data_type: text
       - name: data_abertura
         data_type: date
         tests:

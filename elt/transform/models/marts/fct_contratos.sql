@@ -14,6 +14,7 @@ with contratos as (
         mes,
         tipo_obra,
         numero_obra,
+        fundlegal,
         empenhado
     from {{ ref('int_contratos_consolidados') }}
 )
@@ -32,5 +33,6 @@ select
     mes,
     tipo_obra,
     numero_obra,
+    fundlegal,
     empenhado
 from contratos

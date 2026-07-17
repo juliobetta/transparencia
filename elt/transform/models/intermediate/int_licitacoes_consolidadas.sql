@@ -11,6 +11,7 @@ with porciuncula as (
         objeto,
         discriminacao,
         valor,
+        situacao,
         data_abertura,
         carona
     from {{ ref('stg_porciuncula_prefeitura__licitacoes') }}
@@ -25,6 +26,7 @@ select
     objeto,
     discriminacao,
     valor,
+    situacao,
     data_abertura,
     carona
 from porciuncula

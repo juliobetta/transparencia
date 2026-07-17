@@ -15,6 +15,7 @@ with porciuncula as (
         mes,
         tipo_obra,
         numero_obra,
+        fundlegal,
         empenhado
     from {{ ref('stg_porciuncula_prefeitura__contratos') }}
 )
@@ -32,5 +33,6 @@ select
     mes,
     tipo_obra,
     numero_obra,
+    fundlegal,
     empenhado
 from porciuncula
