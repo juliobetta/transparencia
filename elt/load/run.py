@@ -60,7 +60,8 @@ def _normalize(rows: list[dict], ano: int, empresa: str, post_process=None) -> l
         normalised = {_sanitize_key(k): v for k, v in r.items()}
         if not normalised.get("ano"):
             normalised["ano"] = ano
-        normalised.setdefault("empresa", empresa)
+        if not normalised.get("empresa"):
+            normalised["empresa"] = empresa
         raw_ano = int(normalised["ano"])
         if raw_ano < 100:
             normalised["ano"] = 2000 + raw_ano

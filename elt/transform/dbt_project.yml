@@ -14,9 +14,6 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-seeds:
-  transparencia:
-    +schema: ~
 
 models:
   transparencia:
