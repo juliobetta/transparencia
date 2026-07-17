@@ -50,3 +50,9 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 | Coluna removida de um mart | Remover da view correspondente |
 
 **Verificação:** Após qualquer alteração em `elt/transform/models/`, executar `make test`. Se algum teste falhar com `UndefinedColumn` ou `UndefinedTable`, o `tests/conftest.py` está desatualizado.
+
+---
+
+## 6. FORMATAÇÃO SQL
+
+- **Sem alinhamento por espaços:** Nunca adicione espaços extras para alinhar colunas, aliases (`AS`) ou qualquer outro elemento em queries SQL de analytics (`analysis/`, `elt/`, `tests/`). Use apenas o espaço mínimo necessário para separar tokens.
