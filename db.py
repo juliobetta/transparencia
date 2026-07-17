@@ -67,26 +67,26 @@ def upsert(db: Connectable, table_name: str, rows: list[dict], key_cols: list[st
     return len(filtered)
 
 
-def set_metadata(db: Connectable, key: str, value: str) -> None:
+def set_metadata(db: Connectable, key: str, value: str, portal_slug: str) -> None:
     table = SQLModel.metadata.tables["metadata"]
-    stmt = pg_insert(table).values(key=key, value=value)
-    stmt = stmt.on_conflict_do_update(index_elements=["key"], set_={"value": value})
+    stmt = pg_insert(table).values(portal_slug=portal_slug, key=key, value=value)
+    stmt = stmt.on_conflict_do_update(index_elements=["portal_slug", "key"], set_={"value": value})
     _execute(db, stmt)
 
 
-def get_metadata(db: Connectable, key: str) -> str | None:
-    query = text("SELECT value FROM metadata WHERE key = :key")
+def get_metadata(db: Connectable, key: str, portal_slug: str) -> str | None:
+    query = text("SELECT value FROM dim_metadata WHERE key = :key AND portal_slug = :slug")
     if isinstance(db, Engine):
         with db.connect() as conn:
-            row = conn.execute(query, {"key": key}).fetchone()
+            row = conn.execute(query, {"key": key, "slug": portal_slug}).fetchone()
     else:
-        row = db.execute(query, {"key": key}).fetchone()
+        row = db.execute(query, {"key": key, "slug": portal_slug}).fetchone()
     return row[0] if row else None
 
 
 def get_empresas(conn: Connectable) -> dict[str, str]:
     """Retorna {id_str: nome} das entidades cadastradas no banco."""
-    query = text("SELECT id, nome FROM empresas ORDER BY id")
+    query = text("SELECT empresa_id, orgao_nome FROM dim_orgao ORDER BY empresa_id")
     if isinstance(conn, Engine):
         with conn.connect() as c:
             rows = c.execute(query).fetchall()

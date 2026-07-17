@@ -39,6 +39,6 @@ class PortalConfig:
     def load(cls, slug: str | None = None) -> "PortalConfig":
         # Default hardcoded until multi-portal support is added (URL/host-based routing)
         slug = slug or os.environ.get("PORTAL_SLUG", "porciuncula_prefeitura")
-        path = Path("portals") / f"{slug}.yml"
+        path = Path(__file__).parent / "portals" / f"{slug}.yml"
         data = yaml.safe_load(path.read_text())
         return cls(**data)

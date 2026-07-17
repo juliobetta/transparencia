@@ -11,6 +11,7 @@ class Empresa(SQLModel, table=True):
 
 class Metadata(SQLModel, table=True):
     __tablename__ = "metadata"
+    portal_slug: str = Field(primary_key=True)
     key: str = Field(primary_key=True)
     value: Optional[str] = None
 

@@ -39,3 +39,5 @@ sources:
         description: "Folha de pessoal"
       - name: transferencias
         description: "Transferências a terceiros"
+      - name: metadata
+        description: "Metadados do pipeline ELT (ex: data da última extração)"

@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import constants
 import db
 from analysis import historia_saude
+from config import PortalConfig
 
 REPORTS_DIR = Path("reports")
 TEMPLATE_DIR = Path(__file__).parent
@@ -21,7 +22,7 @@ def generate(conn, year: int) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
     data = historia_saude.run(conn, year)
 
-    _raw = db.get_metadata(conn, "last_extracted_at")
+    _raw = db.get_metadata(conn, "last_extracted_at", PortalConfig.load().slug)
     last_extracted = datetime.strptime(_raw, "%Y-%m-%d").strftime("%d/%m/%Y") if _raw else "desconhecida"
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))

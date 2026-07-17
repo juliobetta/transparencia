@@ -251,6 +251,14 @@ def _create_test_views(eng) -> None:
             """)
         )
 
+        conn.execute(
+            text("""
+                CREATE OR REPLACE VIEW dim_metadata AS
+                SELECT portal_slug, key, value
+                FROM metadata
+            """)
+        )
+
         conn.commit()
 
 

@@ -135,7 +135,7 @@ class DatabaseLoader:
             logger.info("Loaded %s / %s / %d → %d rows", table, empresa_id, year, count)
 
         if extraction_date:
-            set_metadata(engine, "last_extracted_at", extraction_date)
+            set_metadata(engine, "last_extracted_at", extraction_date, _portal.slug)
             logger.info("Set extraction date: %s", extraction_date)
 
         # Importa as receitas históricas em formato CSV (se existirem na pasta data/csv/receitas)
@@ -385,7 +385,7 @@ class PipelineRunner:
                         DataExtractor.log_failed_request(listagem, nome_empresa, year, exc, run_dir=run_dir)
                     done += 1
 
-        set_metadata(engine, "last_extracted_at", datetime.now().isoformat(sep=" ", timespec="seconds"))
+        set_metadata(engine, "last_extracted_at", datetime.now().isoformat(sep=" ", timespec="seconds"), _portal.slug)
         logger.info("Pipeline complete.")
 
 

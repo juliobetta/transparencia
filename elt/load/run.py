@@ -187,7 +187,7 @@ def main() -> None:
 
     if extraction_date:
         with engine.begin() as conn:
-            set_metadata(conn, "last_extracted_at", extraction_date)
+            set_metadata(conn, "last_extracted_at", extraction_date, portal.slug)
         logger.info("Set extraction date: %s", extraction_date)
 
     logger.info("Load complete → schema: %s", schema)

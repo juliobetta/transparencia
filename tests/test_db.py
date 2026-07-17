@@ -65,11 +65,11 @@ def test_upsert_replaces_on_conflict(conn):
 
 
 def test_set_and_get_metadata(conn):
-    db.set_metadata(conn, "test_key", "test_value")
-    result = db.get_metadata(conn, "test_key")
+    db.set_metadata(conn, "test_key", "test_value", "porciuncula_prefeitura")
+    result = db.get_metadata(conn, "test_key", "porciuncula_prefeitura")
     assert result == "test_value"
 
 
 def test_get_metadata_returns_none_for_missing_key(conn):
-    result = db.get_metadata(conn, "nonexistent_key_xyz")
+    result = db.get_metadata(conn, "nonexistent_key_xyz", "porciuncula_prefeitura")
     assert result is None
