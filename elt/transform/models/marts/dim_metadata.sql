@@ -2,4 +2,4 @@ select
     portal_slug,
     key,
     value
-from {{ source('raw_porciuncula_prefeitura', 'metadata') }}
+from {{ source('porciuncula_prefeitura', 'metadata') }}
