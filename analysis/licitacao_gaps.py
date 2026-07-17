@@ -11,22 +11,22 @@ SAUDE_EMPRESA = "2"
 def counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     """Retorna {ano: contagem_acima_do_limite} usando o limite aplicável por contrato."""
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            f"SELECT ano, licitacao_numero, valcon, numobra, tipocoobra, objeto"
-            f" FROM contratos WHERE ano IN ({placeholders}) {empresa_clause}"
+            f"SELECT ano, licitacao_numero, valor_contrato, numero_obra, tipo_obra, objeto"
+            f" FROM fct_contratos WHERE ano IN ({placeholders}) {empresa_clause}"
         ),
         conn,
         params=params,
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
-    df["valor_num"] = pd.to_numeric(df["valcon"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor_num"] = pd.to_numeric(df["valor_contrato"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["threshold"] = df.apply(
-        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+        lambda r: dispensation_threshold(r.get("numero_obra"), r.get("tipo_obra"), r.get("objeto")), axis=1
     )
     df["acima_limite"] = df["valor_num"] > df["threshold"]
     counts = df.groupby("ano")["acima_limite"].sum().astype(int)
@@ -36,12 +36,12 @@ def counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = 
 def totals_sem_licitacao_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     """Retorna {ano: total_contratos_sem_licitacao} para todos os valores (acima e abaixo do limite)."""
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
-        text(f"SELECT ano, licitacao_numero FROM contratos WHERE ano IN ({placeholders}) {empresa_clause}"),
+        text(f"SELECT ano, licitacao_numero FROM fct_contratos WHERE ano IN ({placeholders}) {empresa_clause}"),
         conn,
         params=params,
     )
@@ -51,23 +51,23 @@ def totals_sem_licitacao_por_ano(conn: Any, years: list[int], empresa_ids: list[
 
 
 def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes,"
-            " numobra, tipocoobra"
-            f" FROM contratos WHERE ano = :ano {empresa_clause}"
+            "SELECT ano, empresa_id AS empresa, contrato_numero AS numero, fornecedor_nome AS fornecedor, objeto, valor_contrato, licitacao_numero, mes,"
+            " numero_obra, tipo_obra"
+            f" FROM fct_contratos WHERE ano = :ano {empresa_clause}"
         ),
         conn,
         params=params,
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
-    df["valor_num"] = pd.to_numeric(df["valcon"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor_num"] = pd.to_numeric(df["valor_contrato"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["threshold"] = df.apply(
-        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+        lambda r: dispensation_threshold(r.get("numero_obra"), r.get("tipo_obra"), r.get("objeto")), axis=1
     )
     df["acima_limite"] = df["valor_num"] > df["threshold"]
     df["orgao_saude"] = df["empresa"] == SAUDE_EMPRESA

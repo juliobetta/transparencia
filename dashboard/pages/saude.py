@@ -594,8 +594,8 @@ if not lacunas_saude.empty and lacunas_saude.notna().all().all():
                 "numero": "Nº",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
-                "valcon": "Valor",
-                "modali": "Modalidade",
+                "valor_contrato": "Valor",
+                "modalidade": "Modalidade",
             }
         )
         .sort_values(by="Valor", ascending=False)

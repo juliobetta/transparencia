@@ -14,7 +14,7 @@ def _entity_breakdown(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
             SELECT e.nome AS entidade, f.empresa, f.empenhado, f.liquidado, f.pago
-            FROM despesas_por_fornecedor f
+            FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
             JOIN empresas e ON e.id::text = f.empresa
             WHERE f.codigo = :codigo AND f.ano = :ano
             ORDER BY CAST(NULLIF(REPLACE(f.empenhado, ',', '.'), '') AS FLOAT) DESC NULLS LAST
@@ -34,7 +34,7 @@ def _annual_trend(conn: Any) -> pd.DataFrame:
                    SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado,
                    SUM(CAST(NULLIF(REPLACE(liquidado, ',', '.'), '') AS FLOAT)) AS liquidado,
                    SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) AS pago
-            FROM despesas_por_fornecedor
+            FROM raw_porciuncula_prefeitura.despesas_por_fornecedor
             WHERE codigo = :codigo
             GROUP BY ano ORDER BY ano
         """),
@@ -49,12 +49,12 @@ def _annual_trend(conn: Any) -> pd.DataFrame:
 def _function_breakdown(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
-            SELECT funcaonome, subfuncaonome,
+            SELECT funcao_nome, subfuncao_nome,
                    SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado,
                    SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) AS pago
-            FROM despesas_gerais
-            WHERE nomefor ILIKE '%CAPREM%' AND ano = :ano AND tpem != 'AN'
-            GROUP BY funcaonome, subfuncaonome
+            FROM fct_despesas
+            WHERE fornecedor_nome ILIKE '%CAPREM%' AND ano = :ano AND tipo_empenho != 'AN'
+            GROUP BY funcao_nome, subfuncao_nome
             ORDER BY empenhado DESC
         """),
         conn,
@@ -71,8 +71,8 @@ def _monthly_trend(conn: Any, year: int) -> pd.DataFrame:
             SELECT mes,
                    SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado,
                    SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) AS pago
-            FROM despesas_gerais
-            WHERE nomefor ILIKE '%CAPREM%' AND ano = :ano AND tpem != 'AN'
+            FROM fct_despesas
+            WHERE fornecedor_nome ILIKE '%CAPREM%' AND ano = :ano AND tipo_empenho != 'AN'
             GROUP BY mes ORDER BY mes
         """),
         conn,
@@ -95,11 +95,11 @@ _ELEMENTO_LABELS: dict[str, str] = {
 def _nature_breakdown(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
-            SELECT elemento, natureza,
+            SELECT elemento, natureza_despesa AS natureza,
                    SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado
-            FROM despesas_gerais
-            WHERE nomefor ILIKE '%CAPREM%' AND ano = :ano AND tpem != 'AN'
-            GROUP BY elemento, natureza
+            FROM fct_despesas
+            WHERE fornecedor_nome ILIKE '%CAPREM%' AND ano = :ano AND tipo_empenho != 'AN'
+            GROUP BY elemento, natureza_despesa
             ORDER BY empenhado DESC
         """),
         conn,
@@ -112,7 +112,7 @@ def _nature_breakdown(conn: Any, year: int) -> pd.DataFrame:
 
 def run(conn: Any, year: int) -> dict:
     df = pd.read_sql_query(
-        text("SELECT * FROM despesas_por_fornecedor WHERE codigo = :codigo AND ano = :ano"),
+        text("SELECT * FROM raw_porciuncula_prefeitura.despesas_por_fornecedor WHERE codigo = :codigo AND ano = :ano"),
         conn,
         params={"codigo": CAPREM_CODE, "ano": year},
     )

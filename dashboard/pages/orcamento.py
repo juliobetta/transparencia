@@ -178,7 +178,7 @@ with st.expander("Ver Detalhamento por Órgão"):
 st.markdown("---")
 df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year, empresa_ids=empresa_ids)
 df_funcional_resumo = (
-    df_funcional.groupby("funcaonome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
+    df_funcional.groupby("funcao_nome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
     .sum()
     .reset_index()
     .sort_values("pago", ascending=True)
@@ -188,10 +188,10 @@ df_funcional_resumo["ValorFormatado"] = df_funcional_resumo["pago"].apply(fmt_cu
 fig_barras = px.bar(
     df_funcional_resumo,
     x="pago",
-    y="funcaonome",
+    y="funcao_nome",
     orientation="h",
     title="Execução Orçamentária por Função (Valor Pago)",
-    labels={"pago": "Pago (R$)", "funcaonome": "Função"},
+    labels={"pago": "Pago (R$)", "funcao_nome": "Função"},
     text="ValorFormatado",
 )
 fig_barras.update_traces(textposition="auto")
@@ -200,10 +200,10 @@ st.plotly_chart(fig_barras, use_container_width=True)
 
 with st.expander("Ver Detalhamento por Função"):
     st.dataframe(
-        df_funcional_resumo[["funcaonome", "dotacao_atualizada", "liquidado", "empenhado", "pago"]]
+        df_funcional_resumo[["funcao_nome", "dotacao_atualizada", "liquidado", "empenhado", "pago"]]
         .rename(
             columns={
-                "funcaonome": "Função",
+                "funcao_nome": "Função",
                 "dotacao_atualizada": "Total Dotação",
                 "empenhado": "Total Empenhado",
                 "liquidado": "Total Liquidado",

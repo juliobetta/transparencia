@@ -9,24 +9,24 @@ def _to_float(series: pd.Series) -> pd.Series:
 
 
 def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empresa_clausula_c = "AND c.empresa = ANY(:empresas)" if empresa_ids else ""
-    empresa_clausula_l = "AND l.empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clausula_c = "AND c.empresa_id = ANY(:empresas)" if empresa_ids else ""
+    empresa_clausula_l = "AND l.empresa_id = ANY(:empresas)" if empresa_ids else ""
     # União de duas partes:
     # 1. Contratos assinados neste ano cuja licitação tem carona='S' (licitação de qualquer ano)
     # 2. Licitações carona criadas neste ano que ainda não possuem contratos
     query = text(f"""
         SELECT
-            l.numero,
-            l.discr AS objeto,
+            l.licitacao_numero AS numero,
+            l.discriminacao AS objeto,
             l.valor AS licitacao_valor,
             l.carona,
             c.mes,
-            CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)    AS c_valor,
+            CAST(NULLIF(REPLACE(c.valor_contrato, ',', '.'), '') AS FLOAT)    AS c_valor,
             CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT) AS c_empenhado
-        FROM contratos c
-        JOIN licitacoes l
-            ON l.numero = c.licitacao_numero
-            AND l.empresa = c.empresa
+        FROM fct_contratos c
+        JOIN fct_licitacoes l
+            ON l.licitacao_numero = c.licitacao_numero
+            AND l.empresa_id = c.empresa_id
             AND l.carona = 'S'
         WHERE c.ano = :ano
           {empresa_clausula_c}
@@ -34,19 +34,19 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
         UNION ALL
 
         SELECT
-            l.numero,
-            l.discr AS objeto,
+            l.licitacao_numero AS numero,
+            l.discriminacao AS objeto,
             l.valor AS licitacao_valor,
             l.carona,
             NULL    AS mes,
             0       AS c_valor,
             0       AS c_empenhado
-        FROM licitacoes l
+        FROM fct_licitacoes l
         WHERE l.ano = :ano AND l.carona = 'S'
           {empresa_clausula_l}
           AND NOT EXISTS (
-              SELECT 1 FROM contratos c2
-              WHERE c2.licitacao_numero = l.numero AND c2.empresa = l.empresa
+              SELECT 1 FROM fct_contratos c2
+              WHERE c2.licitacao_numero = l.licitacao_numero AND c2.empresa_id = l.empresa_id
           )
     """)
     params: dict = {"ano": year}
@@ -80,12 +80,11 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
             "total_licitacao": total_licitacao,
             "contratos_associados_count": int(df["tem_contrato"].sum()),
         }
-    except Exception as e:
-        print(f"DEBUG: Exception in Adesao: {e}")
+    except Exception:
         return {
-            "list": pd.DataFrame(),
-            "count": 0,
-            "value": 0.0,
+            "lista": pd.DataFrame(),
+            "quantidade": 0,
+            "valor": 0.0,
             "total_licitacao": 0.0,
             "contratos_associados_count": 0,
         }
@@ -93,10 +92,10 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
 
 def formal_counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clausula = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clausula = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     df = pd.read_sql_query(
-        text(f"SELECT ano FROM licitacoes WHERE ano IN ({placeholders}) AND carona = 'S' {empresa_clausula}"),
+        text(f"SELECT ano FROM fct_licitacoes WHERE ano IN ({placeholders}) AND carona = 'S' {empresa_clausula}"),
         conn,
         params=params,
     )
@@ -106,21 +105,21 @@ def formal_counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | 
 
 def external_counts_by_year(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clausula = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clausula = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(f"""
-            SELECT ano FROM despesas_gerais
+            SELECT ano FROM fct_despesas
             WHERE ano IN ({placeholders})
               {empresa_clausula}
               AND (
-                  UPPER(produ) LIKE '%ATA DE REGISTRO DE PRE%'
-                  OR UPPER(produ) LIKE '%ADESAO%ATA%'
-                  OR UPPER(produ) LIKE '%ADESÃO%ATA%'
-                  OR UPPER(produ) LIKE '%TERMO DE ADESÃO%'
-                  OR UPPER(produ) LIKE '%TERMO DE ADESAO%'
+                  UPPER(descricao) LIKE '%ATA DE REGISTRO DE PRE%'
+                  OR UPPER(descricao) LIKE '%ADESAO%ATA%'
+                  OR UPPER(descricao) LIKE '%ADESÃO%ATA%'
+                  OR UPPER(descricao) LIKE '%TERMO DE ADESÃO%'
+                  OR UPPER(descricao) LIKE '%TERMO DE ADESAO%'
               )
         """),
         conn,
@@ -137,28 +136,28 @@ def run_external(conn: Any, year: int, empresa_ids: list[str] | None = None) -> 
     de outra entidade (TERMO DE ADESÃO EXTERNA), que podem não aparecer
     na tabela licitacoes com carona='S'.
     """
-    empresa_clausula = "AND dg.empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clausula = "AND dg.empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
 
     query = text(f"""
         SELECT
-            dg.datae      AS data,
-            dg.nomefor    AS fornecedor,
-            dg.pago       AS pago,
-            dg.nomeempresa AS unidade,
-            dg.produ      AS justificativa,
-            dg.numlicit   AS num_licitacao
-        FROM despesas_gerais dg
+            dg.data_empenho AS data,
+            dg.fornecedor_nome AS fornecedor,
+            dg.pago AS pago,
+            dg.empresa_id AS unidade,
+            dg.descricao AS justificativa,
+            dg.licitacao_numero AS num_licitacao
+        FROM fct_despesas dg
         WHERE dg.ano = :ano
           {empresa_clausula}
           AND (
-              UPPER(dg.produ) LIKE '%ATA DE REGISTRO DE PRE%'
-              OR UPPER(dg.produ) LIKE '%ADESAO%ATA%'
-              OR UPPER(dg.produ) LIKE '%ADESÃO%ATA%'
-              OR UPPER(dg.produ) LIKE '%TERMO DE ADESÃO%'
-              OR UPPER(dg.produ) LIKE '%TERMO DE ADESAO%'
+              UPPER(dg.descricao) LIKE '%ATA DE REGISTRO DE PRE%'
+              OR UPPER(dg.descricao) LIKE '%ADESAO%ATA%'
+              OR UPPER(dg.descricao) LIKE '%ADESÃO%ATA%'
+              OR UPPER(dg.descricao) LIKE '%TERMO DE ADESÃO%'
+              OR UPPER(dg.descricao) LIKE '%TERMO DE ADESAO%'
           )
         ORDER BY CAST(NULLIF(REPLACE(dg.pago, ',', '.'), '') AS FLOAT) DESC
     """)

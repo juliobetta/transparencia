@@ -32,3 +32,21 @@ Este repositório possui limites estritos de consumo de tokens (Spend Cap). Todo
 Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 1. Sempre execute a suíte de testes de integração via `make test`.
 2. Sempre rode as validações estáticas e linters via `make check`.
+
+---
+
+## 5. SINCRONIZAÇÃO OBRIGATÓRIA: dbt models ↔ `tests/conftest.py`
+
+**Contexto:** O banco de testes (`testing.postgresql`) é criado via `SQLModel.metadata.create_all()` e expõe as tabelas raw em `public`. A função `_create_test_views()` em `tests/conftest.py` cria views `fct_*` e o schema `raw_porciuncula_prefeitura` que espelham o que os modelos dbt materializam em produção.
+
+**Regra:** Toda vez que um modelo dbt for criado ou modificado de forma que altere colunas expostas nas views de teste, é **obrigatório** atualizar `tests/conftest.py` na mesma PR/commit:
+
+| Alteração dbt | Ação no conftest |
+|---|---|
+| Nova coluna em staging `stg_*` que aparece em um mart `fct_*` | Adicionar coluna à view correspondente no conftest |
+| Coluna renomeada em staging/mart | Renomear o alias na view do conftest |
+| Novo mart `fct_*` | Criar nova view `CREATE OR REPLACE VIEW fct_<nome>` na `_create_test_views()` |
+| Novo staging que move dado de raw para `exercicio`/`restos_a_pagar` | Atualizar o UNION ALL da `fct_despesas` view |
+| Coluna removida de um mart | Remover da view correspondente |
+
+**Verificação:** Após qualquer alteração em `elt/transform/models/`, executar `make test`. Se algum teste falhar com `UndefinedColumn` ou `UndefinedTable`, o `tests/conftest.py` está desatualizado.

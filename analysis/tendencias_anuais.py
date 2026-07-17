@@ -7,11 +7,18 @@ from analysis import fontes_receita
 
 
 def _sum_col(
-    conn: Any, table: str, col: str, year: int, root_only: bool = False, empresa_ids: list[str] | None = None
+    conn: Any,
+    table: str,
+    col: str,
+    year: int,
+    root_only: bool = False,
+    empresa_ids: list[str] | None = None,
+    empresa_col: str = "empresa_id",
+    extra_where: str = "",
 ) -> float:
     try:
-        empresa_clause = "AND t.empresa = ANY(:empresas)" if empresa_ids else ""
-        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano {empresa_clause}"
+        empresa_clause = f"AND t.{empresa_col} = ANY(:empresas)" if empresa_ids else ""
+        sql = f"SELECT {col} FROM {table} t WHERE t.ano = :ano {empresa_clause} {extra_where}"
         if root_only:
             sql += (
                 f" AND NOT EXISTS ("
@@ -41,13 +48,31 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
     rev_map = dict(zip(rev_df["ano"], rev_df["total_arrecadado"]))
 
     for year in sorted_years:
-        total_gasto = _sum_col(conn, "despesas_por_orgao", "pago", year, empresa_ids=empresa_ids)
-        total_empenhado = _sum_col(conn, "despesas_por_orgao", "empenhado", year, empresa_ids=empresa_ids)
-        total_folha = _sum_col(conn, "pessoal", "proventos", year)  # pessoal usa empresa='001', não filtra por entidade
+        total_gasto = _sum_col(
+            conn,
+            "raw_porciuncula_prefeitura.despesas_por_orgao",
+            "pago",
+            year,
+            empresa_ids=empresa_ids,
+            empresa_col="empresa",
+        )
+        total_empenhado = _sum_col(
+            conn,
+            "raw_porciuncula_prefeitura.despesas_por_orgao",
+            "empenhado",
+            year,
+            empresa_ids=empresa_ids,
+            empresa_col="empresa",
+        )
+        total_folha = _sum_col(
+            conn, "fct_pessoal", "proventos", year
+        )  # pessoal usa empresa='001', não filtra por entidade
 
         total_rec = rev_map.get(year, 0.0)
         receita = total_rec if total_rec > 0 else None
-        restos = _sum_col(conn, "despesas_restos_pagar", "pago", year, empresa_ids=empresa_ids)
+        restos = _sum_col(
+            conn, "fct_despesas", "pago", year, empresa_ids=empresa_ids, extra_where="AND fonte = 'restos_a_pagar'"
+        )
 
         records.append(
             {

@@ -40,9 +40,9 @@ def _sum_col_where(conn: Any, table: str, col: str, year: int, empresa_ids: list
 
 
 def get_metricas_gerais_despesas(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empenhado = _sum_col_where(conn, "despesas_por_unidade", "empenhado", year, empresa_ids)
-    liquidado = _sum_col_where(conn, "despesas_por_unidade", "liquidado", year, empresa_ids)
-    pago = _sum_col_where(conn, "despesas_por_unidade", "pago", year, empresa_ids)
+    empenhado = _sum_col_where(conn, "raw_porciuncula_prefeitura.despesas_por_unidade", "empenhado", year, empresa_ids)
+    liquidado = _sum_col_where(conn, "raw_porciuncula_prefeitura.despesas_por_unidade", "liquidado", year, empresa_ids)
+    pago = _sum_col_where(conn, "raw_porciuncula_prefeitura.despesas_por_unidade", "pago", year, empresa_ids)
 
     return {
         "empenhado": empenhado,
@@ -60,7 +60,7 @@ def get_despesas_por_unidade(conn: Any, year: int, empresa_ids: list[str] | None
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            f"SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_unidade WHERE ano = :ano {empresa_clause}"
+            f"SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM raw_porciuncula_prefeitura.despesas_por_unidade WHERE ano = :ano {empresa_clause}"
         ),
         conn,
         params=params,
@@ -97,12 +97,12 @@ def get_principais_fornecedores_detalhados(conn: Any, year: int, empresa_ids: li
             f.empenhado,
             f.liquidado,
             f.pago,
-            MAX(g.produ) as descricao,
+            MAX(g.descricao) as descricao,
             MAX(g.elemento) as elemento
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g
+        FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g
           ON f.ano = g.ano
-          AND f.descricao = g.nomefor
+          AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
@@ -159,10 +159,10 @@ def get_impacto_gastos_locais(
     sql = text(
         f"""
         SELECT f.cepci as cidade, f.pago
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g
+        FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g
           ON f.ano = g.ano
-          AND f.descricao = g.nomefor
+          AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
@@ -208,10 +208,10 @@ def get_gastos_por_municipio(
     sql = text(
         f"""
         SELECT f.cepci as cidade, f.pago
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g
+        FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g
           ON f.ano = g.ano
-          AND f.descricao = g.nomefor
+          AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
@@ -264,15 +264,15 @@ def get_gastos_por_municipio(
 
 def get_folha_por_orgao(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
     # Filtra folha de pessoal (elemento 11) diretamente da despesas_gerais
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year, "elemento": ELEMENTO_FOLHA_PESSOAL}
     if empresa_ids:
         params["empresas"] = empresa_ids
     query = text(f"""
-        SELECT nomefor as descricao, SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) as pago
-        FROM despesas_gerais
+        SELECT fornecedor_nome as descricao, SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) as pago
+        FROM fct_despesas
         WHERE ano = :ano AND elemento = :elemento {empresa_clause}
-        GROUP BY nomefor
+        GROUP BY fornecedor_nome
     """)
     df = pd.read_sql_query(query, conn, params=params)
     if df.empty:
@@ -282,12 +282,12 @@ def get_folha_por_orgao(conn: Any, year: int, empresa_ids: list[str] | None = No
 
 
 def get_resumo_diarias(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
-        text(f"SELECT valor, favorecido FROM diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
+        text(f"SELECT valor, favorecido FROM fct_diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
     )
     if df.empty:
         return {"total_valor": 0.0, "total_viajantes": 0, "media_reembolso": 0.0}
@@ -304,12 +304,12 @@ def get_resumo_diarias(conn: Any, year: int, empresa_ids: list[str] | None = Non
 
 
 def get_principais_beneficiarios_diarias(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
-        text(f"SELECT favorecido, cargo, valor FROM diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
+        text(f"SELECT favorecido, cargo, valor FROM fct_diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
     )
     if df.empty:
         return pd.DataFrame(columns=["favorecido", "cargo", "valor", "viagens"])
@@ -325,17 +325,17 @@ def get_principais_beneficiarios_diarias(conn: Any, year: int, empresa_ids: list
 def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 500) -> pd.DataFrame:
     if query.strip():
         sql = text("""
-            SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
-            FROM despesas_gerais
-            WHERE ano = :ano AND (nomefor ILIKE :search OR produ ILIKE :search OR nomeempresa ILIKE :search)
+            SELECT data_empenho as data, fornecedor_nome as fornecedor, pago, empresa_id as unidade, descricao
+            FROM fct_despesas
+            WHERE ano = :ano AND (fornecedor_nome ILIKE :search OR descricao ILIKE :search OR empresa_id ILIKE :search)
             ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
             LIMIT :lim
         """)
         params = {"ano": year, "search": f"%{query}%", "lim": limit}
     else:
         sql = text("""
-            SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
-            FROM despesas_gerais
+            SELECT data_empenho as data, fornecedor_nome as fornecedor, pago, empresa_id as unidade, descricao
+            FROM fct_despesas
             WHERE ano = :ano
             ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
             LIMIT :lim
@@ -355,7 +355,7 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
     if query.strip():
         sql = text("""
             SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-            FROM diarias
+            FROM fct_diarias
             WHERE ano = :ano AND (favorecido ILIKE :search OR unidade ILIKE :search OR cargo ILIKE :search)
             ORDER BY data DESC
         """)
@@ -363,7 +363,7 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
     else:
         sql = text("""
             SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-            FROM diarias
+            FROM fct_diarias
             WHERE ano = :ano
             ORDER BY data DESC LIMIT :lim
         """)
@@ -436,19 +436,19 @@ def get_perfil_cargos_confianca(_conn: Any, years: list[int]) -> pd.DataFrame:
         SELECT
             ano,
             CASE
-                WHEN LOWER(categoriafuncional) LIKE '%inativo%' OR LOWER(categoriafuncional) LIKE '%pensionista%' OR LOWER(vinculo) LIKE '%inativo%' OR LOWER(vinculo) LIKE '%pensionista%' THEN 'Inativos e Pensionistas'
-                WHEN LOWER(cargo) LIKE '%conselheiro%' OR LOWER(categoriafuncional) LIKE '%cedido%' OR LOWER(vinculo) LIKE '%cedido%' OR LOWER(vinculo) IN ('macaeprev', 'macaeprev i', 'funprev', 'funprev active', 'rppsi', 'rpps active') THEN 'Conselhos e Cedidos Externos'
+                WHEN LOWER(categoria_funcional) LIKE '%inativo%' OR LOWER(categoria_funcional) LIKE '%pensionista%' OR LOWER(vinculo) LIKE '%inativo%' OR LOWER(vinculo) LIKE '%pensionista%' THEN 'Inativos e Pensionistas'
+                WHEN LOWER(cargo) LIKE '%conselheiro%' OR LOWER(categoria_funcional) LIKE '%cedido%' OR LOWER(vinculo) LIKE '%cedido%' OR LOWER(vinculo) IN ('macaeprev', 'macaeprev i', 'funprev', 'funprev active', 'rppsi', 'rpps active') THEN 'Conselhos e Cedidos Externos'
                 WHEN vinculo LIKE '%FG%' THEN 'Servidor Efetivo com Função de Confiança (DAI/FG)'
-                WHEN vinculo LIKE '%CC%' OR categoriafuncional = 'Efetivos ocupantes de cargo comissionado' THEN 'Servidor Efetivo com Cargo Comissionado (DAS/CC)'
-                WHEN categoriafuncional = 'Cargo comissionado extra-quadro' OR vinculo = 'Comissionado INSS' OR LOWER(vinculo) LIKE 'cargo comissionado%' THEN 'Comissionado Externo (DAS/CC - Sem Vínculo)'
-                WHEN formaprovimento = 'CONCURSO PUBLICO' OR categoriafuncional = 'Efetivos' THEN 'Servidor Efetivo de Carreira'
-                WHEN formaprovimento = 'TEMPO DETERMINADO' OR categoriafuncional LIKE '%interesse público%' THEN 'Contrato Temporário'
-                WHEN categoriafuncional = 'Eletivos' OR LOWER(cargo) LIKE '%prefeito%' OR LOWER(cargo) LIKE '%vereador%' OR LOWER(cargo) LIKE '%secretario%' OR LOWER(vinculo) LIKE '%politico%' THEN 'Agente Político (Eletivo/Secretário)'
+                WHEN vinculo LIKE '%CC%' OR categoria_funcional = 'Efetivos ocupantes de cargo comissionado' THEN 'Servidor Efetivo com Cargo Comissionado (DAS/CC)'
+                WHEN categoria_funcional = 'Cargo comissionado extra-quadro' OR vinculo = 'Comissionado INSS' OR LOWER(vinculo) LIKE 'cargo comissionado%' THEN 'Comissionado Externo (DAS/CC - Sem Vínculo)'
+                WHEN forma_provimento = 'CONCURSO PUBLICO' OR categoria_funcional = 'Efetivos' THEN 'Servidor Efetivo de Carreira'
+                WHEN forma_provimento = 'TEMPO DETERMINADO' OR categoria_funcional LIKE '%interesse público%' THEN 'Contrato Temporário'
+                WHEN categoria_funcional = 'Eletivos' OR LOWER(cargo) LIKE '%prefeito%' OR LOWER(cargo) LIKE '%vereador%' OR LOWER(cargo) LIKE '%secretario%' OR LOWER(vinculo) LIKE '%politico%' THEN 'Agente Político (Eletivo/Secretário)'
                 ELSE 'Outros'
             END as tipo_vinculo_detalhado,
             COUNT(*) as quantidade,
             SUM(CAST(NULLIF(REPLACE(REPLACE(proventos, '.', ''), ',', '.'), '') AS FLOAT)) as total_gasto
-        FROM pessoal
+        FROM fct_pessoal
         WHERE ano IN :anos
         GROUP BY ano, tipo_vinculo_detalhado
     """)
@@ -462,7 +462,7 @@ def get_perfil_cargos_confianca(_conn: Any, years: list[int]) -> pd.DataFrame:
 
 def get_composicao_despesa(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
     """Retorna o total pago por macro-categoria de natureza de despesa (Portaria 163/2001)."""
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
@@ -486,8 +486,8 @@ def get_composicao_despesa(conn: Any, year: int, empresa_ids: list[str] | None =
                     ELSE 'Outros'
                 END AS categoria,
                 CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS NUMERIC) AS pago
-            FROM despesas_gerais
-            WHERE ano = :ano AND tpem != 'AN' {empresa_clause}
+            FROM fct_despesas
+            WHERE ano = :ano AND tipo_empenho != 'AN' {empresa_clause}
         ) sub
         GROUP BY categoria
         ORDER BY pago DESC NULLS LAST
