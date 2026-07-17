@@ -6,13 +6,28 @@ models:
     columns:
       - name: ano
         data_type: integer
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
       - name: empresa_id
         data_type: text
+        tests:
+          - not_null
       - name: rap_id
         data_type: text
       - name: descricao
         data_type: text
       - name: empenhado
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "empenhado is not null"
       - name: pago
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "pago is not null"

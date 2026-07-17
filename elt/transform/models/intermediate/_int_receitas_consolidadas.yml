@@ -6,12 +6,21 @@ models:
     columns:
       - name: portal_slug
         data_type: text
+        tests:
+          - not_null
       - name: tipo_receita
         data_type: text
       - name: ano
         data_type: integer
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
       - name: empresa_id
         data_type: text
+        tests:
+          - not_null
       - name: codigo
         data_type: text
       - name: descricao

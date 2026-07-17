@@ -12,6 +12,9 @@ models:
         constraints:
           - type: not_null
         description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | numero_emenda)"
+        tests:
+          - not_null
+          - unique
       - name: portal_slug
         data_type: text
         constraints:
@@ -20,6 +23,11 @@ models:
         data_type: integer
         constraints:
           - type: not_null
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
       - name: empresa_id
         data_type: text
         constraints:
@@ -30,8 +38,16 @@ models:
         data_type: text
       - name: valor_total
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "valor_total is not null"
       - name: empenhado
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "empenhado is not null"
       - name: autor
         data_type: text
       - name: tipo_emenda

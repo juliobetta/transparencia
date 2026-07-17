@@ -11,6 +11,9 @@ models:
         data_type: text
         constraints:
           - type: not_null
+        tests:
+          - not_null
+          - unique
       - name: portal_slug
         data_type: text
         constraints:

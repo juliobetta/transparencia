@@ -6,12 +6,19 @@ models:
     config:
       contract:
         enforced: true
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "abs(empenhado_liquido - (empenhado + valor_anulacoes)) < 0.01"
+          name: empenhado_liquido_consistente
     columns:
       - name: despesa_id
         data_type: text
         constraints:
           - type: not_null
-        description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | empenho_id)"
+        description: "Chave surrogate MD5 (portal_slug | fonte | ano | empresa_id | empenho_id)"
+        tests:
+          - not_null
+          - unique
       - name: portal_slug
         data_type: text
         constraints:
@@ -19,10 +26,18 @@ models:
       - name: fonte
         data_type: text
         description: "'exercicio' para despesas do orçamento corrente, 'restos_a_pagar' para execução de empenhos de anos anteriores"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['exercicio', 'restos_a_pagar']
       - name: ano
         data_type: integer
         constraints:
           - type: not_null
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
       - name: empresa_id
         data_type: text
         constraints:
@@ -36,6 +51,10 @@ models:
       - name: tipo_empenho
         data_type: text
         description: "OR=Ordinário, ES=Estimativo, GL=Global (anulações AN excluídas desta tabela)"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['OR', 'ES', 'GL', 'AD', 'DA']
+              row_condition: "tipo_empenho is not null"
       - name: orgao_codigo
         data_type: text
       - name: funcao
@@ -82,6 +101,11 @@ models:
         data_type: text
       - name: data_empenho
         data_type: date
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: "'2010-01-01'::date"
+              max_value: "'2040-12-31'::date"
+              row_condition: "data_empenho is not null"
       - name: empenhado
         data_type: numeric
       - name: empenhado_liquido
@@ -91,13 +115,29 @@ models:
         data_type: numeric
       - name: pago
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "pago is not null"
       - name: dotacao_inicial
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "dotacao_inicial is not null"
       - name: alteracao_dotacao
         data_type: numeric
       - name: dotacao_atualizada
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "dotacao_atualizada is not null"
       - name: reforco
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "reforco is not null"
       - name: valor_anulacoes
         data_type: numeric

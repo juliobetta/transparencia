@@ -151,7 +151,7 @@ empenhos as (
 )
 
 select
-    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'ano', 'empresa_id', 'empenho_id']) }} as despesa_id,
+    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'fonte', 'ano', 'empresa_id', 'empenho_id']) }} as despesa_id,
 
     -- Chaves para dimensões
     {{ dbt_utils.generate_surrogate_key(['portal_slug', 'fornecedor_cpf_cnpj']) }} as credor_id,

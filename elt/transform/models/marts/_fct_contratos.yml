@@ -12,6 +12,9 @@ models:
         constraints:
           - type: not_null
         description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | contrato_numero)"
+        tests:
+          - not_null
+          - unique
       - name: portal_slug
         data_type: text
         constraints:
@@ -20,6 +23,11 @@ models:
         data_type: integer
         constraints:
           - type: not_null
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2000
+              max_value: 2035
       - name: empresa_id
         data_type: text
         constraints:
@@ -32,6 +40,10 @@ models:
         data_type: text
       - name: valor_contrato
         data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "valor_contrato is not null"
       - name: licitacao_numero
         data_type: text
       - name: mes

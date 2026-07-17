@@ -21,6 +21,13 @@ select
     mes,
     entidade_pagadora,
     entidade_recebedora,
-    repasse,
-    devolucao
+    sum(repasse) as repasse,
+    sum(devolucao) as devolucao
 from transferencias
+group by
+    portal_slug,
+    ano,
+    empresa_id,
+    mes,
+    entidade_pagadora,
+    entidade_recebedora

@@ -12,6 +12,9 @@ models:
         constraints:
           - type: not_null
         description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | tipo_receita | codigo)"
+        tests:
+          - not_null
+          - unique
       - name: portal_slug
         data_type: text
         constraints:
@@ -20,6 +23,11 @@ models:
         data_type: integer
         constraints:
           - type: not_null
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
       - name: empresa_id
         data_type: text
         constraints:
@@ -27,6 +35,9 @@ models:
       - name: tipo_receita
         data_type: text
         description: "'orcamentaria', 'uniao' ou 'estado'"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['orcamentaria', 'uniao', 'estado']
       - name: codigo
         data_type: text
       - name: descricao
