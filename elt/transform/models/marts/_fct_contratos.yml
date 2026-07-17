@@ -46,6 +46,8 @@ models:
               row_condition: "valor_contrato is not null"
       - name: licitacao_numero
         data_type: text
+      - name: modalidade
+        data_type: text
       - name: mes
         data_type: text
       - name: tipo_obra

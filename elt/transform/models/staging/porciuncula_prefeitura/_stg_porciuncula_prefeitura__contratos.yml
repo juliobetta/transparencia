@@ -37,3 +37,5 @@ models:
         data_type: text
       - name: empenhado
         data_type: numeric
+      - name: modalidade
+        data_type: text
