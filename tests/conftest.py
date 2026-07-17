@@ -62,78 +62,96 @@ def _create_test_views(eng) -> None:
         )
 
         # fct_despesas — merges despesas_gerais (exercicio) + despesas_restos_pagar (restos_a_pagar)
+        # empenhado_liquido replicates dbt logic: empenhado + SUM(anulacoes where pkempa = pkemp)
         conn.execute(
             text("""
                 CREATE OR REPLACE VIEW fct_despesas AS
+                WITH base AS (
+                    SELECT
+                        empresa AS empresa_id,
+                        'exercicio' AS fonte,
+                        ano,
+                        numero AS empenho_id,
+                        pkemp AS pk_empenho,
+                        pkempa AS pk_empenho_pai,
+                        tpem AS tipo_empenho,
+                        orgao AS orgao_codigo,
+                        nomefor AS fornecedor_nome,
+                        cpfformatado AS fornecedor_cpf_cnpj,
+                        datae AS data_empenho,
+                        produ AS descricao,
+                        numlicit AS licitacao_numero,
+                        licit AS licitacao_modalidade,
+                        funcao,
+                        funcaonome AS funcao_nome,
+                        subfuncao,
+                        subfuncaonome AS subfuncao_nome,
+                        natureza AS natureza_despesa,
+                        projativ AS proj_atividade,
+                        gruponatureza AS grupo_natureza,
+                        programa,
+                        programanome AS programa_nome,
+                        elemento,
+                        mes,
+                        nomeempresa AS empresa_nome,
+                        COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
+                        COALESCE(nullif(replace(liquidado, ',', '.'), '')::numeric, 0) AS liquidado,
+                        COALESCE(nullif(replace(pago, ',', '.'), '')::numeric, 0) AS pago,
+                        nullif(replace(dotacatualizada, ',', '.'), '')::numeric AS dotacao_atualizada,
+                        nullif(replace(dotac, ',', '.'), '')::numeric AS dotacao_inicial,
+                        nullif(replace(altdo, ',', '.'), '')::numeric AS alteracao_dotacao
+                    FROM despesas_gerais
+                    UNION ALL
+                    SELECT
+                        empresa AS empresa_id,
+                        'restos_a_pagar' AS fonte,
+                        ano,
+                        numero AS empenho_id,
+                        NULL AS pk_empenho,
+                        NULL AS pk_empenho_pai,
+                        NULL AS tipo_empenho,
+                        NULL AS orgao_codigo,
+                        NULL AS fornecedor_nome,
+                        NULL AS fornecedor_cpf_cnpj,
+                        NULL AS data_empenho,
+                        NULL AS empresa_nome,
+                        descricao,
+                        NULL AS licitacao_numero,
+                        NULL AS licitacao_modalidade,
+                        NULL AS funcao,
+                        NULL AS funcao_nome,
+                        NULL AS subfuncao,
+                        NULL AS subfuncao_nome,
+                        NULL AS natureza_despesa,
+                        NULL AS proj_atividade,
+                        NULL AS grupo_natureza,
+                        NULL AS programa,
+                        NULL AS programa_nome,
+                        NULL AS elemento,
+                        NULL AS mes,
+                        COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
+                        COALESCE(nullif(replace(liquidado, ',', '.'), '')::numeric, 0) AS liquidado,
+                        COALESCE(nullif(replace(pago, ',', '.'), '')::numeric, 0) AS pago,
+                        NULL AS dotacao_atualizada,
+                        NULL AS dotacao_inicial,
+                        NULL AS alteracao_dotacao
+                    FROM despesas_restos_pagar
+                ),
+                anulacoes AS (
+                    SELECT pk_empenho_pai, ano, empresa_id, SUM(empenhado) AS total_anulado
+                    FROM base
+                    WHERE tipo_empenho = 'AN'
+                    GROUP BY pk_empenho_pai, ano, empresa_id
+                )
                 SELECT
-                    empresa AS empresa_id,
-                    'exercicio' AS fonte,
-                    ano,
-                    numero AS empenho_id,
-                    pkemp AS pk_empenho,
-                    pkempa AS pk_empenho_pai,
-                    tpem AS tipo_empenho,
-                    orgao AS orgao_codigo,
-                    nomefor AS fornecedor_nome,
-                    cpfformatado AS fornecedor_cpf_cnpj,
-                    datae AS data_empenho,
-                    produ AS descricao,
-                    numlicit AS licitacao_numero,
-                    licit AS licitacao_modalidade,
-                    funcao,
-                    funcaonome AS funcao_nome,
-                    subfuncao,
-                    subfuncaonome AS subfuncao_nome,
-                    natureza AS natureza_despesa,
-                    projativ AS proj_atividade,
-                    gruponatureza AS grupo_natureza,
-                    programa,
-                    programanome AS programa_nome,
-                    elemento,
-                    mes,
-                    nomeempresa AS empresa_nome,
-                    COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
-                    COALESCE(nullif(replace(liquidado, ',', '.'), '')::numeric, 0) AS liquidado,
-                    COALESCE(nullif(replace(pago, ',', '.'), '')::numeric, 0) AS pago,
-                    nullif(replace(dotacatualizada, ',', '.'), '')::numeric AS dotacao_atualizada,
-                    nullif(replace(dotac, ',', '.'), '')::numeric AS dotacao_inicial,
-                    nullif(replace(altdo, ',', '.'), '')::numeric AS alteracao_dotacao
-                FROM despesas_gerais
-                UNION ALL
-                SELECT
-                    empresa AS empresa_id,
-                    'restos_a_pagar' AS fonte,
-                    ano,
-                    numero AS empenho_id,
-                    NULL AS pk_empenho,
-                    NULL AS pk_empenho_pai,
-                    NULL AS tipo_empenho,
-                    NULL AS orgao_codigo,
-                    NULL AS fornecedor_nome,
-                    NULL AS fornecedor_cpf_cnpj,
-                    NULL AS data_empenho,
-                    NULL AS empresa_nome,
-                    descricao,
-                    NULL AS licitacao_numero,
-                    NULL AS licitacao_modalidade,
-                    NULL AS funcao,
-                    NULL AS funcao_nome,
-                    NULL AS subfuncao,
-                    NULL AS subfuncao_nome,
-                    NULL AS natureza_despesa,
-                    NULL AS proj_atividade,
-                    NULL AS grupo_natureza,
-                    NULL AS programa,
-                    NULL AS programa_nome,
-                    NULL AS elemento,
-                    NULL AS mes,
-                    COALESCE(nullif(replace(empenhado, ',', '.'), '')::numeric, 0) AS empenhado,
-                    COALESCE(nullif(replace(liquidado, ',', '.'), '')::numeric, 0) AS liquidado,
-                    COALESCE(nullif(replace(pago, ',', '.'), '')::numeric, 0) AS pago,
-                    NULL AS dotacao_atualizada,
-                    NULL AS dotacao_inicial,
-                    NULL AS alteracao_dotacao
-                FROM despesas_restos_pagar
+                    b.*,
+                    b.empenhado + COALESCE(a.total_anulado, 0) AS empenhado_liquido
+                FROM base b
+                LEFT JOIN anulacoes a
+                    ON b.pk_empenho = a.pk_empenho_pai
+                    AND b.ano = a.ano
+                    AND b.empresa_id = a.empresa_id
+                WHERE b.tipo_empenho != 'AN' OR b.tipo_empenho IS NULL
             """)
         )
 

@@ -57,38 +57,21 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
 def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
     """Calcula a execução orçamentária do 13º salário consultando despesas_gerais."""
     query = """
-        WITH empenhos_13 AS (
-            SELECT
-                pk_empenho,
-                empenhado as empenhado,
-                liquidado as liquidado,
-                pago as pago
-            FROM fct_despesas
-            WHERE ano = :ano
-              AND elemento IN ('01', '03', '11', '96')
-              AND (descricao ILIKE '%13%' OR descricao ILIKE '%decimo terceiro%' OR descricao ILIKE '%décimo terceiro%')
-              AND descricao NOT ILIKE '%anula%'
-              AND descricao NOT ILIKE '%136%'
-              AND descricao NOT ILIKE '%137%'
-              AND descricao NOT ILIKE '%138%'
-              AND descricao NOT ILIKE '%139%'
-              AND tipo_empenho != 'AN'
-        ),
-        anulacoes AS (
-            SELECT
-                pk_empenho_pai,
-                SUM(empenhado) as tot_anulado
-            FROM fct_despesas
-            WHERE ano = :ano AND tipo_empenho = 'AN'
-            GROUP BY pk_empenho_pai
-        )
         SELECT
-            SUM(e.empenhado) as empenhado_bruto,
-            SUM(e.empenhado + COALESCE(a.tot_anulado, 0)) as empenhado_liquido,
-            SUM(e.liquidado) as liquidado,
-            SUM(e.pago) as pago
-        FROM empenhos_13 e
-        LEFT JOIN anulacoes a ON e.pk_empenho = a.pk_empenho_pai
+            SUM(empenhado) as empenhado_bruto,
+            SUM(empenhado_liquido) as empenhado_liquido,
+            SUM(liquidado) as liquidado,
+            SUM(pago) as pago
+        FROM fct_despesas
+        WHERE ano = :ano
+          AND elemento IN ('01', '03', '11', '96')
+          AND (descricao ILIKE '%13%' OR descricao ILIKE '%decimo terceiro%' OR descricao ILIKE '%décimo terceiro%')
+          AND descricao NOT ILIKE '%anula%'
+          AND descricao NOT ILIKE '%136%'
+          AND descricao NOT ILIKE '%137%'
+          AND descricao NOT ILIKE '%138%'
+          AND descricao NOT ILIKE '%139%'
+          AND tipo_empenho != 'AN'
     """
     df = pd.read_sql_query(text(query), conn, params={"ano": year})
     if df.empty or pd.isna(df.iloc[0]["empenhado_bruto"]) or df.iloc[0]["empenhado_bruto"] is None:
@@ -113,43 +96,24 @@ def execucao_decimo_terceiro(conn: Any, year: int) -> dict[str, float] | None:
 def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
     """Retorna o detalhamento da execução orçamentária do 13º salário por Órgão e Função."""
     query = """
-        WITH empenhos_13 AS (
-            SELECT
-                pk_empenho,
-                COALESCE(empresa_nome, empresa_id) as orgao,
-                COALESCE(funcao_nome, 'Outros') as funcao,
-                empenhado as empenhado,
-                liquidado as liquidado,
-                pago as pago
-            FROM fct_despesas
-            WHERE ano = :ano
-              AND elemento IN ('01', '03', '11', '96')
-              AND (descricao ILIKE '%13%' OR descricao ILIKE '%decimo terceiro%' OR descricao ILIKE '%décimo terceiro%')
-              AND descricao NOT ILIKE '%anula%'
-              AND descricao NOT ILIKE '%136%'
-              AND descricao NOT ILIKE '%137%'
-              AND descricao NOT ILIKE '%138%'
-              AND descricao NOT ILIKE '%139%'
-              AND tipo_empenho != 'AN'
-        ),
-        anulacoes AS (
-            SELECT
-                pk_empenho_pai,
-                SUM(empenhado) as tot_anulado
-            FROM fct_despesas
-            WHERE ano = :ano AND tipo_empenho = 'AN'
-            GROUP BY pk_empenho_pai
-        )
         SELECT
-            e.orgao,
-            e.funcao,
-            SUM(e.empenhado) as empenhado_bruto,
-            SUM(e.empenhado + COALESCE(a.tot_anulado, 0)) as empenhado_liquido,
-            SUM(e.liquidado) as liquidado,
-            SUM(e.pago) as pago
-        FROM empenhos_13 e
-        LEFT JOIN anulacoes a ON e.pk_empenho = a.pk_empenho_pai
-        GROUP BY e.orgao, e.funcao
+            COALESCE(empresa_nome, empresa_id) as orgao,
+            COALESCE(funcao_nome, 'Outros') as funcao,
+            SUM(empenhado) as empenhado_bruto,
+            SUM(empenhado_liquido) as empenhado_liquido,
+            SUM(liquidado) as liquidado,
+            SUM(pago) as pago
+        FROM fct_despesas
+        WHERE ano = :ano
+          AND elemento IN ('01', '03', '11', '96')
+          AND (descricao ILIKE '%13%' OR descricao ILIKE '%decimo terceiro%' OR descricao ILIKE '%décimo terceiro%')
+          AND descricao NOT ILIKE '%anula%'
+          AND descricao NOT ILIKE '%136%'
+          AND descricao NOT ILIKE '%137%'
+          AND descricao NOT ILIKE '%138%'
+          AND descricao NOT ILIKE '%139%'
+          AND tipo_empenho != 'AN'
+        GROUP BY empresa_nome, empresa_id, funcao_nome
         ORDER BY pago DESC
     """
     df = pd.read_sql_query(text(query), conn, params={"ano": year})
