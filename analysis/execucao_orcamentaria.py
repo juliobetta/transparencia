@@ -11,7 +11,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFr
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            f"SELECT ano, empresa, codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM raw_porciuncula_prefeitura.despesas_por_orgao WHERE ano = :ano {empresa_clause}"
+            f"SELECT ano, empresa, codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM fct_despesas_por_orgao WHERE ano = :ano {empresa_clause}"
         ),
         conn,
         params=params,

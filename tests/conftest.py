@@ -61,6 +61,30 @@ def _create_test_views(eng) -> None:
         """)
         )
 
+        # fct_despesas_por_* — espelham os modelos dbt intermediários (lêem das views raw já com cast numérico)
+        conn.execute(
+            text("""
+            CREATE OR REPLACE VIEW fct_despesas_por_orgao AS
+            SELECT * FROM raw_porciuncula_prefeitura.despesas_por_orgao
+        """)
+        )
+        conn.execute(
+            text("""
+            CREATE OR REPLACE VIEW fct_despesas_por_unidade AS
+            SELECT * FROM raw_porciuncula_prefeitura.despesas_por_unidade
+        """)
+        )
+        conn.execute(
+            text("""
+            CREATE OR REPLACE VIEW fct_despesas_por_fornecedor AS
+            SELECT empresa, ano, codigo, descricao,
+                insmf AS fornecedor_cpf_cnpj,
+                cepci AS fornecedor_cidade,
+                empenhado, liquidado, pago
+            FROM raw_porciuncula_prefeitura.despesas_por_fornecedor
+        """)
+        )
+
         # fct_despesas — merges despesas_gerais (exercicio) + despesas_restos_pagar (restos_a_pagar)
         # empenhado_liquido replicates dbt logic: empenhado + SUM(anulacoes where pkempa = pkemp)
         conn.execute(
@@ -299,6 +323,21 @@ def _create_test_views(eng) -> None:
                     nullif(replace(previsao_atualizada, ',', '.'), '')::numeric AS previsao_atualizada,
                     COALESCE(nullif(replace(arrecadado_total, ',', '.'), '')::numeric, nullif(replace(arrecadado, ',', '.'), '')::numeric) AS arrecadado
                 FROM receita_estado
+            """)
+        )
+
+        conn.execute(
+            text("""
+                CREATE OR REPLACE VIEW dim_credor AS
+                SELECT DISTINCT ON (insmf)
+                    md5(insmf) AS credor_id,
+                    'porciuncula_prefeitura' AS portal_slug,
+                    insmf AS fornecedor_cpf_cnpj,
+                    empresa AS fornecedor_nome,
+                    cepci AS fornecedor_cidade
+                FROM raw_porciuncula_prefeitura.despesas_por_fornecedor
+                WHERE insmf IS NOT NULL
+                ORDER BY insmf, ano DESC
             """)
         )
 

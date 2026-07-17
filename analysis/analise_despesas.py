@@ -40,9 +40,9 @@ def _sum_col_where(conn: Any, table: str, col: str, year: int, empresa_ids: list
 
 
 def get_metricas_gerais_despesas(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empenhado = _sum_col_where(conn, "raw_porciuncula_prefeitura.despesas_por_unidade", "empenhado", year, empresa_ids)
-    liquidado = _sum_col_where(conn, "raw_porciuncula_prefeitura.despesas_por_unidade", "liquidado", year, empresa_ids)
-    pago = _sum_col_where(conn, "raw_porciuncula_prefeitura.despesas_por_unidade", "pago", year, empresa_ids)
+    empenhado = _sum_col_where(conn, "fct_despesas_por_unidade", "empenhado", year, empresa_ids)
+    liquidado = _sum_col_where(conn, "fct_despesas_por_unidade", "liquidado", year, empresa_ids)
+    pago = _sum_col_where(conn, "fct_despesas_por_unidade", "pago", year, empresa_ids)
 
     return {
         "empenhado": empenhado,
@@ -60,7 +60,7 @@ def get_despesas_por_unidade(conn: Any, year: int, empresa_ids: list[str] | None
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            f"SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM raw_porciuncula_prefeitura.despesas_por_unidade WHERE ano = :ano {empresa_clause}"
+            f"SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM fct_despesas_por_unidade WHERE ano = :ano {empresa_clause}"
         ),
         conn,
         params=params,
@@ -93,22 +93,22 @@ def get_principais_fornecedores_detalhados(conn: Any, year: int, empresa_ids: li
         f"""
         SELECT
             f.descricao as fornecedor,
-            f.insmf,
-            f.cepci as cidade,
+            f.fornecedor_cpf_cnpj as insmf,
+            f.fornecedor_cidade as cidade,
             f.codigo,
             f.empenhado,
             f.liquidado,
             f.pago,
             MAX(g.descricao) as descricao,
             MAX(g.elemento) as elemento
-        FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+        FROM fct_despesas_por_fornecedor f
         LEFT JOIN fct_despesas g
           ON f.ano = g.ano
           AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
-        GROUP BY f.descricao, f.insmf, f.cepci, f.codigo, f.empenhado, f.liquidado, f.pago
+        GROUP BY f.descricao, f.fornecedor_cpf_cnpj, f.fornecedor_cidade, f.codigo, f.empenhado, f.liquidado, f.pago
         """
     ).bindparams(
         bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
@@ -160,8 +160,8 @@ def get_impacto_gastos_locais(
     empresa_clause = "AND f.empresa = ANY(:empresas)" if empresa_ids else ""
     sql = text(
         f"""
-        SELECT f.cepci as cidade, f.pago
-        FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+        SELECT f.fornecedor_cidade as cidade, f.pago
+        FROM fct_despesas_por_fornecedor f
         LEFT JOIN fct_despesas g
           ON f.ano = g.ano
           AND f.descricao = g.fornecedor_nome
@@ -209,8 +209,8 @@ def get_gastos_por_municipio(
     empresa_clause = "AND f.empresa = ANY(:empresas)" if empresa_ids else ""
     sql = text(
         f"""
-        SELECT f.cepci as cidade, f.pago
-        FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+        SELECT f.fornecedor_cidade as cidade, f.pago
+        FROM fct_despesas_por_fornecedor f
         LEFT JOIN fct_despesas g
           ON f.ano = g.ano
           AND f.descricao = g.fornecedor_nome

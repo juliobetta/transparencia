@@ -50,7 +50,7 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
     for year in sorted_years:
         total_gasto = _sum_col(
             conn,
-            "raw_porciuncula_prefeitura.despesas_por_orgao",
+            "fct_despesas_por_orgao",
             "pago",
             year,
             empresa_ids=empresa_ids,
@@ -58,7 +58,7 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
         )
         total_empenhado = _sum_col(
             conn,
-            "raw_porciuncula_prefeitura.despesas_por_orgao",
+            "fct_despesas_por_orgao",
             "empenhado",
             year,
             empresa_ids=empresa_ids,

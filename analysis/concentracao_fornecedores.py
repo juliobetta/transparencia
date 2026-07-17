@@ -15,7 +15,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     sql = text(
         f"""
         SELECT f.codigo, f.descricao, f.empenhado
-        FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+        FROM fct_despesas_por_fornecedor f
         LEFT JOIN fct_despesas g
           ON f.ano = g.ano
           AND f.descricao = g.fornecedor_nome
@@ -45,7 +45,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
         text(
             f"""
             SELECT f.empenhado
-            FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
+            FROM fct_despesas_por_fornecedor f
             LEFT JOIN fct_despesas g
               ON f.ano = g.ano
               AND f.descricao = g.fornecedor_nome

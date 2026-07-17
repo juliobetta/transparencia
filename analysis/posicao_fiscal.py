@@ -37,7 +37,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     empresa_params: dict = {"empresas": empresa_ids} if empresa_ids else {}
 
     # 2. Despesas correntes pagas no ano
-    despesas_pagas = _sum_varchar_col(conn, "despesas_por_orgao", "pago", year)
+    despesas_pagas = _sum_varchar_col(conn, "fct_despesas_por_orgao", "pago", year)
 
     # 3. Soma do pago de restos cujo exercício corresponde ao ano informado
     restos_pagos_no_ano = _sum_varchar_col(

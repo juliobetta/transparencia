@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: fct_despesas_por_unidade
+    description: "Despesas agregadas por unidade orçamentária, lidas da tabela raw do portal e com cast numérico nos valores financeiros"
+    columns:
+      - name: empresa
+        data_type: text
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        tests:
+          - not_null
+      - name: codigo
+        data_type: text
+      - name: descricao
+        data_type: text
+      - name: empenhado
+        data_type: numeric
+      - name: liquidado
+        data_type: numeric
+      - name: pago
+        data_type: numeric
+      - name: dotacao_atualizada
+        data_type: numeric

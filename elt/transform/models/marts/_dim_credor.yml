@@ -22,3 +22,5 @@ models:
         data_type: text
       - name: fornecedor_nome
         data_type: text
+      - name: fornecedor_cidade
+        data_type: text

@@ -47,7 +47,7 @@ def _emendas(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float
 def _budget(conn: Any, year: int, empresa_id: str) -> dict:
     df = pd.read_sql_query(
         text(
-            "SELECT empenhado, dotacao_atualizada FROM raw_porciuncula_prefeitura.despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"
+            "SELECT empenhado, dotacao_atualizada FROM fct_despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"
         ),
         conn,
         params={"ano": year, "empresa": empresa_id},
@@ -61,7 +61,7 @@ def _budget(conn: Any, year: int, empresa_id: str) -> dict:
 
 def _execution_trend(conn: Any, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        text("SELECT ano, empenhado FROM raw_porciuncula_prefeitura.despesas_por_orgao WHERE empresa = :empresa"),
+        text("SELECT ano, empenhado FROM fct_despesas_por_orgao WHERE empresa = :empresa"),
         conn,
         params={"empresa": empresa_id},
     )
@@ -71,9 +71,7 @@ def _execution_trend(conn: Any, empresa_id: str) -> pd.DataFrame:
 
 def _execution_flow(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        text(
-            "SELECT empenhado, liquidado, pago FROM raw_porciuncula_prefeitura.despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"
-        ),
+        text("SELECT empenhado, liquidado, pago FROM fct_despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
@@ -198,7 +196,7 @@ def _top_suppliers(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame,
     # Aplicar o mesmo filtro de elementos: somente fornecedores de natureza "fornecimento de bens e serviços" (excluindo subvencoes sociais)
     sql = text("""
         SELECT f.codigo, f.descricao, f.empenhado
-        FROM despesas_por_fornecedor f
+        FROM fct_despesas_por_fornecedor f
         LEFT JOIN fct_despesas g ON f.ano = g.ano AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano AND f.empresa = :empresa
         AND g.elemento IN :elementos
@@ -245,7 +243,7 @@ def _budget_trend(conn: Any, empresa_id: str) -> "pd.DataFrame":
             SELECT ano,
                    SUM(dotacao_atualizada) AS dotacao,
                    SUM(empenhado) AS empenhado
-            FROM raw_porciuncula_prefeitura.despesas_por_orgao
+            FROM fct_despesas_por_orgao
             WHERE empresa = :empresa
             GROUP BY ano
             ORDER BY ano
@@ -450,7 +448,7 @@ def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
     fornecedores_all = _safe_df(
         "SELECT ano, descricao,"
         " SUM(empenhado) AS empenhado"
-        " FROM despesas_por_fornecedor WHERE empresa = :empresa GROUP BY ano, descricao",
+        " FROM fct_despesas_por_fornecedor WHERE empresa = :empresa GROUP BY ano, descricao",
         p,
     )
     hhi_trend: pd.DataFrame

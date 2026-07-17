@@ -9,10 +9,63 @@ sources:
         description: "Empenhos, liquidações e pagamentos individuais"
       - name: despesas_por_orgao
         description: "Despesas agregadas por órgão/secretaria"
+        columns:
+          - name: empresa
+            data_type: text
+          - name: ano
+            data_type: integer
+          - name: codigo
+            data_type: text
+          - name: descricao
+            data_type: text
+          - name: empenhado
+            data_type: text
+          - name: liquidado
+            data_type: text
+          - name: pago
+            data_type: text
+          - name: dotacao_atualizada
+            data_type: text
       - name: despesas_por_unidade
         description: "Despesas agregadas por unidade orçamentária"
+        columns:
+          - name: empresa
+            data_type: text
+          - name: ano
+            data_type: integer
+          - name: codigo
+            data_type: text
+          - name: descricao
+            data_type: text
+          - name: empenhado
+            data_type: text
+          - name: liquidado
+            data_type: text
+          - name: pago
+            data_type: text
+          - name: dotacao_atualizada
+            data_type: text
       - name: despesas_por_fornecedor
         description: "Despesas agregadas por fornecedor"
+        columns:
+          - name: empresa
+            data_type: text
+          - name: ano
+            data_type: integer
+          - name: codigo
+            data_type: text
+          - name: descricao
+            data_type: text
+          - name: insmf
+            data_type: text
+          - name: cepci
+            data_type: text
+          - name: empenhado
+            data_type: text
+          - name: liquidado
+            data_type: text
+          - name: pago
+            data_type: text
       - name: despesas_restos_pagar
         description: "Restos a pagar de exercícios anteriores"
       - name: despesas_extra_orcamentaria

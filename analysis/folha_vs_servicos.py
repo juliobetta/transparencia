@@ -32,7 +32,7 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
         if empresa_ids:
             pago_params["empresas"] = empresa_ids
         pago = pd.read_sql_query(
-            text(f"SELECT pago FROM raw_porciuncula_prefeitura.despesas_por_orgao WHERE ano = :ano {empresa_clause}"),
+            text(f"SELECT pago FROM fct_despesas_por_orgao WHERE ano = :ano {empresa_clause}"),
             conn,
             params=pago_params,
         )

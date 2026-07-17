@@ -13,9 +13,9 @@ def _to_float(series: pd.Series) -> pd.Series:
 def _entity_breakdown(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
-            SELECT e.nome AS entidade, f.empresa, f.empenhado, f.liquidado, f.pago
-            FROM raw_porciuncula_prefeitura.despesas_por_fornecedor f
-            JOIN empresas e ON e.id::text = f.empresa
+            SELECT e.fornecedor_nome AS entidade, f.empresa, f.empenhado, f.liquidado, f.pago
+            FROM fct_despesas_por_fornecedor f
+            JOIN dim_credor e ON e.fornecedor_cpf_cnpj = f.fornecedor_cpf_cnpj
             WHERE f.codigo = :codigo AND f.ano = :ano
             ORDER BY f.empenhado DESC NULLS LAST
         """),
@@ -34,7 +34,7 @@ def _annual_trend(conn: Any) -> pd.DataFrame:
                    SUM(empenhado) AS empenhado,
                    SUM(liquidado) AS liquidado,
                    SUM(pago) AS pago
-            FROM raw_porciuncula_prefeitura.despesas_por_fornecedor
+            FROM fct_despesas_por_fornecedor
             WHERE codigo = :codigo
             GROUP BY ano ORDER BY ano
         """),
@@ -112,7 +112,7 @@ def _nature_breakdown(conn: Any, year: int) -> pd.DataFrame:
 
 def run(conn: Any, year: int) -> dict:
     df = pd.read_sql_query(
-        text("SELECT * FROM raw_porciuncula_prefeitura.despesas_por_fornecedor WHERE codigo = :codigo AND ano = :ano"),
+        text("SELECT * FROM fct_despesas_por_fornecedor WHERE codigo = :codigo AND ano = :ano"),
         conn,
         params={"codigo": CAPREM_CODE, "ano": year},
     )
