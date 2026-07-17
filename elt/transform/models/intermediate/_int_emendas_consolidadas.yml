@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_emendas_consolidadas
+    description: "Emendas parlamentares consolidadas de todos os portais via union all"
+    columns:
+      - name: portal_slug
+        data_type: text
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: numero_emenda
+        data_type: text
+      - name: resumo
+        data_type: text
+      - name: valor_total
+        data_type: numeric
+      - name: empenhado
+        data_type: numeric
+      - name: autor
+        data_type: text
+      - name: tipo_emenda
+        data_type: text
+      - name: esfera_origem
+        data_type: text
+      - name: ato_normativo
+        data_type: text
+      - name: destinacao
+        data_type: text

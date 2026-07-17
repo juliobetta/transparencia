@@ -1,0 +1,103 @@
+version: 2
+
+models:
+  - name: fct_despesas
+    description: "Fato de despesas consolidadas com empenho líquido calculado (exclui anulações do fluxo principal)"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: despesa_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | empenho_id)"
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: fonte
+        data_type: text
+        description: "'exercicio' para despesas do orçamento corrente, 'restos_a_pagar' para execução de empenhos de anos anteriores"
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: empenho_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: pk_empenho
+        data_type: text
+      - name: tipo_empenho
+        data_type: text
+        description: "OR=Ordinário, ES=Estimativo, GL=Global (anulações AN excluídas desta tabela)"
+      - name: orgao_codigo
+        data_type: text
+      - name: funcao
+        data_type: text
+      - name: funcao_nome
+        data_type: text
+      - name: subfuncao
+        data_type: text
+      - name: subfuncao_nome
+        data_type: text
+      - name: elemento
+        data_type: text
+      - name: natureza_despesa
+        data_type: text
+      - name: grupo_natureza
+        data_type: text
+      - name: modalidade
+        data_type: text
+      - name: programa
+        data_type: text
+      - name: programa_nome
+        data_type: text
+      - name: proj_atividade
+        data_type: text
+      - name: projeto_atividade_nome
+        data_type: text
+      - name: mes
+        data_type: text
+      - name: fornecedor_nome
+        data_type: text
+      - name: fornecedor_cpf_cnpj
+        data_type: text
+      - name: licitacao_numero
+        data_type: text
+      - name: licitacao_modalidade
+        data_type: text
+      - name: fonte_recurso_desc
+        data_type: text
+      - name: descricao
+        data_type: text
+      - name: credor_id
+        data_type: text
+      - name: orgao_id
+        data_type: text
+      - name: data_empenho
+        data_type: date
+      - name: empenhado
+        data_type: numeric
+      - name: empenhado_liquido
+        data_type: numeric
+        description: "Empenhado bruto + anulações (valores negativos). Denominador correto para taxas de quitação."
+      - name: liquidado
+        data_type: numeric
+      - name: pago
+        data_type: numeric
+      - name: dotacao_inicial
+        data_type: numeric
+      - name: alteracao_dotacao
+        data_type: numeric
+      - name: dotacao_atualizada
+        data_type: numeric
+      - name: reforco
+        data_type: numeric
+      - name: valor_anulacoes
+        data_type: numeric

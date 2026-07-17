@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__receita_uniao
+    description: "Receitas da União do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: codigo
+        data_type: text
+      - name: descricao
+        data_type: text
+      - name: previsao_atualizada
+        data_type: numeric
+      - name: arrecadado_efetivo
+        data_type: numeric

@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: fct_licitacoes
+    description: "Fato de licitações consolidadas de todos os portais"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: licitacao_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | licitacao_numero)"
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: licitacao_numero
+        data_type: text
+      - name: modalidade
+        data_type: text
+      - name: objeto
+        data_type: text
+      - name: discriminacao
+        data_type: text
+      - name: valor
+        data_type: numeric
+      - name: data_abertura
+        data_type: date
+      - name: carona
+        data_type: text

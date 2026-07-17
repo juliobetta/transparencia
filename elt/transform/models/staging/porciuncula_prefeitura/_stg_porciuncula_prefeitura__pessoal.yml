@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__pessoal
+    description: "Pessoal do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: proventos
+        data_type: numeric
+      - name: categoria_funcional
+        data_type: text
+      - name: vinculo
+        data_type: text
+      - name: cargo
+        data_type: text
+      - name: forma_provimento
+        data_type: text

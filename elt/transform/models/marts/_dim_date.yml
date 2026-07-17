@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "Dimensão calendário diário de 2021 a 2035"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: data
+        data_type: date
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+      - name: mes_num
+        data_type: integer
+      - name: dia
+        data_type: integer
+      - name: dia_semana
+        data_type: integer
+      - name: mes_nome
+        data_type: text
+      - name: inicio_mes
+        data_type: date
+      - name: fim_mes
+        data_type: date
+      - name: trimestre
+        data_type: integer

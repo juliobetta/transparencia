@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: fct_receitas
+    description: "Fato de receitas consolidadas (orçamentária, união e estado) de todos os portais"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: receita_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | tipo_receita | codigo)"
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: tipo_receita
+        data_type: text
+        description: "'orcamentaria', 'uniao' ou 'estado'"
+      - name: codigo
+        data_type: text
+      - name: descricao
+        data_type: text
+      - name: previsao_atualizada
+        data_type: numeric
+      - name: arrecadado
+        data_type: numeric

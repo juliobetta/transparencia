@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: fct_emendas
+    description: "Fato de emendas parlamentares consolidadas de todos os portais"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: emenda_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | numero_emenda)"
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: numero_emenda
+        data_type: text
+      - name: resumo
+        data_type: text
+      - name: valor_total
+        data_type: numeric
+      - name: empenhado
+        data_type: numeric
+      - name: autor
+        data_type: text
+      - name: tipo_emenda
+        data_type: text
+      - name: esfera_origem
+        data_type: text
+      - name: ato_normativo
+        data_type: text
+      - name: destinacao
+        data_type: text

@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__transferencias
+    description: "Transferências do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: mes
+        data_type: text
+      - name: entidade_pagadora
+        data_type: text
+      - name: entidade_recebedora
+        data_type: text
+      - name: repasse
+        data_type: numeric
+      - name: devolucao
+        data_type: numeric

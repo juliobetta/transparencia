@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__despesas_restos_pagar
+    description: "Restos a pagar do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: rap_id
+        data_type: text
+      - name: descricao
+        data_type: text
+      - name: empenhado
+        data_type: numeric
+      - name: pago
+        data_type: numeric

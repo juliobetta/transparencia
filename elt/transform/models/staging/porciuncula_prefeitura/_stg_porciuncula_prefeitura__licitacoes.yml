@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__licitacoes
+    description: "Licitações do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: licitacao_numero
+        data_type: text
+      - name: modalidade
+        data_type: text
+      - name: objeto
+        data_type: text
+      - name: discriminacao
+        data_type: text
+      - name: valor
+        data_type: numeric
+      - name: data_abertura
+        data_type: date
+      - name: carona
+        data_type: text

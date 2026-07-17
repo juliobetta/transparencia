@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: dim_orgao
+    description: "Entidades municipais (prefeitura + fundos) por portal"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: orgao_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: orgao_nome
+        data_type: text

@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_contratos_consolidados
+    description: "Contratos consolidados de todos os portais via union all"
+    columns:
+      - name: portal_slug
+        data_type: text
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: contrato_numero
+        data_type: text
+      - name: fornecedor_nome
+        data_type: text
+      - name: objeto
+        data_type: text
+      - name: valor_contrato
+        data_type: numeric
+      - name: licitacao_numero
+        data_type: text
+      - name: mes
+        data_type: text
+      - name: tipo_obra
+        data_type: text
+      - name: numero_obra
+        data_type: text
+      - name: empenhado
+        data_type: numeric

@@ -131,30 +131,121 @@ from porciuncula
 
 ---
 
-## Contract Obrigatório nos Marts
+## Testes com dbt_expectations
 
-Todo arquivo em `marts/` **deve** ter entrada correspondente em `models/marts/schema.yml`:
+Todos os `_<model>.yml` (staging, intermediate e marts) **devem** incluir testes usando `metaplane/dbt_expectations`. Use o bom senso para escolher os testes mais relevantes por camada.
+
+### Testes típicos por tipo de coluna
 
 ```yaml
-- name: dim_licitacao
-  config:
-    contract:
-      enforced: true
-  columns:
-    - name: licitacao_id
-      data_type: text
-      constraints:
-        - type: not_null
-    - name: portal_slug
-      data_type: text
-      constraints:
-        - type: not_null
-    - name: valor
-      data_type: numeric
-    # ... todas as colunas do model
+columns:
+  - name: receita_id          # chave surrogate
+    tests:
+      - not_null
+      - unique
+
+  - name: ano                 # inteiro com range conhecido
+    tests:
+      - not_null
+      - dbt_expectations.expect_column_values_to_be_between:
+          min_value: 2015
+          max_value: 2035
+
+  - name: empenhado           # valor financeiro — nunca negativo nesta camada
+    tests:
+      - dbt_expectations.expect_column_values_to_be_between:
+          min_value: 0
+          row_condition: "empenhado is not null"
+
+  - name: fornecedor_cpf_cnpj  # formato CPF/CNPJ
+    tests:
+      - dbt_expectations.expect_column_values_to_match_regex:
+          regex: "^[0-9.\\/\\-]+$"
+          mostly: 0.9   # tolera ~10% de dados sujos na fonte
+
+  - name: data_empenho        # data razoável
+    tests:
+      - dbt_expectations.expect_column_values_to_be_between:
+          min_value: "'2010-01-01'::date"
+          max_value: "'2040-12-31'::date"
+          row_condition: "data_empenho is not null"
 ```
 
-Tipos em `schema.yml`: `text`, `integer`, `numeric`, `date`, `boolean`.
+### Testes de volume de tabela (em `models:`)
+
+```yaml
+models:
+  - name: fct_despesas
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 1000
+```
+
+### Unit tests (quando necessário)
+
+Use `unit_tests:` no mesmo `_<model>.yml` para testar lógica de transformação não-trivial (cálculos, deduplicações, unions com casos especiais). Não escreva unit tests para modelos que apenas renomeiam colunas.
+
+```yaml
+unit_tests:
+  - name: test_empenhado_liquido_calculo
+    model: fct_despesas
+    given:
+      - input: ref('int_despesas_consolidadas')
+        rows:
+          - {empenho_id: "1", tipo_empenho: "OR", empenhado: 1000.00}
+          - {empenho_id: "1", tipo_empenho: "AN", empenhado: -200.00}
+    expect:
+      rows:
+        - {empenho_id: "1", empenhado_liquido: 800.00}
+```
+
+### Packages necessários (`packages.yml`)
+
+```yaml
+packages:
+  - package: dbt-labs/dbt_utils
+    version: ">=1.0.0"
+  - package: metaplane/dbt_expectations
+    version: ">=0.10.0"
+```
+
+Rodar `make dbt/deps` após alterar `packages.yml`.
+
+---
+
+## Arquivos yml — Um por model (sem schema.yml monolítico)
+
+### Contract obrigatório nos marts
+
+Todo model em `marts/` **deve** ter um arquivo yml próprio em `models/marts/_<model>.yml`:
+
+- Um arquivo `.yml` por model (nunca um `schema.yml` monolítico)
+- Nomenclatura: `_<model_name>.yml` — ex: `_fct_receitas.yml`, `_dim_credor.yml`
+
+```yaml
+version: 2
+
+models:
+  - name: fct_receitas
+    description: "..."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: receita_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: valor
+        data_type: numeric
+      # ... todas as colunas do model
+```
+
+Tipos em contratos: `text`, `integer`, `numeric`, `date`, `boolean`.
 
 ---
 

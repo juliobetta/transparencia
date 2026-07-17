@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: int_transferencias_consolidadas
+    description: "Transferências consolidadas de todos os portais via union all"
+    columns:
+      - name: portal_slug
+        data_type: text
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: mes
+        data_type: text
+      - name: entidade_pagadora
+        data_type: text
+      - name: entidade_recebedora
+        data_type: text
+      - name: repasse
+        data_type: numeric
+      - name: devolucao
+        data_type: numeric

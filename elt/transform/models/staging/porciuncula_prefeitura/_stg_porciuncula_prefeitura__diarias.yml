@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__diarias
+    description: "Diárias do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: ano
+        data_type: integer
+      - name: empresa_id
+        data_type: text
+      - name: diaria_id
+        data_type: text
+      - name: valor
+        data_type: numeric
+      - name: favorecido
+        data_type: text
+      - name: cargo
+        data_type: text
+      - name: data
+        data_type: date
+      - name: unidade
+        data_type: text
+      - name: descricao
+        data_type: text
