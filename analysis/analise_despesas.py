@@ -327,19 +327,25 @@ def get_principais_beneficiarios_diarias(conn: Any, year: int, empresa_ids: list
 def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 500) -> pd.DataFrame:
     if query.strip():
         sql = text("""
-            SELECT data_empenho as data, fornecedor_nome as fornecedor, pago, empresa_id as unidade, descricao
-            FROM fct_despesas
-            WHERE ano = :ano AND (fornecedor_nome ILIKE :search OR descricao ILIKE :search OR empresa_id ILIKE :search)
-            ORDER BY pago DESC
+            SELECT f.data_empenho as data, f.fornecedor_nome as fornecedor, f.pago,
+                   COALESCE(d.orgao_nome, f.empresa_id) as unidade, f.descricao
+            FROM fct_despesas f
+            LEFT JOIN dim_orgao d ON d.empresa_id = f.empresa_id
+            WHERE f.ano = :ano
+              AND (f.fornecedor_nome ILIKE :search OR f.descricao ILIKE :search
+                   OR COALESCE(d.orgao_nome, f.empresa_id) ILIKE :search)
+            ORDER BY f.pago DESC
             LIMIT :lim
         """)
         params = {"ano": year, "search": f"%{query}%", "lim": limit}
     else:
         sql = text("""
-            SELECT data_empenho as data, fornecedor_nome as fornecedor, pago, empresa_id as unidade, descricao
-            FROM fct_despesas
-            WHERE ano = :ano
-            ORDER BY pago DESC
+            SELECT f.data_empenho as data, f.fornecedor_nome as fornecedor, f.pago,
+                   COALESCE(d.orgao_nome, f.empresa_id) as unidade, f.descricao
+            FROM fct_despesas f
+            LEFT JOIN dim_orgao d ON d.empresa_id = f.empresa_id
+            WHERE f.ano = :ano
+            ORDER BY f.pago DESC
             LIMIT :lim
         """)
         params = {"ano": year, "lim": limit}

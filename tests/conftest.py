@@ -328,6 +328,21 @@ def _create_test_views(eng) -> None:
 
         conn.execute(
             text("""
+                CREATE OR REPLACE VIEW dim_orgao AS
+                SELECT md5(portal_slug || '-' || empresa_id) AS orgao_id, portal_slug, empresa_id, orgao_nome
+                FROM (VALUES
+                    ('porciuncula_prefeitura', '7',  'PREFEITURA MUNICIPAL DE PORCIÚNCULA'),
+                    ('porciuncula_prefeitura', '2',  'FUNDO MUNICIPAL DE SAUDE'),
+                    ('porciuncula_prefeitura', '8',  'FUNDO MUNICIPAL DE EDUCAÇÃO'),
+                    ('porciuncula_prefeitura', '3',  'FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL'),
+                    ('porciuncula_prefeitura', '9',  'FUNDO MUNICIPAL DE DEFESA AMBIENTAL'),
+                    ('porciuncula_prefeitura', '10', 'FUNDO DE SOLIDARIEDADE - FUNDESOL')
+                ) AS t(portal_slug, empresa_id, orgao_nome)
+            """)
+        )
+
+        conn.execute(
+            text("""
                 CREATE OR REPLACE VIEW dim_credor AS
                 SELECT DISTINCT ON (insmf)
                     md5(insmf) AS credor_id,

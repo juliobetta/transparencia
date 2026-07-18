@@ -261,7 +261,7 @@ def _pharma_empenhos(conn: Any, year: int, empresa_id: str) -> dict:
     detail = pd.read_sql_query(
         text("""
             SELECT fornecedor_nome AS fornecedor, descricao,
-                   SUM(empenhado) AS total
+                   SUM(empenhado_liquido) AS total
             FROM fct_despesas
             WHERE empresa_id = :empresa AND ano = :ano
               AND subfuncao = '303'
@@ -276,7 +276,7 @@ def _pharma_empenhos(conn: Any, year: int, empresa_id: str) -> dict:
     trend = pd.read_sql_query(
         text("""
             SELECT ano,
-                   SUM(empenhado) AS empenhado
+                   SUM(empenhado_liquido) AS empenhado
             FROM fct_despesas
             WHERE empresa_id = :empresa
               AND subfuncao = '303'
@@ -303,7 +303,7 @@ def _pharma_judicial(conn: Any, year: int, empresa_id: str) -> dict:
     detail = pd.read_sql_query(
         text("""
             SELECT subfuncao_nome AS subfuncao, fornecedor_nome AS fornecedor, descricao,
-                   SUM(empenhado) AS total
+                   SUM(empenhado_liquido) AS total
             FROM fct_despesas
             WHERE empresa_id = :empresa AND ano = :ano
               AND elemento = '91'
@@ -467,7 +467,7 @@ def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
         hhi_trend = pd.DataFrame(columns=["ano", "hhi"])
 
     pharma_judicial = _safe_df(
-        "SELECT ano, SUM(empenhado) AS total"
+        "SELECT ano, SUM(empenhado_liquido) AS total"
         " FROM fct_despesas WHERE empresa_id = :empresa AND elemento = '91'"
         " GROUP BY ano ORDER BY ano",
         p,

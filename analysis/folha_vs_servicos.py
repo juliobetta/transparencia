@@ -97,23 +97,24 @@ def detalhe_decimo_terceiro(conn: Any, year: int) -> pd.DataFrame:
     """Retorna o detalhamento da execução orçamentária do 13º salário por Órgão e Função."""
     query = """
         SELECT
-            COALESCE(empresa_nome, empresa_id) as orgao,
-            COALESCE(funcao_nome, 'Outros') as funcao,
-            SUM(empenhado) as empenhado_bruto,
-            SUM(empenhado_liquido) as empenhado_liquido,
-            SUM(liquidado) as liquidado,
-            SUM(pago) as pago
-        FROM fct_despesas
-        WHERE ano = :ano
-          AND elemento IN ('01', '03', '11', '96')
-          AND (descricao ILIKE '%13%' OR descricao ILIKE '%decimo terceiro%' OR descricao ILIKE '%décimo terceiro%')
-          AND descricao NOT ILIKE '%anula%'
-          AND descricao NOT ILIKE '%136%'
-          AND descricao NOT ILIKE '%137%'
-          AND descricao NOT ILIKE '%138%'
-          AND descricao NOT ILIKE '%139%'
-          AND tipo_empenho != 'AN'
-        GROUP BY empresa_nome, empresa_id, funcao_nome
+            COALESCE(d.orgao_nome, f.empresa_id) as orgao,
+            COALESCE(f.funcao_nome, 'Outros') as funcao,
+            SUM(f.empenhado) as empenhado_bruto,
+            SUM(f.empenhado_liquido) as empenhado_liquido,
+            SUM(f.liquidado) as liquidado,
+            SUM(f.pago) as pago
+        FROM fct_despesas f
+        LEFT JOIN dim_orgao d ON d.empresa_id = f.empresa_id
+        WHERE f.ano = :ano
+          AND f.elemento IN ('01', '03', '11', '96')
+          AND (f.descricao ILIKE '%13%' OR f.descricao ILIKE '%decimo terceiro%' OR f.descricao ILIKE '%décimo terceiro%')
+          AND f.descricao NOT ILIKE '%anula%'
+          AND f.descricao NOT ILIKE '%136%'
+          AND f.descricao NOT ILIKE '%137%'
+          AND f.descricao NOT ILIKE '%138%'
+          AND f.descricao NOT ILIKE '%139%'
+          AND f.tipo_empenho != 'AN'
+        GROUP BY COALESCE(d.orgao_nome, f.empresa_id), COALESCE(f.funcao_nome, 'Outros')
         ORDER BY pago DESC
     """
     df = pd.read_sql_query(text(query), conn, params={"ano": year})
