@@ -46,7 +46,7 @@ def main() -> None:
         endpoints = [e for e in endpoints if e.listagem == args.only]
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = Path(f"data/raw_runs/{timestamp}")
+    run_dir = Path(f"data/raw_runs/{portal.slug}/{timestamp}")
     run_dir.mkdir(parents=True, exist_ok=True)
     logger.info("Saving raw data to %s", run_dir)
 

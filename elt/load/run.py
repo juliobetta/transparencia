@@ -14,7 +14,7 @@ from sqlalchemy import MetaData, Table, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from config import PortalConfig
-from db import get_engine, set_metadata
+from db import get_engine
 from elt.extract.base import EndpointConfig
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -148,7 +148,7 @@ def main() -> None:
 
     run_dir_path = args.dir
     if not run_dir_path:
-        run_dirs = [d for d in Path("data/raw_runs").iterdir() if d.is_dir()]
+        run_dirs = [d for d in Path(f"data/raw_runs/{args.portal}").iterdir() if d.is_dir()]
         if not run_dirs:
             raise ValueError("No raw run directories found under data/raw_runs")
         run_dir_path = str(max(run_dirs, key=lambda d: d.stat().st_mtime))
@@ -186,8 +186,13 @@ def main() -> None:
         logger.info("Loaded %s / %s / %d → %d rows into %s.%s", table, empresa_id, year, count, schema, target_table)
 
     if extraction_date:
-        with engine.begin() as conn:
-            set_metadata(conn, "last_extracted_at", extraction_date, portal.slug)
+        _upsert_raw(
+            engine,
+            schema,
+            "metadata",
+            [{"portal_slug": portal.slug, "key": "last_extracted_at", "value": extraction_date}],
+            ["portal_slug", "key"],
+        )
         logger.info("Set extraction date: %s", extraction_date)
 
     logger.info("Load complete → schema: %s", schema)
