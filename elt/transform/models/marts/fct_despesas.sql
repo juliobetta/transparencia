@@ -185,7 +185,7 @@ select
     licitacao_numero,
     licitacao_modalidade,
     fonte_recurso_desc,
-    produ as descricao,
+    coalesce(produ, descricao) as descricao,
 
     -- Valores financeiros (Lei de Responsabilidade Fiscal: pago ≤ liquidado ≤ empenhado)
     empenhado,
