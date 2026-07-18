@@ -50,13 +50,13 @@ elt/extract:
 ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/extract PORTAL=porciuncula_prefeitura [YEARS="2024 2025"] [ONLY=DespesasGerais])
 endif
-	uv run python elt/extract/run.py --portal $(PORTAL) $(if $(YEARS),--years $(YEARS)) $(if $(ONLY),--only $(ONLY))
+	PYTHONPATH=. uv run python elt/extract/run.py --portal $(PORTAL) $(if $(YEARS),--years $(YEARS)) $(if $(ONLY),--only $(ONLY))
 
 elt/load:
 ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/load PORTAL=porciuncula_prefeitura [DIR=data/raw_runs/20250101_120000])
 endif
-	uv run python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
+	PYTHONPATH=. uv run python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
 
 # REPORTS
 
