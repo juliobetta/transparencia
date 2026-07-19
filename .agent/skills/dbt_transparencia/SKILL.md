@@ -107,6 +107,50 @@ Source declarado em `models/staging/<portal>/_sources.yml`, schema: `raw_<portal
 
 ---
 
+## Responsabilidade de cada camada (grain e agregação)
+
+**Staging** — relação 1:1 com a fonte. Somente renomear, castear e categorizar. **Nunca agregar, nunca fazer GROUP BY, nunca mudar o grain.** Se o dado bruto tiver duplicatas, elas devem subir para o intermediate intactas — staging não é o lugar de resolvê-las.
+
+**Intermediate** — é o lugar correto para re-graining, deduplicação e UNION ALL entre portais. Quando a fonte pode emitir múltiplas linhas para a mesma chave de negócio (ex: mesmo código de receita com fontes STN distintas), o GROUP BY + SUM deve ocorrer aqui, após o UNION ALL:
+
+```sql
+-- int_<entidade>_consolidada.sql
+with combined as (
+    select ... from {{ ref('stg_portal_a__<tabela>') }}
+    union all
+    select ... from {{ ref('stg_portal_b__<tabela>') }}
+)
+
+-- agrega ao grain correto: uma linha por (portal_slug, tipo, ano, empresa_id, codigo)
+select
+    portal_slug,
+    tipo,
+    ano,
+    empresa_id,
+    codigo,
+    max(descricao) as descricao,
+    sum(valor_a) as valor_a,
+    sum(valor_b) as valor_b
+from combined
+group by portal_slug, tipo, ano, empresa_id, codigo
+```
+
+**Marts** — consomem o intermediate já com o grain correto. Não fazem GROUP BY sobre dados hierárquicos brutos.
+
+---
+
+## Chaves Primárias na Camada Raw (elt/load)
+
+A PK da tabela raw define o comportamento do upsert (`ON CONFLICT DO UPDATE`). Um PK insuficiente causa sobrescrita silenciosa de linhas quando o portal emite múltiplas linhas para a mesma chave aparente.
+
+**Regra:** antes de definir `key_cols` para um endpoint, perguntar: *"O portal pode emitir mais de uma linha com esses valores de chave para o mesmo recurso, diferenciadas por alguma coluna discriminante?"* Se sim, incluir essa coluna discriminante na `key_cols`.
+
+Exemplo: `receita_orcamentaria` tem `(ano, empresa, codigo)` como chave natural, mas o portal pode emitir múltiplas linhas por código quando há diferentes fontes STN. Solução: `key_cols=["ano", "empresa", "codigo", "fontestn"]` + garantir que `fontestn` nunca seja NULL (usar `''` como default para nós pai).
+
+Colunas discriminantes comuns a monitorar: `fontestn`, `cod_aplicacao`, `mes`, `tipo`.
+
+---
+
 ## Modelo Intermediate — Template Multi-Portal
 
 ```sql
