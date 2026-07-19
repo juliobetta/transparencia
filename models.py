@@ -261,10 +261,13 @@ class ReceitaOrcamentaria(SQLModel, table=True):
     fontestn: Optional[str] = None
     fonte: Optional[str] = None
     nome: Optional[str] = None
+    especificacao: Optional[str] = None
     previsao_inicial: Optional[str] = None
     previsao_atualizada: Optional[str] = None
+    prev_atualizada: Optional[str] = None
     arrecadado_periodo: Optional[str] = None
     arrecadado_total: Optional[str] = None
+    arrec_total: Optional[str] = None
 
 
 class ReceitaUniao(SQLModel, table=True):
@@ -277,10 +280,13 @@ class ReceitaUniao(SQLModel, table=True):
     arrecadado: Optional[str] = None
     ordem: Optional[str] = None
     nome: Optional[str] = None
+    especificacao: Optional[str] = None
     previsao_inicial: Optional[str] = None
     previsao_atualizada: Optional[str] = None
+    prev_atualizada: Optional[str] = None
     arrecadado_periodo: Optional[str] = None
     arrecadado_total: Optional[str] = None
+    arrec_total: Optional[str] = None
 
 
 class ReceitaEstado(SQLModel, table=True):
@@ -293,10 +299,13 @@ class ReceitaEstado(SQLModel, table=True):
     arrecadado: Optional[str] = None
     ordem: Optional[str] = None
     nome: Optional[str] = None
+    especificacao: Optional[str] = None
     previsao_inicial: Optional[str] = None
     previsao_atualizada: Optional[str] = None
+    prev_atualizada: Optional[str] = None
     arrecadado_periodo: Optional[str] = None
     arrecadado_total: Optional[str] = None
+    arrec_total: Optional[str] = None
 
 
 class ReceitaExtraOrcamentaria(SQLModel, table=True):

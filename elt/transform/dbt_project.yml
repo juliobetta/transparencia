@@ -15,6 +15,9 @@ clean-targets:
   - "dbt_packages"
 
 
+vars:
+  test_mode: false
+
 models:
   transparencia:
     staging:
@@ -22,4 +25,4 @@ models:
     intermediate:
       +materialized: view
     marts:
-      +materialized: table
+      +materialized: "{{ 'view' if var('test_mode', false) else 'table' }}"

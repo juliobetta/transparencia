@@ -15,6 +15,7 @@ def conn(conn):
                 "empresa": "1",
                 "codigo": "1.1",
                 "arrecadado": "1200000",
+                "arrecadado_total": "1200000",
             },
         ],
         ["ano", "empresa", "codigo"],

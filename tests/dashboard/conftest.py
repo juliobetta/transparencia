@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy import text
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 DASHBOARD_DIR = PROJECT_ROOT / "dashboard"
@@ -73,6 +74,7 @@ def _seeded_engine(engine):
     emp = "7"
 
     with engine.connect() as conn:
+        conn.execute(text("SET search_path = raw_porciuncula_prefeitura, public"))
         db.upsert(conn, "empresas", [{"id": 7, "nome": "PREFEITURA MUNICIPAL DE PORCIÚNCULA"}], ["id"])
         db.upsert(
             conn,
