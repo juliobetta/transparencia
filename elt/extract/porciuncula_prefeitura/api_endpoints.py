@@ -1,7 +1,8 @@
 from urllib.parse import urlencode
 
 from config import PortalConfig
-from elt.extract.base import BaseExtractor, EndpointConfig
+from elt.extract.base import EndpointConfig
+from elt.extract.porciuncula_prefeitura.extractor import PorciunculaExtractor
 
 _portal = PortalConfig.load()
 _base_url = _portal.base_host
@@ -83,7 +84,7 @@ def _post_process_despesas_por_exigibilidade(row: dict) -> dict:
     return row
 
 
-class DespesasExtractor(BaseExtractor):
+class DespesasExtractor(PorciunculaExtractor):
     def get_params(self, empresa_id: str, year: int) -> dict:
         params = super().get_params(empresa_id, year)
         if self.listagem == "DespesasporExigibilidade":
@@ -99,7 +100,7 @@ class DespesasExtractor(BaseExtractor):
         return params
 
 
-class ReceitasExtractor(BaseExtractor):
+class ReceitasExtractor(PorciunculaExtractor):
     def extract(self, empresa_id: str, year: int) -> list[dict]:
         import datetime
 
@@ -116,11 +117,11 @@ class ReceitasExtractor(BaseExtractor):
         return super().extract(empresa_id, year)
 
 
-class LicitacoesExtractor(BaseExtractor):
+class LicitacoesExtractor(PorciunculaExtractor):
     pass
 
 
-class EmendasExtractor(BaseExtractor):
+class EmendasExtractor(PorciunculaExtractor):
     def get_params(self, empresa_id: str, year: int) -> dict:
         if self.listagem in ["EmendasImpositivasArt166A", "CadEmendasImpositivas"]:
             return {
@@ -133,11 +134,11 @@ class EmendasExtractor(BaseExtractor):
         return super().get_params(empresa_id, year)
 
 
-class TransferenciasExtractor(BaseExtractor):
+class TransferenciasExtractor(PorciunculaExtractor):
     pass
 
 
-class PessoalExtractor(BaseExtractor):
+class PessoalExtractor(PorciunculaExtractor):
     def build_url(self, empresa_id: str, year: int) -> str:
         params = {
             "ConectarExercicio": str(year),

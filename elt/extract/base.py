@@ -1,5 +1,5 @@
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 from urllib.parse import urlencode
@@ -39,20 +39,8 @@ class BaseExtractor(ABC):
         self.base_url = base_url
         self.logger = logging.getLogger(__name__)
 
-    def get_params(self, empresa_id: str, year: int) -> dict:
-        params = {
-            "ConectarExercicio": str(year),
-            "Listagem": self.listagem,
-            "DiaInicioPeriodo": "01",
-            "MesInicialPeriodo": "01",
-            "DiaFinalPeriodo": "31",
-            "MesFinalPeriodo": "12",
-            "Ano": str(year),
-            "Empresa": str(empresa_id),
-            "MostraDadosConsolidado": "False",
-            **self.extra,
-        }
-        return params
+    @abstractmethod
+    def get_params(self, empresa_id: str, year: int) -> dict: ...
 
     def build_url(self, empresa_id: str, year: int) -> str:
         params = self.get_params(empresa_id, year)
