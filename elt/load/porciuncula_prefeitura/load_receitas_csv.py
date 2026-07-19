@@ -1,11 +1,8 @@
-"""Load receitas CSV files from data/csv/receitas/ into the raw_<slug> PostgreSQL schema."""
+"""Load receitas CSV files from data/csv/receitas/ into the raw_porciuncula_prefeitura PostgreSQL schema."""
 
-import argparse
-import importlib
 import re
 import unicodedata
 from pathlib import Path
-from typing import cast
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -15,6 +12,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from config import PortalConfig
 from db import get_engine
 from elt.extract.base import EndpointConfig
+from elt.extract.porciuncula_prefeitura.api_endpoints import ENDPOINT_CONFIGS
 
 TABLE_MAPPING = {
     "ReceitaOrcamentaria": "receita_orcamentaria",
@@ -79,17 +77,12 @@ def _upsert_raw(engine, schema: str, table: str, rows: list[dict], key_cols: lis
 
 def main() -> None:
     load_dotenv()
-    parser = argparse.ArgumentParser(description="Load receitas CSVs into raw_<slug> schema")
-    parser.add_argument("--portal", required=True, help="Portal slug (e.g. porciuncula_prefeitura)")
-    args = parser.parse_args()
 
-    portal = PortalConfig.load(args.portal)
+    portal = PortalConfig.load("porciuncula_prefeitura")
     schema = portal.raw_schema
     engine = get_engine()
 
-    mod = importlib.import_module(f"elt.extract.{portal.slug}.api_endpoints")
-    endpoint_configs = cast(list[EndpointConfig], mod.ENDPOINT_CONFIGS)
-    config_by_table: dict[str, EndpointConfig] = {c.table: c for c in endpoint_configs}
+    config_by_table: dict[str, EndpointConfig] = {c.table: c for c in ENDPOINT_CONFIGS}
 
     csv_dir = Path("data/csv/receitas")
 
@@ -144,12 +137,10 @@ def main() -> None:
             print(f"Skipping {file_path.name}: no 'codigo' column (incompatible with API table structure)")
             continue
 
-        # Deriva pk_cols e post_process do ENDPOINT_CONFIGS do portal — agnóstico por design.
         config = config_by_table.get(table_name)
         pk_cols = list(config.key_cols) if config else ["ano", "empresa", "codigo"]
         post_process = config.post_process if config else None
 
-        # Drop rows onde qualquer coluna de PK base é nula
         df = df.dropna(subset=["ano", "empresa", "codigo"])
         df = df[df["codigo"].astype(str).str.strip().ne("")]
 
@@ -159,7 +150,6 @@ def main() -> None:
 
         rows = [{k: (None if pd.isna(v) else v) for k, v in row.items()} for row in df.to_dict("records")]
 
-        # Aplica post_process do portal (ex: normaliza fontestn a partir de fonte_stn no CSV)
         if post_process:
             rows = [post_process(row) for row in rows]
 

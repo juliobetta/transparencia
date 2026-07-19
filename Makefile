@@ -62,7 +62,11 @@ elt/load-csv:
 ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/load-csv PORTAL=porciuncula_prefeitura)
 endif
-	PYTHONPATH=. uv run python utils/pipeline/import_receitas_csv.py --portal $(PORTAL)
+ifeq ($(PORTAL),porciuncula_prefeitura)
+	PYTHONPATH=. uv run python elt/load/porciuncula_prefeitura/load_receitas_csv.py
+else
+	$(error No load-csv script available for portal '$(PORTAL)')
+endif
 
 # REPORTS
 
