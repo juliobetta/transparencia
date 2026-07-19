@@ -16,7 +16,7 @@ renamed as (
 
         -- Classificação orçamentária
         tpem as tipo_empenho,
-        orgao as orgao_codigo,
+        null::text as orgao_codigo,
         funcao,
         funcaonome as funcao_nome,
         subfuncao,
@@ -35,7 +35,7 @@ renamed as (
         -- Fornecedor
         nomefor as fornecedor_nome,
         cpfformatado as fornecedor_cpf_cnpj,
-        fornecedor as fornecedor_raw,
+        null::text as fornecedor_raw,
 
         -- Licitação
         numlicit as licitacao_numero,
@@ -54,7 +54,7 @@ renamed as (
         descfonrec as fonte_recurso_desc,
 
         -- Datas
-        nullif(data_empenho, '')::date as data_empenho,
+        case when nullif(trim(datae), '') is not null then to_date(left(trim(datae), 10), 'DD/MM/YYYY') end as data_empenho,
 
         -- Valores financeiros (R$)
         -- Formato raw: vírgula decimal (ex: "1234,56") → substitui por ponto antes do cast
@@ -68,7 +68,7 @@ renamed as (
         nullif(replace(reforco, ',', '.'), '')::numeric(15, 2) as reforco,
 
         -- Campos complementares
-        descricao,
+        produ as descricao,
         nomeempresa as entidade_nome,
         proc,
         codlo,

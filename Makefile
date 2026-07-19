@@ -1,6 +1,6 @@
 SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard elt config.py constants.py
 
-.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load dbt/deps dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs
+.PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load elt/load-csv dbt/deps dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs
 
 # SETUP TASKS
 
@@ -57,6 +57,12 @@ ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/load PORTAL=porciuncula_prefeitura [DIR=data/raw_runs/20250101_120000])
 endif
 	PYTHONPATH=. uv run python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
+
+elt/load-csv:
+ifndef PORTAL
+	$(error PORTAL is required. Usage: make elt/load-csv PORTAL=porciuncula_prefeitura)
+endif
+	PYTHONPATH=. uv run python utils/pipeline/import_receitas_csv.py --portal $(PORTAL)
 
 # REPORTS
 

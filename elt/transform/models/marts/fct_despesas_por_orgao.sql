@@ -1,6 +1,6 @@
 select
     empresa,
-    ano,
+    ano::int as ano,
     codigo,
     descricao,
     nullif(replace(empenhado, ',', '.'), '')::numeric as empenhado,

@@ -10,12 +10,9 @@ renamed as (
         ano::int as ano,
         empresa as empresa_id,
         codigo,
-        nullif(trim(descricao), '') as descricao,
-        nullif(replace(previsao_atualizada, ',', '.'), '')::numeric(15, 2) as previsao_atualizada,
-        coalesce(
-            nullif(replace(arrecadado_total, ',', '.'), '')::numeric(15, 2),
-            nullif(replace(arrecadado, ',', '.'), '')::numeric(15, 2)
-        ) as arrecadado_efetivo
+        nullif(trim(coalesce(nome, especificacao)), '') as descricao,
+        nullif(replace(replace(coalesce(previsao_atualizada, prev_atualizada), '.', ''), ',', '.'), '')::numeric(15, 2) as previsao_atualizada,
+        nullif(replace(replace(coalesce(arrecadado_total, arrec_total), '.', ''), ',', '.'), '')::numeric(15, 2) as arrecadado_efetivo
     from source
 )
 

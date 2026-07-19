@@ -10,12 +10,12 @@ renamed as (
         ano::int as ano,
         empresa as empresa_id,
         numero as licitacao_numero,
-        nullif(trim(modalidade), '') as modalidade,
-        nullif(trim(objeto), '') as objeto,
-        nullif(trim(discr), '') as discriminacao,
+        nullif(trim(licit), '') as modalidade,
+        nullif(trim(discr), '') as objeto,
+        nullif(trim(discr10), '') as discriminacao,
         nullif(replace(valor, ',', '.'), '')::numeric(15, 2) as valor,
         nullif(trim(situacao), '') as situacao,
-        nullif(data_abertura, '')::date as data_abertura,
+        case when nullif(trim(datae), '') is not null then to_date(left(trim(datae), 10), 'DD/MM/YYYY') end as data_abertura,
         nullif(trim(carona), '') as carona
     from source
 )

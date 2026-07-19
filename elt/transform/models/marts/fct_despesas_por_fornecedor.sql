@@ -1,6 +1,6 @@
 select
     empresa,
-    ano,
+    ano::int as ano,
     codigo,
     descricao,
     insmf as fornecedor_cpf_cnpj,

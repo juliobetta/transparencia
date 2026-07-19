@@ -1,209 +1,155 @@
-import sys
-from pathlib import Path
+"""Load receitas CSV files from data/csv/receitas/ into the raw_<slug> PostgreSQL schema."""
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
+import argparse
 import re
 import unicodedata
+from pathlib import Path
 
 import pandas as pd
-from sqlalchemy import text
+from dotenv import load_dotenv
+from sqlalchemy import MetaData, Table, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-import db
+from config import PortalConfig
+from db import get_engine
 
-# ==============================================================================
-# PADRÃO DE ARQUIVOS CSV ESPERADOS:
-# Os arquivos devem ser salvos no diretório: data/csv/receitas/
-# Seguindo o padrão de nomenclatura: <orgao>_<ano>_<endpoint>.csv
-#
-# Onde:
-#   - <orgao>    : ID da empresa/entidade contábil (ex: 7 para Prefeitura, 2 para Saúde)
-#   - <ano>      : Ano correspondente ao exercício fiscal (ex: 2024)
-#   - <endpoint> : Nome da listagem oficial correspondente no portal municipal.
-#                  Mapeamentos aceitos:
-#                    * 'ReceitaOrcamentaria'       -> tabela 'receita_orcamentaria'
-#                    * 'ReceitaUniao'             -> tabela 'receita_uniao'
-#                    * 'ReceitaEstado'            -> tabela 'receita_estado'
-#                    * 'ReceitaExtraOrcamentaria'  -> tabela 'receita_extra_orcamentaria'
-#                    * 'DetalhesReceitaOrcamentaria' -> tabela 'receita_detalhes'
-# ==============================================================================
+TABLE_MAPPING = {
+    "ReceitaOrcamentaria": "receita_orcamentaria",
+    "ReceitaUniao": "receita_uniao",
+    "ReceitaEstado": "receita_estado",
+    "ReceitaExtraOrcamentaria": "receita_extra_orcamentaria",
+    "DetalhesReceitaOrcamentaria": "receita_detalhes",
+    "ReceitaDetalhes": "receita_detalhes",
+    "ReceitaDetalhe": "receita_detalhes",
+}
 
 
-def parse_num(val):
-    if pd.isna(val):
-        return "0.00"
-    if isinstance(val, (int, float)):
-        return f"{float(val):.2f}"
-    val_str = str(val).replace(".", "").replace(",", ".").strip()
-    try:
-        return f"{float(val_str):.2f}"
-    except ValueError:
-        return "0.00"
+def _sanitize_key(k: str) -> str:
+    nfkd = unicodedata.normalize("NFKD", k)
+    ascii_str = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]+", "_", ascii_str.lower()).strip("_")
 
 
-def clean_col_name(c):
-    """
-    Normaliza os cabeçalhos das colunas removendo acentuação e caracteres especiais.
-    """
-    if not isinstance(c, str):
-        return ""
-    # Remove acentuação
-    c_clean = "".join(ch for ch in unicodedata.normalize("NFKD", c) if not unicodedata.combining(ch))
-    # Remove qualquer caracter não alfanumérico e converte para minúsculas
-    c_clean = re.sub(r"[^a-zA-Z0-9]", "", c_clean).lower()
-    return c_clean
+def _ensure_table(engine, schema: str, table: str, cols: list[str], key_cols: list[str]) -> None:
+    valid_keys = [k for k in key_cols if k in cols]
+    if not valid_keys:
+        valid_keys = [cols[0]] if cols else []
+    pk_def = ", ".join(f'"{k}"' for k in valid_keys)
+    col_defs = ",\n    ".join(f'"{c}" TEXT' for c in cols)
+    with engine.begin() as conn:
+        conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+        if pk_def:
+            conn.execute(
+                text(
+                    f'CREATE TABLE IF NOT EXISTS "{schema}"."{table}" (\n    {col_defs},\n    PRIMARY KEY ({pk_def})\n)'
+                )
+            )
+        else:
+            conn.execute(text(f'CREATE TABLE IF NOT EXISTS "{schema}"."{table}" (\n    {col_defs}\n)'))
+        for col in cols:
+            conn.execute(text(f'ALTER TABLE "{schema}"."{table}" ADD COLUMN IF NOT EXISTS "{col}" TEXT'))
 
 
-def run_import():
-    engine = db.get_engine()
+def _upsert_raw(engine, schema: str, table: str, rows: list[dict], key_cols: list[str]) -> int:
+    if not rows:
+        return 0
+    all_cols = sorted({k for row in rows for k in row.keys()})
+    valid_keys = [k for k in key_cols if k in all_cols]
+    non_pk_cols = [c for c in all_cols if c not in valid_keys]
+    _ensure_table(engine, schema, table, all_cols, key_cols)
+    meta = MetaData()
+    tbl = Table(table, meta, schema=schema, autoload_with=engine)
+    normalised = [{c: str(row[c]) if row.get(c) is not None else None for c in all_cols} for row in rows]
+    seen: dict[tuple, dict] = {}
+    for row in normalised:
+        seen[tuple(row.get(k) for k in valid_keys)] = row
+    deduped = list(seen.values())
+    stmt = pg_insert(tbl).values(deduped)
+    if valid_keys and non_pk_cols:
+        stmt = stmt.on_conflict_do_update(index_elements=valid_keys, set_={c: stmt.excluded[c] for c in non_pk_cols})
+    elif valid_keys:
+        stmt = stmt.on_conflict_do_nothing(index_elements=valid_keys)
+    with engine.begin() as conn:
+        conn.execute(stmt)
+    return len(deduped)
+
+
+def main() -> None:
+    load_dotenv()
+    parser = argparse.ArgumentParser(description="Load receitas CSVs into raw_<slug> schema")
+    parser.add_argument("--portal", required=True, help="Portal slug (e.g. porciuncula_prefeitura)")
+    args = parser.parse_args()
+
+    portal = PortalConfig.load(args.portal)
+    schema = portal.raw_schema
+    engine = get_engine()
     csv_dir = Path("data/csv/receitas")
 
-    # Cria o diretório de destino se ele não existir
     if not csv_dir.exists():
-        print(f"Diretório '{csv_dir}' não encontrado. Criando diretório...")
-        csv_dir.mkdir(parents=True, exist_ok=True)
-        print("Certifique-se de salvar os arquivos CSV de receitas nele com o formato:")
-        print("  'data/csv/receitas/<orgao>_<ano>_<endpoint>.csv'")
-        return
+        raise FileNotFoundError(f"Directory '{csv_dir}' not found")
 
-    csv_files = list(csv_dir.glob("*.csv"))
-
+    csv_files = sorted(csv_dir.glob("*.csv"))
     if not csv_files:
-        print(f"Nenhum arquivo CSV encontrado no diretório '{csv_dir}'.")
-        print("Certifique-se de salvar seus arquivos no padrão:")
-        print("  'data/csv/receitas/<orgao>_<ano>_<endpoint>.csv'")
-        print("  (ex: '7_2024_ReceitaOrcamentaria.csv')")
+        print(f"No CSV files found in '{csv_dir}'")
         return
-
-    TABLE_MAPPING = {
-        "ReceitaOrcamentaria": "receita_orcamentaria",
-        "ReceitaUniao": "receita_uniao",
-        "ReceitaEstado": "receita_estado",
-        "ReceitaExtraOrcamentaria": "receita_extra_orcamentaria",
-        "DetalhesReceitaOrcamentaria": "receita_detalhes",
-        "ReceitaDetalhes": "receita_detalhes",
-        "ReceitaDetalhe": "receita_detalhes",
-    }
 
     for file_path in csv_files:
-        filename = file_path.name
-        # Nome esperado: <orgao>_<ano>_<endpoint>.csv
-        parts = filename.replace(".csv", "").split("_")
+        parts = file_path.stem.split("_")
         if len(parts) < 3:
-            print(f"\nIgnorando arquivo '{filename}' pois não segue o padrão '<orgao>_<ano>_<endpoint>.csv'")
+            print(f"Skipping {file_path.name}: expected <empresa>_<ano>_<endpoint>.csv")
             continue
 
         empresa_id = parts[0]
         try:
             year = int(parts[1])
         except ValueError:
-            print(f"\nIgnorando arquivo '{filename}': ano '{parts[1]}' inválido.")
+            print(f"Skipping {file_path.name}: invalid year '{parts[1]}'")
             continue
 
-        endpoint_raw = parts[2]
-        table_name = TABLE_MAPPING.get(endpoint_raw)
-
-        # Fallback case-insensitive
+        endpoint_raw = "_".join(parts[2:])
+        table_name = TABLE_MAPPING.get(endpoint_raw) or next(
+            (v for k, v in TABLE_MAPPING.items() if k.lower() == endpoint_raw.lower()), None
+        )
         if not table_name:
-            table_name = next((v for k, v in TABLE_MAPPING.items() if k.lower() == endpoint_raw.lower()), None)
-
-        if not table_name:
-            print(f"\nIgnorando arquivo '{filename}': endpoint desconhecido '{endpoint_raw}'.")
+            print(f"Skipping {file_path.name}: unknown endpoint '{endpoint_raw}'")
             continue
 
         if file_path.stat().st_size == 0:
-            print(f"\nIgnorando arquivo '{filename}': arquivo vazio.")
+            print(f"Skipping {file_path.name}: empty file")
             continue
 
-        # Tenta ler o arquivo CSV
         try:
-            # Sep=None com engine=python detecta delimitadores automaticamente (como , ou ;)
             df = pd.read_csv(file_path, sep=None, engine="python", encoding="utf-8")
-        except Exception as read_exc:
-            print(f"\nErro ao ler arquivo '{filename}': {read_exc}")
+        except Exception as exc:
+            print(f"Error reading {file_path.name}: {exc}")
             continue
 
         if df.empty:
-            print(f"\nArquivo '{filename}' está vazio.")
+            print(f"Skipping {file_path.name}: no rows")
             continue
 
-        # Mapeia as colunas originais para nomes normalizados e limpos
-        original_cols = df.columns.tolist()
-        cleaned_to_orig = {clean_col_name(c): c for c in original_cols if clean_col_name(c)}
-
-        # Identifica a coluna de Código (ou Extra se for extra-orçamentária)
-        codigo_csv_col = None
-        if "codigo" in cleaned_to_orig:
-            codigo_csv_col = cleaned_to_orig["codigo"]
-        elif "extra" in cleaned_to_orig:
-            codigo_csv_col = cleaned_to_orig["extra"]
-
-        if not codigo_csv_col:
-            print(f"\nErro no arquivo '{filename}': Coluna de código/extra não identificada.")
-            print(f"  Colunas encontradas: {original_cols}")
-            continue
-
-        df = df.dropna(subset=[codigo_csv_col])
-        df["codigo"] = df[codigo_csv_col].astype(str).str.strip()
-        df = df[df["codigo"] != "nan"]
-
-        # Identifica a coluna de Descrição / Especificação
-        desc_csv_col = next(
-            (cleaned_to_orig[k] for k in ["especificacao", "descricao", "nome", "nomereceita"] if k in cleaned_to_orig),
-            None,
-        )
-        df["descricao"] = df[desc_csv_col].fillna("").astype(str).str.strip() if desc_csv_col else ""
-
-        # Mapeamento de colunas financeiras
-        val_mappings = {
-            "previsao_inicial": ["previnicial", "previsaoinicial"],
-            "previsao_atualizada": ["prevatualizada", "previsaoatualizada"],
-            "arrecadado_periodo": ["arrecperiodo", "arrecadadoperiodo"],
-            "arrecadado_total": ["arrectotal", "arrecadadototal", "valor"],
-        }
-
-        for db_col, clean_keys in val_mappings.items():
-            csv_col = next((cleaned_to_orig[k] for k in clean_keys if k in cleaned_to_orig), None)
-            if csv_col:
-                df[db_col] = df[csv_col].apply(parse_num)
-            else:
-                df[db_col] = "0.00"
-
-        # Atributos específicos exigidos para extra-orçamentárias
-        if table_name == "receita_extra_orcamentaria":
-            # Campo 'extra'
-            extra_col = cleaned_to_orig.get("extra")
-            df["extra"] = df[extra_col].astype(str).str.strip() if extra_col else df["codigo"]
-
-            # Campo 'dtlan' (Data de lançamento)
-            data_col = cleaned_to_orig.get("data")
-            df["dtlan"] = df[data_col].astype(str).str.strip() if data_col else ""
-
-        # Configura as chaves extras exigidas pelos modelos
-        df["previsto"] = df["previsao_atualizada"]
-        df["arrecadado"] = df["arrecadado_total"]
+        df.columns = [_sanitize_key(c) for c in df.columns]
         df["ano"] = year
         df["empresa"] = empresa_id
 
-        rows = df.to_dict("records")
+        if "codigo" not in df.columns:
+            print(f"Skipping {file_path.name}: no 'codigo' column (incompatible with API table structure)")
+            continue
 
-        # Exclui registros antigos para evitar duplicidade ou conflitos
-        with engine.connect() as conn:
-            conn.execute(
-                text(f"DELETE FROM {table_name} WHERE ano = :ano AND empresa = :empresa"),
-                {"ano": year, "empresa": empresa_id},
-            )
-            conn.commit()
+        pk_cols = ["ano", "empresa", "codigo"]
 
-            if rows:
-                count = db.upsert(conn, table_name, rows, ["ano", "empresa", "codigo"])
-                conn.commit()
-                print(f"✓ {filename} -> Importados {count} registros com sucesso na tabela '{table_name}'!")
-            else:
-                print(f"⚠ {filename} -> Nenhum registro válido encontrado para importação.")
+        # Drop rows where any PK column is null or NaN
+        df = df.dropna(subset=pk_cols)
+        df = df[df["codigo"].astype(str).str.strip().ne("")]
 
-    print("\n🎉 Processamento e importação de todos os CSVs concluídos!")
+        if df.empty:
+            print(f"Skipping {file_path.name}: no valid rows after filtering nulls")
+            continue
+
+        rows = [{k: (None if pd.isna(v) else v) for k, v in row.items()} for row in df.to_dict("records")]
+        count = _upsert_raw(engine, schema, table_name, rows, pk_cols)
+        print(f"✓ {file_path.name} → {count} rows into {schema}.{table_name}")
 
 
 if __name__ == "__main__":
-    run_import()
+    main()
