@@ -14,12 +14,17 @@ def _sanitize_descricao(s: str) -> str:
     return s
 
 
-def _sum_varchar_col(conn: Any, table: str, col: str, year: int, extra_where: str = "") -> float:
+def _sum_varchar_col(
+    conn: Any, table: str, col: str, year: int, extra_where: str = "", extra_params: dict | None = None
+) -> float:
     try:
+        params: dict = {"ano": year}
+        if extra_params:
+            params.update(extra_params)
         df = pd.read_sql_query(
             text(f"SELECT {col} FROM {table} WHERE ano = :ano {extra_where}"),
             conn,
-            params={"ano": year},
+            params=params,
         )
         if df.empty:
             return 0.0
@@ -33,15 +38,29 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     rev_df = fontes_receita.run(conn, [year], empresa_ids=empresa_ids)
     total_arrecadado = float(rev_df.iloc[0]["total_arrecadado"]) if not rev_df.empty else 0.0
 
+    # fct_despesas usa empresa_id; fct_despesas_por_orgao usa empresa (nome da coluna distinto)
     empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     empresa_params: dict = {"empresas": empresa_ids} if empresa_ids else {}
+    orgao_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
 
-    # 2. Despesas correntes pagas no ano
-    despesas_pagas = _sum_varchar_col(conn, "fct_despesas_por_orgao", "pago", year)
+    # 2. Despesas correntes pagas no ano (filtrado pela entidade selecionada)
+    despesas_pagas = _sum_varchar_col(
+        conn,
+        "fct_despesas_por_orgao",
+        "pago",
+        year,
+        extra_where=orgao_clause,
+        extra_params=empresa_params if empresa_ids else None,
+    )
 
     # 3. Soma do pago de restos cujo exercício corresponde ao ano informado
     restos_pagos_no_ano = _sum_varchar_col(
-        conn, "fct_despesas", "pago", year, extra_where="AND fonte = 'restos_a_pagar'"
+        conn,
+        "fct_despesas",
+        "pago",
+        year,
+        extra_where=f"AND fonte = 'restos_a_pagar' {empresa_clause}",
+        extra_params=empresa_params if empresa_ids else None,
     )
 
     # 4. Restos pendentes por exercício

@@ -52,10 +52,13 @@ def _sum_column(
 def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd.DataFrame:
     records = []
     for year in years:
-        propria_previsto = _sum_column(
+        # receita_orcamentaria root = grand total (já inclui transferências da União e do Estado).
+        # receita_uniao e receita_estado são subconjuntos desse total — somá-los ao todo causaria dupla contagem.
+        # receita_propria = total − transferências federais − transferências estaduais.
+        total_previsto = _sum_column(
             conn, "orcamentaria", "previsao_atualizada", year, root_only=True, empresa_ids=empresa_ids
         )
-        propria_arrecadado = _sum_column(
+        total_arrecadado = _sum_column(
             conn, "orcamentaria", "arrecadado", year, root_only=True, empresa_ids=empresa_ids
         )
 
@@ -69,8 +72,8 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
         )
         estado_arrecadado = _sum_column(conn, "estado", "arrecadado", year, root_only=True, empresa_ids=empresa_ids)
 
-        total_previsto = propria_previsto + uniao_previsto + estado_previsto
-        total_arrecadado = propria_arrecadado + uniao_arrecadado + estado_arrecadado
+        propria_previsto = max(0.0, total_previsto - uniao_previsto - estado_previsto)
+        propria_arrecadado = max(0.0, total_arrecadado - uniao_arrecadado - estado_arrecadado)
 
         # Dados de arrecadação real cobrem todo o histórico (import via CSV + API do exercício corrente).
         # Só recorremos à previsão orçamentária quando não há execução alguma ainda (ex.: virada de ano).
