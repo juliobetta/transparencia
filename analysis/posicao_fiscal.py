@@ -14,12 +14,17 @@ def _sanitize_descricao(s: str) -> str:
     return s
 
 
-def _sum_varchar_col(conn: Any, table: str, col: str, year: int) -> float:
+def _sum_varchar_col(
+    conn: Any, table: str, col: str, year: int, extra_where: str = "", extra_params: dict | None = None
+) -> float:
     try:
+        params: dict = {"ano": year}
+        if extra_params:
+            params.update(extra_params)
         df = pd.read_sql_query(
-            text(f"SELECT {col} FROM {table} WHERE ano = :ano"),
+            text(f"SELECT {col} FROM {table} WHERE ano = :ano {extra_where}"),
             conn,
-            params={"ano": year},
+            params=params,
         )
         if df.empty:
             return 0.0
@@ -33,20 +38,38 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     rev_df = fontes_receita.run(conn, [year], empresa_ids=empresa_ids)
     total_arrecadado = float(rev_df.iloc[0]["total_arrecadado"]) if not rev_df.empty else 0.0
 
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    # fct_despesas usa empresa_id; fct_despesas_por_orgao usa empresa (nome da coluna distinto)
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     empresa_params: dict = {"empresas": empresa_ids} if empresa_ids else {}
+    orgao_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
 
-    # 2. Despesas correntes pagas no ano
-    despesas_pagas = _sum_varchar_col(conn, "despesas_por_orgao", "pago", year)
+    # 2. Despesas correntes pagas no ano (filtrado pela entidade selecionada)
+    despesas_pagas = _sum_varchar_col(
+        conn,
+        "fct_despesas_por_orgao",
+        "pago",
+        year,
+        extra_where=orgao_clause,
+        extra_params=empresa_params if empresa_ids else None,
+    )
 
     # 3. Soma do pago de restos cujo exercício corresponde ao ano informado
-    restos_pagos_no_ano = _sum_varchar_col(conn, "despesas_restos_pagar", "pago", year)
+    restos_pagos_no_ano = _sum_varchar_col(
+        conn,
+        "fct_despesas",
+        "pago",
+        year,
+        extra_where=f"AND fonte = 'restos_a_pagar' {empresa_clause}",
+        extra_params=empresa_params if empresa_ids else None,
+    )
 
     # 4. Restos pendentes por exercício
     restos_pendentes = []
     try:
         df = pd.read_sql_query(
-            text(f"SELECT ano, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause} ORDER BY ano"),
+            text(
+                f"SELECT ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' {empresa_clause} ORDER BY ano"
+            ),
             conn,
             params=empresa_params,
         )
@@ -79,7 +102,9 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     top_credores_adm_atual = []
     try:
         df_cred = pd.read_sql_query(
-            text(f"SELECT descricao, empenhado, pago FROM despesas_restos_pagar WHERE ano >= 2025 {empresa_clause}"),
+            text(
+                f"SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano >= 2025 {empresa_clause}"
+            ),
             conn,
             params=empresa_params,
         )
@@ -119,11 +144,13 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
 def get_fornecedores_pendentes(
     conn: Any, year: int | None = None, empresa_ids: list[str] | None = None
 ) -> pd.DataFrame:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     try:
         df = pd.read_sql_query(
-            text(f"SELECT descricao, ano, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"),
+            text(
+                f"SELECT descricao, ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' {empresa_clause}"
+            ),
             conn,
             params=params,
         )
@@ -157,11 +184,13 @@ def get_fornecedores_pendentes(
 def get_tendencia_fornecedores_pendentes(
     conn: Any, years: list[int], empresa_ids: list[str] | None = None
 ) -> pd.DataFrame:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     try:
         df = pd.read_sql_query(
-            text(f"SELECT ano, descricao, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"),
+            text(
+                f"SELECT ano, descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' {empresa_clause}"
+            ),
             conn,
             params=params,
         )
@@ -207,7 +236,7 @@ def get_pendentes_por_exercicio(conn: Any) -> pd.DataFrame:
     """Retorna totais de RAP pendentes por exercício (para exibição por seção)."""
     try:
         df = pd.read_sql_query(
-            text("SELECT ano, empenhado, pago FROM despesas_restos_pagar"),
+            text("SELECT ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar'"),
             conn,
         )
     except Exception:
@@ -236,12 +265,12 @@ def get_pendentes_por_exercicio(conn: Any) -> pd.DataFrame:
 def get_restos_baixo_valor(
     conn: Any, year: int | None = None, threshold: float = 10.0, empresa_ids: list[str] | None = None
 ) -> pd.DataFrame:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"empresas": empresa_ids} if empresa_ids else {}
     try:
         df = pd.read_sql_query(
             text(
-                f"SELECT descricao, ano, numero, empenhado, pago FROM despesas_restos_pagar WHERE 1=1 {empresa_clause}"
+                f"SELECT descricao, ano, empenho_id, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' {empresa_clause}"
             ),
             conn,
             params=params,
@@ -256,12 +285,12 @@ def get_restos_baixo_valor(
     return (
         df[(df["emp_f"] > 0) & (df["emp_f"] < threshold)]
         .assign(descricao=df["descricao"].fillna("Sem identificação").apply(_sanitize_descricao))[
-            ["ano", "numero", "descricao", "emp_f", "pago_f"]
+            ["ano", "empenho_id", "descricao", "emp_f", "pago_f"]
         ]
         .rename(
             columns={
                 "ano": "Ano",
-                "numero": "Nº",
+                "empenho_id": "Nº",
                 "descricao": "Descrição",
                 "emp_f": "Empenhado",
                 "pago_f": "Pago",

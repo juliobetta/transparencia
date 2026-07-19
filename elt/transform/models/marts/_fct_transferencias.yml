@@ -1,0 +1,48 @@
+version: 2
+
+models:
+  - name: fct_transferencias
+    description: "Fato de transferências consolidadas de todos os portais"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: transferencia_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | empresa_id | mes | entidade_pagadora | entidade_recebedora)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: mes
+        data_type: text
+      - name: entidade_pagadora
+        data_type: text
+      - name: entidade_recebedora
+        data_type: text
+      - name: repasse
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "repasse is not null"
+      - name: devolucao
+        data_type: numeric

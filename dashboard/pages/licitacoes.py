@@ -177,7 +177,7 @@ lacunas_exibicao = lacunas.rename(
     columns={
         "fornecedor": "Fornecedor",
         "objeto": "Objeto",
-        "valcon": "Valor",
+        "valor_contrato": "Valor",
         "periodo": "Período",
     }
 )
@@ -264,12 +264,12 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
 if not acima.empty:
     st.subheader("Contratos acima do limite legal sem licitação")
     st.dataframe(
-        acima[["empresa", "fornecedor", "objeto", "valcon", "periodo"]].rename(
+        acima[["empresa", "fornecedor", "objeto", "valor_contrato", "periodo"]].rename(
             columns={
                 "empresa": "Entidade",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
-                "valcon": "Valor",
+                "valor_contrato": "Valor",
                 "periodo": "Período",
             }
         ),
@@ -283,10 +283,10 @@ if not acima.empty:
 if not anomalias["fracionamento"].empty:
     st.subheader(":material/warning: Possível fracionamento de contratos")
     st.dataframe(
-        anomalias["fracionamento"][["fornecedor", "valcon", "objeto", "periodo"]].rename(
+        anomalias["fracionamento"][["fornecedor", "valor_contrato", "objeto", "periodo"]].rename(
             columns={
                 "fornecedor": "Fornecedor",
-                "valcon": "Valor",
+                "valor_contrato": "Valor",
                 "objeto": "Objeto",
                 "periodo": "Período",
             }

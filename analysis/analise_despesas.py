@@ -12,7 +12,6 @@ from analysis.constants import (
     ELEMENTO_SUBVENCOES_SOCIAIS,
     FORNECEDORES_NATUREZA_MAP,
 )
-from dashboard.shared import CIDADE_CLEAN
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -41,9 +40,9 @@ def _sum_col_where(conn: Any, table: str, col: str, year: int, empresa_ids: list
 
 
 def get_metricas_gerais_despesas(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empenhado = _sum_col_where(conn, "despesas_por_unidade", "empenhado", year, empresa_ids)
-    liquidado = _sum_col_where(conn, "despesas_por_unidade", "liquidado", year, empresa_ids)
-    pago = _sum_col_where(conn, "despesas_por_unidade", "pago", year, empresa_ids)
+    empenhado = _sum_col_where(conn, "fct_despesas_por_unidade", "empenhado", year, empresa_ids)
+    liquidado = _sum_col_where(conn, "fct_despesas_por_unidade", "liquidado", year, empresa_ids)
+    pago = _sum_col_where(conn, "fct_despesas_por_unidade", "pago", year, empresa_ids)
 
     return {
         "empenhado": empenhado,
@@ -61,7 +60,7 @@ def get_despesas_por_unidade(conn: Any, year: int, empresa_ids: list[str] | None
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            f"SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_unidade WHERE ano = :ano {empresa_clause}"
+            f"SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM fct_despesas_por_unidade WHERE ano = :ano {empresa_clause}"
         ),
         conn,
         params=params,
@@ -69,10 +68,12 @@ def get_despesas_por_unidade(conn: Any, year: int, empresa_ids: list[str] | None
     if df.empty:
         return pd.DataFrame(columns=["descricao", "empenhado", "liquidado", "pago", "dotacao_atualizada"])
 
-    df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["dotacao_atualizada"] = pd.to_numeric(df["dotacao_atualizada"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["empenhado"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["liquidado"] = pd.to_numeric(df["liquidado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["dotacao_atualizada"] = pd.to_numeric(
+        df["dotacao_atualizada"].astype(str).str.replace(",", "."), errors="coerce"
+    ).fillna(0)
 
     return (
         df.groupby("descricao", as_index=False)[["empenhado", "liquidado", "pago", "dotacao_atualizada"]]
@@ -92,22 +93,22 @@ def get_principais_fornecedores_detalhados(conn: Any, year: int, empresa_ids: li
         f"""
         SELECT
             f.descricao as fornecedor,
-            f.insmf,
-            f.cepci as cidade,
+            f.fornecedor_cpf_cnpj as insmf,
+            f.fornecedor_cidade as cidade,
             f.codigo,
             f.empenhado,
             f.liquidado,
             f.pago,
-            MAX(g.produ) as descricao,
+            MAX(g.descricao) as descricao,
             MAX(g.elemento) as elemento
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g
+        FROM fct_despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g
           ON f.ano = g.ano
-          AND f.descricao = g.nomefor
+          AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
-        GROUP BY f.descricao, f.insmf, f.cepci, f.codigo, f.empenhado, f.liquidado, f.pago
+        GROUP BY f.descricao, f.fornecedor_cpf_cnpj, f.fornecedor_cidade, f.codigo, f.empenhado, f.liquidado, f.pago
         """
     ).bindparams(
         bindparam("elementos", expanding=True, value=list(FORNECEDORES_NATUREZA_MAP.keys())),
@@ -140,9 +141,9 @@ def get_principais_fornecedores_detalhados(conn: Any, year: int, empresa_ids: li
             ]
         )
 
-    df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["empenhado"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["liquidado"] = pd.to_numeric(df["liquidado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
     return (
         df.groupby(["fornecedor", "insmf", "cidade", "codigo", "elemento"], as_index=False)[
@@ -153,15 +154,17 @@ def get_principais_fornecedores_detalhados(conn: Any, year: int, empresa_ids: li
     )
 
 
-def get_impacto_gastos_locais(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
+def get_impacto_gastos_locais(
+    conn: Any, year: int, empresa_ids: list[str] | None = None, cidade_clean: str = ""
+) -> dict:
     empresa_clause = "AND f.empresa = ANY(:empresas)" if empresa_ids else ""
     sql = text(
         f"""
-        SELECT f.cepci as cidade, f.pago
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g
+        SELECT f.fornecedor_cidade as cidade, f.pago
+        FROM fct_despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g
           ON f.ano = g.ano
-          AND f.descricao = g.nomefor
+          AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
@@ -177,7 +180,7 @@ def get_impacto_gastos_locais(conn: Any, year: int, empresa_ids: list[str] | Non
     if df.empty:
         return {"local_pago": 0.0, "externo_pago": 0.0, "total_pago": 0.0, "pct_local": 0.0}
 
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["cidade_clean"] = (
         df["cidade"]
         .fillna("")
@@ -187,7 +190,7 @@ def get_impacto_gastos_locais(conn: Any, year: int, empresa_ids: list[str] | Non
         .apply(lambda x: unicodedata.normalize("NFD", x).encode("ascii", "ignore").decode("ascii"))
     )
 
-    is_local = df["cidade_clean"] == CIDADE_CLEAN
+    is_local = df["cidade_clean"] == cidade_clean
     local_pago = df[is_local]["pago"].sum()
     externo_pago = df[~is_local]["pago"].sum()
     total_pago = local_pago + externo_pago
@@ -201,16 +204,16 @@ def get_impacto_gastos_locais(conn: Any, year: int, empresa_ids: list[str] | Non
 
 
 def get_gastos_por_municipio(
-    conn: Any, year: int, empresa_ids: list[str] | None = None, top_n: int = 5
+    conn: Any, year: int, empresa_ids: list[str] | None = None, top_n: int = 5, cidade_clean: str = ""
 ) -> pd.DataFrame:
     empresa_clause = "AND f.empresa = ANY(:empresas)" if empresa_ids else ""
     sql = text(
         f"""
-        SELECT f.cepci as cidade, f.pago
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g
+        SELECT f.fornecedor_cidade as cidade, f.pago
+        FROM fct_despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g
           ON f.ano = g.ano
-          AND f.descricao = g.nomefor
+          AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
@@ -238,12 +241,12 @@ def get_gastos_por_municipio(
     df["cidade_label"] = df["cidade"].fillna("").astype(str).str.strip().str.title()
     # treat blank or numeric-only values as unknown
     df.loc[df["cidade_label"].str.fullmatch(r"\d*"), "cidade_label"] = "Não Informado"
-    df.loc[df["cidade_clean"] == CIDADE_CLEAN, "cidade_label"] = "Negócios Locais (Porciúncula)"
+    df.loc[df["cidade_clean"] == cidade_clean, "cidade_label"] = "local"
 
     by_city = df.groupby("cidade_label", as_index=False)["pago"].sum().sort_values("pago", ascending=False)  # type: ignore
 
-    local_row = by_city[by_city["cidade_label"] == "Negócios Locais (Porciúncula)"].copy()
-    external = by_city[by_city["cidade_label"] != "Negócios Locais (Porciúncula)"].copy()
+    local_row = by_city[by_city["cidade_label"] == "local"].copy()
+    external = by_city[by_city["cidade_label"] != "local"].copy()
 
     unknown = external[external["cidade_label"] == "Não Informado"]
     ranked = external[external["cidade_label"] != "Não Informado"].sort_values("pago", ascending=False)
@@ -263,15 +266,15 @@ def get_gastos_por_municipio(
 
 def get_folha_por_orgao(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
     # Filtra folha de pessoal (elemento 11) diretamente da despesas_gerais
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year, "elemento": ELEMENTO_FOLHA_PESSOAL}
     if empresa_ids:
         params["empresas"] = empresa_ids
     query = text(f"""
-        SELECT nomefor as descricao, SUM(CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT)) as pago
-        FROM despesas_gerais
+        SELECT fornecedor_nome as descricao, SUM(pago) as pago
+        FROM fct_despesas
         WHERE ano = :ano AND elemento = :elemento {empresa_clause}
-        GROUP BY nomefor
+        GROUP BY fornecedor_nome
     """)
     df = pd.read_sql_query(query, conn, params=params)
     if df.empty:
@@ -281,17 +284,17 @@ def get_folha_por_orgao(conn: Any, year: int, empresa_ids: list[str] | None = No
 
 
 def get_resumo_diarias(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
-        text(f"SELECT valor, favorecido FROM diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
+        text(f"SELECT valor, favorecido FROM fct_diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
     )
     if df.empty:
         return {"total_valor": 0.0, "total_viajantes": 0, "media_reembolso": 0.0}
 
-    df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor"] = pd.to_numeric(df["valor"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     total_valor = df["valor"].sum()
     total_viajantes = df["favorecido"].nunique()
 
@@ -303,17 +306,17 @@ def get_resumo_diarias(conn: Any, year: int, empresa_ids: list[str] | None = Non
 
 
 def get_principais_beneficiarios_diarias(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
-        text(f"SELECT favorecido, cargo, valor FROM diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
+        text(f"SELECT favorecido, cargo, valor FROM fct_diarias WHERE ano = :ano {empresa_clause}"), conn, params=params
     )
     if df.empty:
         return pd.DataFrame(columns=["favorecido", "cargo", "valor", "viagens"])
 
-    df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor"] = pd.to_numeric(df["valor"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
 
     summary = df.groupby(["favorecido", "cargo"], as_index=False).agg(
         valor=("valor", "sum"), viagens=("valor", "count")
@@ -324,19 +327,25 @@ def get_principais_beneficiarios_diarias(conn: Any, year: int, empresa_ids: list
 def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 500) -> pd.DataFrame:
     if query.strip():
         sql = text("""
-            SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
-            FROM despesas_gerais
-            WHERE ano = :ano AND (nomefor ILIKE :search OR produ ILIKE :search OR nomeempresa ILIKE :search)
-            ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
+            SELECT f.data_empenho as data, f.fornecedor_nome as fornecedor, f.pago,
+                   COALESCE(d.orgao_nome, f.empresa_id) as unidade, f.descricao
+            FROM fct_despesas f
+            LEFT JOIN dim_orgao d ON d.empresa_id = f.empresa_id
+            WHERE f.ano = :ano
+              AND (f.fornecedor_nome ILIKE :search OR f.descricao ILIKE :search
+                   OR COALESCE(d.orgao_nome, f.empresa_id) ILIKE :search)
+            ORDER BY f.pago DESC
             LIMIT :lim
         """)
         params = {"ano": year, "search": f"%{query}%", "lim": limit}
     else:
         sql = text("""
-            SELECT datae as data, nomefor as fornecedor, pago, nomeempresa as unidade, produ as descricao
-            FROM despesas_gerais
-            WHERE ano = :ano
-            ORDER BY CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS FLOAT) DESC
+            SELECT f.data_empenho as data, f.fornecedor_nome as fornecedor, f.pago,
+                   COALESCE(d.orgao_nome, f.empresa_id) as unidade, f.descricao
+            FROM fct_despesas f
+            LEFT JOIN dim_orgao d ON d.empresa_id = f.empresa_id
+            WHERE f.ano = :ano
+            ORDER BY f.pago DESC
             LIMIT :lim
         """)
         params = {"ano": year, "lim": limit}
@@ -345,7 +354,7 @@ def get_transacoes_pesquisaveis(conn: Any, year: int, query: str, limit: int = 5
     if df.empty:
         return pd.DataFrame(columns=["data", "fornecedor", "pago", "unidade", "descricao"])
 
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     return df
 
@@ -354,7 +363,7 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
     if query.strip():
         sql = text("""
             SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-            FROM diarias
+            FROM fct_diarias
             WHERE ano = :ano AND (favorecido ILIKE :search OR unidade ILIKE :search OR cargo ILIKE :search)
             ORDER BY data DESC
         """)
@@ -362,7 +371,7 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
     else:
         sql = text("""
             SELECT data, favorecido as servidor, cargo, valor, unidade, descricao as historico
-            FROM diarias
+            FROM fct_diarias
             WHERE ano = :ano
             ORDER BY data DESC LIMIT :lim
         """)
@@ -371,7 +380,7 @@ def get_diarias_pesquisaveis(conn: Any, year: int, query: str, limit: int = 150)
     df = pd.read_sql_query(sql, conn, params=params)
     if df.empty:
         return pd.DataFrame(columns=["data", "servidor", "cargo", "valor", "unidade", "historico"])
-    df["valor"] = pd.to_numeric(df["valor"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor"] = pd.to_numeric(df["valor"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     return df
 
@@ -409,8 +418,10 @@ def get_metricas_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | N
     return {year: get_metricas_gerais_despesas(conn, year, empresa_ids) for year in years}
 
 
-def get_impacto_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, dict]:
-    return {year: get_impacto_gastos_locais(conn, year, empresa_ids) for year in years}
+def get_impacto_por_ano(
+    conn: Any, years: list[int], empresa_ids: list[str] | None = None, cidade_clean: str = ""
+) -> dict[int, dict]:
+    return {year: get_impacto_gastos_locais(conn, year, empresa_ids, cidade_clean=cidade_clean) for year in years}
 
 
 def get_resumo_diarias_por_ano(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> dict[int, dict]:
@@ -433,19 +444,19 @@ def get_perfil_cargos_confianca(_conn: Any, years: list[int]) -> pd.DataFrame:
         SELECT
             ano,
             CASE
-                WHEN LOWER(categoriafuncional) LIKE '%inativo%' OR LOWER(categoriafuncional) LIKE '%pensionista%' OR LOWER(vinculo) LIKE '%inativo%' OR LOWER(vinculo) LIKE '%pensionista%' THEN 'Inativos e Pensionistas'
-                WHEN LOWER(cargo) LIKE '%conselheiro%' OR LOWER(categoriafuncional) LIKE '%cedido%' OR LOWER(vinculo) LIKE '%cedido%' OR LOWER(vinculo) IN ('macaeprev', 'macaeprev i', 'funprev', 'funprev active', 'rppsi', 'rpps active') THEN 'Conselhos e Cedidos Externos'
+                WHEN LOWER(categoria_funcional) LIKE '%inativo%' OR LOWER(categoria_funcional) LIKE '%pensionista%' OR LOWER(vinculo) LIKE '%inativo%' OR LOWER(vinculo) LIKE '%pensionista%' THEN 'Inativos e Pensionistas'
+                WHEN LOWER(cargo) LIKE '%conselheiro%' OR LOWER(categoria_funcional) LIKE '%cedido%' OR LOWER(vinculo) LIKE '%cedido%' OR LOWER(vinculo) IN ('macaeprev', 'macaeprev i', 'funprev', 'funprev active', 'rppsi', 'rpps active') THEN 'Conselhos e Cedidos Externos'
                 WHEN vinculo LIKE '%FG%' THEN 'Servidor Efetivo com Função de Confiança (DAI/FG)'
-                WHEN vinculo LIKE '%CC%' OR categoriafuncional = 'Efetivos ocupantes de cargo comissionado' THEN 'Servidor Efetivo com Cargo Comissionado (DAS/CC)'
-                WHEN categoriafuncional = 'Cargo comissionado extra-quadro' OR vinculo = 'Comissionado INSS' OR LOWER(vinculo) LIKE 'cargo comissionado%' THEN 'Comissionado Externo (DAS/CC - Sem Vínculo)'
-                WHEN formaprovimento = 'CONCURSO PUBLICO' OR categoriafuncional = 'Efetivos' THEN 'Servidor Efetivo de Carreira'
-                WHEN formaprovimento = 'TEMPO DETERMINADO' OR categoriafuncional LIKE '%interesse público%' THEN 'Contrato Temporário'
-                WHEN categoriafuncional = 'Eletivos' OR LOWER(cargo) LIKE '%prefeito%' OR LOWER(cargo) LIKE '%vereador%' OR LOWER(cargo) LIKE '%secretario%' OR LOWER(vinculo) LIKE '%politico%' THEN 'Agente Político (Eletivo/Secretário)'
+                WHEN vinculo LIKE '%CC%' OR categoria_funcional = 'Efetivos ocupantes de cargo comissionado' THEN 'Servidor Efetivo com Cargo Comissionado (DAS/CC)'
+                WHEN categoria_funcional = 'Cargo comissionado extra-quadro' OR vinculo = 'Comissionado INSS' OR LOWER(vinculo) LIKE 'cargo comissionado%' THEN 'Comissionado Externo (DAS/CC - Sem Vínculo)'
+                WHEN forma_provimento = 'CONCURSO PUBLICO' OR categoria_funcional = 'Efetivos' THEN 'Servidor Efetivo de Carreira'
+                WHEN forma_provimento = 'TEMPO DETERMINADO' OR categoria_funcional LIKE '%interesse público%' THEN 'Contrato Temporário'
+                WHEN categoria_funcional = 'Eletivos' OR LOWER(cargo) LIKE '%prefeito%' OR LOWER(cargo) LIKE '%vereador%' OR LOWER(cargo) LIKE '%secretario%' OR LOWER(vinculo) LIKE '%politico%' THEN 'Agente Político (Eletivo/Secretário)'
                 ELSE 'Outros'
             END as tipo_vinculo_detalhado,
             COUNT(*) as quantidade,
-            SUM(CAST(NULLIF(REPLACE(REPLACE(proventos, '.', ''), ',', '.'), '') AS FLOAT)) as total_gasto
-        FROM pessoal
+            SUM(proventos) as total_gasto
+        FROM fct_pessoal
         WHERE ano IN :anos
         GROUP BY ano, tipo_vinculo_detalhado
     """)
@@ -459,7 +470,7 @@ def get_perfil_cargos_confianca(_conn: Any, years: list[int]) -> pd.DataFrame:
 
 def get_composicao_despesa(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFrame:
     """Retorna o total pago por macro-categoria de natureza de despesa (Portaria 163/2001)."""
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
@@ -482,9 +493,9 @@ def get_composicao_despesa(conn: Any, year: int, empresa_ids: list[str] | None =
                         THEN 'Investimentos'
                     ELSE 'Outros'
                 END AS categoria,
-                CAST(NULLIF(REPLACE(pago, ',', '.'), '') AS NUMERIC) AS pago
-            FROM despesas_gerais
-            WHERE ano = :ano AND tpem != 'AN' {empresa_clause}
+                pago AS pago
+            FROM fct_despesas
+            WHERE ano = :ano AND tipo_empenho != 'AN' {empresa_clause}
         ) sub
         GROUP BY categoria
         ORDER BY pago DESC NULLS LAST

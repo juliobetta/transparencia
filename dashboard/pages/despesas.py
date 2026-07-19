@@ -43,8 +43,8 @@ def _por_unidade(conn, year, empresa_ids, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _impacto(conn, year, empresa_ids, _extracted_at):
-    return analise_despesas.get_impacto_gastos_locais(conn, year, empresa_ids=empresa_ids)
+def _impacto(conn, year, empresa_ids, _extracted_at, cidade_clean: str = ""):
+    return analise_despesas.get_impacto_gastos_locais(conn, year, empresa_ids=empresa_ids, cidade_clean=cidade_clean)
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -58,8 +58,10 @@ def _concentracao(conn, year, empresa_ids, _extracted_at):
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _gastos_por_municipio(conn, year, empresa_ids, _extracted_at):
-    return analise_despesas.get_gastos_por_municipio(conn, year, top_n=5, empresa_ids=empresa_ids)
+def _gastos_por_municipio(conn, year, empresa_ids, _extracted_at, cidade_clean: str = ""):
+    return analise_despesas.get_gastos_por_municipio(
+        conn, year, top_n=5, empresa_ids=empresa_ids, cidade_clean=cidade_clean
+    )
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -89,7 +91,9 @@ def _metricas_por_ano(conn, years, empresa_ids, _extracted_at):
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _impacto_por_ano(conn, years, empresa_ids, _extracted_at):
-    return analise_despesas.get_impacto_por_ano(conn, list(years), empresa_ids=empresa_ids)
+    return analise_despesas.get_impacto_por_ano(
+        conn, list(years), empresa_ids=empresa_ids, cidade_clean=_config.cidade_clean
+    )
 
 
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
@@ -110,6 +114,8 @@ def _tendencia_pendentes(conn, years, empresa_ids, _extracted_at):
 conn = get_conn()
 year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
+_config = st.session_state["portal_config"]
+_local_label = f"Negócios Locais ({_config.display_name})"
 
 _all_years = list(range(ANO_INICIAL, year + 1))
 _hist_metricas = _metricas_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
@@ -251,7 +257,7 @@ with t2:
         "Foram excluídos pagamentos de folha de pessoal, previdência e dívidas."
     )
 
-    impacto = _impacto(conn, year, empresa_ids, _extracted_at)
+    impacto = _impacto(conn, year, empresa_ids, _extracted_at, cidade_clean=_config.cidade_clean)
     concentracao = _concentracao(conn, year, empresa_ids, _extracted_at)
 
     _local_serie = [_hist_impacto[y]["local_pago"] for y in _all_years]
@@ -318,7 +324,7 @@ with t2:
     if impacto["total_pago"] > 0:
         df_mercado = pd.DataFrame(
             {
-                "Mercado": ["Negócios Locais (Porciúncula)", "Prestadores Externos"],
+                "Mercado": [_local_label, "Prestadores Externos"],
                 "Pago (R$)": [impacto["local_pago"], impacto["externo_pago"]],
             }
         )
@@ -327,12 +333,13 @@ with t2:
             values="Pago (R$)",
             names="Mercado",
             color="Mercado",
-            color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f", "Prestadores Externos": "#a12c2c"},
+            color_discrete_map={_local_label: "#2b5c8f", "Prestadores Externos": "#a12c2c"},
             title="Destino Geográfico dos Recursos Públicos Pagos",
             hole=0.5,
         )
 
-        df_cidades = _gastos_por_municipio(conn, year, empresa_ids, _extracted_at)
+        df_cidades = _gastos_por_municipio(conn, year, empresa_ids, _extracted_at, cidade_clean=_config.cidade_clean)
+        df_cidades["cidade"] = df_cidades["cidade"].replace("local", _local_label)
         col1, col2 = st.columns(2)
         with col1:
             st.plotly_chart(fig_pie, use_container_width=True)
@@ -343,20 +350,21 @@ with t2:
                     values="pago",
                     names="cidade",
                     color="cidade",
-                    color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
+                    color_discrete_map={_local_label: "#2b5c8f"},
                     title="Top 5 Cidades Externas + Outros",
                     hole=0.5,
                 )
                 st.plotly_chart(fig_cities, use_container_width=True)
     else:
-        df_cidades = _gastos_por_municipio(conn, year, empresa_ids, _extracted_at)
+        df_cidades = _gastos_por_municipio(conn, year, empresa_ids, _extracted_at, cidade_clean=_config.cidade_clean)
+        df_cidades["cidade"] = df_cidades["cidade"].replace("local", _local_label)
         if not df_cidades.empty:
             fig_cities = px.pie(
                 df_cidades,
                 values="pago",
                 names="cidade",
                 color="cidade",
-                color_discrete_map={"Negócios Locais (Porciúncula)": "#2b5c8f"},
+                color_discrete_map={_local_label: "#2b5c8f"},
                 title="Top 5 Cidades Externas + Outros",
                 hole=0.5,
             )

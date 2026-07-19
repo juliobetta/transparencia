@@ -1,0 +1,28 @@
+name: "transparencia"
+version: "1.0.0"
+config-version: 2
+
+profile: "transparencia"
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+
+vars:
+  test_mode: false
+
+models:
+  transparencia:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: "{{ 'view' if var('test_mode', false) else 'table' }}"

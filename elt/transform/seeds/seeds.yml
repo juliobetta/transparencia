@@ -1,0 +1,12 @@
+version: 2
+
+seeds:
+  - name: seed_porciuncula_prefeitura_orgaos
+    description: "Entidades municipais de Porciúncula (prefeitura + fundos)"
+    columns:
+      - name: portal_slug
+        data_type: text
+      - name: empresa_id
+        data_type: text
+      - name: nome
+        data_type: text

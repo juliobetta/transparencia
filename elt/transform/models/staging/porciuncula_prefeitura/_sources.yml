@@ -1,0 +1,345 @@
+version: 2
+
+sources:
+  - name: porciuncula_prefeitura
+    schema: raw_porciuncula_prefeitura
+    description: "Dados brutos extraídos do portal de transparência de Porciúncula via ELT"
+    tables:
+      - name: despesas_gerais
+        description: "Empenhos, liquidações e pagamentos individuais"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: pkemp
+          - name: pkempa
+          - name: tpem
+          - name: funcao
+          - name: funcaonome
+          - name: subfuncao
+          - name: subfuncaonome
+          - name: elemento
+          - name: natureza
+          - name: categoria
+          - name: gruponatureza
+          - name: modalidade
+          - name: programa
+          - name: programanome
+          - name: projativ
+          - name: projeto_atividade_nome
+          - name: mes
+          - name: nomefor
+          - name: cpfformatado
+          - name: numlicit
+          - name: licit
+          - name: desclicit_detalhesempenho
+          - name: fongrupo
+          - name: fongrupodesc
+          - name: foncodigo
+          - name: foncodigodesc
+          - name: fonro
+          - name: fonrodesc
+          - name: fonte_stn
+          - name: fonte_stndesc
+          - name: descfonrec
+          - name: datae
+          - name: empenhado
+          - name: liquidado
+          - name: pago
+          - name: dotac
+          - name: altdo
+          - name: dotacatualizada
+          - name: anulado
+          - name: reforco
+          - name: produ
+          - name: nomeempresa
+          - name: proc
+          - name: codlo
+          - name: cfpro
+          - name: ficha
+          - name: codif
+          - name: codigo
+          - name: vingrupo_vincodigo
+          - name: vincodigonome
+
+      - name: despesas_por_orgao
+        description: "Despesas agregadas por órgão/secretaria"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: empresa
+          - name: ano
+          - name: codigo
+          - name: descricao
+          - name: empenhado
+          - name: liquidado
+          - name: pago
+          - name: dotac
+          - name: altdo
+          - name: dotacao_atualizada
+
+      - name: despesas_por_unidade
+        description: "Despesas agregadas por unidade orçamentária"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: empresa
+          - name: ano
+          - name: codigo
+          - name: descricao
+          - name: empenhado
+          - name: liquidado
+          - name: pago
+          - name: dotac
+          - name: altdo
+          - name: dotacao_atualizada
+
+      - name: despesas_por_fornecedor
+        description: "Despesas agregadas por fornecedor"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: empresa
+          - name: ano
+          - name: codigo
+          - name: descricao
+          - name: insmf
+          - name: cepci
+          - name: empenhado
+          - name: liquidado
+          - name: pago
+
+      - name: despesas_restos_pagar
+        description: "Restos a pagar de exercícios anteriores"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: codigo
+          - name: descricao
+          - name: empenhado
+          - name: liquidado
+          - name: pago
+
+      - name: despesas_extra_orcamentaria
+        description: "Despesas extra-orçamentárias"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: descricao
+          - name: valor
+          - name: codigo
+          - name: datae
+          - name: nomeempresa
+          - name: numeroguia
+          - name: insmf
+          - name: pago
+          - name: mes
+
+      - name: receita_orcamentaria
+        description: "Receitas orçamentárias detalhadas"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: codigo
+          - name: descricao
+          - name: nome
+          - name: especificacao
+          - name: previsto
+          - name: arrecadado
+          - name: previsao_atualizada
+          - name: prev_atualizada
+          - name: arrecadado_total
+          - name: arrec_total
+
+      - name: receita_uniao
+        description: "Transferências recebidas da União"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: codigo
+          - name: descricao
+          - name: nome
+          - name: especificacao
+          - name: previsto
+          - name: arrecadado
+          - name: previsao_atualizada
+          - name: prev_atualizada
+          - name: arrecadado_total
+          - name: arrec_total
+
+      - name: receita_estado
+        description: "Transferências recebidas do Estado"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: codigo
+          - name: descricao
+          - name: nome
+          - name: especificacao
+          - name: previsto
+          - name: arrecadado
+          - name: previsao_atualizada
+          - name: prev_atualizada
+          - name: arrecadado_total
+          - name: arrec_total
+
+      - name: receita_extra_orcamentaria
+        description: "Receitas extra-orçamentárias"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: codigo
+          - name: descricao
+          - name: valor
+          - name: dtlan
+          - name: empresanome
+
+      - name: licitacoes
+        description: "Processos licitatórios"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: licit
+          - name: modalidade
+          - name: discr
+          - name: objeto
+          - name: discr10
+          - name: valor
+          - name: situacao
+          - name: datae
+          - name: carona
+
+      - name: contratos
+        description: "Contratos celebrados"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: fornecedor
+          - name: objeto
+          - name: valor
+          - name: valcon
+          - name: licitacao_numero
+          - name: modali
+          - name: mes
+          - name: tipocoobra
+          - name: numobra
+          - name: fundlegal
+          - name: empenhado
+          - name: data_inicio
+          - name: data_fim
+
+      - name: diarias
+        description: "Diárias pagas a servidores"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: valor
+          - name: favorecido
+          - name: cargo
+          - name: data
+          - name: unidade
+          - name: descricao
+
+      - name: emendas_impositivas
+        description: "Emendas parlamentares impositivas"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: descricao
+          - name: valor
+
+      - name: emendas_cad
+        description: "Cadastro detalhado de emendas"
+        meta:
+          primary_key: [ano, empresa, numero]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: numero
+          - name: numero_emenda
+          - name: resumo
+          - name: valor_total
+          - name: empenhado
+          - name: autor
+          - name: tipo_emenda_descr
+          - name: esfera_origem
+          - name: ato_normativo
+          - name: destinacao_descr
+          - name: pk_ep_emenda
+
+      - name: pessoal
+        description: "Folha de pessoal"
+        meta:
+          primary_key: [ano, empresa, mes, matricula]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: mes
+          - name: matricula
+          - name: nome
+          - name: cargo
+          - name: proventos
+          - name: remuneracao
+          - name: categoriafuncional
+          - name: vinculo
+          - name: formaprovimento
+
+      - name: transferencias
+        description: "Transferências a terceiros"
+        meta:
+          primary_key: [ano, empresa, codigo]
+        columns:
+          - name: ano
+          - name: empresa
+          - name: codigo
+          - name: mes
+          - name: entidade_pagadora
+          - name: entidade_recebedora
+          - name: repasse
+          - name: devolucao
+
+      - name: metadata
+        description: "Metadados do pipeline ELT (ex: data da última extração)"
+        meta:
+          primary_key: [portal_slug, key]
+        columns:
+          - name: portal_slug
+          - name: key
+          - name: value
+
+      - name: empresas
+        description: "Entidades/órgãos do portal"
+        meta:
+          primary_key: [id]
+        columns:
+          - name: id
+            data_type: integer
+          - name: nome

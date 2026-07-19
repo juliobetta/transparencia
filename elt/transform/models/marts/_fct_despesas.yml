@@ -1,0 +1,143 @@
+version: 2
+
+models:
+  - name: fct_despesas
+    description: "Fato de despesas consolidadas com empenho líquido calculado (exclui anulações do fluxo principal)"
+    config:
+      contract:
+        enforced: true
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "abs(empenhado_liquido - (empenhado + valor_anulacoes)) < 0.01"
+          name: empenhado_liquido_consistente
+    columns:
+      - name: despesa_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | fonte | ano | empresa_id | empenho_id)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: fonte
+        data_type: text
+        description: "'exercicio' para despesas do orçamento corrente, 'restos_a_pagar' para execução de empenhos de anos anteriores"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['exercicio', 'restos_a_pagar']
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: empenho_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: pk_empenho
+        data_type: text
+      - name: tipo_empenho
+        data_type: text
+        description: "OR=Ordinário, ES=Estimativo, GL=Global (anulações AN excluídas desta tabela)"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_in_set:
+              value_set: ['OR', 'ES', 'GL', 'AD', 'DA']
+              row_condition: "tipo_empenho is not null"
+      - name: orgao_codigo
+        data_type: text
+      - name: funcao
+        data_type: text
+      - name: funcao_nome
+        data_type: text
+      - name: subfuncao
+        data_type: text
+      - name: subfuncao_nome
+        data_type: text
+      - name: elemento
+        data_type: text
+      - name: natureza_despesa
+        data_type: text
+      - name: grupo_natureza
+        data_type: text
+      - name: modalidade
+        data_type: text
+      - name: programa
+        data_type: text
+      - name: programa_nome
+        data_type: text
+      - name: proj_atividade
+        data_type: text
+      - name: projeto_atividade_nome
+        data_type: text
+      - name: mes
+        data_type: text
+      - name: fornecedor_nome
+        data_type: text
+      - name: fornecedor_cpf_cnpj
+        data_type: text
+      - name: licitacao_numero
+        data_type: text
+      - name: licitacao_modalidade
+        data_type: text
+      - name: fonte_recurso_desc
+        data_type: text
+      - name: descricao
+        data_type: text
+      - name: credor_id
+        data_type: text
+      - name: orgao_id
+        data_type: text
+      - name: data_empenho
+        data_type: date
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: "'2010-01-01'::date"
+              max_value: "'2040-12-31'::date"
+              row_condition: "data_empenho is not null"
+      - name: empenhado
+        data_type: numeric
+      - name: empenhado_liquido
+        data_type: numeric
+        description: "Empenhado bruto + anulações (valores negativos). Denominador correto para taxas de quitação."
+      - name: liquidado
+        data_type: numeric
+      - name: pago
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "pago is not null"
+      - name: dotacao_inicial
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "dotacao_inicial is not null"
+      - name: alteracao_dotacao
+        data_type: numeric
+      - name: dotacao_atualizada
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "dotacao_atualizada is not null"
+      - name: reforco
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "reforco is not null"
+      - name: valor_anulacoes
+        data_type: numeric

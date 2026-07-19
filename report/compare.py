@@ -13,6 +13,7 @@ from jinja2 import Environment, FileSystemLoader
 import db
 import glossary
 from analysis.comparacao import PeriodSpec, run
+from config import PortalConfig
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 TEMPLATE_DIR = Path(__file__).parent
@@ -21,7 +22,7 @@ TEMPLATE_DIR = Path(__file__).parent
 def generate(conn, spec_a: PeriodSpec, spec_b: PeriodSpec) -> Path:
     REPORTS_DIR.mkdir(exist_ok=True)
     result = run(conn, spec_a, spec_b)
-    _raw = db.get_metadata(conn, "last_extracted_at")
+    _raw = db.get_metadata(conn, "last_extracted_at", PortalConfig.load().slug)
     last_extracted = datetime.strptime(_raw, "%Y-%m-%d").strftime("%m/%d/%Y") if _raw else "desconhecida"
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))

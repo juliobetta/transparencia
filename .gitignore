@@ -39,3 +39,7 @@ docs/superpowers/
 *.db
 .local_browsers/
 .local-browsers/
+elt/transform/target/
+elt/transform/logs/
+dbt_packages/
+dbt_internal_packages/

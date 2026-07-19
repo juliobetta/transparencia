@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import db
 from analysis import historia_saude
+from config import PortalConfig
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BRASAO_PATH = ASSETS_DIR / "brasao-porciuncula.svg"
@@ -415,7 +416,7 @@ class _SaudePDF(FPDF):
 
 def generate(conn: Any, year: int) -> bytes:
     data = historia_saude.run(conn, year)
-    _raw = db.get_metadata(conn, "last_extracted_at")
+    _raw = db.get_metadata(conn, "last_extracted_at", PortalConfig.load().slug)
     last_extracted = datetime.fromisoformat(_raw).strftime("%d/%m/%Y") if _raw else "desconhecida"
 
     pdf = _SaudePDF(year=year, last_extracted=last_extracted)

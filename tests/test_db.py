@@ -1,10 +1,13 @@
 import db
 
 
-def test_create_tables_creates_expected_tables(engine):  # noqa: ARG001
-    from sqlmodel import SQLModel
+def test_create_tables_creates_expected_tables(conn):
+    from sqlalchemy import text
 
-    table_names = set(SQLModel.metadata.tables.keys())
+    rows = conn.execute(
+        text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'raw_porciuncula_prefeitura'")
+    ).fetchall()
+    table_names = {r[0] for r in rows}
     assert "despesas_por_orgao" in table_names
     assert "licitacoes" in table_names
     assert "pessoal" in table_names
@@ -65,11 +68,11 @@ def test_upsert_replaces_on_conflict(conn):
 
 
 def test_set_and_get_metadata(conn):
-    db.set_metadata(conn, "test_key", "test_value")
-    result = db.get_metadata(conn, "test_key")
+    db.set_metadata(conn, "test_key", "test_value", "porciuncula_prefeitura")
+    result = db.get_metadata(conn, "test_key", "porciuncula_prefeitura")
     assert result == "test_value"
 
 
 def test_get_metadata_returns_none_for_missing_key(conn):
-    result = db.get_metadata(conn, "nonexistent_key_xyz")
+    result = db.get_metadata(conn, "nonexistent_key_xyz", "porciuncula_prefeitura")
     assert result is None

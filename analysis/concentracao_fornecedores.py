@@ -15,10 +15,10 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     sql = text(
         f"""
         SELECT f.codigo, f.descricao, f.empenhado
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g
+        FROM fct_despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g
           ON f.ano = g.ano
-          AND f.descricao = g.nomefor
+          AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano
         {empresa_clause}
         AND g.elemento IN :elementos
@@ -28,7 +28,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     )
 
     df = pd.read_sql_query(sql, conn, params=params)
-    df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["empenhado"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df = df.groupby(["codigo", "descricao"], as_index=False)["empenhado"].sum()
     total = df["empenhado"].sum()
     df["percentual"] = df["empenhado"] / total * 100 if total > 0 else 0
@@ -45,10 +45,10 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
         text(
             f"""
             SELECT f.empenhado
-            FROM despesas_por_fornecedor f
-            LEFT JOIN despesas_gerais g
+            FROM fct_despesas_por_fornecedor f
+            LEFT JOIN fct_despesas g
               ON f.ano = g.ano
-              AND f.descricao = g.nomefor
+              AND f.descricao = g.fornecedor_nome
             WHERE f.ano = :ano
             {empresa_clause}
             AND g.elemento IN :elementos
@@ -59,7 +59,9 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
         conn,
         params=params,
     )
-    df_all["empenhado"] = pd.to_numeric(df_all["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
+    df_all["empenhado"] = pd.to_numeric(df_all["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(
+        0
+    )
     total_all = float(df_all["empenhado"].sum())
 
     return {"top10": top10, "hhi": hhi, "dominante": dominante, "total_all": total_all}

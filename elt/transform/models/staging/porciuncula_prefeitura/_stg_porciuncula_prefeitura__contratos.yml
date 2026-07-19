@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__contratos
+    description: "Contratos do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: ano
+        data_type: integer
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2000
+              max_value: 2035
+      - name: empresa_id
+        data_type: text
+        tests:
+          - not_null
+      - name: contrato_numero
+        data_type: text
+      - name: fornecedor_nome
+        data_type: text
+      - name: objeto
+        data_type: text
+      - name: valor_contrato
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "valor_contrato is not null"
+      - name: licitacao_numero
+        data_type: text
+      - name: mes
+        data_type: text
+      - name: tipo_obra
+        data_type: text
+      - name: numero_obra
+        data_type: text
+      - name: empenhado
+        data_type: numeric
+      - name: modalidade
+        data_type: text

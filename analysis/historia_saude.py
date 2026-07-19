@@ -17,8 +17,8 @@ def _to_float(series: pd.Series) -> pd.Series:
 def _emendas(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
     df = pd.read_sql_query(
         text("""SELECT numero_emenda, resumo, valor_total, empenhado, autor,
-                  tipo_emenda_descr, esfera_origem, ato_normativo, destinacao_descr
-           FROM emendas_cad WHERE ano = :ano AND empresa = :empresa"""),
+                  tipo_emenda, esfera_origem, ato_normativo, destinacao
+           FROM fct_emendas WHERE ano = :ano AND empresa_id = :empresa"""),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
@@ -32,10 +32,10 @@ def _emendas(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float
             "valor_total": "Valor Autorizado",
             "empenhado": "Empenhado",
             "autor": "Autor",
-            "tipo_emenda_descr": "Tipo da Emenda",
+            "tipo_emenda": "Tipo da Emenda",
             "esfera_origem": "Esfera de Origem",
             "ato_normativo": "Ato Normativo",
-            "destinacao_descr": "Destinação",
+            "destinacao": "Destinação",
         }
     )
 
@@ -46,7 +46,9 @@ def _emendas(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float
 
 def _budget(conn: Any, year: int, empresa_id: str) -> dict:
     df = pd.read_sql_query(
-        text("SELECT empenhado, dotacao_atualizada FROM despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"),
+        text(
+            "SELECT empenhado, dotacao_atualizada FROM fct_despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"
+        ),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
@@ -59,7 +61,7 @@ def _budget(conn: Any, year: int, empresa_id: str) -> dict:
 
 def _execution_trend(conn: Any, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        text("SELECT ano, empenhado FROM despesas_por_orgao WHERE empresa = :empresa"),
+        text("SELECT ano, empenhado FROM fct_despesas_por_orgao WHERE empresa = :empresa"),
         conn,
         params={"empresa": empresa_id},
     )
@@ -69,7 +71,7 @@ def _execution_trend(conn: Any, empresa_id: str) -> pd.DataFrame:
 
 def _execution_flow(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        text("SELECT empenhado, liquidado, pago FROM despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"),
+        text("SELECT empenhado, liquidado, pago FROM fct_despesas_por_orgao WHERE ano = :ano AND empresa = :empresa"),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
@@ -86,14 +88,14 @@ def _execution_flow(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
 
 def _contracts_by_modality(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
-        text("SELECT modali, valcon, mes FROM contratos WHERE ano = :ano AND empresa = :empresa"),
+        text("SELECT modalidade, valor_contrato, mes FROM fct_contratos WHERE ano = :ano AND empresa_id = :empresa"),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
     if df.empty:
         return pd.DataFrame(columns=["modalidade", "quantidade", "valor_total", "periodo"])
-    df["valor_num"] = _to_float(df["valcon"])
-    df["modalidade"] = df["modali"].fillna("").str.strip()
+    df["valor_num"] = _to_float(df["valor_contrato"])
+    df["modalidade"] = df["modalidade"].fillna("").str.strip()
     df["modalidade"] = df["modalidade"].where(df["modalidade"] != "", "Sem Informação")
     df["periodo"] = df["mes"].astype(str).str.zfill(2) + "/" + str(year)
     return (
@@ -107,18 +109,18 @@ def _contracts_by_modality(conn: Any, year: int, empresa_id: str) -> pd.DataFram
 def _adesao_de_ata(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame, float]:
     query = text("""
         SELECT
-            l.numero,
-            l.discr as objeto,
+            l.licitacao_numero AS numero,
+            l.discriminacao as objeto,
             l.valor as licitacao_valor,
-            SUM(CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)) as total_c_valor,
-            SUM(CAST(NULLIF(REPLACE(c.empenhado, ',', '.'), '') AS FLOAT)) as total_c_empenhado
-        FROM licitacoes l
-        LEFT JOIN contratos c
-            ON c.licitacao_numero = l.numero
+            SUM(c.valor_contrato) as total_c_valor,
+            SUM(c.empenhado) as total_c_empenhado
+        FROM fct_licitacoes l
+        LEFT JOIN fct_contratos c
+            ON c.licitacao_numero = l.licitacao_numero
             AND c.ano = l.ano
-            AND c.empresa = l.empresa
-        WHERE l.ano = :ano AND l.empresa = :empresa AND l.carona = 'S'
-        GROUP BY l.numero, l.discr, l.valor
+            AND c.empresa_id = l.empresa_id
+        WHERE l.ano = :ano AND l.empresa_id = :empresa AND l.carona = 'S'
+        GROUP BY l.licitacao_numero, l.discriminacao, l.valor
     """)
     try:
         df = pd.read_sql_query(query, conn, params={"ano": year, "empresa": empresa_id})
@@ -132,17 +134,17 @@ def _adesao_de_ata(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame,
 def _licitacao_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
-            "SELECT ano, numero, fornecedor, objeto, valcon, licitacao_numero, modali, mes,"
-            " numobra, tipocoobra, fundlegal"
-            " FROM contratos WHERE ano = :ano AND empresa = :empresa"
+            "SELECT ano, contrato_numero AS numero, fornecedor_nome AS fornecedor, objeto, valor_contrato, licitacao_numero, modalidade, mes,"
+            " numero_obra, tipo_obra, fundlegal"
+            " FROM fct_contratos WHERE ano = :ano AND empresa_id = :empresa"
         ),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
     df = df[df["licitacao_numero"].fillna("").str.strip() == ""].copy()
-    df["valor_num"] = _to_float(df["valcon"])
+    df["valor_num"] = _to_float(df["valor_contrato"])
     df["limite"] = df.apply(
-        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+        lambda r: dispensation_threshold(r.get("numero_obra"), r.get("tipo_obra"), r.get("objeto")), axis=1
     )
     result = df[df["valor_num"] > df["limite"]].drop(columns=["valor_num", "limite", "licitacao_numero"])
 
@@ -156,7 +158,7 @@ def _licitacao_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
             lambda v: unicodedata.normalize("NFD", str(v)).encode("ascii", "ignore").decode("ascii").lower()
         )
 
-    modali_norm = _ascii(result["modali"])
+    modali_norm = _ascii(result["modalidade"])
     fundlegal_norm = _ascii(result["fundlegal"])
     fornecedor_norm = _ascii(result["fornecedor"])
     objeto_norm = _ascii(result["objeto"])
@@ -174,15 +176,15 @@ def _licitacao_gaps(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
 def _splitting(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
         text(
-            "SELECT ano, fornecedor, valcon, objeto, mes, numobra, tipocoobra"
-            " FROM contratos WHERE ano = :ano AND empresa = :empresa"
+            "SELECT ano, fornecedor_nome AS fornecedor, valor_contrato, objeto, mes, numero_obra, tipo_obra"
+            " FROM fct_contratos WHERE ano = :ano AND empresa_id = :empresa"
         ),
         conn,
         params={"ano": year, "empresa": empresa_id},
     )
-    df["valor_num"] = _to_float(df["valcon"])
+    df["valor_num"] = _to_float(df["valor_contrato"])
     df["limite"] = df.apply(
-        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+        lambda r: dispensation_threshold(r.get("numero_obra"), r.get("tipo_obra"), r.get("objeto")), axis=1
     )
     df["limite_inferior"] = df["limite"] * (1 - NEAR_THRESHOLD_PCT)
     proximo = df[(df["valor_num"] >= df["limite_inferior"]) & (df["valor_num"] < df["limite"])]
@@ -194,8 +196,8 @@ def _top_suppliers(conn: Any, year: int, empresa_id: str) -> tuple[pd.DataFrame,
     # Aplicar o mesmo filtro de elementos: somente fornecedores de natureza "fornecimento de bens e serviços" (excluindo subvencoes sociais)
     sql = text("""
         SELECT f.codigo, f.descricao, f.empenhado
-        FROM despesas_por_fornecedor f
-        LEFT JOIN despesas_gerais g ON f.ano = g.ano AND f.descricao = g.nomefor
+        FROM fct_despesas_por_fornecedor f
+        LEFT JOIN fct_despesas g ON f.ano = g.ano AND f.descricao = g.fornecedor_nome
         WHERE f.ano = :ano AND f.empresa = :empresa
         AND g.elemento IN :elementos
     """).bindparams(
@@ -221,8 +223,8 @@ def _transfers_to_health(conn: Any, year: int, empresa_id: str) -> tuple[pd.Data
         return pd.DataFrame(), 0.0
     df = pd.read_sql_query(
         text(
-            "SELECT mes, entidade_pagadora, entidade_recebedora, repasse, devolucao FROM transferencias "
-            "WHERE empresa = '7' AND ano = :ano AND UPPER(entidade_recebedora) LIKE '%SAUDE%'"
+            "SELECT mes, entidade_pagadora, entidade_recebedora, repasse, devolucao FROM fct_transferencias "
+            "WHERE empresa_id = '7' AND ano = :ano AND UPPER(entidade_recebedora) LIKE '%SAUDE%'"
         ),
         conn,
         params={"ano": year},
@@ -239,9 +241,9 @@ def _budget_trend(conn: Any, empresa_id: str) -> "pd.DataFrame":
     df = pd.read_sql_query(
         text("""
             SELECT ano,
-                   SUM(CAST(NULLIF(REPLACE(dotacao_atualizada, ',', '.'), '') AS FLOAT)) AS dotacao,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado
-            FROM despesas_por_orgao
+                   SUM(dotacao_atualizada) AS dotacao,
+                   SUM(empenhado) AS empenhado
+            FROM fct_despesas_por_orgao
             WHERE empresa = :empresa
             GROUP BY ano
             ORDER BY ano
@@ -258,13 +260,13 @@ def _budget_trend(conn: Any, empresa_id: str) -> "pd.DataFrame":
 def _pharma_empenhos(conn: Any, year: int, empresa_id: str) -> dict:
     detail = pd.read_sql_query(
         text("""
-            SELECT nomefor AS fornecedor, produ AS descricao,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS total
-            FROM despesas_gerais
-            WHERE empresa = :empresa AND ano = :ano
+            SELECT fornecedor_nome AS fornecedor, descricao,
+                   SUM(empenhado_liquido) AS total
+            FROM fct_despesas
+            WHERE empresa_id = :empresa AND ano = :ano
               AND subfuncao = '303'
-              AND natureza = 'MATERIAL DE CONSUMO'
-            GROUP BY nomefor, produ
+              AND natureza_despesa = 'MATERIAL DE CONSUMO'
+            GROUP BY fornecedor_nome, descricao
             ORDER BY total DESC
         """),
         conn,
@@ -274,11 +276,11 @@ def _pharma_empenhos(conn: Any, year: int, empresa_id: str) -> dict:
     trend = pd.read_sql_query(
         text("""
             SELECT ano,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS empenhado
-            FROM despesas_gerais
-            WHERE empresa = :empresa
+                   SUM(empenhado_liquido) AS empenhado
+            FROM fct_despesas
+            WHERE empresa_id = :empresa
               AND subfuncao = '303'
-              AND natureza = 'MATERIAL DE CONSUMO'
+              AND natureza_despesa = 'MATERIAL DE CONSUMO'
             GROUP BY ano
             ORDER BY ano
         """),
@@ -300,12 +302,12 @@ def _pharma_empenhos(conn: Any, year: int, empresa_id: str) -> dict:
 def _pharma_judicial(conn: Any, year: int, empresa_id: str) -> dict:
     detail = pd.read_sql_query(
         text("""
-            SELECT subfuncaonome AS subfuncao, nomefor AS fornecedor, produ AS descricao,
-                   SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS total
-            FROM despesas_gerais
-            WHERE empresa = :empresa AND ano = :ano
+            SELECT subfuncao_nome AS subfuncao, fornecedor_nome AS fornecedor, descricao,
+                   SUM(empenhado_liquido) AS total
+            FROM fct_despesas
+            WHERE empresa_id = :empresa AND ano = :ano
               AND elemento = '91'
-            GROUP BY subfuncaonome, nomefor, produ
+            GROUP BY subfuncao_nome, fornecedor_nome, descricao
             ORDER BY total DESC
         """),
         conn,
@@ -321,17 +323,17 @@ def _pharma_judicial(conn: Any, year: int, empresa_id: str) -> dict:
 def _pharma_licitacoes(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
-            SELECT numero, modalidade, discr AS objeto, valor, situacao, data_abertura
-            FROM licitacoes
-            WHERE empresa = :empresa AND ano = :ano
+            SELECT licitacao_numero AS numero, modalidade, discriminacao AS objeto, valor, situacao, data_abertura
+            FROM fct_licitacoes
+            WHERE empresa_id = :empresa AND ano = :ano
               AND (
-                UPPER(discr) LIKE '%MEDICAMENTO%'
-                OR UPPER(discr) LIKE '%INSUMO%'
-                OR UPPER(discr) LIKE '%FARMAC%'
-                OR UPPER(discr) LIKE '%MATERIAL HOSPITALAR%'
-                OR UPPER(discr) LIKE '%CORRELATO%'
+                UPPER(discriminacao) LIKE '%MEDICAMENTO%'
+                OR UPPER(discriminacao) LIKE '%INSUMO%'
+                OR UPPER(discriminacao) LIKE '%FARMAC%'
+                OR UPPER(discriminacao) LIKE '%MATERIAL HOSPITALAR%'
+                OR UPPER(discriminacao) LIKE '%CORRELATO%'
               )
-            ORDER BY CAST(NULLIF(REPLACE(valor, ',', '.'), '') AS FLOAT) DESC NULLS LAST
+            ORDER BY valor DESC NULLS LAST
         """),
         conn,
         params={"empresa": empresa_id, "ano": year},
@@ -343,10 +345,10 @@ def _pharma_licitacoes(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
 
 def _top_suppliers_services(conn: Any, year: int, empresa_id: str) -> pd.DataFrame:
     query = text("""
-        SELECT fornecedor, objeto, SUM(CAST(NULLIF(REPLACE(valcon, ',', '.'), '') AS FLOAT)) as total
-        FROM contratos
-        WHERE ano = :ano AND empresa = :empresa
-        GROUP BY fornecedor, objeto
+        SELECT fornecedor_nome AS fornecedor, objeto, SUM(valor_contrato) as total
+        FROM fct_contratos
+        WHERE ano = :ano AND empresa_id = :empresa
+        GROUP BY fornecedor_nome, objeto
         ORDER BY total DESC
     """)
     df = pd.read_sql_query(query, conn, params={"ano": year, "empresa": empresa_id})
@@ -407,8 +409,7 @@ def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
     p = {"empresa": empresa_id}
 
     emendas = _safe_df(
-        "SELECT ano, SUM(CAST(NULLIF(REPLACE(valor_total::text, ',', '.'), '') AS FLOAT)) AS total"
-        " FROM emendas_cad WHERE empresa = :empresa GROUP BY ano ORDER BY ano",
+        "SELECT ano, SUM(valor_total) AS total FROM fct_emendas WHERE empresa_id = :empresa GROUP BY ano ORDER BY ano",
         p,
     )
     if not emendas.empty:
@@ -416,9 +417,9 @@ def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
 
     transferencias = _safe_df(
         "SELECT ano,"
-        " SUM(CAST(NULLIF(REPLACE(repasse::text, ',', '.'), '') AS FLOAT))"
-        " - SUM(CAST(NULLIF(REPLACE(COALESCE(devolucao::text, '0'), ',', '.'), '') AS FLOAT)) AS total"
-        " FROM transferencias WHERE empresa = '7' AND UPPER(entidade_recebedora) LIKE '%SAUDE%'"
+        " SUM(repasse)"
+        " - SUM(COALESCE(devolucao, 0)) AS total"
+        " FROM fct_transferencias WHERE empresa_id = '7' AND UPPER(entidade_recebedora) LIKE '%SAUDE%'"
         " GROUP BY ano ORDER BY ano",
         {},
     )
@@ -428,14 +429,14 @@ def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
     adesao = _safe_df(
         """
         SELECT l.ano,
-          SUM(CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT)) AS valor,
+          SUM(c.valor_contrato) AS valor,
           COUNT(DISTINCT CASE
-            WHEN CAST(NULLIF(REPLACE(c.valcon, ',', '.'), '') AS FLOAT) > 0 THEN l.numero
+            WHEN c.valor_contrato > 0 THEN l.licitacao_numero
           END) AS contratos_linked
-        FROM licitacoes l
-        LEFT JOIN contratos c
-          ON c.licitacao_numero = l.numero AND c.ano = l.ano AND c.empresa = l.empresa
-        WHERE l.empresa = :empresa AND l.carona = 'S'
+        FROM fct_licitacoes l
+        LEFT JOIN fct_contratos c
+          ON c.licitacao_numero = l.licitacao_numero AND c.ano = l.ano AND c.empresa_id = l.empresa_id
+        WHERE l.empresa_id = :empresa AND l.carona = 'S'
         GROUP BY l.ano ORDER BY l.ano
         """,
         p,
@@ -446,8 +447,8 @@ def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
 
     fornecedores_all = _safe_df(
         "SELECT ano, descricao,"
-        " SUM(CAST(NULLIF(REPLACE(empenhado::text, ',', '.'), '') AS FLOAT)) AS empenhado"
-        " FROM despesas_por_fornecedor WHERE empresa = :empresa GROUP BY ano, descricao",
+        " SUM(empenhado) AS empenhado"
+        " FROM fct_despesas_por_fornecedor WHERE empresa = :empresa GROUP BY ano, descricao",
         p,
     )
     hhi_trend: pd.DataFrame
@@ -466,8 +467,8 @@ def run_tendencias(conn: Any, empresa_id: str = SAUDE_EMPRESA) -> dict:
         hhi_trend = pd.DataFrame(columns=["ano", "hhi"])
 
     pharma_judicial = _safe_df(
-        "SELECT ano, SUM(CAST(NULLIF(REPLACE(empenhado, ',', '.'), '') AS FLOAT)) AS total"
-        " FROM despesas_gerais WHERE empresa = :empresa AND elemento = '91'"
+        "SELECT ano, SUM(empenhado_liquido) AS total"
+        " FROM fct_despesas WHERE empresa_id = :empresa AND elemento = '91'"
         " GROUP BY ano ORDER BY ano",
         p,
     )

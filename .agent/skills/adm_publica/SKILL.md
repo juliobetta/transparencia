@@ -157,3 +157,61 @@ Atuar como Engenheiro de Dados Sênior e Auditor de Finanças Públicas especial
 - **Calibração dos Prefixos:** `_INTRA_PREFIXES` em `analysis/fontes_receita.py` deve ser revisado contra os dados reais do portal (`SELECT DISTINCT LEFT(codigo, 3) FROM receita_orcamentaria WHERE descricao ILIKE '%transfer%'`). Os prefixos padrão `("17", "27")` cobrem o padrão STN vigente, mas podem variar por implementação de portal.
 
 - **Benchmark de Validação:** O total consolidado calculado pelo dashboard deve ser cotejado com o **RREO — Anexo 1** (Demonstrativo da Execução das Receitas) publicado no Siconfi, que já apresenta receitas deduzidas de transferências intraorçamentárias. Divergências superiores a 2% indicam necessidade de revisão dos prefixos.
+
+---
+
+## 13. ESTRUTURA HIERÁRQUICA DAS RECEITAS E RELAÇÃO ENTRE TABELAS
+
+### 13.1 A Hierarquia de Códigos de Receita
+
+O portal de transparência exporta a `receita_orcamentaria` como uma **árvore hierárquica completa**: nós raiz (ex: `1000.00.0.0.00.00 — RECEITAS CORRENTES`), subtotais intermediários e folhas (linhas atômicas com fonte de recurso). Todos os níveis coexistem na mesma tabela com valores cumulativos.
+
+**Regra crítica:** nunca faça `SUM(arrecadado)` sobre todas as linhas da tabela. O resultado será uma multiplicação do total real pelo número de níveis da hierarquia. Duas abordagens válidas:
+
+1. **Filtrar pela raiz:** `WHERE codigo = '1000.00.0.0.00.00'` — retorna o total consolidado pronto.
+2. **Filtrar pelas folhas:** excluir linhas que possuem filhos (via subquery `NOT EXISTS` filtrando por prefixo de código). Adequado quando o interesse é a decomposição granular.
+
+A função `_sum_column(..., root_only=True)` em `analysis/fontes_receita.py` implementa a abordagem 1 via subquery de detecção de ancestrais por prefixo de código.
+
+### 13.2 ⚠️ REGRA CRÍTICA: receita_orcamentaria ≠ "receita própria"
+
+**O equívoco mais perigoso na modelagem de receitas municipais:**
+
+- `receita_orcamentaria` = **total geral** de receitas da entidade — inclui receita própria municipal, transferências federais (FPM, FUNDEB, SUS…) e transferências estaduais (ICMS, IPVA…).
+- `receita_uniao` = subconjunto das transferências federais recebidas — já está contido em `receita_orcamentaria`.
+- `receita_estado` = subconjunto das transferências estaduais recebidas — já está contido em `receita_orcamentaria`.
+
+**Fórmula correta:**
+
+```
+total_arrecadado      = raiz de receita_orcamentaria
+transferencias_uniao  = raiz de receita_uniao
+transferencias_estado = raiz de receita_estado
+receita_propria       = total_arrecadado − transferencias_uniao − transferencias_estado
+```
+
+**Fórmula ERRADA (causa dupla contagem de ~100%):**
+
+```
+❌ total = receita_orcamentaria + receita_uniao + receita_estado
+```
+
+Essa soma errada inflaria o total em aproximadamente o dobro, pois as transferências seriam somadas duas vezes (uma dentro do orcamentaria, outra explicitamente).
+
+### 13.3 Múltiplas Linhas por Código (Fontes STN Distintas)
+
+O portal pode emitir **mais de uma linha para o mesmo código de receita** quando o mesmo item é financiado por múltiplas fontes de recurso (ex: código `1321.01.1.1.14.05` com fonte `660.660` e com fonte `665.665`). Cada linha tem valores independentes de arrecadação e previsão.
+
+**Impacto na ingestão:** se a chave primária da tabela raw for apenas `(ano, empresa, codigo)`, o upsert sobrescreve silenciosamente a primeira linha com a segunda, perdendo dados reais. A chave deve incluir a coluna discriminante de fonte (`fontestn` ou `cod_aplicacao`).
+
+**Impacto na transformação:** a camada intermediária deve agregar por `(portal_slug, tipo_receita, ano, empresa_id, codigo)` com `SUM` para consolidar as múltiplas fontes em um único valor por código — esse é o grain correto para análise e para a chave surrogate do fato.
+
+### 13.4 Inconsistência de Nomes de Coluna entre Tabelas Transformadas
+
+Portais brasileiros frequentemente produzem tabelas com nomes de coluna inconsistentes entre si. Verificar sempre antes de montar queries com filtro de empresa:
+
+- `fct_despesas` → coluna `empresa_id`
+- `fct_despesas_por_orgao` → coluna `empresa`
+- `fct_receitas` → coluna `empresa_id`
+
+Aplicar o filtro com o nome de coluna errado produz erro SQL silencioso (clause ignorada) ou erro explícito. Consultar `information_schema.columns` ao introduzir um filtro em tabela nova.

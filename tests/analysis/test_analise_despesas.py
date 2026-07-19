@@ -147,7 +147,7 @@ def test_get_despesas_por_unidade(conn):
 
 
 def test_get_impacto_gastos_locais(conn):
-    res = get_impacto_gastos_locais(conn, 2026)
+    res = get_impacto_gastos_locais(conn, 2026, cidade_clean="PORCIUNCULA")
     assert res["local_pago"] == 3000.0
     assert res["externo_pago"] == 2000.0
     assert res["pct_local"] == 60.0
@@ -187,7 +187,7 @@ def test_get_metricas_por_ano(conn):
 
 
 def test_get_impacto_por_ano(conn):
-    result = get_impacto_por_ano(conn, [2026])
+    result = get_impacto_por_ano(conn, [2026], cidade_clean="PORCIUNCULA")
     assert 2026 in result
     assert result[2026]["local_pago"] == 3000.0
     assert result[2026]["pct_local"] == 60.0

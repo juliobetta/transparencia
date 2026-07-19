@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -10,8 +11,13 @@ import streamlit.components.v1 as components
 from shared import get_conn
 
 import db
+from config import PortalConfig
 
-st.set_page_config(page_title="Transparência Porciúncula", layout="wide")
+_slug = st.secrets.get("PORTAL_SLUG") or os.environ.get("PORTAL_SLUG")
+_config = PortalConfig.load(_slug)
+st.session_state["portal_config"] = _config
+
+st.set_page_config(page_title=f"Transparência {_config.display_name}", layout="wide")
 st.html(
     """
     <style>
@@ -80,8 +86,7 @@ components.html(
     height=0,
 )
 
-START_YEAR = 2021
-_YEARS = list(reversed(range(START_YEAR, date.today().year + 1)))
+_YEARS = list(reversed(range(_config.ano_inicial, date.today().year + 1)))
 
 if "sidebar_year" not in st.session_state:
     st.session_state["sidebar_year"] = _YEARS[0]

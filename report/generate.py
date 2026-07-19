@@ -21,6 +21,7 @@ from analysis import (
     tendencias_anuais,
 )
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS, THRESHOLD_OBRAS_ENGENHARIA, THRESHOLD_VEICULOS
+from config import PortalConfig
 from dashboard.shared import ANO_INICIAL
 from db import get_metadata
 
@@ -43,7 +44,7 @@ def generate(engine, year: int, month: int) -> Path:
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
     template = env.get_template("template.html")
-    _raw = get_metadata(engine, "last_extracted_at")
+    _raw = get_metadata(engine, "last_extracted_at", PortalConfig.load().slug)
     last_extracted = datetime.strptime(_raw, "%Y-%m-%d").strftime("%m/%d/%Y") if _raw else "desconhecida"
 
     html = template.render(

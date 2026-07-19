@@ -10,21 +10,21 @@ def contagens_fracionamento_por_ano(
     conn: Any, years: list[int], empresa_ids: list[str] | None = None
 ) -> dict[int, int]:
     placeholders = ", ".join(str(y) for y in years)
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {}
     if empresa_ids:
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            f"SELECT ano, empresa, fornecedor, valcon, numobra, tipocoobra, objeto"
-            f" FROM contratos WHERE ano IN ({placeholders}) {empresa_clause}"
+            f"SELECT ano, empresa_id AS empresa, fornecedor_nome AS fornecedor, valor_contrato, numero_obra, tipo_obra, objeto"
+            f" FROM fct_contratos WHERE ano IN ({placeholders}) {empresa_clause}"
         ),
         conn,
         params=params,
     )
-    df["valor_num"] = pd.to_numeric(df["valcon"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["valor_num"] = pd.to_numeric(df["valor_contrato"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
     df["limite"] = df.apply(
-        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+        lambda r: dispensation_threshold(r.get("numero_obra"), r.get("tipo_obra"), r.get("objeto")), axis=1
     )
     df["limite_inferior"] = df["limite"] * (1 - NEAR_THRESHOLD_PCT)
     df["proximo_limite"] = (df["valor_num"] >= df["limite_inferior"]) & (df["valor_num"] < df["limite"])
@@ -39,24 +39,24 @@ def contagens_fracionamento_por_ano(
 
 
 def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empresa_clause = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
     contratos = pd.read_sql_query(
         text(
-            "SELECT ano, empresa, numero, fornecedor, objeto, valcon, licitacao_numero, mes,"
-            " numobra, tipocoobra"
-            f" FROM contratos WHERE ano = :ano {empresa_clause}"
+            "SELECT ano, empresa_id AS empresa, contrato_numero AS numero, fornecedor_nome AS fornecedor, objeto, valor_contrato, licitacao_numero, mes,"
+            " numero_obra, tipo_obra"
+            f" FROM fct_contratos WHERE ano = :ano {empresa_clause}"
         ),
         conn,
         params=params,
     )
     contratos["valor_num"] = pd.to_numeric(
-        contratos["valcon"].astype(str).str.replace(",", "."), errors="coerce"
+        contratos["valor_contrato"].astype(str).str.replace(",", "."), errors="coerce"
     ).fillna(0)
     contratos["limite"] = contratos.apply(
-        lambda r: dispensation_threshold(r.get("numobra"), r.get("tipocoobra"), r.get("objeto")), axis=1
+        lambda r: dispensation_threshold(r.get("numero_obra"), r.get("tipo_obra"), r.get("objeto")), axis=1
     )
     contratos["limite_inferior"] = contratos["limite"] * (1 - NEAR_THRESHOLD_PCT)
     proximo = contratos[
@@ -79,9 +79,11 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     orgao_fornecedor["pct"] = orgao_fornecedor["quantidade"] / orgao_fornecedor["total"]
     fornecedor_recorrente = orgao_fornecedor[orgao_fornecedor["pct"] > 0.5].copy()
 
-    empresa_clause_l = "AND empresa = ANY(:empresas)" if empresa_ids else ""
+    empresa_clause_l = "AND empresa_id = ANY(:empresas)" if empresa_ids else ""
     licitacoes = pd.read_sql_query(
-        text(f"SELECT numero, modalidade, objeto, data_abertura FROM licitacoes WHERE ano = :ano {empresa_clause_l}"),
+        text(
+            f"SELECT licitacao_numero AS numero, modalidade, objeto, data_abertura FROM fct_licitacoes WHERE ano = :ano {empresa_clause_l}"
+        ),
         conn,
         params=params,
     )

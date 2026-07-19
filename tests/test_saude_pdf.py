@@ -64,7 +64,7 @@ def health_conn(conn):
         ],
         ["ano", "empresa", "codigo"],
     )
-    db.set_metadata(conn, "last_extracted_at", "2024-06-15 08:30:00")
+    db.set_metadata(conn, "last_extracted_at", "2024-06-15 08:30:00", "porciuncula_prefeitura")
     return conn
 
 

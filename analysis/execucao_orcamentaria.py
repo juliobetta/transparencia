@@ -11,15 +11,17 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFr
         params["empresas"] = empresa_ids
     df = pd.read_sql_query(
         text(
-            f"SELECT ano, empresa, codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM despesas_por_orgao WHERE ano = :ano {empresa_clause}"
+            f"SELECT ano, empresa, codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada FROM fct_despesas_por_orgao WHERE ano = :ano {empresa_clause}"
         ),
         conn,
         params=params,
     )
-    df["empenhado"] = pd.to_numeric(df["empenhado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["liquidado"] = pd.to_numeric(df["liquidado"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["pago"] = pd.to_numeric(df["pago"].str.replace(",", "."), errors="coerce").fillna(0)
-    df["dotacao_atualizada"] = pd.to_numeric(df["dotacao_atualizada"].str.replace(",", "."), errors="coerce").fillna(0)
+    df["empenhado"] = pd.to_numeric(df["empenhado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["liquidado"] = pd.to_numeric(df["liquidado"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["pago"] = pd.to_numeric(df["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+    df["dotacao_atualizada"] = pd.to_numeric(
+        df["dotacao_atualizada"].astype(str).str.replace(",", "."), errors="coerce"
+    ).fillna(0)
     df["taxa_execucao"] = df.apply(
         lambda r: r["empenhado"] / r["dotacao_atualizada"] if r["dotacao_atualizada"] > 0 else 0,
         axis=1,
