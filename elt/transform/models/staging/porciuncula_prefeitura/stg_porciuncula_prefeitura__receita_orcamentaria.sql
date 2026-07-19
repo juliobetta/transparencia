@@ -1,5 +1,7 @@
 -- Staging: receita_orcamentaria
--- Casts text → numeric e padroniza nomes de colunas.
+-- Casts text → numeric e padroniza nomes de colunas. Relação 1:1 com a fonte.
+-- Deduplicação de linhas com mesmo código mas fontes STN distintas ocorre em
+-- int_receitas_consolidadas (camada intermediária), conforme boas práticas dbt.
 
 with source as (
     select * from {{ source('porciuncula_prefeitura', 'receita_orcamentaria') }}
