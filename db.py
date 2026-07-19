@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import Connection, Engine
 from sqlmodel import SQLModel, create_engine
 
-import models  # registers all table models in SQLModel.metadata  # noqa: F401
+import elt.extract.porciuncula_prefeitura.models  # registers all table models in SQLModel.metadata  # noqa: F401
 
 _engine: Engine | None = None
 
