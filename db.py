@@ -2,14 +2,15 @@ import os
 from typing import Union
 
 from dotenv import load_dotenv
-from sqlalchemy import text
+from sqlalchemy import MetaData, Table, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import Connection, Engine
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import create_engine
 
-import elt.extract.porciuncula_prefeitura.models  # registers all table models in SQLModel.metadata  # noqa: F401
+from config import PortalConfig
 
 _engine: Engine | None = None
+_table_cache: dict[tuple[str, str], Table] = {}
 
 Connectable = Union[Engine, Connection]
 
@@ -26,7 +27,19 @@ def get_engine() -> Engine:
 
 
 def create_tables(engine: Engine) -> None:
-    SQLModel.metadata.create_all(engine)
+    pass  # tabelas raw criadas dinamicamente pelo elt/load; noop mantido para compatibilidade
+
+
+def _get_table(db: Connectable, table_name: str) -> Table:
+    engine = db.engine if isinstance(db, Connection) else db
+    schema = PortalConfig.load().raw_schema
+    key = (str(engine.url), f"{schema}.{table_name}")
+    if key not in _table_cache:
+        meta = MetaData()
+        with engine.connect() as conn:
+            meta.reflect(bind=conn, schema=schema, only=[table_name])
+        _table_cache[key] = meta.tables[f"{schema}.{table_name}"]
+    return _table_cache[key]
 
 
 def _execute(db: Connectable, stmt, params=None):
@@ -42,7 +55,7 @@ def _execute(db: Connectable, stmt, params=None):
 def upsert(db: Connectable, table_name: str, rows: list[dict], key_cols: list[str]) -> int:
     if not rows:
         return 0
-    table = SQLModel.metadata.tables[table_name]
+    table = _get_table(db, table_name)
     valid_cols = {col.name for col in table.columns}
     filtered = [{k: v for k, v in r.items() if k in valid_cols} for r in rows]
     filtered = [r for r in filtered if r and all(r.get(k) is not None for k in key_cols)]
@@ -68,7 +81,7 @@ def upsert(db: Connectable, table_name: str, rows: list[dict], key_cols: list[st
 
 
 def set_metadata(db: Connectable, key: str, value: str, portal_slug: str) -> None:
-    table = SQLModel.metadata.tables["metadata"]
+    table = _get_table(db, "metadata")
     stmt = pg_insert(table).values(portal_slug=portal_slug, key=key, value=value)
     stmt = stmt.on_conflict_do_update(index_elements=["portal_slug", "key"], set_={"value": value})
     _execute(db, stmt)

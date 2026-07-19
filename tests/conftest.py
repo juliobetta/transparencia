@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 os.environ.setdefault("PORTAL_SLUG", "porciuncula_prefeitura")
 
-import elt.extract.porciuncula_prefeitura.models  # noqa: F401 — registers tables in SQLModel.metadata for db.upsert()
 
 _PROFILES_DIR = str(Path(__file__).parent.parent / "elt" / "transform")
 _SOURCES_YML = (

@@ -13,7 +13,7 @@ def mock_engine(monkeypatch, engine):
     yield engine
     with engine.connect() as conn:
         for table_name in ["despesas_por_orgao", "empresas"]:
-            conn.execute(text(f"TRUNCATE TABLE {table_name} CASCADE"))
+            conn.execute(text(f"TRUNCATE TABLE raw_porciuncula_prefeitura.{table_name} CASCADE"))
         conn.commit()
 
 

@@ -1,10 +1,13 @@
 import db
 
 
-def test_create_tables_creates_expected_tables(engine):  # noqa: ARG001
-    from sqlmodel import SQLModel
+def test_create_tables_creates_expected_tables(conn):
+    from sqlalchemy import text
 
-    table_names = set(SQLModel.metadata.tables.keys())
+    rows = conn.execute(
+        text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'raw_porciuncula_prefeitura'")
+    ).fetchall()
+    table_names = {r[0] for r in rows}
     assert "despesas_por_orgao" in table_names
     assert "licitacoes" in table_names
     assert "pessoal" in table_names
