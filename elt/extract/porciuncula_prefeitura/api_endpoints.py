@@ -59,6 +59,16 @@ def _post_process_receita_detalhes(row: dict) -> dict:
     return row
 
 
+def _post_process_receita_orcamentaria(row: dict) -> dict:
+    # Normaliza fontestn a partir de qualquer coluna de origem:
+    # - API JSON exporta o campo como "fontestn"
+    # - CSVs do portal exportam "Fonte STN" → sanitizado para "fonte_stn"
+    # Linhas sem fonte (nós pai/subtotal) recebem string vazia como discriminador.
+    if not row.get("fontestn"):
+        row["fontestn"] = row.get("fonte_stn") or ""
+    return row
+
+
 def _post_process_transferencias(row: dict) -> dict:
     if "codigo" not in row or row["codigo"] is None:
         row["codigo"] = row.get("dtlan") or f"{row.get('mes', '')}-{row.get('cnpjrecebedora', '')}"
@@ -236,10 +246,11 @@ ENDPOINT_CONFIGS: list[EndpointConfig] = [
         base_path="/Transparencia/VersaoJson/Receitas/",
         listagem="ReceitaOrcamentaria",
         table="receita_orcamentaria",
-        key_cols=["ano", "empresa", "codigo"],
+        key_cols=["ano", "empresa", "codigo", "fontestn"],
         extra={"MostraDadosConsolidado": "False"},
         extractor_cls=ReceitasExtractor,
         base_url=_base_url,
+        post_process=_post_process_receita_orcamentaria,
     ),
     EndpointConfig(
         base_path="/Transparencia/VersaoJson/Receitas/",
