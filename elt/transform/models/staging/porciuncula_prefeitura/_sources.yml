@@ -7,6 +7,8 @@ sources:
     tables:
       - name: despesas_gerais
         description: "Empenhos, liquidações e pagamentos individuais"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -64,6 +66,8 @@ sources:
 
       - name: despesas_por_orgao
         description: "Despesas agregadas por órgão/secretaria"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: empresa
           - name: ano
@@ -78,6 +82,8 @@ sources:
 
       - name: despesas_por_unidade
         description: "Despesas agregadas por unidade orçamentária"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: empresa
           - name: ano
@@ -92,6 +98,8 @@ sources:
 
       - name: despesas_por_fornecedor
         description: "Despesas agregadas por fornecedor"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: empresa
           - name: ano
@@ -105,6 +113,8 @@ sources:
 
       - name: despesas_restos_pagar
         description: "Restos a pagar de exercícios anteriores"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -117,6 +127,8 @@ sources:
 
       - name: despesas_extra_orcamentaria
         description: "Despesas extra-orçamentárias"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -133,6 +145,8 @@ sources:
 
       - name: receita_orcamentaria
         description: "Receitas orçamentárias detalhadas"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: ano
           - name: empresa
@@ -149,6 +163,8 @@ sources:
 
       - name: receita_uniao
         description: "Transferências recebidas da União"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: ano
           - name: empresa
@@ -165,6 +181,8 @@ sources:
 
       - name: receita_estado
         description: "Transferências recebidas do Estado"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: ano
           - name: empresa
@@ -181,6 +199,8 @@ sources:
 
       - name: receita_extra_orcamentaria
         description: "Receitas extra-orçamentárias"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: ano
           - name: empresa
@@ -192,6 +212,8 @@ sources:
 
       - name: licitacoes
         description: "Processos licitatórios"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -208,6 +230,8 @@ sources:
 
       - name: contratos
         description: "Contratos celebrados"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -228,6 +252,8 @@ sources:
 
       - name: diarias
         description: "Diárias pagas a servidores"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -241,6 +267,8 @@ sources:
 
       - name: emendas_impositivas
         description: "Emendas parlamentares impositivas"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -250,6 +278,8 @@ sources:
 
       - name: emendas_cad
         description: "Cadastro detalhado de emendas"
+        meta:
+          primary_key: [ano, empresa, numero]
         columns:
           - name: ano
           - name: empresa
@@ -267,6 +297,8 @@ sources:
 
       - name: pessoal
         description: "Folha de pessoal"
+        meta:
+          primary_key: [ano, empresa, mes, matricula]
         columns:
           - name: ano
           - name: empresa
@@ -282,6 +314,8 @@ sources:
 
       - name: transferencias
         description: "Transferências a terceiros"
+        meta:
+          primary_key: [ano, empresa, codigo]
         columns:
           - name: ano
           - name: empresa
@@ -294,6 +328,8 @@ sources:
 
       - name: metadata
         description: "Metadados do pipeline ELT (ex: data da última extração)"
+        meta:
+          primary_key: [portal_slug, key]
         columns:
           - name: portal_slug
           - name: key
@@ -301,6 +337,8 @@ sources:
 
       - name: empresas
         description: "Entidades/órgãos do portal"
+        meta:
+          primary_key: [id]
         columns:
           - name: id
             data_type: integer

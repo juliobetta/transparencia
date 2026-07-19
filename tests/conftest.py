@@ -27,34 +27,16 @@ _SOURCES_YML = (
     / "_sources.yml"
 )
 
-# PKs por tabela — necessários para o constraint PRIMARY KEY no banco de testes
-_RAW_PKS: dict[str, list[str]] = {
-    "empresas": ["id"],
-    "despesas_gerais": ["ano", "empresa", "numero"],
-    "despesas_por_orgao": ["ano", "empresa", "codigo"],
-    "despesas_por_unidade": ["ano", "empresa", "codigo"],
-    "despesas_por_fornecedor": ["ano", "empresa", "codigo"],
-    "despesas_restos_pagar": ["ano", "empresa", "numero"],
-    "despesas_extra_orcamentaria": ["ano", "empresa", "numero"],
-    "receita_orcamentaria": ["ano", "empresa", "codigo"],
-    "receita_uniao": ["ano", "empresa", "codigo"],
-    "receita_estado": ["ano", "empresa", "codigo"],
-    "receita_extra_orcamentaria": ["ano", "empresa", "codigo"],
-    "licitacoes": ["ano", "empresa", "numero"],
-    "contratos": ["ano", "empresa", "numero"],
-    "diarias": ["ano", "empresa", "numero"],
-    "emendas_impositivas": ["ano", "empresa", "numero"],
-    "emendas_cad": ["ano", "empresa", "numero"],
-    "pessoal": ["ano", "empresa", "mes", "matricula"],
-    "transferencias": ["ano", "empresa", "codigo"],
-    "metadata": ["portal_slug", "key"],
-}
-
 
 def _create_raw_schema(eng) -> None:
     """Cria schema raw e tabelas a partir de _sources.yml (fonte única de verdade)."""
     sources = yaml.safe_load(_SOURCES_YML.read_text())
     tables = sources["sources"][0]["tables"]
+
+    def _sql_type(col: dict) -> str:
+        if "data_type" in col:
+            return col["data_type"]
+        return "integer" if col["name"] == "ano" else "text"
 
     with eng.connect() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS raw_porciuncula_prefeitura"))
@@ -63,13 +45,7 @@ def _create_raw_schema(eng) -> None:
             col_defs_list = table_def.get("columns", [])
             if not col_defs_list:
                 continue
-            pk_cols = _RAW_PKS.get(name, [])
-
-            def _sql_type(col: dict) -> str:
-                if "data_type" in col:
-                    return col["data_type"]
-                return "integer" if col["name"] == "ano" else "text"
-
+            pk_cols = table_def.get("meta", {}).get("primary_key", [])
             col_sql = ", ".join(f'"{c["name"]}" {_sql_type(c)}' for c in col_defs_list)
             pk_clause = f", PRIMARY KEY ({', '.join(pk_cols)})" if pk_cols else ""
             ddl = f'CREATE TABLE IF NOT EXISTS raw_porciuncula_prefeitura."{name}" ({col_sql}{pk_clause})'
