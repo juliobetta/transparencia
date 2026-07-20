@@ -242,18 +242,22 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
             "Empenhos cuja justificativa contábil referencia uma Ata de Registro de Preços de outro ente "
             "(Termo de Adesão Externa). Esses registros complementam as licitações formais via carona."
         )
+        _ext_exib = adesao_externa["lista"].copy()
+        _ext_exib["unidade"] = _ext_exib["unidade"].astype(str).map(_orgaos).fillna(_ext_exib["unidade"])
         st.dataframe(
-            adesao_externa["lista"].rename(
+            _ext_exib.rename(
                 columns={
                     "data": "Data",
                     "fornecedor": "Fornecedor",
+                    "empenhado": "Valor Empenhado",
                     "pago": "Valor Pago",
-                    "unidade": "Unidade",
+                    "unidade": "Entidade",
                     "justificativa": "Justificativa Contábil",
                     "num_licitacao": "Nº Licitação",
                 }
             ),
             column_config={
+                "Valor Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
             },
