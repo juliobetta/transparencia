@@ -181,8 +181,8 @@ def _draw_funcoes_section(pdf: FPDF, funcoes: pd.DataFrame) -> None:
             hdr.cell(col)
         for _, r in funcoes.iterrows():
             row = table.row(style=_ROW_WHITE)
-            row.cell(str(r.get("funcaonome", "")))
-            row.cell(str(r.get("subfuncaonome", "")))
+            row.cell(str(r.get("funcao_nome", "")))
+            row.cell(str(r.get("subfuncao_nome", "")))
             row.cell(_fmt_brl(float(r.get("empenhado", 0) or 0)))
             row.cell(_fmt_brl(float(r.get("pago", 0) or 0)))
     pdf.ln(5)
