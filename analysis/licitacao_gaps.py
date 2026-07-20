@@ -72,7 +72,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> pd.DataFr
     df["acima_limite"] = df["valor_num"] > df["threshold"]
     df["orgao_saude"] = df["empresa"] == SAUDE_EMPRESA
     df["periodo"] = df["mes"].astype(str).str.zfill(2) + "/" + df["ano"].astype(str)
-    return df.drop(columns=["valor_num", "threshold"])
+    return df.drop(columns=["valor_num"]).rename(columns={"threshold": "limite_dispensa"})
 
 
 def filter_above_limit(df: pd.DataFrame) -> pd.DataFrame:

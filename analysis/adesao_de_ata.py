@@ -9,49 +9,27 @@ def _to_float(series: pd.Series) -> pd.Series:
 
 
 def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
-    empresa_clausula_c = "AND c.empresa_id = ANY(:empresas)" if empresa_ids else ""
-    empresa_clausula_l = "AND l.empresa_id = ANY(:empresas)" if empresa_ids else ""
-    # União de duas partes:
-    # 1. Contratos assinados neste ano cuja licitação tem carona='S' (licitação de qualquer ano)
-    # 2. Licitações carona criadas neste ano que ainda não possuem contratos
-    query = text(f"""
-        SELECT
-            l.licitacao_numero AS numero,
-            l.discriminacao AS objeto,
-            l.valor AS licitacao_valor,
-            l.carona,
-            c.mes,
-            c.valor_contrato AS c_valor,
-            c.empenhado AS c_empenhado
-        FROM fct_contratos c
-        JOIN fct_licitacoes l
-            ON l.licitacao_numero = c.licitacao_numero
-            AND l.empresa_id = c.empresa_id
-            AND l.carona = 'S'
-        WHERE c.ano = :ano
-          {empresa_clausula_c}
-
-        UNION ALL
-
-        SELECT
-            l.licitacao_numero AS numero,
-            l.discriminacao AS objeto,
-            l.valor AS licitacao_valor,
-            l.carona,
-            NULL AS mes,
-            0 AS c_valor,
-            0 AS c_empenhado
-        FROM fct_licitacoes l
-        WHERE l.ano = :ano AND l.carona = 'S'
-          {empresa_clausula_l}
-          AND NOT EXISTS (
-              SELECT 1 FROM fct_contratos c2
-              WHERE c2.licitacao_numero = l.licitacao_numero AND c2.empresa_id = l.empresa_id
-          )
-    """)
+    empresa_clausula = "AND l.empresa_id = ANY(:empresas)" if empresa_ids else ""
     params: dict = {"ano": year}
     if empresa_ids:
         params["empresas"] = empresa_ids
+
+    query = text(f"""
+        select
+            l.licitacao_numero as numero,
+            coalesce(l.discriminacao, l.licitacao_numero) as objeto,
+            l.valor as licitacao_valor,
+            l.carona,
+            c.mes,
+            coalesce(c.valor_contrato, 0) as c_valor,
+            coalesce(c.empenhado, 0) as c_empenhado
+        from fct_licitacoes l
+        left join fct_contratos c
+            on c.licitacao_numero = l.licitacao_numero
+            and c.empresa_id = l.empresa_id
+        where l.ano = :ano and l.carona = 'S'
+          {empresa_clausula}
+    """)
     try:
         raw = pd.read_sql_query(query, conn, params=params)
 
@@ -65,13 +43,15 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
             }
 
         df = raw.groupby(["numero", "objeto", "licitacao_valor", "carona"], as_index=False).agg(
-            total_c_valor=("c_valor", "sum"), total_c_empenhado=("c_empenhado", "sum"), mes=("mes", "first")
+            total_c_valor=("c_valor", "sum"),
+            total_c_empenhado=("c_empenhado", "sum"),
+            mes=("mes", "first"),
         )
 
         total_value = float(df["total_c_valor"].sum())
         total_licitacao = float(_to_float(df["licitacao_valor"]).sum())
         df["tem_contrato"] = df["total_c_valor"] > 0
-        df["periodo"] = df["mes"].apply(lambda m: str(int(m)).zfill(2) if pd.notna(m) else "") + "/" + str(year)
+        df["periodo"] = df["mes"].apply(lambda m: str(int(m)).zfill(2) if pd.notna(m) and m else "") + "/" + str(year)
 
         return {
             "lista": df,
@@ -145,6 +125,7 @@ def run_external(conn: Any, year: int, empresa_ids: list[str] | None = None) -> 
         SELECT
             dg.data_empenho AS data,
             dg.fornecedor_nome AS fornecedor,
+            dg.empenhado AS empenhado,
             dg.pago AS pago,
             dg.empresa_id AS unidade,
             dg.descricao AS justificativa,
@@ -167,6 +148,7 @@ def run_external(conn: Any, year: int, empresa_ids: list[str] | None = None) -> 
         if df.empty:
             return {"lista": pd.DataFrame(), "quantidade": 0, "total_pago": 0.0}
         df["pago"] = _to_float(df["pago"])
+        df["empenhado"] = _to_float(df["empenhado"])
         df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
         return {
             "lista": df,

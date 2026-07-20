@@ -13,11 +13,15 @@ def _to_float(series: pd.Series) -> pd.Series:
 def _entity_breakdown(conn: Any, year: int) -> pd.DataFrame:
     df = pd.read_sql_query(
         text("""
-            SELECT e.fornecedor_nome AS entidade, f.empresa, f.empenhado, f.liquidado, f.pago
-            FROM fct_despesas_por_fornecedor f
-            JOIN dim_credor e ON e.fornecedor_cpf_cnpj = f.fornecedor_cpf_cnpj
-            WHERE f.codigo = :codigo AND f.ano = :ano
-            ORDER BY f.empenhado DESC NULLS LAST
+            select o.orgao_nome as entidade,
+                   sum(f.empenhado) as empenhado,
+                   sum(f.liquidado) as liquidado,
+                   sum(f.pago) as pago
+            from fct_despesas_por_fornecedor f
+            join dim_orgao o on o.empresa_id = f.empresa::text
+            where f.codigo = :codigo and f.ano = :ano
+            group by o.orgao_nome
+            order by empenhado desc nulls last
         """),
         conn,
         params={"codigo": CAPREM_CODE, "ano": year},

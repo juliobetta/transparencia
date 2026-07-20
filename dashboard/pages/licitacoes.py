@@ -21,6 +21,7 @@ from shared import (
 from sqlalchemy.engine import Engine
 
 import constants
+import db
 from analysis import adesao_de_ata, anomalias_contratuais, licitacao_gaps
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS
 
@@ -68,6 +69,7 @@ def _adesao_ext_por_ano(conn, years, empresa_ids, _extracted_at):
 
 
 conn = get_conn()
+_orgaos = db.get_empresas(conn)
 year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
@@ -240,18 +242,22 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
             "Empenhos cuja justificativa contábil referencia uma Ata de Registro de Preços de outro ente "
             "(Termo de Adesão Externa). Esses registros complementam as licitações formais via carona."
         )
+        _ext_exib = adesao_externa["lista"].copy()
+        _ext_exib["unidade"] = _ext_exib["unidade"].astype(str).map(_orgaos).fillna(_ext_exib["unidade"])
         st.dataframe(
-            adesao_externa["lista"].rename(
+            _ext_exib.rename(
                 columns={
                     "data": "Data",
                     "fornecedor": "Fornecedor",
+                    "empenhado": "Valor Empenhado",
                     "pago": "Valor Pago",
-                    "unidade": "Unidade",
+                    "unidade": "Entidade",
                     "justificativa": "Justificativa Contábil",
                     "num_licitacao": "Nº Licitação",
                 }
             ),
             column_config={
+                "Valor Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Valor Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
                 "Data": st.column_config.DateColumn(format="DD/MM/YYYY"),
             },
@@ -263,38 +269,63 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
 
 if not acima.empty:
     st.subheader("Contratos acima do limite legal sem licitação")
+    st.caption(
+        "Contratos abaixo do limite de dispensa são legais e não exigem licitação. "
+        "O ponto de atenção está em contratos **acima** do limite sem processo formal — e especialmente "
+        "quando o mesmo fornecedor aparece múltiplas vezes com valores próximos ao teto, "
+        "o que pode indicar **fracionamento** (divisão artificial de compras para evitar licitação)."
+    )
+    _acima_exib = acima.copy()
+    _acima_exib["empresa"] = _acima_exib["empresa"].astype(str).map(_orgaos).fillna(_acima_exib["empresa"])
     st.dataframe(
-        acima[["empresa", "fornecedor", "objeto", "valor_contrato", "periodo"]].rename(
+        _acima_exib[
+            ["empresa", "numero", "fornecedor", "objeto", "valor_contrato", "limite_dispensa", "periodo"]
+        ].rename(
             columns={
                 "empresa": "Entidade",
+                "numero": "Nº Contrato",
                 "fornecedor": "Fornecedor",
                 "objeto": "Objeto",
                 "valor_contrato": "Valor",
+                "limite_dispensa": "Limite Dispensa",
                 "periodo": "Período",
             }
         ),
         column_config={
             "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Entidade": None,
+            "Limite Dispensa": st.column_config.NumberColumn(format="R$ %,.2f"),
         },
         width="stretch",
         hide_index=True,
     )
-if not anomalias["fracionamento"].empty:
-    st.subheader(":material/warning: Possível fracionamento de contratos")
-    st.dataframe(
-        anomalias["fracionamento"][["fornecedor", "valor_contrato", "objeto", "periodo"]].rename(
-            columns={
-                "fornecedor": "Fornecedor",
-                "valor_contrato": "Valor",
-                "objeto": "Objeto",
-                "periodo": "Período",
-            }
-        ),
-        column_config={
-            "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
-        width="stretch",
-        hide_index=True,
-    )
+with st.expander("Ver possível fracionamento de contratos"):
+    if not anomalias["fracionamento"].empty:
+        st.caption(
+            "Fornecedores com 3 ou mais contratos próximos ao limite de dispensa no mesmo órgão, "
+            "sugerindo possível fracionamento para evitar licitação."
+        )
+        _frac_exib = anomalias["fracionamento"].copy()
+        _frac_exib["empresa"] = _frac_exib["empresa"].astype(str).map(_orgaos).fillna(_frac_exib["empresa"])
+        st.dataframe(
+            _frac_exib[["empresa", "numero", "fornecedor", "objeto", "valor_contrato", "limite", "Período"]].rename(
+                columns={
+                    "empresa": "Entidade",
+                    "numero": "Nº Contrato",
+                    "fornecedor": "Fornecedor",
+                    "objeto": "Objeto",
+                    "valor_contrato": "Valor",
+                    "limite": "Limite Dispensa",
+                    "Período": "Período",
+                }
+            ),
+            column_config={
+                "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Limite Dispensa": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
+            width="stretch",
+            hide_index=True,
+        )
+    else:
+        st.info("Nenhum possível fracionamento identificado para este ano.")
+
 st.caption(f"[Ver no portal oficial →]({constants.PORTAL_URL})")
