@@ -5,6 +5,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
@@ -23,6 +24,7 @@ from sqlalchemy.engine import Engine
 import constants
 import db
 from analysis import adesao_de_ata, anomalias_contratuais, licitacao_gaps
+from analysis import contratos as contratos_analysis
 from analysis.constants import THRESHOLD_COMPRAS_SERVICOS
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -68,6 +70,26 @@ def _adesao_ext_por_ano(conn, years, empresa_ids, _extracted_at):
     return adesao_de_ata.external_counts_by_year(conn, list(years), empresa_ids=empresa_ids)
 
 
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _modalidade(conn, year, empresa_ids, _extracted_at):
+    return contratos_analysis.distribuicao_modalidade(conn, year, empresa_ids=empresa_ids)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _fundlegal(conn, year, empresa_ids, _extracted_at):
+    return contratos_analysis.distribuicao_fundamento_legal(conn, year, empresa_ids=empresa_ids)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _top_fornecedores(conn, year, empresa_ids, _extracted_at):
+    return contratos_analysis.top_fornecedores(conn, year, empresa_ids=empresa_ids)
+
+
+@st.cache_data(hash_funcs=_hash, show_spinner=False)
+def _baixa_execucao(conn, year, empresa_ids, _extracted_at):
+    return contratos_analysis.contratos_baixa_execucao(conn, year, empresa_ids=empresa_ids)
+
+
 conn = get_conn()
 _orgaos = db.get_empresas(conn)
 year, empresa_ids = render_sidebar()
@@ -77,6 +99,10 @@ lacunas = _lacunas_licitacao(conn, year, empresa_ids, _extracted_at)
 adesao = _adesao(conn, year, empresa_ids, _extracted_at)
 adesao_externa = _adesao_externa(conn, year, empresa_ids, _extracted_at)
 anomalias = _anomalias(conn, year, empresa_ids, _extracted_at)
+df_modalidade = _modalidade(conn, year, empresa_ids, _extracted_at)
+df_fundlegal = _fundlegal(conn, year, empresa_ids, _extracted_at)
+df_top_forn = _top_fornecedores(conn, year, empresa_ids, _extracted_at)
+df_baixa_exec = _baixa_execucao(conn, year, empresa_ids, _extracted_at)
 
 acima = licitacao_gaps.filter_above_limit(lacunas)
 saude = licitacao_gaps.filter_above_limit_health(lacunas)
@@ -185,11 +211,18 @@ lacunas_exibicao = lacunas.rename(
 )
 
 with st.expander("Ver contratos sem processo licitatório"):
-    # Remover coluna 'numero' (Nº)
-    colunas_exibir = ["Fornecedor", "Objeto", "Valor", "Período"]
-    df_exibir = lacunas_exibicao.drop(columns=["numero"], errors="ignore")
+    df_exibir = lacunas.rename(
+        columns={
+            "fornecedor": "Fornecedor",
+            "objeto": "Objeto",
+            "valor_contrato": "Valor",
+            "periodo": "Período",
+            "modalidade": "Modalidade",
+            "fundlegal": "Fundamento Legal",
+        }
+    )
     st.dataframe(
-        df_exibir[colunas_exibir],
+        df_exibir[["Fornecedor", "Objeto", "Modalidade", "Fundamento Legal", "Valor", "Período"]],
         column_config={
             "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
         },
@@ -267,37 +300,51 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
     else:
         st.info("Nenhum empenho com referência a ata externa registrado para este ano.")
 
-if not acima.empty:
-    st.subheader("Contratos acima do limite legal sem licitação")
-    st.caption(
-        "Contratos abaixo do limite de dispensa são legais e não exigem licitação. "
-        "O ponto de atenção está em contratos **acima** do limite sem processo formal — e especialmente "
-        "quando o mesmo fornecedor aparece múltiplas vezes com valores próximos ao teto, "
-        "o que pode indicar **fracionamento** (divisão artificial de compras para evitar licitação)."
-    )
-    _acima_exib = acima.copy()
-    _acima_exib["empresa"] = _acima_exib["empresa"].astype(str).map(_orgaos).fillna(_acima_exib["empresa"])
-    st.dataframe(
-        _acima_exib[
-            ["empresa", "numero", "fornecedor", "objeto", "valor_contrato", "limite_dispensa", "periodo"]
-        ].rename(
-            columns={
-                "empresa": "Entidade",
-                "numero": "Nº Contrato",
-                "fornecedor": "Fornecedor",
-                "objeto": "Objeto",
-                "valor_contrato": "Valor",
-                "limite_dispensa": "Limite Dispensa",
-                "periodo": "Período",
-            }
-        ),
-        column_config={
-            "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Limite Dispensa": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
-        width="stretch",
-        hide_index=True,
-    )
+with st.expander("Ver contratos acima do limite legal sem licitação"):
+    if not acima.empty:
+        st.caption(
+            "Contratos abaixo do limite de dispensa são legais e não exigem licitação. "
+            "O ponto de atenção está em contratos **acima** do limite sem processo formal — e especialmente "
+            "quando o mesmo fornecedor aparece múltiplas vezes com valores próximos ao teto, "
+            "o que pode indicar **fracionamento** (divisão artificial de compras para evitar licitação)."
+        )
+        _acima_exib = acima.copy()
+        _acima_exib["empresa"] = _acima_exib["empresa"].astype(str).map(_orgaos).fillna(_acima_exib["empresa"])
+        st.dataframe(
+            _acima_exib[
+                [
+                    "empresa",
+                    "numero",
+                    "fornecedor",
+                    "objeto",
+                    "modalidade",
+                    "fundlegal",
+                    "valor_contrato",
+                    "limite_dispensa",
+                    "periodo",
+                ]
+            ].rename(
+                columns={
+                    "empresa": "Entidade",
+                    "numero": "Nº Contrato",
+                    "fornecedor": "Fornecedor",
+                    "objeto": "Objeto",
+                    "modalidade": "Modalidade",
+                    "fundlegal": "Fundamento Legal",
+                    "valor_contrato": "Valor",
+                    "limite_dispensa": "Limite Dispensa",
+                    "periodo": "Período",
+                }
+            ),
+            column_config={
+                "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Limite Dispensa": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
+            width="stretch",
+            hide_index=True,
+        )
+    else:
+        st.info("Nenhum contrato acima do limite sem licitação identificado para este ano.")
 with st.expander("Ver possível fracionamento de contratos"):
     if not anomalias["fracionamento"].empty:
         st.caption(
@@ -307,12 +354,26 @@ with st.expander("Ver possível fracionamento de contratos"):
         _frac_exib = anomalias["fracionamento"].copy()
         _frac_exib["empresa"] = _frac_exib["empresa"].astype(str).map(_orgaos).fillna(_frac_exib["empresa"])
         st.dataframe(
-            _frac_exib[["empresa", "numero", "fornecedor", "objeto", "valor_contrato", "limite", "Período"]].rename(
+            _frac_exib[
+                [
+                    "empresa",
+                    "numero",
+                    "fornecedor",
+                    "objeto",
+                    "modalidade",
+                    "fundlegal",
+                    "valor_contrato",
+                    "limite",
+                    "Período",
+                ]
+            ].rename(
                 columns={
                     "empresa": "Entidade",
                     "numero": "Nº Contrato",
                     "fornecedor": "Fornecedor",
                     "objeto": "Objeto",
+                    "modalidade": "Modalidade",
+                    "fundlegal": "Fundamento Legal",
                     "valor_contrato": "Valor",
                     "limite": "Limite Dispensa",
                     "Período": "Período",
@@ -327,5 +388,105 @@ with st.expander("Ver possível fracionamento de contratos"):
         )
     else:
         st.info("Nenhum possível fracionamento identificado para este ano.")
+
+st.divider()
+
+# ── Distribuição por Tipo de Contratação ─────────────────────────────────────
+st.subheader("Distribuição por Tipo de Contratação")
+col_mod, col_fund = st.columns(2)
+
+with col_mod:
+    if not df_modalidade.empty:
+        fig_mod = px.bar(
+            df_modalidade,
+            x="valor",
+            y="modalidade",
+            orientation="h",
+            text="contratos",
+            labels={"valor": "Valor Total (R$)", "modalidade": "Modalidade", "contratos": "Nº Contratos"},
+            title=f"Por Modalidade — {year}",
+            color_discrete_sequence=["#3A7FC1"],
+        )
+        fig_mod.update_traces(texttemplate="%{text} contratos", textposition="outside", cliponaxis=False)
+        fig_mod.update_layout(
+            yaxis=dict(autorange="reversed"),
+            xaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
+            margin=dict(l=0, r=130, t=40, b=0),
+        )
+        st.plotly_chart(fig_mod, use_container_width=True)
+
+with col_fund:
+    if not df_fundlegal.empty:
+        fig_fund = px.bar(
+            df_fundlegal,
+            x="valor",
+            y="fundlegal",
+            orientation="h",
+            text="contratos",
+            labels={"valor": "Valor Total (R$)", "fundlegal": "Fundamento Legal", "contratos": "Nº Contratos"},
+            title=f"Por Fundamento Legal — {year}",
+            color_discrete_sequence=["#1C3A5E"],
+        )
+        fig_fund.update_traces(texttemplate="%{text} contratos", textposition="outside", cliponaxis=False)
+        fig_fund.update_layout(
+            yaxis=dict(autorange="reversed"),
+            xaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
+            margin=dict(l=0, r=130, t=40, b=0),
+        )
+        st.plotly_chart(fig_fund, use_container_width=True)
+
+# ── Top Fornecedores ──────────────────────────────────────────────────────────
+with st.expander("Ver top fornecedores por valor contratado"):
+    if not df_top_forn.empty:
+        st.dataframe(
+            df_top_forn.rename(
+                columns={
+                    "fornecedor_nome": "Fornecedor",
+                    "contratos": "Nº Contratos",
+                    "valor_total": "Valor Total",
+                    "empenhado_total": "Valor Empenhado",
+                }
+            ),
+            column_config={
+                "Valor Total": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Valor Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+    else:
+        st.info("Sem dados de fornecedores para este ano.")
+
+# ── Contratos com Baixa Execução ──────────────────────────────────────────────
+with st.expander("Ver contratos com baixa execução (< 20%)"):
+    if not df_baixa_exec.empty:
+        st.caption(
+            "Contratos onde o valor empenhado é inferior a 20% do valor contratado. "
+            "Pode indicar contratos parados, subdimensionados ou com execução atrasada."
+        )
+        _baixa_exib = df_baixa_exec.copy()
+        _baixa_exib["empresa_id"] = _baixa_exib["empresa_id"].astype(str).map(_orgaos).fillna(_baixa_exib["empresa_id"])
+        st.dataframe(
+            _baixa_exib.rename(
+                columns={
+                    "empresa_id": "Entidade",
+                    "contrato_numero": "Nº Contrato",
+                    "fornecedor_nome": "Fornecedor",
+                    "objeto": "Objeto",
+                    "valor_contrato": "Valor",
+                    "empenhado": "Empenhado",
+                    "pct_execucao": "% Execução",
+                }
+            ),
+            column_config={
+                "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+                "% Execução": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=100),
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
+    else:
+        st.info("Nenhum contrato com baixa execução identificado para este ano.")
 
 st.caption(f"[Ver no portal oficial →]({constants.PORTAL_URL})")

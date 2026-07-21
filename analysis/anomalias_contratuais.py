@@ -46,7 +46,7 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     contratos = pd.read_sql_query(
         text(
             "SELECT ano, empresa_id AS empresa, contrato_numero AS numero, fornecedor_nome AS fornecedor, objeto, valor_contrato, licitacao_numero, mes,"
-            " numero_obra, tipo_obra"
+            " numero_obra, tipo_obra, modalidade, fundlegal"
             f" FROM fct_contratos WHERE ano = :ano {empresa_clause}"
         ),
         conn,
