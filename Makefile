@@ -1,4 +1,4 @@
-SRC = scraper.py db.py glossary.py pipeline.py analysis report dashboard elt config.py constants.py
+SRC = scraper.py db.py pipeline.py app elt config.py constants.py
 
 .PHONY: install-uv install type-check lint lint/ruff lint/vulture lint/fix format format/check check test pipeline pipeline/from pipeline/only report report/compare report/saude dashboard migrate migrate/revision migrate/downgrade migrate/history migrate/grant elt/extract elt/load elt/load-csv dbt/deps dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs
 
@@ -31,7 +31,7 @@ check: lint format/check type-check
 # TESTS
 
 test:
-	uv run pytest tests/ -v
+	uv run pytest -v
 
 # PIPELINE
 
@@ -137,4 +137,4 @@ dbt/docs:
 # DASHBOARD
 
 dashboard:
-	uv run streamlit run dashboard/app.py
+	cd app && PYTHONPATH=.. uv run streamlit run dashboard/main.py
