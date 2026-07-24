@@ -306,7 +306,9 @@ if not df_cargos.empty:
     )
     fig_cargos.update_xaxes(tickmode="linear", dtick=1)
     fig_cargos.update_layout(
-        **plotly_card_layout(f"Evolução de Cargos por Tipo de Vínculo ({ANOS[0]}-{ANOS[-1]})", height=340),
+        **plotly_card_layout(f"Evolução de Cargos por Tipo de Vínculo ({ANOS[0]}-{ANOS[-1]})", height=340)
+    )
+    fig_cargos.update_layout(
         legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="left", x=0),
         margin=dict(l=16, r=16, t=36, b=110),
     )
