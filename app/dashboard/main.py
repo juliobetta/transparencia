@@ -13,17 +13,87 @@ from shared import get_conn
 import db
 from config import PortalConfig
 
-_slug = st.secrets.get("PORTAL_SLUG") or os.environ.get("PORTAL_SLUG")
+try:
+    _slug = st.secrets.get("PORTAL_SLUG")
+except Exception:
+    _slug = None
+_slug = _slug or os.environ.get("PORTAL_SLUG")
 _config = PortalConfig.load(_slug)
 st.session_state["portal_config"] = _config
 
 st.set_page_config(page_title=f"Transparência {_config.display_name}", layout="wide")
 st.html(
     """
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
     <style>
+    :root {
+        --ink: #1a1d21;
+        --muted: #6b7280;
+        --subtle: #9aa1ab;
+        --line: #e7e9ee;
+        --bg: #f4f5f7;
+        --card: #fff;
+        --accent: oklch(0.55 0.11 250);
+        --alert: oklch(0.65 0.13 65);
+        --risk: oklch(0.55 0.11 25);
+        --positive: oklch(0.5 0.13 145);
+    }
+
+    html, body, .stApp, [data-testid="stAppViewContainer"] {
+        font-family: 'IBM Plex Sans', sans-serif !important;
+        color: var(--ink);
+        background-color: var(--bg);
+    }
+
+    .serif { font-family: 'Source Serif 4', serif !important; }
+
+    /* ── Sidebar ────────────────────────────────────── */
+    [data-testid="stSidebar"] {
+        background-color: #ffffff !important;
+        border-right: 1px solid var(--line) !important;
+    }
+    [data-testid="stSidebarNav"] a {
+        border-radius: 9px;
+        padding: 9px 12px;
+        transition: background 0.15s;
+        color: #4b5563;
+        font-weight: 500;
+    }
+    [data-testid="stSidebarNav"] a:hover {
+        background: oklch(0.55 0.11 250 / 0.08);
+    }
+    [data-testid="stSidebarNav"] a[aria-current="page"] {
+        background: oklch(0.55 0.11 250 / 0.11);
+        color: oklch(0.45 0.14 255) !important;
+        font-weight: 600;
+    }
+
+    /* ── Ribbon ─────────────────────────────────────── */
+    .ribbon {
+        padding: 9px 0;
+        background: #eef4fd;
+        border-bottom: 1px solid #dfe9f8;
+        font-size: 11.5px;
+        color: #3a5a86;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 2rem;
+    }
+    .ribbon::before {
+        content: '';
+        display: inline-block;
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: oklch(0.55 0.11 250);
+        flex-shrink: 0;
+    }
+
+    /* ── Keep existing rules ────────────────────────── */
     [data-testid='stStatusWidget'] { display: none; }
 
-    /* Remove truncamento nos itens do multiselect */
     .stMain {
         [data-baseweb="menu"] [role="option"],
         [data-baseweb="menu"] li {

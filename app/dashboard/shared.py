@@ -12,6 +12,12 @@ import constants
 import db
 
 ANO_ATUAL = date.today().year
+
+# Design token colors — Plotly-compatible hex equivalents of the CSS oklch palette
+COLOR_ACCENT = "#3a7fc1"  # oklch(0.55 0.11 250) — civic blue
+COLOR_POSITIVE = "#2e7d4f"  # oklch(0.5 0.13 145) — green
+COLOR_ALERT = "#c47c1a"  # oklch(0.65 0.13 65) — orange
+COLOR_RISK = "#b84040"  # oklch(0.55 0.11 25) — red
 _portal_cfg = st.session_state.get("portal_config")
 ANO_INICIAL: int = _portal_cfg.ano_inicial if _portal_cfg is not None else 2021
 ANOS = list(range(ANO_INICIAL, ANO_ATUAL + 1))
@@ -117,7 +123,7 @@ def pct_delta(series: list) -> str | None:
     return None
 
 
-def sparkline(x: list, y: list, color: str = "#2196F3") -> go.Figure:
+def sparkline(x: list, y: list, color: str = COLOR_ACCENT) -> go.Figure:
     """
     Exibe um gráfico de linha compacto (sparkline) usando Plotly, com preenchimento abaixo da linha.
     """
@@ -176,12 +182,7 @@ def render_aviso_ano_parcial(year: int, extracted_at: str | None, extra_html: st
     )
     if extra_html:
         body += " " + extra_html
-    st.markdown(
-        "<div style='background:#dbeafe;border-left:4px solid #3b82f6;padding:0.4rem 0.75rem;"
-        f"border-radius:4px;font-size:0.78rem;line-height:1.4;color:#1e3a5f;margin-bottom:0.5rem;'>"
-        f"{body}</div>",
-        unsafe_allow_html=True,
-    )
+    st.html(alert_box(body, kind="info"))
 
 
 def render_metodologia_receita() -> None:
@@ -203,3 +204,244 @@ intermediários da hierarquia.
 - **Transferências do Estado** — repasses estaduais (ICMS, IPVA, FECP, etc.)
             """
         )
+
+
+# ── Design system helpers ─────────────────────────────────────────────────────
+
+
+def kpi_card(label: str, valor: str, sub: str = "", accent: bool = False, risk: bool = False) -> str:
+    cor = "var(--risk)" if risk else ("var(--accent)" if accent else "var(--ink)")
+    return (
+        f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px">'
+        f'<div style="font-size:12px;color:var(--muted);margin-bottom:4px;line-height:1.3">{label}</div>'
+        f'<div class="serif" style="font-weight:700;font-size:26px;line-height:1;color:{cor}">{valor}</div>'
+        f'<div style="font-size:11px;color:var(--subtle);margin-top:4px">{sub}</div>'
+        f"</div>"
+    )
+
+
+def kpi_grid(*cards: str, cols: int = 4) -> str:
+    inner = "".join(f"<div>{c}</div>" for c in cards)
+    return f'<div style="display:grid;grid-template-columns:repeat({cols},1fr);gap:14px;margin-bottom:1.5rem">{inner}</div>'
+
+
+def chip(label: str, kind: str = "default") -> str:
+    styles: dict[str, str] = {
+        "dispensa": "background:#fdf3e7;color:#7a5320",
+        "inexigibilidade": "background:#eef4fd;color:#3a5a86",
+        "pregao": "background:oklch(0.55 0.11 250 / 0.12);color:oklch(0.4 0.12 250)",
+        "concorrencia": "background:#f0f4ff;color:#3b4a80",
+        "adesao": "background:#f3f0ff;color:#5a4080",
+        "default": "background:#f0f1f4;color:#4b5563",
+    }
+    s = styles.get(kind.lower(), styles["default"])
+    return (
+        f'<span style="{s};border-radius:20px;padding:3px 9px;'
+        f'font-size:11px;font-weight:600;display:inline-block">{label}</span>'
+    )
+
+
+def alert_box(body: str, kind: str = "info") -> str:
+    _bg = {"info": "#eef4fd", "warning": "#fdf3e7", "risk": "#fdecea"}
+    _bdr = {"info": "oklch(0.55 0.11 250)", "warning": "oklch(0.65 0.13 65)", "risk": "oklch(0.55 0.11 25)"}
+    _txt = {"info": "#3a5a86", "warning": "#7a5320", "risk": "#7a2020"}
+    bg = _bg.get(kind, _bg["info"])
+    bdr = _bdr.get(kind, _bdr["info"])
+    txt = _txt.get(kind, _txt["info"])
+    return (
+        f'<div style="background:{bg};border-left:4px solid {bdr};border-radius:6px;'
+        f'padding:11px 15px;font-size:12.5px;line-height:1.5;color:{txt};margin-bottom:1.25rem">'
+        f"{body}</div>"
+    )
+
+
+def page_header(eyebrow: str, title: str, description: str = "") -> str:
+    desc_html = (
+        f'<p style="font-size:14px;line-height:1.6;color:#5a626c;margin:8px 0 26px;max-width:64ch">{description}</p>'
+        if description
+        else ""
+    )
+    return (
+        f'<div style="font-size:11px;font-weight:600;letter-spacing:.09em;color:oklch(0.55 0.11 250);'
+        f'text-transform:uppercase;margin-bottom:12px">{eyebrow}</div>'
+        f'<h1 class="serif" style="font-weight:700;font-size:34px;line-height:1.1;'
+        f'letter-spacing:-.01em;margin:0">{title}</h1>'
+        f"{desc_html}"
+    )
+
+
+def section_heading(title: str, aside: str = "", numbered: str = "") -> str:
+    num_html = (
+        f'<span class="serif" style="font-weight:700;font-size:22px;'
+        f'color:oklch(0.55 0.11 250);margin-right:12px">{numbered}</span>'
+        if numbered
+        else ""
+    )
+    aside_html = f'<span style="font-size:11.5px;color:var(--subtle)">{aside}</span>' if aside else ""
+    return (
+        f'<div style="display:flex;align-items:baseline;justify-content:space-between;'
+        f'border-top:2px solid var(--ink);padding-top:12px;margin:1.5rem 0 1rem">'
+        f'<h3 class="serif" style="margin:0;font-weight:700;font-size:20px">{num_html}{title}</h3>'
+        f"{aside_html}</div>"
+    )
+
+
+def barra_comparativa(
+    rows: list[tuple[str, float, float, float]],
+    label_prev: str = "Previsto",
+    label_arr: str = "Arrecadado",
+) -> str:
+    """Dual horizontal bar per row: (label, previsto, arrecadado, max_value)."""
+    legend = (
+        f'<div style="display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:16px">'
+        f'<span style="display:flex;align-items:center;gap:6px">'
+        f'<span style="width:10px;height:10px;border-radius:2px;background:#d5dbe6"></span>{label_prev}</span>'
+        f'<span style="display:flex;align-items:center;gap:6px">'
+        f'<span style="width:10px;height:10px;border-radius:2px;background:oklch(0.55 0.11 250)"></span>{label_arr}</span>'
+        f"</div>"
+    )
+    items = []
+    for label, previsto, arrecadado, max_val in rows:
+        pct_prev = min(previsto / max_val * 100, 100) if max_val > 0 else 0
+        pct_arr = min(arrecadado / max_val * 100, 100) if max_val > 0 else 0
+        pct_real = arrecadado / previsto * 100 if previsto > 0 else 0
+        items.append(
+            f"<div>"
+            f'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">'
+            f'<strong style="font-weight:600">{label}</strong>'
+            f'<span style="color:var(--muted)">{pct_real:.0f}% realizado</span></div>'
+            f'<div style="height:14px;background:#eef0f4;border-radius:4px;margin-bottom:5px;overflow:hidden">'
+            f'<div style="width:{pct_prev:.1f}%;height:100%;background:#d5dbe6;border-radius:4px"></div></div>'
+            f'<div style="height:14px;background:#eef0f4;border-radius:4px;overflow:hidden">'
+            f'<div style="width:{pct_arr:.1f}%;height:100%;background:oklch(0.55 0.11 250);border-radius:4px"></div></div>'
+            f"</div>"
+        )
+    inner = f'<div style="display:flex;flex-direction:column;gap:22px">{"".join(items)}</div>'
+    return (
+        f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;'
+        f'padding:24px 26px;margin-bottom:1.5rem">{legend}{inner}</div>'
+    )
+
+
+def bar_chart_h(rows: list[tuple[str, float, str]]) -> str:
+    """Horizontal bar chart: list of (label, value, formatted_value). Bars are proportional to max."""
+    max_val = max((v for _, v, _ in rows), default=1)
+    n = len(rows)
+    blue_steps = [
+        f"oklch({min(0.55 + i * 0.04, 0.74):.2f} {max(0.08, 0.11 - i * 0.01):.2f} {max(200, 250 - i * 8)})"
+        for i in range(n)
+    ]
+    items = []
+    for i, (label, value, fmt_val) in enumerate(rows):
+        pct = value / max_val * 100 if max_val > 0 else 0
+        items.append(
+            f'<div style="display:flex;align-items:center;gap:14px">'
+            f'<span style="width:130px;font-size:12.5px;color:#4b5563;flex-shrink:0">{label}</span>'
+            f'<div style="flex:1;height:20px;background:#eef0f4;border-radius:4px;overflow:hidden">'
+            f'<div style="width:{pct:.1f}%;height:100%;background:{blue_steps[i]};border-radius:4px"></div></div>'
+            f"<span style=\"width:52px;text-align:right;font-family:'Source Serif 4',serif;"
+            f'font-weight:700;font-size:14px">{fmt_val}</span>'
+            f"</div>"
+        )
+    return (
+        f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;'
+        f'padding:22px 26px;display:flex;flex-direction:column;gap:13px">'
+        f"{''.join(items)}</div>"
+    )
+
+
+def donut_conic(
+    segments: list[tuple[str, float, str]],
+    center_label: str = "",
+    center_sub: str = "",
+) -> str:
+    """CSS conic-gradient donut with legend. segments: (label, percentage 0–100, color)."""
+    stops = []
+    cur = 0.0
+    for _, pct, color in segments:
+        stops.append(f"{color} {cur:.1f}% {cur + pct:.1f}%")
+        cur += pct
+    gradient = ",".join(stops)
+    legend_items = "".join(
+        f'<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:3px">'
+        f'<span style="width:9px;height:9px;border-radius:2px;background:{color};flex-shrink:0"></span>'
+        f'<span style="flex:1">{label}</span>'
+        f'<strong style="font-weight:600">{pct:.0f}%</strong></div>'
+        for label, pct, color in segments
+    )
+    center_html = (
+        (
+            f'<div class="serif" style="font-weight:700;font-size:19px;line-height:1">{center_label}</div>'
+            f'<div style="font-size:9px;color:var(--subtle)">{center_sub}</div>'
+        )
+        if center_label
+        else ""
+    )
+    return (
+        f'<div style="display:flex;align-items:center;gap:24px">'
+        f'<div style="width:120px;height:120px;border-radius:50%;flex-shrink:0;'
+        f'background:conic-gradient({gradient});display:flex;align-items:center;justify-content:center">'
+        f'<div style="width:72px;height:72px;border-radius:50%;background:var(--card);'
+        f'display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">'
+        f"{center_html}</div></div>"
+        f'<div style="flex:1">{legend_items}</div></div>'
+    )
+
+
+def funnel_waterfall(steps: list[tuple[str, float, str]], dotacao: float) -> str:
+    """Horizontal waterfall: steps = (label, value, formatted_value). Widths proportional to dotacao."""
+    items = []
+    for label, value, fmt_val in steps:
+        pct = value / dotacao * 100 if dotacao > 0 else 100
+        items.append(
+            f'<div style="flex:1">'
+            f'<div style="font-size:12px;color:var(--muted);margin-bottom:7px">{label}</div>'
+            f'<div style="height:11px;background:#eef0f4;border-radius:4px;overflow:hidden">'
+            f'<div style="width:{pct:.0f}%;height:100%;background:oklch(0.55 0.11 250);border-radius:4px"></div></div>'
+            f'<div class="serif" style="margin-top:8px;font-weight:700;font-size:19px">{fmt_val}</div>'
+            f'<div style="font-size:11px;color:var(--subtle)">{pct:.0f}% da dotação</div>'
+            f"</div>"
+        )
+    arrow = '<div style="width:26px;align-self:flex-start;text-align:center;color:#c7ccd4;padding-top:2px;font-size:18px">›</div>'
+    inner = arrow.join(items)
+    return (
+        f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 26px 24px">'
+        f'<div style="display:flex;gap:2px">{inner}</div></div>'
+    )
+
+
+def dense_table(columns: list[str], rows: list[list], footer: str = "") -> str:
+    """HTML table with chip support. Rows are lists; dict elements render as chip()."""
+    th = "".join(
+        f'<th style="padding:11px 14px;font-weight:600;'
+        f'{"text-align:right;" if i > 0 else "padding-left:18px;"}">{c}</th>'
+        for i, c in enumerate(columns)
+    )
+    trs = []
+    for row in rows:
+        cells = []
+        for i, cell in enumerate(row):
+            align = "" if i == 0 else "text-align:right;"
+            pad = "padding:12px 18px;" if i == 0 else "padding:12px 14px;"
+            if isinstance(cell, dict):
+                inner_html = chip(cell.get("label", ""), cell.get("kind", "default"))
+                cells.append(f'<td style="{pad}">{inner_html}</td>')
+            else:
+                serif = "font-family:'Source Serif 4',serif;font-weight:700;" if i == len(row) - 2 else ""
+                cells.append(f'<td style="{pad}{align}{serif}">{cell}</td>')
+        trs.append(f'<tr style="border-top:1px solid #f0f1f4">{"".join(cells)}</tr>')
+    footer_html = (
+        f'<div style="padding:12px 18px;border-top:1px solid #f0f1f4;font-size:12px;color:var(--subtle)">{footer}</div>'
+        if footer
+        else ""
+    )
+    return (
+        f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;'
+        f'overflow:hidden;margin-bottom:1.5rem">'
+        f'<table style="width:100%;border-collapse:collapse;font-size:12.5px">'
+        f'<thead><tr style="background:#f8f9fb;color:var(--muted);font-size:10.5px;'
+        f'text-transform:uppercase;letter-spacing:.05em;text-align:left">'
+        f"{th}</tr></thead>"
+        f"<tbody>{''.join(trs)}</tbody>"
+        f"</table>{footer_html}</div>"
+    )
