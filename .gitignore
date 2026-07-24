@@ -43,3 +43,4 @@ elt/transform/target/
 elt/transform/logs/
 dbt_packages/
 dbt_internal_packages/
+app/dashboard/.streamlit/secrets.toml
