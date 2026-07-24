@@ -11,15 +11,23 @@ import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
+    COLOR_POSITIVE,
     SPARK_CFG,
+    alert_box,
+    barra_comparativa,
+    fmt_compact,
     fmt_currency,
     get_conn,
     get_data_extracao,
+    kpi_card,
+    kpi_grid,
+    page_header,
+    partial_year_month,
     pct_delta,
     render_aviso_ano_parcial,
-    render_breadcrumb,
     render_metodologia_receita,
     render_sidebar,
+    section_heading,
     sparkline,
 )
 from sqlalchemy.engine import Engine
@@ -44,8 +52,16 @@ conn = get_conn()
 year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-st.header("Fontes de Receita")
-render_breadcrumb(year, empresa_ids)
+_partial_suffix = f"parcial, Jan–{partial_year_month(_extracted_at)}" if year == ANO_ATUAL else ""
+_eyebrow = f"Administrativo · Exercício {year}" + (f" ({_partial_suffix})" if _partial_suffix else "")
+st.html(
+    page_header(
+        _eyebrow,
+        "Fontes de Receita",
+        "Compara o que a prefeitura <strong style='color:#1a1d21'>planejou arrecadar</strong> "
+        "(previsão da LOA) com o que <strong style='color:#1a1d21'>efetivamente entrou</strong> no caixa, por origem do recurso.",
+    )
+)
 
 render_metodologia_receita()
 
@@ -59,88 +75,74 @@ if _tem_arrecadado:
     if year == ANO_ATUAL:
         render_aviso_ano_parcial(year, _extracted_at)
 else:
-    st.info(
-        "Dados de arrecadação efetiva ainda não disponíveis para este exercício. Exibindo apenas a previsão orçamentária.",
-        icon=":material/info:",
+    st.html(
+        alert_box(
+            "Dados de arrecadação efetiva ainda não disponíveis para este exercício. Exibindo apenas a previsão orçamentária.",
+            kind="info",
+        )
     )
 
 if not df_ano.empty:
     row = df_ano.iloc[0]
     _anos_hist = df_hist["ano"].tolist()
     _prev_serie = df_hist["total_previsto"].tolist()
+    _total_serie = df_hist["total"].tolist()
 
-    c1, c2, _ = st.columns(3)
+    c1, c2 = st.columns(2)
     with c1:
-        st.metric(
-            "Previsão Orçamentária",
-            fmt_currency(row["total_previsto"]),
-            delta=pct_delta(_prev_serie),
-            delta_color="off",
-            help=(
-                "Valor total de receitas que a prefeitura planejou arrecadar no ano, conforme aprovado na "
-                "Lei Orçamentária Anual (LOA). É uma estimativa — o quanto efetivamente entra no caixa pode "
-                "ser maior ou menor, dependendo do desempenho econômico e dos repasses federais e estaduais."
-            ),
+        st.html(
+            kpi_card(
+                "Previsão Orçamentária (LOA)",
+                fmt_compact(float(row["total_previsto"])),
+                sub=pct_delta(_prev_serie) or "",
+            )
         )
         st.plotly_chart(
-            sparkline(_anos_hist, _prev_serie, "#2196F3"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_rec_prev",
+            sparkline(_anos_hist, _prev_serie), use_container_width=True, config=SPARK_CFG, key="spark_rec_prev"
         )
-
-    _total_serie = df_hist["total"].tolist()
     with c2:
         if _tem_arrecadado:
-            st.metric(
-                "Total Arrecadado Real",
-                fmt_currency(row["total_arrecadado"]),
-                delta="—" if year == ANO_ATUAL else pct_delta(_total_serie),
-                delta_color="off",
-                help=(
-                    "Valor efetivamente recebido pela prefeitura no ano — ou seja, o dinheiro que de fato "
-                    "entrou no caixa municipal até a data da última atualização. Inclui impostos municipais "
-                    "pagos pelos cidadãos, transferências da União (como FPM e FUNDEB) e repasses do Estado "
-                    "(como ICMS e IPVA). Compare com a Previsão Orçamentária para saber se a arrecadação "
-                    "está dentro do esperado."
-                ),
+            st.html(
+                kpi_card(
+                    "Total Arrecadado Real",
+                    fmt_compact(float(row["total_arrecadado"])),
+                    sub="ano parcial" if year == ANO_ATUAL else (pct_delta(_total_serie) or ""),
+                    accent=True,
+                )
             )
         else:
-            st.metric("Total Arrecadado Real", "N/D")
+            st.html(kpi_card("Total Arrecadado Real", "N/D"))
         st.plotly_chart(
-            sparkline(_anos_hist, _total_serie, "#4CAF50"),
+            sparkline(_anos_hist, _total_serie, COLOR_POSITIVE),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_rec_total",
         )
 
     if _tem_arrecadado:
-        # Progress Bar
-        pct_progresso = row["pct_arrecadado"]
-        st.markdown(f"**Progresso de Arrecadação Anual: {pct_progresso * 100:.2f}%**")
-        st.progress(min(max(pct_progresso, 0.0), 1.0))
+        pct_progresso = float(row["pct_arrecadado"])
+        _pct_int = min(int(pct_progresso * 100), 100)
+        st.html(
+            f'<div style="background:#fff;border:1px solid #e7e9ee;border-radius:14px;padding:20px 24px;margin-bottom:1.5rem">'
+            f'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:9px">'
+            f'<strong style="font-weight:600">Progresso de arrecadação anual</strong>'
+            f"<strong style=\"font-family:'Source Serif 4',serif;font-weight:700\">{pct_progresso:.1%}</strong></div>"
+            f'<div style="height:12px;background:#eef0f4;border-radius:7px;overflow:hidden">'
+            f'<div style="width:{_pct_int}%;height:100%;background:linear-gradient(90deg,oklch(0.6 0.11 215),oklch(0.55 0.11 250));border-radius:7px"></div></div>'
+            f"</div>"
+        )
 
     # Tabela de detalhamento
-    st.subheader("Previsto vs. Arrecadado por Origem")
+    st.html(section_heading("Previsto vs. arrecadado por origem"))
 
     resumo_df = fontes_receita.tabela_detalhamento(row)
 
     if _tem_arrecadado:
-        # Gráfico de barras: previsto vs. arrecadado
-        df_comparativo = resumo_df.melt(
-            id_vars=["Fonte"], value_vars=["Previsto", "Arrecadado"], var_name="Métrica", value_name="Valor"
-        )
-        fig = px.bar(
-            df_comparativo,
-            x="Fonte",
-            y="Valor",
-            color="Métrica",
-            barmode="group",
-            title="Comparação: Planejado (Previsão) vs. Arrecadado Real",
-            labels={"Valor": "R$ (Reais)", "Fonte": "Fonte de Receita"},
-        )
-        fig.update_layout(yaxis_tickformat=",.2f")
-        st.plotly_chart(fig, use_container_width=True)
+        _max_val = float(resumo_df["Previsto"].max()) if not resumo_df.empty else 1.0
+        _barra_rows = [
+            (str(r["Fonte"]), float(r["Previsto"]), float(r["Arrecadado"]), _max_val) for _, r in resumo_df.iterrows()
+        ]
+        st.html(barra_comparativa(_barra_rows))
 
         st.dataframe(
             resumo_df.rename(columns={"Fonte": "Fonte ⓘ"}),
@@ -168,13 +170,16 @@ if not df_ano.empty:
         )
 
     if row["alerta_dependencia"]:
-        st.warning(
-            ":material/warning: Alerta: Receita própria municipal está abaixo de 10% do total. Alta dependência fiscal de repasses federais e estaduais."
+        st.html(
+            alert_box(
+                "<strong>Alta dependência fiscal.</strong> A receita própria representa menos de 10% do total — "
+                "o município depende de repasses federais e estaduais para quase toda a sua arrecadação.",
+                kind="warning",
+            )
         )
 
 if year == ANO_ATUAL:
-    st.divider()
-    st.subheader(f"Situação Fiscal Estimada ({ANO_ATUAL})")
+    st.html(section_heading(f"Situação Fiscal Estimada ({ANO_ATUAL})"))
 
     posicao_fiscal_data = _posicao_fiscal(conn, year, empresa_ids, _extracted_at)
 
@@ -190,33 +195,29 @@ if year == ANO_ATUAL:
         icon=":material/warning:",
     )
 
-    fc1, fc2, fc3 = st.columns(3)
-    fc1.metric("Receitas Arrecadadas", fmt_currency(posicao_fiscal_data["total_arrecadado"]))
-    fc2.metric(
-        "Efetivamente Pago — Exercício Corrente",
-        fmt_currency(posicao_fiscal_data["despesas_pagas"]),
-        help=f"Despesas do orçamento de {ANO_ATUAL} pagas no ano.",
-    )
-    fc3.metric(
-        "Restos a Pagar Quitados",
-        fmt_currency(posicao_fiscal_data["restos_pagos_no_ano"]),
-        help=f"Pagamentos de empenhos de anos anteriores (Restos a Pagar) realizados em {ANO_ATUAL}.",
-    )
-
-    fc3, fc4, fc5 = st.columns(3)
-    fc3.metric("Fluxo Líquido do Período", fmt_currency(posicao_fiscal_data["saldo_estimado"]))
     herdadas = posicao_fiscal_data.get("restos_pendentes_anteriores", 0.0)
-    fc4.metric(
-        "Obrigações Herdadas (Adm. Anterior)",
-        fmt_currency(herdadas),
-        delta=f"-{fmt_currency(herdadas)}",
-    )
-
     saldo_apos_restos = posicao_fiscal_data["saldo_apos_restos"]
-    fc5.metric(
-        f"Saldo após Restos Pendentes ({ANO_ATUAL})",
-        fmt_currency(saldo_apos_restos),
-        delta=fmt_currency(saldo_apos_restos) if saldo_apos_restos >= 0 else f"-{fmt_currency(abs(saldo_apos_restos))}",
+    st.html(
+        kpi_grid(
+            kpi_card("Receitas Arrecadadas", fmt_compact(posicao_fiscal_data["total_arrecadado"])),
+            kpi_card("Efetivamente Pago — Exercício Corrente", fmt_compact(posicao_fiscal_data["despesas_pagas"])),
+            kpi_card("Restos a Pagar Quitados", fmt_compact(posicao_fiscal_data["restos_pagos_no_ano"])),
+            cols=3,
+        )
+    )
+    st.html(
+        kpi_grid(
+            kpi_card("Fluxo Líquido do Período", fmt_compact(posicao_fiscal_data["saldo_estimado"]), accent=True),
+            kpi_card("Obrigações Herdadas (Adm. Anterior)", fmt_compact(herdadas), risk=True),
+            kpi_card(
+                f"Saldo após Restos Pendentes ({ANO_ATUAL})",
+                fmt_compact(abs(saldo_apos_restos)),
+                sub="positivo" if saldo_apos_restos >= 0 else "negativo",
+                accent=saldo_apos_restos >= 0,
+                risk=saldo_apos_restos < 0,
+            ),
+            cols=3,
+        )
     )
 
     with st.expander(":material/table_chart: Restos a Pagar pendentes por exercício"):

@@ -7,27 +7,27 @@ import constants
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
-    SPARK_CFG,
+    bar_chart_h,
     fmt_compact,
-    fmt_currency,
+    funnel_waterfall,
     get_conn,
     get_data_extracao,
+    kpi_card,
+    kpi_grid,
+    page_header,
+    partial_year_month,
     pct_delta,
     render_aviso_ano_parcial,
-    render_breadcrumb,
     render_sidebar,
-    sparkline,
+    section_heading,
 )
 from sqlalchemy.engine import Engine
 
-from app import glossary
 from app.analytics import execucao_orcamentaria, orcamento_funcional, tendencias_anuais
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
@@ -52,9 +52,18 @@ conn = get_conn()
 year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-st.title("Execução Orçamentária por Órgão")
-render_breadcrumb(year, empresa_ids)
-st.caption("Entenda como a Prefeitura executa o orçamento ao longo do ano.")
+_partial_suffix = f"parcial, Jan–{partial_year_month(_extracted_at)}" if year == ANO_ATUAL else ""
+_eyebrow = f"Administrativo · Exercício {year}" + (f" ({_partial_suffix})" if _partial_suffix else "")
+st.html(
+    page_header(
+        _eyebrow,
+        "Execução Orçamentária",
+        "Cada real passa por quatro estágios legais antes de sair do caixa: "
+        "<strong style='color:#1a1d21'>reservar</strong> (empenho), "
+        "<strong style='color:#1a1d21'>confirmar a entrega</strong> (liquidação) e "
+        "<strong style='color:#1a1d21'>pagar</strong>. Veja quanto do orçamento já avançou em cada etapa.",
+    )
+)
 
 if year == ANO_ATUAL:
     render_aviso_ano_parcial(year, _extracted_at)
@@ -70,89 +79,36 @@ _empenhado_serie = [_hist[y]["total_empenhado"] for y in _anos]
 _liquidado_serie = [_hist[y]["total_liquidado"] for y in _anos]
 _pago_serie = [_hist[y]["total_pago"] for y in _anos]
 
-c1, c2, c3, c4 = st.columns(4)
-with c1:
-    st.metric(
-        "Dotação Atualizada",
-        fmt_compact(totais["total_dotacao"]),
-        delta=pct_delta(_dotacao_serie),
-        delta_color="off",
-        help=glossary.tooltip("Dotação Atualizada"),
-    )
-    st.plotly_chart(
-        sparkline(_anos, _dotacao_serie, "#607D8B"), use_container_width=True, config=SPARK_CFG, key="spark_orc_dotacao"
-    )
-with c2:
-    st.metric(
-        "Total Empenhado",
-        fmt_compact(totais["total_empenhado"]),
-        delta=pct_delta(_empenhado_serie) if year != ANO_ATUAL else "—",
-        delta_color="off",
-        help=glossary.tooltip("Empenho"),
-    )
-    st.plotly_chart(
-        sparkline(_anos, _empenhado_serie, "#2196F3"),
-        use_container_width=True,
-        config=SPARK_CFG,
-        key="spark_orc_empenhado",
-    )
-with c3:
-    st.metric(
-        "Total Liquidado",
-        fmt_compact(totais["total_liquidado"]),
-        delta=pct_delta(_liquidado_serie) if year != ANO_ATUAL else "—",
-        delta_color="off",
-        help=glossary.tooltip("Liquidação"),
-    )
-    st.plotly_chart(
-        sparkline(_anos, _liquidado_serie, "#4CAF50"),
-        use_container_width=True,
-        config=SPARK_CFG,
-        key="spark_orc_liquidado",
-    )
-with c4:
-    st.metric(
-        "Total Pago",
-        fmt_compact(totais["total_pago"]),
-        delta=pct_delta(_pago_serie) if year != ANO_ATUAL else "—",
-        delta_color="off",
-        help=glossary.tooltip("Pagamento"),
-    )
-    st.plotly_chart(
-        sparkline(_anos, _pago_serie, "#FF9800"), use_container_width=True, config=SPARK_CFG, key="spark_orc_pago"
-    )
+_dot = totais["total_dotacao"]
+_emp = totais["total_empenhado"]
+_liq = totais["total_liquidado"]
+_pago = totais["total_pago"]
+_pct_emp = _emp / _dot if _dot > 0 else 0.0
+_pct_liq = _liq / _dot if _dot > 0 else 0.0
+_pct_pago = _pago / _dot if _dot > 0 else 0.0
 
-# Gráfico de Funil (Órgão)
-dados_resumo = pd.DataFrame(
-    {
-        "Estágio": ["Dotação", "Empenhado", "Liquidado", "Pago"],
-        "Valor": [
-            totais["total_dotacao"],
-            totais["total_empenhado"],
-            totais["total_liquidado"],
-            totais["total_pago"],
+st.html(
+    kpi_grid(
+        kpi_card("Dotação Atualizada", fmt_compact(_dot), sub=pct_delta(_dotacao_serie) or ""),
+        kpi_card("Total Empenhado", fmt_compact(_emp), sub=f"{_pct_emp:.1%} da dotação", accent=True),
+        kpi_card("Total Liquidado", fmt_compact(_liq), sub=f"{_pct_liq:.1%} da dotação", accent=True),
+        kpi_card("Total Pago", fmt_compact(_pago), sub=f"{_pct_pago:.1%} da dotação", accent=True),
+        cols=4,
+    )
+)
+
+st.html(section_heading("Funil da execução"))
+st.html(
+    funnel_waterfall(
+        [
+            ("Dotação", _dot, fmt_compact(_dot)),
+            ("Empenhado", _emp, fmt_compact(_emp)),
+            ("Liquidado", _liq, fmt_compact(_liq)),
+            ("Pago", _pago, fmt_compact(_pago)),
         ],
-        "ValorFormatado": [
-            fmt_currency(totais["total_dotacao"]),
-            fmt_currency(totais["total_empenhado"]),
-            fmt_currency(totais["total_liquidado"]),
-            fmt_currency(totais["total_pago"]),
-        ],
-    }
+        _dot,
+    )
 )
-fig_funil = px.funnel(
-    dados_resumo,
-    x="Valor",
-    y="Estágio",
-    text="ValorFormatado",
-    title="Funil da Execução Orçamentária",
-)
-fig_funil.update_traces(
-    textposition="inside",
-    texttemplate="%{text}",
-    hovertemplate="Estágio: %{y}<br>Valor: %{text}<extra></extra>",
-)
-st.plotly_chart(fig_funil, use_container_width=True)
 
 with st.expander("Ver Detalhamento por Órgão"):
     st.dataframe(
@@ -174,29 +130,21 @@ with st.expander("Ver Detalhamento por Órgão"):
         },
     )
 
-# Gráfico de Barras (Função)
-st.markdown("---")
 df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year, empresa_ids=empresa_ids)
 df_funcional_resumo = (
     df_funcional.groupby("funcao_nome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
     .sum()
     .reset_index()
-    .sort_values("pago", ascending=True)
+    .sort_values("pago", ascending=False)
 )
-df_funcional_resumo["ValorFormatado"] = df_funcional_resumo["pago"].apply(fmt_currency)
 
-fig_barras = px.bar(
-    df_funcional_resumo,
-    x="pago",
-    y="funcao_nome",
-    orientation="h",
-    title="Execução Orçamentária por Função (Valor Pago)",
-    labels={"pago": "Pago (R$)", "funcao_nome": "Função"},
-    text="ValorFormatado",
-)
-fig_barras.update_traces(textposition="auto")
-fig_barras.update_layout(margin=dict(r=50))
-st.plotly_chart(fig_barras, use_container_width=True)
+st.html(section_heading("Para onde vai o gasto, por função", aside="valor pago · R$ mi"))
+if not df_funcional_resumo.empty:
+    _func_rows = [
+        (str(r["funcao_nome"]), float(r["pago"]), fmt_compact(float(r["pago"])))
+        for _, r in df_funcional_resumo.head(8).iterrows()
+    ]
+    st.html(bar_chart_h(_func_rows))
 
 with st.expander("Ver Detalhamento por Função"):
     st.dataframe(
@@ -228,8 +176,7 @@ with st.expander("Ver Detalhamento por Função"):
         ],
     )
 
-st.markdown("---")
-st.subheader("Tendências Históricas")
+st.html(section_heading("Tendências Históricas"))
 
 yoy = _yoy(conn, _all_years, empresa_ids, _extracted_at)
 anos_yoy = yoy["ano"].tolist()

@@ -9,13 +9,21 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    COLOR_ALERT,
+    COLOR_POSITIVE,
     SPARK_CFG,
+    bar_chart_h,
     fmt_compact,
     get_conn,
     get_data_extracao,
+    kpi_card,
+    kpi_grid,
+    page_header,
+    partial_year_month,
     pct_delta,
     render_aviso_ano_parcial,
     render_sidebar,
+    section_heading,
     sparkline,
 )
 from sqlalchemy.engine import Engine
@@ -56,16 +64,26 @@ conn = get_conn()
 year, _ = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-col_titulo, col_botao = st.columns([8, 2])
-with col_titulo:
-    st.title(f"CAPREM (Caixa de Previdência Municipal) - {year}")
-    st.caption(f"Dados do CAPREM extraídos do [Portal de Transparência]({constants.PORTAL_URL}).")
-with col_botao:
+_partial_suffix = f"parcial, Jan–{partial_year_month(_extracted_at)}" if year == ANO_ATUAL else ""
+_eyebrow = f"Previdência Municipal · Exercício {year}" + (f" ({_partial_suffix})" if _partial_suffix else "")
+
+col_header, col_pdf = st.columns([7, 1])
+with col_header:
+    st.html(
+        page_header(
+            _eyebrow,
+            "CAPREM",
+            "Repasses da Prefeitura à Caixa de Previdência Municipal — "
+            "valores empenhados, liquidados e pagos por entidade e função.",
+        )
+    )
+with col_pdf:
+    st.write("")
     st.write("")
     st.write("")
     pdf_bytes = _pdf(conn, year, _extracted_at)
     st.download_button(
-        label="⬇ Baixar PDF",
+        label="⬇ PDF",
         data=pdf_bytes,
         file_name=f"caprem-{year}.pdf",
         mime="application/pdf",
@@ -92,50 +110,47 @@ _pago_serie = _trend_val("pago")
 _liq_serie = _trend_val("liquidado")
 
 # ── KPIs ────────────────────────────────────────────────────────────────────
-st.header("① Repasses")
-k1, k2, k3, k4 = st.columns(4)
-
-with k1:
-    st.metric(
-        "Total Empenhado",
-        fmt_compact(data.get("total_transferencias", 0)),
-        delta=pct_delta(_emp_serie),
-        delta_color="off",
+st.html(section_heading("Repasses", numbered="①"))
+st.html(
+    kpi_grid(
+        kpi_card(
+            "Total Empenhado",
+            fmt_compact(data.get("total_transferencias", 0)),
+            sub=pct_delta(_emp_serie) or "",
+            accent=True,
+        ),
+        kpi_card(
+            "Total Liquidado", fmt_compact(data.get("total_liquidado", 0)), sub=pct_delta(_liq_serie) or "", accent=True
+        ),
+        kpi_card("Total Pago", fmt_compact(data.get("total_pago", 0)), sub=pct_delta(_pago_serie) or "", accent=True),
+        kpi_card("Taxa de Pagamento", f"{data.get('taxa_execucao', 0):.1%}"),
+        cols=4,
     )
+)
+
+k1, k2, k3, _ = st.columns(4)
+with k1:
     if len(_emp_serie) >= 2:
         st.plotly_chart(sparkline(_all_years, _emp_serie), use_container_width=True, config=SPARK_CFG, key="spark_emp")
-
 with k2:
-    st.metric(
-        "Total Liquidado",
-        fmt_compact(data.get("total_liquidado", 0)),
-        delta=pct_delta(_liq_serie),
-        delta_color="off",
-    )
     if len(_liq_serie) >= 2:
         st.plotly_chart(
-            sparkline(_all_years, _liq_serie, "#4CAF50"), use_container_width=True, config=SPARK_CFG, key="spark_liq"
+            sparkline(_all_years, _liq_serie, COLOR_POSITIVE),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_liq",
         )
-
 with k3:
-    st.metric(
-        "Total Pago",
-        fmt_compact(data.get("total_pago", 0)),
-        delta=pct_delta(_pago_serie),
-        delta_color="off",
-    )
     if len(_pago_serie) >= 2:
         st.plotly_chart(
-            sparkline(_all_years, _pago_serie, "#FF9800"), use_container_width=True, config=SPARK_CFG, key="spark_pago"
+            sparkline(_all_years, _pago_serie, COLOR_ALERT),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pago",
         )
 
-with k4:
-    st.metric("Taxa de Pagamento", f"{data.get('taxa_execucao', 0):.1%}")
-
-st.divider()
-
 # ── Tendência histórica ──────────────────────────────────────────────────────
-st.header("② Tendência Histórica")
+st.html(section_heading("Tendência Histórica", numbered="②"))
 if trend is not None and not trend.empty and len(trend) >= 2:
     fig_trend = px.bar(
         trend.melt(id_vars="ano", value_vars=["empenhado", "pago"], var_name="Tipo", value_name="Valor"),
@@ -157,26 +172,15 @@ if trend is not None and not trend.empty and len(trend) >= 2:
 else:
     st.info("Sem dados históricos disponíveis.")
 
-st.divider()
-
 # ── Por Entidade ─────────────────────────────────────────────────────────────
-st.header("③ Por Entidade")
+st.html(section_heading("Por Entidade", numbered="③"))
 entidades = data.get("entidades")
 if entidades is not None and not entidades.empty:
-    fig_ent = px.bar(
-        entidades,
-        x="entidade",
-        y="empenhado",
-        labels={"entidade": "Entidade", "empenhado": "Empenhado (R$)"},
-        title=f"Repasses por Entidade — {year}",
-        color_discrete_sequence=["#3A7FC1"],
-    )
-    fig_ent.update_traces(hovertemplate="%{x}<br>R$ %{y:,.0f}<extra></extra>")
-    fig_ent.update_layout(
-        yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
-        xaxis=dict(tickangle=0),
-    )
-    st.plotly_chart(fig_ent, use_container_width=True)
+    _ent_rows = [
+        (str(r["entidade"]), float(r["empenhado"]), fmt_compact(float(r["empenhado"])))
+        for _, r in entidades.sort_values("empenhado", ascending=False).head(8).iterrows()
+    ]
+    st.html(bar_chart_h(_ent_rows))
 
     st.dataframe(
         entidades[["entidade", "empenhado", "liquidado", "pago"]].rename(
@@ -193,29 +197,13 @@ if entidades is not None and not entidades.empty:
 else:
     st.info("Sem dados de entidades para este ano.")
 
-st.divider()
-
 # ── Por Função de Governo ────────────────────────────────────────────────────
-st.header("④ Por Função de Governo")
+st.html(section_heading("Por Função de Governo", numbered="④"))
 funcoes = data.get("funcoes")
 if funcoes is not None and not funcoes.empty:
-    _func_order = funcoes.groupby("funcao_nome")["empenhado"].sum().sort_values(ascending=False).index.tolist()
-    fig_func = px.bar(
-        funcoes,
-        x="funcao_nome",
-        y="empenhado",
-        color="subfuncao_nome",
-        labels={"funcao_nome": "Função", "empenhado": "Empenhado (R$)", "subfuncao_nome": "Subfunção"},
-        title=f"Repasses por Função de Governo — {year}",
-        category_orders={"funcao_nome": _func_order},
-    )
-    fig_func.update_traces(hovertemplate="%{fullData.name}<br>R$ %{y:,.0f}<extra></extra>")
-    fig_func.update_layout(
-        yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
-        xaxis=dict(tickangle=0),
-        showlegend=False,
-    )
-    st.plotly_chart(fig_func, use_container_width=True)
+    _func_totals = funcoes.groupby("funcao_nome")["empenhado"].sum().sort_values(ascending=False)
+    _func_rows = [(str(fn), float(val), fmt_compact(float(val))) for fn, val in _func_totals.head(8).items()]
+    st.html(bar_chart_h(_func_rows))
 
     st.dataframe(
         funcoes.sort_values(["funcao_nome", "empenhado", "subfuncao_nome"], ascending=[True, False, True]).rename(
@@ -236,10 +224,8 @@ if funcoes is not None and not funcoes.empty:
 else:
     st.info("Sem dados por função para este ano.")
 
-st.divider()
-
 # ── Distribuição Mensal ──────────────────────────────────────────────────────
-st.header("⑤ Distribuição Mensal")
+st.html(section_heading("Distribuição Mensal", numbered="⑤"))
 mensal = data.get("mensal")
 if mensal is not None and not mensal.empty:
     mensal = mensal.copy()
@@ -265,10 +251,8 @@ if mensal is not None and not mensal.empty:
 else:
     st.info("Sem dados mensais para este ano.")
 
-st.divider()
-
 # ── Natureza do Repasse ──────────────────────────────────────────────────────
-st.header("⑥ Natureza do Repasse")
+st.html(section_heading("Natureza do Repasse", numbered="⑥"))
 natureza = data.get("natureza")
 if natureza is not None and not natureza.empty:
     st.dataframe(
@@ -284,5 +268,4 @@ if natureza is not None and not natureza.empty:
 else:
     st.info("Sem dados de natureza para este ano.")
 
-st.divider()
 st.caption(f"Fonte: [Portal de Transparência]({constants.PORTAL_URL})")

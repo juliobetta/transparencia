@@ -11,14 +11,20 @@ import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
+    COLOR_ALERT,
+    COLOR_POSITIVE,
+    COLOR_RISK,
     SPARK_CFG,
     fmt_compact,
     fmt_currency,
     get_conn,
     get_data_extracao,
+    kpi_card,
+    kpi_grid,
+    page_header,
+    partial_year_month,
     pct_delta,
     render_aviso_ano_parcial,
-    render_breadcrumb,
     render_sidebar,
     sparkline,
 )
@@ -124,9 +130,16 @@ _hist_hhi = _hhi_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
 _hist_diarias = _resumo_diarias_por_ano(conn, tuple(_all_years), empresa_ids, _extracted_at)
 _hist_pendentes = _tendencia_pendentes(conn, tuple(_all_years), empresa_ids, _extracted_at)
 
-st.title("Portal de Despesas Detalhadas")
-render_breadcrumb(year, empresa_ids)
-st.caption("Detalhes sobre onde e como os recursos públicos estão sendo aplicados.")
+_partial_suffix = f"parcial, Jan–{partial_year_month(_extracted_at)}" if year == ANO_ATUAL else ""
+_eyebrow = f"Administrativo · Exercício {year}" + (f" ({_partial_suffix})" if _partial_suffix else "")
+st.html(
+    page_header(
+        _eyebrow,
+        "Despesas Detalhadas",
+        "Onde e como os recursos são aplicados: quanto fica na economia local, "
+        "se há concentração em poucos fornecedores e quais compromissos de anos anteriores ainda não foram pagos.",
+    )
+)
 
 if year == ANO_ATUAL:
     render_aviso_ano_parcial(year, _extracted_at)
@@ -152,60 +165,31 @@ with t1:
     _liq_serie = [_hist_metricas[y]["liquidado"] for y in _all_years]
     _pago_serie = [_hist_metricas[y]["pago"] for y in _all_years]
 
+    st.html(
+        kpi_grid(
+            kpi_card("Total Empenhado", fmt_compact(metricas["empenhado"]), sub=pct_delta(_emp_serie) or ""),
+            kpi_card(
+                "Total Liquidado", fmt_compact(metricas["liquidado"]), sub=pct_delta(_liq_serie) or "", accent=True
+            ),
+            kpi_card("Total Pago Real", fmt_compact(metricas["pago"]), sub=pct_delta(_pago_serie) or "", accent=True),
+            cols=3,
+        )
+    )
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.metric(
-            "Total Empenhado",
-            fmt_currency(metricas["empenhado"]),
-            delta=pct_delta(_emp_serie) if year != ANO_ATUAL else None,
-            delta_color="off",
-            help=(
-                "Valor total que a prefeitura reservou formalmente para pagar despesas. O empenho é a "
-                "primeira etapa do gasto público: a administração reconhece a obrigação e reserva o "
-                "recurso no orçamento. Pense como um 'cheque pré-aprovado' — o dinheiro foi comprometido, "
-                "mas ainda não necessariamente saiu do caixa."
-            ),
-        )
         st.plotly_chart(
-            sparkline(_all_years, _emp_serie, "#2196F3"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_desp_emp",
+            sparkline(_all_years, _emp_serie), use_container_width=True, config=SPARK_CFG, key="spark_desp_emp"
         )
     with c2:
-        st.metric(
-            "Total Liquidado",
-            fmt_currency(metricas["liquidado"]),
-            delta=pct_delta(_liq_serie) if year != ANO_ATUAL else None,
-            delta_color="off",
-            help=(
-                "Valor correspondente a serviços ou produtos que já foram efetivamente entregues e "
-                "verificados pela prefeitura. A liquidação confirma que o município recebeu aquilo que "
-                "contratou e que a nota fiscal ou documento equivalente foi aprovado. É o estágio "
-                "intermediário entre reservar e pagar."
-            ),
-        )
         st.plotly_chart(
-            sparkline(_all_years, _liq_serie, "#4CAF50"),
+            sparkline(_all_years, _liq_serie, COLOR_POSITIVE),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_liq",
         )
     with c3:
-        st.metric(
-            "Total Pago Real",
-            fmt_currency(metricas["pago"]),
-            delta=pct_delta(_pago_serie) if year != ANO_ATUAL else None,
-            delta_color="off",
-            help=(
-                "Valor que de fato saiu do caixa da prefeitura e foi transferido ao fornecedor ou "
-                "servidor. É o estágio final do gasto público — o dinheiro efetivamente deixou os "
-                "cofres municipais. Em uma gestão saudável, o valor pago tende a se aproximar do "
-                "liquidado ao longo do exercício."
-            ),
-        )
         st.plotly_chart(
-            sparkline(_all_years, _pago_serie, "#FF9800"),
+            sparkline(_all_years, _pago_serie, COLOR_ALERT),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_pago",
@@ -265,57 +249,47 @@ with t2:
     _pct_local_serie = [_hist_impacto[y]["pct_local"] for y in _all_years]
     _hhi_serie = [_hist_hhi[y] for y in _all_years]
 
+    st.html(
+        kpi_grid(
+            kpi_card(
+                "Empresas Locais", fmt_compact(impacto["local_pago"]), sub=pct_delta(_local_serie) or "", accent=True
+            ),
+            kpi_card("Empresas Externas", fmt_compact(impacto["externo_pago"]), sub=pct_delta(_ext_serie) or ""),
+            kpi_card(
+                "Índice Compras Locais",
+                f"{impacto['pct_local']:.1f}%",
+                sub=pct_delta(_pct_local_serie) or "",
+                accent=True,
+            ),
+            kpi_card("HHI — Concentração", f"{concentracao['hhi']:,.0f}", sub="acima de 2.500 = alta"),
+            cols=4,
+        )
+    )
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.metric(
-            "Efetivamente Pago — Empresas Locais",
-            fmt_compact(impacto["local_pago"]),
-            delta=pct_delta(_local_serie) if year != ANO_ATUAL else None,
-            delta_color="normal" if year != ANO_ATUAL else "off",
-        )
         st.plotly_chart(
-            sparkline(_all_years, _local_serie, "#4CAF50"),
+            sparkline(_all_years, _local_serie, COLOR_POSITIVE),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_local",
         )
     with c2:
-        st.metric(
-            "Efetivamente Pago — Empresas Externas",
-            fmt_compact(impacto["externo_pago"]),
-            delta=pct_delta(_ext_serie) if year != ANO_ATUAL else None,
-            delta_color="inverse" if year != ANO_ATUAL else "off",
-        )
         st.plotly_chart(
-            sparkline(_all_years, _ext_serie, "#F44336"),
+            sparkline(_all_years, _ext_serie, COLOR_RISK),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_ext",
         )
     with c3:
-        st.metric(
-            "Índice de Compras Locais",
-            f"{impacto['pct_local']:.2f}%",
-            delta=pct_delta(_pct_local_serie) if year != ANO_ATUAL else None,
-            delta_color="normal" if year != ANO_ATUAL else "off",
-            help="Percentual de recursos mantidos na economia local de Porciúncula.",
-        )
         st.plotly_chart(
-            sparkline(_all_years, _pct_local_serie, "#2196F3"),
+            sparkline(_all_years, _pct_local_serie),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_pct_local",
         )
     with c4:
-        st.metric(
-            "HHI (concentração)",
-            f"{concentracao['hhi']:,.0f}",
-            delta=pct_delta(_hhi_serie) if year != ANO_ATUAL else None,
-            delta_color="inverse" if year != ANO_ATUAL else "off",
-            help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
-        )
         st.plotly_chart(
-            sparkline(_all_years, _hhi_serie, "#9C27B0"),
+            sparkline(_all_years, _hhi_serie, COLOR_ALERT),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_hhi",
@@ -474,38 +448,33 @@ with t3:
         _cnt_pendentes = _hist_pendentes["num_fornecedores"].tolist() if not _hist_pendentes.empty else []
         _anos_pendentes = _hist_pendentes["ano"].tolist() if not _hist_pendentes.empty else []
 
-        rc1, rc2, rc3 = st.columns(3)
-        with rc1:
-            st.metric(
-                "Total Pendente (Restos a Pagar)",
-                fmt_currency(resumo["total"]),
-                delta=pct_delta(_val_pendentes),
-                delta_color="inverse",
-                help="Soma de todos os empenhos ainda não quitados.",
+        st.html(
+            kpi_grid(
+                kpi_card(
+                    "Total Pendente", fmt_compact(resumo["total"]), sub=pct_delta(_val_pendentes) or "", risk=True
+                ),
+                kpi_card("Fornecedores Aguardando", str(resumo["count"]), sub=pct_delta(_cnt_pendentes) or ""),
+                kpi_card("Dívida mais antiga desde", str(resumo["oldest"])),
+                cols=3,
             )
+        )
+        rc1, rc2 = st.columns(2)
+        with rc1:
             if _val_pendentes:
                 st.plotly_chart(
-                    sparkline(_anos_pendentes, _val_pendentes, "#E91E63"),
+                    sparkline(_anos_pendentes, _val_pendentes, COLOR_RISK),
                     use_container_width=True,
                     config=SPARK_CFG,
                     key="spark_desp_rp_total",
                 )
         with rc2:
-            st.metric(
-                "Fornecedores aguardando",
-                resumo["count"],
-                delta=pct_delta(_cnt_pendentes),
-                delta_color="inverse",
-            )
             if _cnt_pendentes:
                 st.plotly_chart(
-                    sparkline(_anos_pendentes, _cnt_pendentes, "#FF5722"),
+                    sparkline(_anos_pendentes, _cnt_pendentes, COLOR_ALERT),
                     use_container_width=True,
                     config=SPARK_CFG,
                     key="spark_desp_rp_count",
                 )
-        with rc3:
-            st.metric("Dívida mais antiga desde", str(resumo["oldest"]))
 
         df_pizza_pendentes = piechart_pendentes(df_pendentes)
         fig_pendentes = px.pie(
@@ -566,44 +535,36 @@ with t4:
     _diarias_val_serie = [_hist_diarias[y]["total_valor"] for y in _all_years]
     _diarias_cnt_serie = [_hist_diarias[y]["total_viajantes"] for y in _all_years]
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric(
-            "Total Pago em Diárias",
-            fmt_currency(resumo_diarias_data["total_valor"]),
-            delta=pct_delta(_diarias_val_serie) if year != ANO_ATUAL else None,
-            delta_color="inverse" if year != ANO_ATUAL else "off",
+    st.html(
+        kpi_grid(
+            kpi_card(
+                "Total Pago em Diárias",
+                fmt_compact(resumo_diarias_data["total_valor"]),
+                sub=pct_delta(_diarias_val_serie) or "",
+            ),
+            kpi_card(
+                "Servidores Beneficiários",
+                str(int(resumo_diarias_data["total_viajantes"])),
+                sub=pct_delta(_diarias_cnt_serie) or "",
+            ),
+            kpi_card("Média por Viagem", fmt_currency(resumo_diarias_data["media_reembolso"])),
+            cols=3,
         )
+    )
+    c1, c2 = st.columns(2)
+    with c1:
         st.plotly_chart(
-            sparkline(_all_years, _diarias_val_serie, "#FF9800"),
+            sparkline(_all_years, _diarias_val_serie, COLOR_ALERT),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_diarias",
         )
     with c2:
-        st.metric(
-            "Total de Servidores Beneficiários",
-            int(resumo_diarias_data["total_viajantes"]),
-            delta=pct_delta(_diarias_cnt_serie) if year != ANO_ATUAL else None,
-            delta_color="off",
-        )
         st.plotly_chart(
-            sparkline(_all_years, _diarias_cnt_serie, "#607D8B"),
+            sparkline(_all_years, _diarias_cnt_serie),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_desp_viajantes",
-        )
-    with c3:
-        st.metric(
-            "Média de Reembolso por Viagem",
-            fmt_currency(resumo_diarias_data["media_reembolso"]),
-            help=(
-                "Valor médio pago por deslocamento a serviço. Calculado dividindo o total gasto em "
-                "diárias pelo número de registros de viagem no período. Cada registro corresponde a "
-                "um pagamento de diária — servidores com múltiplas viagens aparecem mais de uma vez "
-                "nessa conta. Valores muito acima da média podem indicar viagens de longa duração ou "
-                "deslocamentos para destinos mais distantes."
-            ),
         )
 
     st.markdown("---")

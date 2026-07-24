@@ -14,13 +14,20 @@ import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     ANO_ATUAL,
+    COLOR_ALERT,
+    COLOR_POSITIVE,
     SPARK_CFG,
     fmt_compact,
     get_conn,
     get_data_extracao,
+    kpi_card,
+    kpi_grid,
+    page_header,
+    partial_year_month,
     pct_delta,
     render_aviso_ano_parcial,
     render_sidebar,
+    section_heading,
     sparkline,
 )
 from sqlalchemy.engine import Engine
@@ -77,16 +84,23 @@ conn = get_conn()
 year, _ = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-col_titulo, col_botao = st.columns([8, 2])
-with col_titulo:
-    st.title(f"Fundo Municipal de Saúde - {year}")
-    st.caption(f"Dados do Fundo Municipal de Saúde extraídos do [Portal de Transparência]({constants.PORTAL_URL}).")
-with col_botao:
-    st.write("")
-    st.write("")
+_partial_suffix = f"parcial, Jan–{partial_year_month(_extracted_at)}" if year == ANO_ATUAL else ""
+_eyebrow = f"Temas · Exercício {year}" + (f" ({_partial_suffix})" if _partial_suffix else "")
+
+col_header, col_pdf = st.columns([7, 1])
+with col_header:
+    st.html(
+        page_header(
+            _eyebrow,
+            "Fundo Municipal de Saúde",
+            "Acompanha o dinheiro do Fundo Municipal de Saúde do começo ao fim: "
+            "<strong style='color:#1a1d21'>o que entrou</strong>, o que foi empenhado, como foi contratado e quem recebeu.",
+        )
+    )
+with col_pdf:
     pdf_bytes = _pdf(conn, year, _extracted_at)
     st.download_button(
-        label="⬇ Baixar PDF",
+        label="Baixar PDF",
         data=pdf_bytes,
         file_name=f"saude-{year}.pdf",
         mime="application/pdf",
@@ -139,77 +153,70 @@ tendencia_ate_ano = tendencia_orcamento[tendencia_orcamento["ano"] <= year]
 tendencia_farma = dados["pharma_empenhos"]["trend"]
 tendencia_farma_ate_ano = tendencia_farma[tendencia_farma["ano"] <= year]
 
-k1, k2, k3, k4 = st.columns(4)
-
-with k1:
-    st.metric(
-        "Dotação Atualizada",
-        fmt_compact(orcamento["dotacao"]),
-        delta=pct_delta(tendencia_ate_ano["dotacao"].tolist()),
-        delta_color="off",
-        help=glossary.tooltip("Dotação Atualizada"),
+_tend_anos = tendencia_ate_ano["ano"].tolist()
+st.html(
+    kpi_grid(
+        kpi_card(
+            "Dotação Atualizada",
+            fmt_compact(orcamento["dotacao"]),
+            sub=pct_delta(tendencia_ate_ano["dotacao"].tolist()) or "",
+        ),
+        kpi_card(
+            "Total Empenhado",
+            fmt_compact(orcamento["empenhado"]),
+            sub=pct_delta(tendencia_ate_ano["empenhado"].tolist()) or "",
+            accent=True,
+        ),
+        kpi_card(
+            "Taxa de Execução",
+            f"{orcamento['taxa_execucao']:.1%}",
+            sub=pct_delta(tendencia_ate_ano["taxa"].tolist()) or "",
+            accent=True,
+        ),
+        kpi_card(
+            "Medicamentos e Insumos",
+            fmt_compact(dados["pharma_empenhos"]["total"]),
+            sub=pct_delta(tendencia_farma_ate_ano["empenhado"].tolist()) or "",
+        ),
+        cols=4,
     )
+)
+k1, k2, k3, k4 = st.columns(4)
+with k1:
     if len(tendencia_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(tendencia_ate_ano["ano"].tolist(), tendencia_ate_ano["dotacao"].tolist()),
+            sparkline(_tend_anos, tendencia_ate_ano["dotacao"].tolist()),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_dotacao",
         )
-
 with k2:
-    st.metric(
-        "Total Empenhado",
-        fmt_compact(orcamento["empenhado"]),
-        delta=pct_delta(tendencia_ate_ano["empenhado"].tolist()) if year != ANO_ATUAL else "—",
-        delta_color="off",
-        help=glossary.tooltip("Empenho"),
-    )
     if len(tendencia_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(tendencia_ate_ano["ano"].tolist(), tendencia_ate_ano["empenhado"].tolist(), "#4CAF50"),
+            sparkline(_tend_anos, tendencia_ate_ano["empenhado"].tolist(), COLOR_POSITIVE),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_empenhado",
         )
-
 with k3:
-    st.metric(
-        "Taxa de Execução",
-        f"{orcamento['taxa_execucao']:.1%}",
-        delta=pct_delta(tendencia_ate_ano["taxa"].tolist()) if year != ANO_ATUAL else "—",
-        delta_color="off" if year == ANO_ATUAL else "normal",
-    )
     if len(tendencia_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(tendencia_ate_ano["ano"].tolist(), tendencia_ate_ano["taxa"].tolist(), "#FF9800"),
+            sparkline(_tend_anos, tendencia_ate_ano["taxa"].tolist(), COLOR_ALERT),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_taxa",
         )
-
 with k4:
-    st.metric(
-        "Medicamentos e Insumos",
-        fmt_compact(dados["pharma_empenhos"]["total"]),
-        delta=pct_delta(tendencia_farma_ate_ano["empenhado"].tolist()),
-        delta_color="off",
-        help="Total empenhado em Material de Consumo na Subfunção 10.303 (Suporte Profilático e Terapêutico).",
-    )
     if len(tendencia_farma_ate_ano) >= 2:
         st.plotly_chart(
-            sparkline(
-                tendencia_farma_ate_ano["ano"].tolist(), tendencia_farma_ate_ano["empenhado"].tolist(), "#9C27B0"
-            ),
+            sparkline(tendencia_farma_ate_ano["ano"].tolist(), tendencia_farma_ate_ano["empenhado"].tolist()),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_pharma",
         )
 
-st.divider()
-
 # ── Seção 1: O que entrou ───────────────────────────────────────────────────
-st.header("① O que entrou")
+st.html(section_heading("O que entrou no Fundo", numbered="①"))
 
 if orcamento["alerta_sub_execucao"]:
     st.warning(f"Taxa de execução abaixo de 70% ao final do ano {year}.", icon=":material/warning:")
@@ -368,7 +375,7 @@ if not receita_saude.empty:
 st.page_link("pages/receitas.py", label="Ver detalhes em Fontes de Receita →", icon=":material/arrow_forward:")
 
 # ── Seção 2: O que foi gasto ────────────────────────────────────────────────
-st.header("② O que foi empenhado")
+st.html(section_heading("O que foi empenhado", numbered="②"))
 st.subheader("Evolução do Empenhado por Ano")
 tendencia_execucao = dados["tendencia_execucao"]
 if not tendencia_execucao.empty:
@@ -398,7 +405,7 @@ if not tendencia_execucao.empty:
 st.page_link("pages/orcamento.py", label="Ver detalhes em Execução Orçamentária →", icon=":material/arrow_forward:")
 
 # ── Seção 3: Como foi contratado ────────────────────────────────────────────
-st.header("③ Como foi contratado")
+st.html(section_heading("Como foi contratado", numbered="③"))
 
 _delta_adesao = (
     (_adesao_serie[-1] - _adesao_serie[-2]) / _adesao_serie[-2] * 100
@@ -619,7 +626,7 @@ if not dados["fracionamento"].empty and dados["fracionamento"].notna().all().all
 st.page_link("pages/licitacoes.py", label="Ver detalhes em Licitações e Contratos →", icon=":material/arrow_forward:")
 
 # ── Seção 4: Quem recebeu ────────────────────────────────────────────────────
-st.header("④ Quem recebeu")
+st.html(section_heading("Quem recebeu", numbered="④"))
 hhi1, _, _, _ = st.columns(4)
 with hhi1:
     st.metric(
@@ -674,7 +681,7 @@ if not dados["principais_fornecedores"].empty and dados["principais_fornecedores
 st.page_link("pages/licitacoes.py", label="Ver detalhes em Licitações e Contratos →", icon=":material/arrow_forward:")
 
 # ── Seção 5: Insumos e Assistência Farmacêutica ────────────────────────────────
-st.header("⑤ Insumos e Assistência Farmacêutica")
+st.html(section_heading("Insumos e Assistência Farmacêutica", numbered="⑤"))
 
 st.subheader("Medicamentos e Insumos (Subfunção 10.303 — Material de Consumo)")
 pharma = dados["pharma_empenhos"]

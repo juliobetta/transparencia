@@ -11,14 +11,20 @@ from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
     ANOS,
+    COLOR_ALERT,
     SPARK_CFG,
+    fmt_compact,
     fmt_currency,
     get_conn,
     get_data_extracao,
+    kpi_card,
+    kpi_grid,
+    page_header,
+    partial_year_month,
     pct_delta,
     render_aviso_ano_parcial,
-    render_breadcrumb,
     render_sidebar,
+    section_heading,
     sparkline,
 )
 from sqlalchemy.engine import Engine
@@ -55,12 +61,15 @@ conn = get_conn()
 year, empresa_ids = render_sidebar()
 _extracted_at = get_data_extracao(conn)
 
-st.header("Folha de Pagamento")
-render_breadcrumb(year, empresa_ids)
-st.caption(
-    "Quanto da receita municipal arrecadada é comprometido com salários e proventos de servidores. "
-    "A Lei de Responsabilidade Fiscal (LRF) limita esse gasto a **54% da receita corrente líquida** para o Poder Executivo. "
-    "O cálculo usa o total de receitas arrecadadas como base — os dados do portal não permitem calcular a RCL exata com todas as deduções legais."
+_partial_suffix = f"parcial, Jan–{partial_year_month(_extracted_at)}" if year == ANO_ATUAL else ""
+_eyebrow = f"Administrativo · Exercício {year}" + (f" ({_partial_suffix})" if _partial_suffix else "")
+st.html(
+    page_header(
+        _eyebrow,
+        "Folha de Pagamento",
+        "Quanto da receita arrecadada é comprometido com salários e proventos. A Lei de Responsabilidade Fiscal limita esse gasto a "
+        "<strong style='color:#1a1d21'>54% da receita corrente líquida</strong> para o Poder Executivo.",
+    )
 )
 
 if year == ANO_ATUAL:
@@ -80,75 +89,69 @@ df_folha = _folha_pagamento(conn, year, empresa_ids, _extracted_at)
 df_cargos = _cargos_confianca(conn, tuple(_all_years), _extracted_at)
 df_departamentos = _folha_por_departamento(conn, year, empresa_ids, _extracted_at)
 
-kf1, kf2, kf3 = st.columns(3)
-
 if not df_folha.empty:
     _pct_serie = df_folha["percentual_folha"].tolist()
     _anos_folha = df_folha["ano"].tolist()
-    _pct_atual = float(df_folha.iloc[-1]["percentual_folha"])
-    with kf1:
-        st.metric(
-            "Folha / Receita Arrecadada",
-            f"{_pct_atual:.1f}%",
-            delta=pct_delta(_pct_serie) if year != ANO_ATUAL else "—",
-            delta_color="inverse" if year != ANO_ATUAL else "off",
-            help="Percentual da receita arrecadada comprometido com folha de pessoal (proventos brutos).",
-        )
-        st.plotly_chart(
-            sparkline(_anos_folha, _pct_serie, "#FF9800"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_pes_pct",
-        )
+    _pct_folha_val = float(df_folha.iloc[-1]["percentual_folha"])
 
-    # Calcular série histórica do percentual de efetivos no comando (até o ano selecionado)
+    # Calcular série histórica do percentual de efetivos no comando
     _series_pct_efetivos = []
     _anos_cargos_serie = []
-    for y in sorted(df_cargos["ano"].unique()):
-        if y > year:
+    for _y in sorted(df_cargos["ano"].unique()):
+        if _y > year:
             continue
-        df_y = df_cargos[df_cargos["ano"] == y]
+        df_y = df_cargos[df_cargos["ano"] == _y]
         qty_map_y = df_y.set_index("tipo_vinculo_detalhado")["quantidade"].to_dict()
-
         efetivos_confianca = qty_map_y.get("Servidor Efetivo com Função de Confiança (DAI/FG)", 0) + qty_map_y.get(
             "Servidor Efetivo com Cargo Comissionado (DAS/CC)", 0
         )
         comissionados_externos = qty_map_y.get("Comissionado Externo (DAS/CC - Sem Vínculo)", 0)
         total_confianca = efetivos_confianca + comissionados_externos
+        _series_pct_efetivos.append((efetivos_confianca / total_confianca * 100) if total_confianca > 0 else 0.0)
+        _anos_cargos_serie.append(_y)
 
-        pct_y = (efetivos_confianca / total_confianca * 100) if total_confianca > 0 else 0.0
-        _series_pct_efetivos.append(pct_y)
-        _anos_cargos_serie.append(y)
+    _pct_efetivos_val = _series_pct_efetivos[-1] if _series_pct_efetivos else 0.0
+    _total_folha_atual = total_folha_por_orgao(df_departamentos)
+    _sub_lrf = (
+        f"abaixo do teto de {LRF_PESSOAL_LIMITE_LEGAL}%"
+        if _pct_folha_val < LRF_PESSOAL_LIMITE_LEGAL
+        else f"acima do limite de {LRF_PESSOAL_LIMITE_LEGAL}%"
+    )
 
-    _pct_atual = _series_pct_efetivos[-1] if _series_pct_efetivos else 0.0
-    _delta_val = pct_delta(_series_pct_efetivos)
-
-    with kf2:
-        st.metric(
-            label="Efetivos no Comando das Chefias",
-            value=f"{_pct_atual:.1f}%",
-            delta=_delta_val,
-            help="Percentual de cargos de liderança e assessoramento (DAS/DAI) que são ocupados por servidores concursados (de carreira). Quanto maior este percentual, mais técnica e profissionalizada é a gestão pública.",
+    st.html(
+        kpi_grid(
+            kpi_card(
+                "Folha / Receita Arrecadada",
+                f"{_pct_folha_val:.1f}%",
+                sub=_sub_lrf,
+                risk=_pct_folha_val >= LRF_PESSOAL_LIMITE_LEGAL,
+            ),
+            kpi_card(
+                "Efetivos no Comando das Chefias", f"{_pct_efetivos_val:.1f}%", sub="cargos de liderança concursados"
+            ),
+            kpi_card("Total Pago em Folha", fmt_compact(_total_folha_atual), sub=pct_delta(_folha_orgao_serie) or ""),
+            cols=3,
         )
+    )
+    kf1, kf2, kf3 = st.columns(3)
+    with kf1:
+        st.plotly_chart(
+            sparkline(_anos_folha, _pct_serie, COLOR_ALERT),
+            use_container_width=True,
+            config=SPARK_CFG,
+            key="spark_pes_pct",
+        )
+    with kf2:
         if len(_series_pct_efetivos) > 1:
             st.plotly_chart(
-                sparkline(_anos_cargos_serie, _series_pct_efetivos, "#2196F3"),
+                sparkline(_anos_cargos_serie, _series_pct_efetivos),
                 use_container_width=True,
                 config=SPARK_CFG,
                 key="spark_cargos_confianca",
             )
-
-    _total_folha_atual = total_folha_por_orgao(df_departamentos)
-
     with kf3:
-        st.metric(
-            "Total Pago em Folha",
-            fmt_currency(_total_folha_atual),
-            delta=pct_delta(_folha_orgao_serie) if year != ANO_ATUAL else "—",
-            delta_color="off",
-        )
         st.plotly_chart(
-            sparkline(_anos, _folha_orgao_serie, "#607D8B"),
+            sparkline(_anos, _folha_orgao_serie),
             use_container_width=True,
             config=SPARK_CFG,
             key="spark_pes_folha_orgao",
@@ -192,8 +195,7 @@ if not df_folha.empty:
         f"**limite legal** ({LRF_PESSOAL_LIMITE_LEGAL}%, sujeito a sanções automáticas)"
     )
 
-# --- 13º SALÁRIO METRIC ---
-st.subheader("13º Salário")
+st.html(section_heading("13º Salário"))
 exec_13 = folha_vs_servicos.execucao_decimo_terceiro(conn, year)
 if exec_13 is not None and exec_13["empenhado"] > 0:
     col1, col2, col3 = st.columns(3)
@@ -250,11 +252,7 @@ if exec_13 is not None and exec_13["empenhado"] > 0:
             )
 else:
     st.info(f"Nenhum pagamento de 13º salário registrado para o ano de {year}.")
-st.divider()
-# --- END 13º SALÁRIO METRIC ---
-
-# Análise Granular de Remuneração
-st.subheader("Distribuição de Remuneração")
+st.html(section_heading("Distribuição de Remuneração"))
 st.info(
     "O portal não disponibiliza a remuneração líquida individual. "
     "O gráfico abaixo usa **Proventos** (remuneração bruta) como aproximação.",
@@ -276,8 +274,7 @@ if not df_pessoal.empty:
 else:
     st.info("Dados de proventos não disponíveis para este exercício.")
 
-st.divider()
-st.subheader("Perfil de Cargos de Confiança")
+st.html(section_heading("Perfil de Cargos de Confiança"))
 if not df_cargos.empty:
     fig_cargos = px.area(
         df_cargos.sort_values("ano"),
@@ -310,8 +307,7 @@ if not df_cargos.empty:
 else:
     st.info("Dados de cargos de confiança não disponíveis.")
 
-st.divider()
-st.subheader("Pagamentos via Responsáveis de Secretaria")
+st.html(section_heading("Pagamentos via Responsáveis de Secretaria"))
 st.info(
     """
     **Por que uma pessoa aparece recebendo milhões de reais?**

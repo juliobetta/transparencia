@@ -5,18 +5,25 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
+    COLOR_ALERT,
+    COLOR_RISK,
     SPARK_CFG,
+    bar_chart_h,
+    fmt_currency,
     get_conn,
     get_data_extracao,
+    kpi_card,
+    kpi_grid,
+    page_header,
+    partial_year_month,
     pct_delta,
     render_aviso_ano_parcial,
-    render_breadcrumb,
     render_sidebar,
+    section_heading,
     sparkline,
 )
 from sqlalchemy.engine import Engine
@@ -116,88 +123,50 @@ _hist_adesao_ext = _adesao_ext_por_ano(conn, tuple(_all_years), empresa_ids, _ex
 
 _acima_serie = [_hist_acima[y] for y in _anos]
 _totals_serie = [_hist_totals[y] for y in _anos]
+_limite_fmt = fmt_currency(THRESHOLD_COMPRAS_SERVICOS)
 _adesao_serie = [_hist_adesao[y] for y in _anos]
 _adesao_ext_serie = [_hist_adesao_ext[y] for y in _anos]
 
-st.header("Licitações e Contratos")
-render_breadcrumb(year, empresa_ids)
+_partial_suffix = f"parcial, Jan–{partial_year_month(_extracted_at)}" if year == ANO_ATUAL else ""
+_eyebrow = f"Administrativo · Exercício {year}" + (f" ({_partial_suffix})" if _partial_suffix else "")
+st.html(
+    page_header(
+        _eyebrow,
+        "Licitações e Contratos",
+        "Contratos sem licitação são comuns e frequentemente legais — dispensas de baixo valor e inexigibilidades "
+        "são permitidas por lei. O ponto de atenção são os contratos <strong style='color:#1a1d21'>acima de "
+        f"{_limite_fmt} sem licitação</strong>, que exigem justificativa formal.",
+    )
+)
 
 if year == ANO_ATUAL:
     render_aviso_ano_parcial(year, _extracted_at)
 
-_limite_fmt = f"R$ {THRESHOLD_COMPRAS_SERVICOS:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-st.info(
-    "Contratos sem processo licitatório são comuns e frequentemente legais — dispensas de baixo valor "
-    f"e inexigibilidades são permitidas por lei. O ponto de atenção são os contratos **acima de {_limite_fmt}** "
-    "sem licitação, pois nesses casos a lei exige justificativa formal "
-    "([Lei 14.133/21, Art. 75, I](https://licitacoesecontratos.tcu.gov.br/5-10-2-1-dispensa-em-razao-do-valor-incisos-i-e-ii-2/))."
+st.html(
+    kpi_grid(
+        kpi_card(
+            "Acima do limite s/ licitação", str(len(acima)), sub=pct_delta(_acima_serie) or "", risk=len(acima) > 0
+        ),
+        kpi_card("Total sem processo licitatório", str(len(lacunas)), sub=pct_delta(_totals_serie) or ""),
+        kpi_card("Adesões de Ata (carona)", str(_hist_adesao[year]), sub=pct_delta(_adesao_serie) or ""),
+        kpi_card("Empenhos via Ata Externa", str(adesao_externa["quantidade"]), sub=pct_delta(_adesao_ext_serie) or ""),
+        cols=4,
+    )
 )
-
-st.subheader("Resumo")
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    st.metric(
-        f"Acima do limite s/ licitação ({_limite_fmt})",
-        len(acima),
-        delta=pct_delta(_acima_serie),
-        delta_color="inverse",
-        help=(
-            f"Número de contratos firmados sem licitação cujo valor ultrapassa {_limite_fmt} — "
-            "o teto legal para dispensa em compras e serviços gerais (Decreto nº 12.807/2025). "
-            "Acima desse valor, a lei exige processo licitatório formal com publicação e concorrência. "
-            "Cada item listado merece análise da justificativa oficial do processo."
-        ),
-    )
     st.plotly_chart(
-        sparkline(_anos, _acima_serie, "#E91E63"), use_container_width=True, config=SPARK_CFG, key="spark_lic_acima"
+        sparkline(_anos, _acima_serie, COLOR_RISK), use_container_width=True, config=SPARK_CFG, key="spark_lic_acima"
     )
 with c2:
-    st.metric(
-        "Total sem processo licitatório",
-        len(lacunas),
-        delta=pct_delta(_totals_serie),
-        delta_color="inverse",
-        help=(
-            "Total de contratos identificados sem número de licitação associado. Nem todos são "
-            "irregulares — a lei permite contratação direta por dispensa (baixo valor, emergência) "
-            "ou inexigibilidade (fornecedor exclusivo, profissional notório). O número alto é um "
-            "ponto de atenção, não uma irregularidade automática."
-        ),
-    )
     st.plotly_chart(
-        sparkline(_anos, _totals_serie, "#FF9800"), use_container_width=True, config=SPARK_CFG, key="spark_lic_total"
+        sparkline(_anos, _totals_serie, COLOR_ALERT), use_container_width=True, config=SPARK_CFG, key="spark_lic_total"
     )
 with c3:
-    st.metric(
-        "Adesões de Ata (licitações)",
-        _hist_adesao[year],
-        delta=pct_delta(_adesao_serie),
-        delta_color="inverse",
-        help=(
-            "Quantidade de contratos firmados por adesão à Ata de Registro de Preços — mecanismo "
-            "em que a prefeitura aproveita uma licitação já realizada por ela mesma para novas "
-            "compras, sem precisar abrir um novo processo. É uma forma legal e eficiente de "
-            "contratar, desde que respeitados os limites de quantidade e vigência da ata."
-        ),
-    )
-    st.plotly_chart(
-        sparkline(_anos, _adesao_serie, "#9C27B0"), use_container_width=True, config=SPARK_CFG, key="spark_lic_adesao"
-    )
+    st.plotly_chart(sparkline(_anos, _adesao_serie), use_container_width=True, config=SPARK_CFG, key="spark_lic_adesao")
 with c4:
-    st.metric(
-        "Empenhos via Ata Externa",
-        adesao_externa["quantidade"],
-        delta=pct_delta(_adesao_ext_serie),
-        delta_color="inverse",
-        help=(
-            "Empenhos identificados como 'carona em ata' — a prefeitura utilizou uma Ata de "
-            "Registro de Preços aberta por outro ente público (outro município, estado ou órgão "
-            "federal) para realizar a contratação. O chamado 'carona' é permitido pela Lei "
-            "14.133/2021, mas exige autorização formal do órgão gerenciador da ata."
-        ),
-    )
     st.plotly_chart(
-        sparkline(_anos, _adesao_ext_serie, "#607D8B"), use_container_width=True, config=SPARK_CFG, key="spark_lic_ext"
+        sparkline(_anos, _adesao_ext_serie), use_container_width=True, config=SPARK_CFG, key="spark_lic_ext"
     )
 
 # Preparar tabela de contratos sem licitação
@@ -391,49 +360,21 @@ with st.expander("Ver possível fracionamento de contratos"):
 
 st.divider()
 
-# ── Distribuição por Tipo de Contratação ─────────────────────────────────────
-st.subheader("Distribuição por Tipo de Contratação")
-col_mod, col_fund = st.columns(2)
+st.html(section_heading("Distribuição por modalidade", aside="valor contratado · R$ mi"))
+if not df_modalidade.empty:
+    _mod_rows = [
+        (str(r["modalidade"]), float(r["valor"]), f"R$ {r['valor'] / 1e6:.1f}mi · {int(r['contratos'])}")
+        for _, r in df_modalidade.sort_values("valor", ascending=False).iterrows()
+    ]
+    st.html(bar_chart_h(_mod_rows))
 
-with col_mod:
-    if not df_modalidade.empty:
-        fig_mod = px.bar(
-            df_modalidade,
-            x="valor",
-            y="modalidade",
-            orientation="h",
-            text="contratos",
-            labels={"valor": "Valor Total (R$)", "modalidade": "Modalidade", "contratos": "Nº Contratos"},
-            title=f"Por Modalidade — {year}",
-            color_discrete_sequence=["#3A7FC1"],
-        )
-        fig_mod.update_traces(texttemplate="%{text} contratos", textposition="outside", cliponaxis=False)
-        fig_mod.update_layout(
-            yaxis=dict(autorange="reversed"),
-            xaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
-            margin=dict(l=0, r=130, t=40, b=0),
-        )
-        st.plotly_chart(fig_mod, use_container_width=True)
-
-with col_fund:
-    if not df_fundlegal.empty:
-        fig_fund = px.bar(
-            df_fundlegal,
-            x="valor",
-            y="fundlegal",
-            orientation="h",
-            text="contratos",
-            labels={"valor": "Valor Total (R$)", "fundlegal": "Fundamento Legal", "contratos": "Nº Contratos"},
-            title=f"Por Fundamento Legal — {year}",
-            color_discrete_sequence=["#1C3A5E"],
-        )
-        fig_fund.update_traces(texttemplate="%{text} contratos", textposition="outside", cliponaxis=False)
-        fig_fund.update_layout(
-            yaxis=dict(autorange="reversed"),
-            xaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
-            margin=dict(l=0, r=130, t=40, b=0),
-        )
-        st.plotly_chart(fig_fund, use_container_width=True)
+if not df_fundlegal.empty:
+    st.html(section_heading("Por fundamento legal"))
+    _fund_rows = [
+        (str(r["fundlegal"]), float(r["valor"]), f"R$ {r['valor'] / 1e6:.1f}mi · {int(r['contratos'])}")
+        for _, r in df_fundlegal.sort_values("valor", ascending=False).iterrows()
+    ]
+    st.html(bar_chart_h(_fund_rows))
 
 # ── Top Fornecedores ──────────────────────────────────────────────────────────
 with st.expander("Ver top fornecedores por valor contratado"):
