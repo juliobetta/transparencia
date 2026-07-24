@@ -10,6 +10,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from shared import get_conn
 
+import constants
 import db
 from config import PortalConfig
 
@@ -161,6 +162,22 @@ _YEARS = list(reversed(range(_config.ano_inicial, date.today().year + 1)))
 if "sidebar_year" not in st.session_state:
     st.session_state["sidebar_year"] = _YEARS[0]
 
+_brasao_path = Path(__file__).parent.parent / "assets" / "brasao-porciuncula.svg"
+_brasao_svg = _brasao_path.read_text() if _brasao_path.exists() else ""
+st.sidebar.html(
+    f'<div style="padding:18px 20px 14px;border-bottom:1px solid #f0f1f4;display:flex;align-items:center;gap:12px">'
+    f'<div style="width:34px;height:34px;flex-shrink:0">{_brasao_svg}</div>'
+    f"<div>"
+    f"<div style=\"font-family:'Source Serif 4',serif;font-weight:700;font-size:15px;line-height:1.2\">"
+    f'Contas de <span style="color:oklch(0.55 0.11 250)">{_config.display_name}</span></div>'
+    f'<div style="font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:#9aa1ab;margin-top:2px">'
+    f"orçamento municipal · RJ</div>"
+    f"</div></div>"
+    f'<div style="padding:10px 18px 4px;border-bottom:1px solid #f0f1f4">'
+    f'<div style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#9aa1ab;margin-bottom:4px">Filtros</div>'
+    f"</div>"
+)
+
 st.session_state["sidebar_year"] = st.sidebar.selectbox(
     "Ano",
     _YEARS,
@@ -199,4 +216,13 @@ pages = {
 }
 
 pg = st.navigation(pages)
+
+st.html(
+    f'<div style="padding:9px 0;background:#eef4fd;border-bottom:1px solid #dfe9f8;'
+    f'font-size:11.5px;color:#3a5a86;display:flex;align-items:center;gap:8px;margin-bottom:2rem">'
+    f'<span style="width:6px;height:6px;border-radius:50%;background:oklch(0.55 0.11 250);flex-shrink:0;display:inline-block"></span>'
+    f"Iniciativa <strong>livre e apartidária</strong>, sem vínculo com a administração municipal. "
+    f'Dados extraídos do <a href="{constants.PORTAL_URL}" style="color:#3a5a86;font-weight:600">Portal da Transparência</a> oficial.</div>'
+)
+
 pg.run()

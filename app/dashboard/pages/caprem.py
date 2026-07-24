@@ -9,9 +9,6 @@ import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
-    COLOR_ALERT,
-    COLOR_POSITIVE,
-    SPARK_CFG,
     bar_chart_h,
     fmt_compact,
     get_conn,
@@ -21,10 +18,12 @@ from shared import (
     page_header,
     partial_year_month,
     pct_delta,
+    plotly_card_end,
+    plotly_card_layout,
+    plotly_card_start,
     render_aviso_ano_parcial,
     render_sidebar,
     section_heading,
-    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -128,27 +127,6 @@ st.html(
     )
 )
 
-k1, k2, k3, _ = st.columns(4)
-with k1:
-    if len(_emp_serie) >= 2:
-        st.plotly_chart(sparkline(_all_years, _emp_serie), use_container_width=True, config=SPARK_CFG, key="spark_emp")
-with k2:
-    if len(_liq_serie) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _liq_serie, COLOR_POSITIVE),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_liq",
-        )
-with k3:
-    if len(_pago_serie) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _pago_serie, COLOR_ALERT),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_pago",
-        )
-
 # ── Tendência histórica ──────────────────────────────────────────────────────
 st.html(section_heading("Tendência Histórica", numbered="②"))
 if trend is not None and not trend.empty and len(trend) >= 2:
@@ -159,16 +137,18 @@ if trend is not None and not trend.empty and len(trend) >= 2:
         color="Tipo",
         barmode="group",
         labels={"ano": "Ano", "Valor": "R$", "Tipo": ""},
-        color_discrete_map={"empenhado": "#3A7FC1", "pago": "#1C3A5E"},
-        title="Repasses ao CAPREM por Ano",
+        color_discrete_map={"empenhado": "oklch(0.52 0.13 250)", "pago": "oklch(0.35 0.1 250)"},
     )
     fig_trend.for_each_trace(lambda t: t.update(name="Empenhado" if t.name == "empenhado" else "Pago"))
-    fig_trend.update_traces(hovertemplate="%{x}<br>R$ %{y:,.0f}<extra></extra>")
+    fig_trend.update_traces(hovertemplate="%{x}<br>R$ %{y:,.0f}<extra></extra>", marker_line_width=0)
     fig_trend.update_layout(
+        **plotly_card_layout("Repasses ao CAPREM por Ano", height=300),
         yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
         xaxis=dict(tickangle=0, type="category"),
     )
+    st.html(plotly_card_start())
     st.plotly_chart(fig_trend, use_container_width=True)
+    st.html(plotly_card_end())
 else:
     st.info("Sem dados históricos disponíveis.")
 
@@ -237,17 +217,19 @@ if mensal is not None and not mensal.empty:
         color="Tipo",
         barmode="group",
         labels={"mes_nome": "Mês", "Valor": "R$", "Tipo": ""},
-        color_discrete_map={"empenhado": "#3A7FC1", "pago": "#1C3A5E"},
-        title=f"Repasses Mensais — {year}",
+        color_discrete_map={"empenhado": "oklch(0.52 0.13 250)", "pago": "oklch(0.35 0.1 250)"},
         category_orders={"mes_nome": list(_MESES_PT.values())},
     )
     fig_mensal.for_each_trace(lambda t: t.update(name="Empenhado" if t.name == "empenhado" else "Pago"))
-    fig_mensal.update_traces(hovertemplate="%{x}<br>R$ %{y:,.0f}<extra></extra>")
+    fig_mensal.update_traces(hovertemplate="%{x}<br>R$ %{y:,.0f}<extra></extra>", marker_line_width=0)
     fig_mensal.update_layout(
+        **plotly_card_layout(f"Repasses Mensais — {year}", height=280),
         yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
         xaxis=dict(tickangle=0),
     )
+    st.html(plotly_card_start())
     st.plotly_chart(fig_mensal, use_container_width=True)
+    st.html(plotly_card_end())
 else:
     st.info("Sem dados mensais para este ano.")
 

@@ -9,10 +9,8 @@ import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
-    COLOR_ALERT,
-    COLOR_RISK,
-    SPARK_CFG,
     bar_chart_h,
+    dense_table,
     fmt_currency,
     get_conn,
     get_data_extracao,
@@ -24,7 +22,6 @@ from shared import (
     render_aviso_ano_parcial,
     render_sidebar,
     section_heading,
-    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -153,33 +150,73 @@ st.html(
         cols=4,
     )
 )
-c1, c2, c3, c4 = st.columns(4)
-with c1:
-    st.plotly_chart(
-        sparkline(_anos, _acima_serie, COLOR_RISK), use_container_width=True, config=SPARK_CFG, key="spark_lic_acima"
-    )
-with c2:
-    st.plotly_chart(
-        sparkline(_anos, _totals_serie, COLOR_ALERT), use_container_width=True, config=SPARK_CFG, key="spark_lic_total"
-    )
-with c3:
-    st.plotly_chart(sparkline(_anos, _adesao_serie), use_container_width=True, config=SPARK_CFG, key="spark_lic_adesao")
-with c4:
-    st.plotly_chart(
-        sparkline(_anos, _adesao_ext_serie), use_container_width=True, config=SPARK_CFG, key="spark_lic_ext"
-    )
+st.html(section_heading("Distribuição por modalidade", aside="valor contratado · R$ mi"))
+if not df_modalidade.empty:
+    _mod_rows = [
+        (str(r["modalidade"]), float(r["valor"]), f"R$ {r['valor'] / 1e6:.1f}mi · {int(r['contratos'])}")
+        for _, r in df_modalidade.sort_values("valor", ascending=False).iterrows()
+    ]
+    st.html(bar_chart_h(_mod_rows))
 
-# Preparar tabela de contratos sem licitação
-lacunas_exibicao = lacunas.rename(
-    columns={
-        "fornecedor": "Fornecedor",
-        "objeto": "Objeto",
-        "valor_contrato": "Valor",
-        "periodo": "Período",
+if not df_fundlegal.empty:
+    st.html(section_heading("Por fundamento legal"))
+    _fund_rows = [
+        (str(r["fundlegal"]), float(r["valor"]), f"R$ {r['valor'] / 1e6:.1f}mi · {int(r['contratos'])}")
+        for _, r in df_fundlegal.sort_values("valor", ascending=False).iterrows()
+    ]
+    st.html(bar_chart_h(_fund_rows))
+
+# ── Contratos acima do limite — dense table ───────────────────────────────────
+st.html(section_heading("Contratos acima do limite, sem licitação"))
+if not acima.empty:
+    _modality_kind: dict[str, str] = {
+        "Dispensa": "dispensa",
+        "Inexigibilidade": "inexigibilidade",
+        "Pregão": "pregao",
+        "Concorrência": "concorrencia",
+        "Adesão a ata": "adesao",
     }
-)
+    _frac_fornecedores: set = set(
+        anomalias["fracionamento"]["fornecedor"].tolist() if not anomalias["fracionamento"].empty else []
+    )
+    _search_acima = st.text_input(
+        "Buscar contrato…", placeholder="Fornecedor ou objeto", label_visibility="collapsed", key="search_acima"
+    )
+    _df_acima = (
+        acima
+        if not _search_acima
+        else acima[
+            acima["fornecedor"].str.contains(_search_acima, case=False, na=False)
+            | acima["objeto"].str.contains(_search_acima, case=False, na=False)
+        ]
+    )
+    _rows_acima = [
+        [
+            row["fornecedor"]
+            + (
+                '<div style="font-size:10.5px;color:oklch(0.6 0.13 55);margin-top:2px">⚠ possível fracionamento</div>'
+                if row["fornecedor"] in _frac_fornecedores
+                else ""
+            ),
+            str(row["objeto"])[:80] + ("…" if len(str(row["objeto"])) > 80 else ""),
+            {"label": str(row["modalidade"]), "kind": _modality_kind.get(str(row["modalidade"]), "default")},
+            fmt_currency(float(row["valor_contrato"])),
+            str(row["periodo"]),
+        ]
+        for _, row in _df_acima.iterrows()
+    ]
+    st.html(
+        dense_table(
+            ["Fornecedor", "Objeto", "Modalidade", "Valor", "Período"],
+            _rows_acima,
+            footer=f"Mostrando {len(_df_acima)} de {len(acima)} contratos",
+        )
+    )
+else:
+    st.caption("Nenhum contrato acima do limite sem licitação identificado para este ano.")
 
-with st.expander("Ver contratos sem processo licitatório"):
+# ── Detalhamento completo ─────────────────────────────────────────────────────
+with st.expander("Ver todos os contratos sem processo licitatório"):
     df_exibir = lacunas.rename(
         columns={
             "fornecedor": "Fornecedor",
@@ -192,9 +229,7 @@ with st.expander("Ver contratos sem processo licitatório"):
     )
     st.dataframe(
         df_exibir[["Fornecedor", "Objeto", "Modalidade", "Fundamento Legal", "Valor", "Período"]],
-        column_config={
-            "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
+        column_config={"Valor": st.column_config.NumberColumn(format="R$ %,.2f")},
         width="stretch",
         hide_index=True,
     )
@@ -215,7 +250,6 @@ with st.expander("Ver licitações via Adesão de Ata"):
             )
             .drop(columns=["numero"], errors="ignore")
         )
-
         st.dataframe(
             df_adesao[
                 [
@@ -240,10 +274,6 @@ with st.expander("Ver licitações via Adesão de Ata"):
 
 with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
     if not adesao_externa["lista"].empty:
-        st.caption(
-            "Empenhos cuja justificativa contábil referencia uma Ata de Registro de Preços de outro ente "
-            "(Termo de Adesão Externa). Esses registros complementam as licitações formais via carona."
-        )
         _ext_exib = adesao_externa["lista"].copy()
         _ext_exib["unidade"] = _ext_exib["unidade"].astype(str).map(_orgaos).fillna(_ext_exib["unidade"])
         st.dataframe(
@@ -268,113 +298,6 @@ with st.expander("Ver empenhos via Ata de Registro de Preços Externa"):
         )
     else:
         st.info("Nenhum empenho com referência a ata externa registrado para este ano.")
-
-with st.expander("Ver contratos acima do limite legal sem licitação"):
-    if not acima.empty:
-        st.caption(
-            "Contratos abaixo do limite de dispensa são legais e não exigem licitação. "
-            "O ponto de atenção está em contratos **acima** do limite sem processo formal — e especialmente "
-            "quando o mesmo fornecedor aparece múltiplas vezes com valores próximos ao teto, "
-            "o que pode indicar **fracionamento** (divisão artificial de compras para evitar licitação)."
-        )
-        _acima_exib = acima.copy()
-        _acima_exib["empresa"] = _acima_exib["empresa"].astype(str).map(_orgaos).fillna(_acima_exib["empresa"])
-        st.dataframe(
-            _acima_exib[
-                [
-                    "empresa",
-                    "numero",
-                    "fornecedor",
-                    "objeto",
-                    "modalidade",
-                    "fundlegal",
-                    "valor_contrato",
-                    "limite_dispensa",
-                    "periodo",
-                ]
-            ].rename(
-                columns={
-                    "empresa": "Entidade",
-                    "numero": "Nº Contrato",
-                    "fornecedor": "Fornecedor",
-                    "objeto": "Objeto",
-                    "modalidade": "Modalidade",
-                    "fundlegal": "Fundamento Legal",
-                    "valor_contrato": "Valor",
-                    "limite_dispensa": "Limite Dispensa",
-                    "periodo": "Período",
-                }
-            ),
-            column_config={
-                "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
-                "Limite Dispensa": st.column_config.NumberColumn(format="R$ %,.2f"),
-            },
-            width="stretch",
-            hide_index=True,
-        )
-    else:
-        st.info("Nenhum contrato acima do limite sem licitação identificado para este ano.")
-with st.expander("Ver possível fracionamento de contratos"):
-    if not anomalias["fracionamento"].empty:
-        st.caption(
-            "Fornecedores com 3 ou mais contratos próximos ao limite de dispensa no mesmo órgão, "
-            "sugerindo possível fracionamento para evitar licitação."
-        )
-        _frac_exib = anomalias["fracionamento"].copy()
-        _frac_exib["empresa"] = _frac_exib["empresa"].astype(str).map(_orgaos).fillna(_frac_exib["empresa"])
-        st.dataframe(
-            _frac_exib[
-                [
-                    "empresa",
-                    "numero",
-                    "fornecedor",
-                    "objeto",
-                    "modalidade",
-                    "fundlegal",
-                    "valor_contrato",
-                    "limite",
-                    "Período",
-                ]
-            ].rename(
-                columns={
-                    "empresa": "Entidade",
-                    "numero": "Nº Contrato",
-                    "fornecedor": "Fornecedor",
-                    "objeto": "Objeto",
-                    "modalidade": "Modalidade",
-                    "fundlegal": "Fundamento Legal",
-                    "valor_contrato": "Valor",
-                    "limite": "Limite Dispensa",
-                    "Período": "Período",
-                }
-            ),
-            column_config={
-                "Valor": st.column_config.NumberColumn(format="R$ %,.2f"),
-                "Limite Dispensa": st.column_config.NumberColumn(format="R$ %,.2f"),
-            },
-            width="stretch",
-            hide_index=True,
-        )
-    else:
-        st.info("Nenhum possível fracionamento identificado para este ano.")
-
-st.divider()
-
-st.html(section_heading("Distribuição por modalidade", aside="valor contratado · R$ mi"))
-if not df_modalidade.empty:
-    _mod_rows = [
-        (str(r["modalidade"]), float(r["valor"]), f"R$ {r['valor'] / 1e6:.1f}mi · {int(r['contratos'])}")
-        for _, r in df_modalidade.sort_values("valor", ascending=False).iterrows()
-    ]
-    st.html(bar_chart_h(_mod_rows))
-
-if not df_fundlegal.empty:
-    st.html(section_heading("Por fundamento legal"))
-    _fund_rows = [
-        (str(r["fundlegal"]), float(r["valor"]), f"R$ {r['valor'] / 1e6:.1f}mi · {int(r['contratos'])}")
-        for _, r in df_fundlegal.sort_values("valor", ascending=False).iterrows()
-    ]
-    st.html(bar_chart_h(_fund_rows))
 
 # ── Top Fornecedores ──────────────────────────────────────────────────────────
 with st.expander("Ver top fornecedores por valor contratado"):

@@ -1,8 +1,6 @@
 import sys
 from pathlib import Path
 
-import constants
-
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -219,16 +217,9 @@ if _receita_row is not None:
 else:
     st.html(page_header(_eyebrow, "Visão Geral", "Dados de receita não disponíveis para o período selecionado."))
 
-st.html(
-    alert_box(
-        "<strong>Iniciativa livre e apartidária</strong>, sem vínculo com a administração municipal. "
-        f'Dados extraídos do <a href="{constants.PORTAL_URL}" target="_blank">Portal da Transparência</a> oficial.',
-        kind="info",
-    )
-)
 
 # ── Receitas ─────────────────────────────────────────────────────────────────
-st.html(section_heading("Receitas", aside="Ver detalhes →"))
+st.html(section_heading("Receitas", aside="Ver detalhes →", aside_href="/receitas"))
 render_metodologia_receita()
 
 if year == ANO_ATUAL and _tem_arrecadado:
@@ -271,7 +262,7 @@ if _receita_row is not None:
             st.html(kpi_card("Total Arrecadado Real", "N/D"))
 
 # ── Execução Orçamentária ─────────────────────────────────────────────────────
-st.html(section_heading("Do orçamento autorizado ao pagamento", aside="Ver detalhes →"))
+st.html(section_heading("Do orçamento autorizado ao pagamento", aside="Ver detalhes →", aside_href="/orcamento"))
 
 if _dot > 0:
     _pct_liq = _liq / _dot
@@ -329,7 +320,7 @@ _card_despesas = (
     f'<div style="background:#fff;border:1px solid #e7e9ee;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:13px">'
     f'<div style="display:flex;align-items:center;justify-content:space-between">'
     f"<span style=\"font-family:'Source Serif 4',serif;font-weight:700;font-size:15px\">Despesas</span>"
-    f'<span style="font-size:11px;color:#9aa1ab">Restos a pagar →</span></div>'
+    f'<a href="/despesas" target="_top" style="font-size:11px;color:#9aa1ab;text-decoration:none;cursor:pointer">Restos a pagar →</a></div>'
     f"<div><div style=\"font-family:'Source Serif 4',serif;font-weight:700;font-size:30px;line-height:1;color:oklch(0.55 0.11 25)\">"
     f"{fmt_compact(_total_pendente)}</div>"
     f'<div style="font-size:11.5px;color:#6b7280;margin-top:4px">pendentes a {_num_fornecedores} fornecedores</div></div>'
@@ -362,7 +353,7 @@ _card_licitacoes = (
     '<div style="background:#fff;border:1px solid #e7e9ee;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:13px">'
     '<div style="display:flex;align-items:center;justify-content:space-between">'
     "<span style=\"font-family:'Source Serif 4',serif;font-weight:700;font-size:15px\">Licitações</span>"
-    '<span style="font-size:11px;color:#9aa1ab">Contratos →</span></div>'
+    '<a href="/licitacoes" target="_top" style="font-size:11px;color:#9aa1ab;text-decoration:none;cursor:pointer">Contratos →</a></div>'
     '<div style="display:flex;flex-direction:column;gap:9px">'
     + _lic_line(_contratos_sem_lic, "Acima do limite s/ licitação")
     + _lic_line(_adesao_map[year], "Adesões de ata (carona)")
@@ -402,7 +393,7 @@ _card_pessoal = (
     f'<div style="background:#fff;border:1px solid #e7e9ee;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:13px">'
     f'<div style="display:flex;align-items:center;justify-content:space-between">'
     f"<span style=\"font-family:'Source Serif 4',serif;font-weight:700;font-size:15px\">Pessoal</span>"
-    f'<span style="font-size:11px;color:#9aa1ab">Folha →</span></div>'
+    f'<a href="/pessoal" target="_top" style="font-size:11px;color:#9aa1ab;text-decoration:none;cursor:pointer">Folha →</a></div>'
     f"<div><div style=\"font-family:'Source Serif 4',serif;font-weight:700;font-size:30px;line-height:1\">"
     f'{_pct_folha_val:.1f}<span style="font-size:16px;color:#9aa1ab">%</span></div>'
     f'<div style="font-size:11.5px;color:#6b7280;margin-top:4px">da receita vai para a folha</div></div>'

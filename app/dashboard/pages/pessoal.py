@@ -157,74 +157,84 @@ if not df_folha.empty:
             key="spark_pes_folha_orgao",
         )
 
-    fig = px.bar(
-        df_folha,
-        x="ano",
-        y="percentual_folha",
-        title="Folha de Pessoal como % da Receita Arrecadada",
-        labels={"ano": "Ano", "percentual_folha": "%"},
-    )
-    fig.update_xaxes(tickmode="linear", dtick=1)
-    fig.update_traces(hovertemplate="Ano: %{x}<br>Percentual: %{y:.2f}%")
-    fig.add_hline(
-        y=LRF_PESSOAL_LIMITE_LEGAL,
-        line_dash="solid",
-        line_color="red",
-        annotation_text=f"Limite legal {LRF_PESSOAL_LIMITE_LEGAL}%",
-        annotation_position="top right",
-    )
-    fig.add_hline(
-        y=LRF_PESSOAL_LIMITE_PRUDENCIAL,
-        line_dash="dash",
-        line_color="orange",
-        annotation_text=f"Limite prudencial {LRF_PESSOAL_LIMITE_PRUDENCIAL}%",
-        annotation_position="top right",
-    )
-    fig.add_hline(
-        y=LRF_PESSOAL_LIMITE_ALERTA,
-        line_dash="dot",
-        line_color="gold",
-        annotation_text=f"Limite de alerta {LRF_PESSOAL_LIMITE_ALERTA}%",
-        annotation_position="top right",
-    )
-    st.plotly_chart(fig, width="stretch")
-    st.caption(
-        f"Linhas de referência da Lei de Responsabilidade Fiscal: "
-        f"**alerta** ({LRF_PESSOAL_LIMITE_ALERTA}%) · "
-        f"**prudencial** ({LRF_PESSOAL_LIMITE_PRUDENCIAL}%, veda novos cargos e reajustes) · "
-        f"**limite legal** ({LRF_PESSOAL_LIMITE_LEGAL}%, sujeito a sanções automáticas)"
+    st.html(section_heading("Folha como % da receita, ano a ano"))
+    _chart_h = 170
+    _max_ref = max(float(LRF_PESSOAL_LIMITE_LEGAL) * 1.08, max(_pct_serie, default=0) * 1.05)
+
+    def _ref_top(pct: float) -> int:
+        return _chart_h - int(pct / _max_ref * _chart_h)
+
+    _bars_html = ""
+    for _yr, _pct_val in zip(_anos_folha, _pct_serie):
+        _bar_h = int(float(_pct_val) / _max_ref * _chart_h)
+        _is_partial = _yr == ANO_ATUAL
+        _bar_color = (
+            "oklch(0.55 0.11 25)"
+            if float(_pct_val) >= float(LRF_PESSOAL_LIMITE_LEGAL)
+            else "oklch(0.65 0.13 65)"
+            if float(_pct_val) >= float(LRF_PESSOAL_LIMITE_PRUDENCIAL)
+            else "oklch(0.62 0.11 235)"
+        )
+        _bars_html += (
+            f'<div style="flex:1;max-width:64px;display:flex;flex-direction:column;align-items:center">'
+            f'<div class="serif" style="font-weight:700;font-size:12px;margin-bottom:4px;{"color:#9aa1ab;" if _is_partial else ""}">{float(_pct_val):.1f}%</div>'
+            f'<div style="flex:1;display:flex;align-items:flex-end;width:100%">'
+            f'<div style="width:100%;height:{_bar_h}px;background:{_bar_color};border-radius:5px 5px 0 0;{"opacity:.55;" if _is_partial else ""}"></div></div>'
+            f'<div style="font-size:11px;color:#9aa1ab;margin-top:7px">{_yr}{"*" if _is_partial else ""}</div>'
+            f"</div>"
+        )
+
+    _reflines_html = ""
+    for _pct_ref, _col_ref, _dash_style, _lbl_ref in [
+        (float(LRF_PESSOAL_LIMITE_LEGAL), "oklch(0.55 0.14 25)", "solid", f"Legal {LRF_PESSOAL_LIMITE_LEGAL}%"),
+        (
+            float(LRF_PESSOAL_LIMITE_PRUDENCIAL),
+            "oklch(0.65 0.13 65)",
+            "dashed",
+            f"Prudencial {LRF_PESSOAL_LIMITE_PRUDENCIAL}%",
+        ),
+        (float(LRF_PESSOAL_LIMITE_ALERTA), "oklch(0.7 0.12 90)", "dotted", f"Alerta {LRF_PESSOAL_LIMITE_ALERTA}%"),
+    ]:
+        _top = _ref_top(_pct_ref)
+        _reflines_html += (
+            f'<div style="position:absolute;left:0;right:0;top:{_top}px;border-top:1.5px {_dash_style} {_col_ref};opacity:.7">'
+            f'<span style="position:absolute;right:0;font-size:10px;color:{_col_ref};font-weight:600;white-space:nowrap;transform:translateY(-14px)">{_lbl_ref}</span></div>'
+        )
+
+    st.html(
+        f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px 26px 20px;margin-bottom:1.5rem">'
+        f'<div style="position:relative;padding-left:8px;padding-right:80px">'
+        f'<div style="display:flex;align-items:flex-end;gap:6px;height:{_chart_h}px;position:relative">'
+        f"{_bars_html}</div>"
+        f"{_reflines_html}"
+        f"</div></div>"
     )
 
-st.html(section_heading("13º Salário"))
+st.html(section_heading("13º Salário", aside="status de quitação"))
 exec_13 = folha_vs_servicos.execucao_decimo_terceiro(conn, year)
 if exec_13 is not None and exec_13["empenhado"] > 0:
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric(
-            "Total Reservado (Ajustado)",
-            fmt_currency(exec_13["empenhado"]),
-            help="Valor líquido que o município reservou (empenhou) no orçamento para o pagamento do 13º salário, já descontando as anulações de saldos estimativos excedentes.",
+    _pct_13 = min(max(float(exec_13["pct_pago"]), 0.0), 1.0)
+    st.html(
+        kpi_grid(
+            kpi_card("Total Reservado", fmt_currency(exec_13["empenhado"]), sub="empenho líquido ajustado"),
+            kpi_card("Efetivamente Pago", fmt_currency(exec_13["pago"]), accent=True),
+            kpi_card(
+                "Percentual Quitado",
+                f"{exec_13['pct_pago'] * 100:.1f}%",
+                sub="da folha de 13º quitada",
+                accent=_pct_13 >= 0.99,
+            ),
+            cols=3,
         )
-    with col2:
-        st.metric(
-            "Total Efetivamente Pago",
-            fmt_currency(exec_13["pago"]),
-            help="Soma dos pagamentos de 13º salário efetivamente desembolsados ao longo do ano (férias, adiantamentos e parcela final). Extraído da despesa geral para maior precisão.",
-        )
-    with col3:
-        st.metric(
-            "Percentual Quitado",
-            f"{exec_13['pct_pago'] * 100:.1f}%",
-            help="Proporção do valor reservado líquido (ajustado) que já foi efetivamente pago para os servidores. Mostra o grau de quitação real.",
-        )
-
-    # Exibir a barra de progresso de quitação (limitada entre 0 e 100%)
-    progress_val = min(max(exec_13["pct_pago"], 0.0), 1.0)
-    st.progress(progress_val, text=f"Progresso de Quitação da Folha de 13º Salário: {exec_13['pct_pago'] * 100:.1f}%")
-
-    st.info(
-        "**Nota de Transparência (Quitação de 100%):** A barra de progresso reflete a quitação calculada sobre o **Empenho Líquido Ajustado** (o valor reservado de fato para a folha após a prefeitura estornar/anular as sobras estimativas de fim de ano). Como as despesas de folha têm prioridade absoluta, o 13º salário é **totalmente quitado** dentro do exercício (qualquer dízimo de diferença residual em anos específicos decorre de anulações cruzadas registradas sob termos genéricos no portal).",
-        icon=":material/info:",
+    )
+    st.html(
+        f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:1.5rem">'
+        f'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:9px">'
+        f"<strong>Progresso de quitação</strong>"
+        f'<strong class="serif" style="font-weight:700">{exec_13["pct_pago"] * 100:.1f}%</strong></div>'
+        f'<div style="height:10px;background:#eef0f4;border-radius:6px;overflow:hidden">'
+        f'<div style="width:{_pct_13 * 100:.0f}%;height:100%;background:oklch(0.5 0.13 145);border-radius:6px"></div>'
+        f"</div></div>"
     )
 
     df_det_13 = folha_vs_servicos.detalhe_decimo_terceiro(conn, year)

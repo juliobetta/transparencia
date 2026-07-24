@@ -46,13 +46,13 @@ def render_sidebar() -> tuple[int, list[str] | None]:
     if _last_extracted:
         fmt = "%Y-%m-%d %H:%M:%S" if " " in _last_extracted else "%Y-%m-%d"
         _last_extracted = datetime.strptime(_last_extracted, fmt).strftime("%d/%m/%Y %H:%M")
-    st.sidebar.markdown(
-        f"### :material/link: Portal Oficial\n[Ver fonte oficial →]({constants.PORTAL_URL})",
-        unsafe_allow_html=True,
-    )
-    st.sidebar.markdown("---")
-    st.sidebar.caption(
-        f"Última extração: **{_last_extracted}**" if _last_extracted else "Última extração: desconhecida"
+    st.sidebar.html(
+        f'<div style="padding:10px 18px 12px;border-top:1px solid #f0f1f4;margin-top:4px">'
+        f'<a href="{constants.PORTAL_URL}" target="_blank" style="font-size:12px;font-weight:600;color:#1a1d21;text-decoration:none">'
+        f"Portal oficial da transparência ↗</a>"
+        f'<div style="font-size:10.5px;color:#9aa1ab;margin-top:4px">'
+        f"{'Última extração: ' + _last_extracted if _last_extracted else 'Última extração: desconhecida'}"
+        f"</div></div>"
     )
 
     year = int(st.session_state.get("sidebar_year", ANOS[-1]))
@@ -270,14 +270,22 @@ def page_header(eyebrow: str, title: str, description: str = "") -> str:
     )
 
 
-def section_heading(title: str, aside: str = "", numbered: str = "") -> str:
+def section_heading(title: str, aside: str = "", numbered: str = "", aside_href: str = "") -> str:
     num_html = (
         f'<span class="serif" style="font-weight:700;font-size:22px;'
         f'color:oklch(0.55 0.11 250);margin-right:12px">{numbered}</span>'
         if numbered
         else ""
     )
-    aside_html = f'<span style="font-size:11.5px;color:var(--subtle)">{aside}</span>' if aside else ""
+    if aside:
+        _aside_inner = (
+            f'<a href="{aside_href}" target="_top" style="color:inherit;text-decoration:none;cursor:pointer">{aside}</a>'
+            if aside_href
+            else aside
+        )
+        aside_html = f'<span style="font-size:11.5px;color:var(--subtle)">{_aside_inner}</span>'
+    else:
+        aside_html = ""
     return (
         f'<div style="display:flex;align-items:baseline;justify-content:space-between;'
         f'border-top:2px solid var(--ink);padding-top:12px;margin:1.5rem 0 1rem">'
@@ -339,7 +347,7 @@ def bar_chart_h(rows: list[tuple[str, float, str]]) -> str:
             f'<span style="width:130px;font-size:12.5px;color:#4b5563;flex-shrink:0">{label}</span>'
             f'<div style="flex:1;height:20px;background:#eef0f4;border-radius:4px;overflow:hidden">'
             f'<div style="width:{pct:.1f}%;height:100%;background:{blue_steps[i]};border-radius:4px"></div></div>'
-            f"<span style=\"width:52px;text-align:right;font-family:'Source Serif 4',serif;"
+            f"<span style=\"width:80px;min-width:80px;text-align:right;font-family:'Source Serif 4',serif;"
             f'font-weight:700;font-size:14px">{fmt_val}</span>'
             f"</div>"
         )
@@ -445,3 +453,28 @@ def dense_table(columns: list[str], rows: list[list], footer: str = "") -> str:
         f"<tbody>{''.join(trs)}</tbody>"
         f"</table>{footer_html}</div>"
     )
+
+
+def plotly_card_layout(title: str = "", height: int = 300, margin: dict | None = None) -> dict:
+    """Return Plotly layout kwargs that match the design-system card style (transparent bg, IBM Plex Sans font)."""
+    m = margin or dict(l=16, r=16, t=36 if title else 16, b=16)
+    base: dict = dict(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="IBM Plex Sans, sans-serif", color="#1a1d21", size=12),
+        margin=m,
+        height=height,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.28, xanchor="center", x=0.5, font=dict(size=11)),
+    )
+    if title:
+        base["title"] = dict(text=title, font=dict(family="Source Serif 4, serif", size=15, color="#1a1d21"))
+    return base
+
+
+def plotly_card_start() -> str:
+    return '<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px 8px;margin-bottom:1.5rem;overflow:hidden">'
+
+
+def plotly_card_end() -> str:
+    return "</div>"

@@ -10,13 +10,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import plotly.express as px
-import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     ANO_ATUAL,
-    COLOR_ALERT,
-    COLOR_POSITIVE,
-    SPARK_CFG,
+    donut_conic,
     fmt_compact,
     get_conn,
     get_data_extracao,
@@ -25,10 +22,12 @@ from shared import (
     page_header,
     partial_year_month,
     pct_delta,
+    plotly_card_end,
+    plotly_card_layout,
+    plotly_card_start,
     render_aviso_ano_parcial,
     render_sidebar,
     section_heading,
-    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -181,40 +180,6 @@ st.html(
         cols=4,
     )
 )
-k1, k2, k3, k4 = st.columns(4)
-with k1:
-    if len(tendencia_ate_ano) >= 2:
-        st.plotly_chart(
-            sparkline(_tend_anos, tendencia_ate_ano["dotacao"].tolist()),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_dotacao",
-        )
-with k2:
-    if len(tendencia_ate_ano) >= 2:
-        st.plotly_chart(
-            sparkline(_tend_anos, tendencia_ate_ano["empenhado"].tolist(), COLOR_POSITIVE),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_empenhado",
-        )
-with k3:
-    if len(tendencia_ate_ano) >= 2:
-        st.plotly_chart(
-            sparkline(_tend_anos, tendencia_ate_ano["taxa"].tolist(), COLOR_ALERT),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_taxa",
-        )
-with k4:
-    if len(tendencia_farma_ate_ano) >= 2:
-        st.plotly_chart(
-            sparkline(tendencia_farma_ate_ano["ano"].tolist(), tendencia_farma_ate_ano["empenhado"].tolist()),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_pharma",
-        )
-
 # ── Seção 1: O que entrou ───────────────────────────────────────────────────
 st.html(section_heading("O que entrou no Fundo", numbered="①"))
 
@@ -231,13 +196,6 @@ if dados["emendas_total"] > 0:
             delta=pct_delta(_emendas_serie) if len(_emendas_serie) >= 2 else None,
             delta_color="off",
         )
-        if len(_emendas_serie) >= 2:
-            st.plotly_chart(
-                sparkline(_all_years, _emendas_serie, "#2196F3"),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_emendas",
-            )
     if not dados["emendas"].empty and dados["emendas"].notna().any().any():
         st.dataframe(
             dados["emendas"].rename(
@@ -282,91 +240,46 @@ if total_repasses > 0:
             delta_color="off",
             help="Valores transferidos pela Prefeitura Municipal ao Fundo de Saúde no ano.",
         )
-        if len(_transferencias_serie) >= 2:
-            st.plotly_chart(
-                sparkline(_all_years, _transferencias_serie, "#4CAF50"),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_repasses",
-            )
 else:
     rp1.info("Sem repasses registrados para este ano.")
 
 st.subheader("Fontes de Receita do Fundo")
 if not receita_saude.empty:
-    _anos_rec = receita_saude["ano"].tolist()
     _rec_row = (
         receita_saude[receita_saude["ano"] == year].iloc[0]
         if year in receita_saude["ano"].values
         else receita_saude.iloc[-1]
     )
-    r1, r2, r3, _ = st.columns(4)
-    with r1:
-        st.metric(
-            "Receita Própria",
-            fmt_compact(float(_rec_row["receita_propria"])),
-            delta=pct_delta(receita_saude["receita_propria"].tolist()),
-            delta_color="off",
-        )
-        if len(_anos_rec) >= 2:
-            st.plotly_chart(
-                sparkline(_anos_rec, receita_saude["receita_propria"].tolist(), "#2196F3"),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_rec_propria",
+    _rec_propria = float(_rec_row["receita_propria"])
+    _rec_uniao = float(_rec_row["transferencias_uniao"])
+    _rec_estado = float(_rec_row["transferencias_estado"])
+    _rec_total = _rec_propria + _rec_uniao + _rec_estado
+    if _rec_total > 0:
+        _pct_propria = _rec_propria / _rec_total * 100
+        _pct_uniao = _rec_uniao / _rec_total * 100
+        _pct_estado = _rec_estado / _rec_total * 100
+        _rec_col, _kpi_col = st.columns([1, 1])
+        with _rec_col:
+            st.html(
+                donut_conic(
+                    [
+                        ("Receita Própria", _pct_propria, "oklch(0.52 0.13 250)"),
+                        ("Transferências União", _pct_uniao, "oklch(0.5 0.13 145)"),
+                        ("Transferências Estado", _pct_estado, "oklch(0.55 0.13 55)"),
+                    ],
+                    center_label=f"{_pct_uniao + _pct_estado:.0f}%",
+                    center_sub="repasses externos",
+                )
             )
-    with r2:
-        st.metric(
-            "Transferências União",
-            fmt_compact(float(_rec_row["transferencias_uniao"])),
-            delta=pct_delta(receita_saude["transferencias_uniao"].tolist()),
-            delta_color="off",
-        )
-        if len(_anos_rec) >= 2:
-            st.plotly_chart(
-                sparkline(_anos_rec, receita_saude["transferencias_uniao"].tolist(), "#4CAF50"),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_rec_uniao",
+        with _kpi_col:
+            st.html(
+                kpi_grid(
+                    kpi_card("Receita Própria", fmt_compact(_rec_propria), sub=f"{_pct_propria:.0f}% do total"),
+                    kpi_card("Transf. União", fmt_compact(_rec_uniao), sub=f"{_pct_uniao:.0f}% do total"),
+                    kpi_card("Transf. Estado", fmt_compact(_rec_estado), sub=f"{_pct_estado:.0f}% do total"),
+                    cols=3,
+                )
             )
-    with r3:
-        st.metric(
-            "Transferências Estado",
-            fmt_compact(float(_rec_row["transferencias_estado"])),
-            delta=pct_delta(receita_saude["transferencias_estado"].tolist()),
-            delta_color="off",
-        )
-        if len(_anos_rec) >= 2:
-            st.plotly_chart(
-                sparkline(_anos_rec, receita_saude["transferencias_estado"].tolist(), "#FF9800"),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_rec_estado",
-            )
-
-    fig_donut = go.Figure(
-        go.Pie(
-            labels=["Receita Própria", "Transferências União", "Transferências Estado"],
-            values=[
-                float(_rec_row["receita_propria"]),
-                float(_rec_row["transferencias_uniao"]),
-                float(_rec_row["transferencias_estado"]),
-            ],
-            hole=0.5,
-            marker=dict(colors=["#2196F3", "#4CAF50", "#FF9800"]),
-            textinfo="percent",
-            textposition="inside",
-            automargin=True,
-            hovertemplate="%{label}<br>R$ %{value:,.0f}<br>%{percent}<extra></extra>",
-        )
-    )
-    fig_donut.update_layout(
-        title=f"Fontes de Receita do Fundo de Saúde ({year})",
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="top", y=-0.05, xanchor="center", x=0.5),
-        margin=dict(l=0, r=0, t=40, b=80),
-    )
-    st.plotly_chart(fig_donut, use_container_width=True)
     st.caption(
         "Composição da receita do Fundo Municipal de Saúde — revela dependência de transferências federais "
         "(SUS, PAB, etc.) vs receita própria."
@@ -383,14 +296,18 @@ if not tendencia_execucao.empty:
         tendencia_execucao,
         x="ano",
         y="empenhado",
-        title="Fundo de Saúde — Empenhado por Ano",
         labels={"ano": "Ano", "empenhado": "Empenhado"},
+        color_discrete_sequence=["oklch(0.52 0.13 250)"],
     )
-    fig.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.0f}<extra></extra>")
-    fig.update_layout(yaxis=dict(tickprefix="R$ ", tickformat=",.0f"))
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.plotly_chart(fig, width="stretch")
+    fig.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.0f}<extra></extra>", marker_line_width=0)
+    fig.update_layout(
+        **plotly_card_layout("Fundo de Saúde — Empenhado por Ano", height=300),
+        xaxis=dict(dtick=1, tickformat="d"),
+        yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
+    )
+    st.html(plotly_card_start())
+    st.plotly_chart(fig, use_container_width=True)
+    st.html(plotly_card_end())
 
     st.dataframe(
         tendencia_execucao.rename(columns={"ano": "Ano", "empenhado": "Empenhado"}),
@@ -422,13 +339,6 @@ with c1:
         delta_color="inverse",
         help=glossary.tooltip("Adesão de Ata (Carona)"),
     )
-    if len(_all_years) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _adesao_serie, "#FF9800"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_adesao_count",
-        )
 with c2:
     _delta_contratos = (
         (_adesao_contratos_serie[-1] - _adesao_contratos_serie[-2]) / _adesao_contratos_serie[-2] * 100
@@ -441,13 +351,6 @@ with c2:
         delta=f"{_delta_contratos:+.1f}%" if _delta_contratos is not None else None,
         delta_color="off",
     )
-    if len(_adesao_contratos_serie) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _adesao_contratos_serie, "#FF9800"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_adesao_contratos",
-        )
 with c3:
     st.metric(
         "Valor Contratado (Adesão)",
@@ -455,13 +358,6 @@ with c3:
         delta=pct_delta(_adesao_valor_serie) if len(_adesao_valor_serie) >= 2 else None,
         delta_color="off",
     )
-    if len(_adesao_valor_serie) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _adesao_valor_serie, "#FF5722"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_adesao_valor",
-        )
 
 if not dados["adesao_de_ata_list"].empty:
     with st.expander("Ver licitações via Adesão de Ata"):
@@ -506,13 +402,6 @@ with ae1:
         delta_color="inverse",
         help="Empenhos cuja justificativa contábil referencia uma Ata de Registro de Preços de outro ente (Termo de Adesão Externa).",
     )
-    if len(_all_years) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _adesao_ext_serie, "#9C27B0"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_adesao_ext",
-        )
 with ae2:
     st.metric("Pago via Ata Externa", fmt_compact(adesao_externa["total_pago"]))
 
@@ -587,13 +476,6 @@ if not lacunas_saude.empty and lacunas_saude.notna().all().all():
             delta=f"{_delta_licit:+.1f}%" if _delta_licit is not None else None,
             delta_color="inverse",
         )
-        if len(_all_years) >= 2:
-            st.plotly_chart(
-                sparkline(_all_years, _licit_serie, "#E91E63"),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_licit_gaps",
-            )
     st.dataframe(
         lacunas_saude.rename(
             columns={
@@ -636,13 +518,6 @@ with hhi1:
         delta_color="inverse",
         help="Índice Herfindahl-Hirschman. Acima de 2.500 = concentração alta.",
     )
-    if len(_hhi_serie) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _hhi_serie, "#E91E63"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_hhi",
-        )
 if not dados["principais_fornecedores"].empty and dados["principais_fornecedores"].notna().all().all():
     st.subheader("Top 10 Fornecedores")
 
@@ -685,24 +560,29 @@ st.html(section_heading("Insumos e Assistência Farmacêutica", numbered="⑤"))
 
 st.subheader("Medicamentos e Insumos (Subfunção 10.303 — Material de Consumo)")
 pharma = dados["pharma_empenhos"]
-ph1, _, _, _ = st.columns(4)
-with ph1:
-    st.metric(
-        "Total Empenhado",
-        fmt_compact(pharma["total"]),
-        delta=pct_delta(tendencia_farma_ate_ano["empenhado"].tolist()),
-        delta_color="off",
-        help="Empenhos da Subfunção 10.303 (Suporte Profilático e Terapêutico) com Natureza de Despesa 3.3.90.30 (Material de Consumo).",
+_pct_pharma = pharma["total"] / orcamento["empenhado"] if orcamento["empenhado"] > 0 else 0.0
+st.html(
+    kpi_grid(
+        kpi_card(
+            "Medicamentos e Insumos",
+            fmt_compact(pharma["total"]),
+            sub=pct_delta(tendencia_farma_ate_ano["empenhado"].tolist()) or "",
+            accent=True,
+        ),
+        kpi_card(
+            "% do Total Empenhado",
+            f"{_pct_pharma:.1%}",
+            sub="participação no orçamento",
+        ),
+        kpi_card(
+            "Judicialização",
+            fmt_compact(dados["pharma_judicial"]["total"]),
+            sub="sentenças judiciais (3.3.90.91)",
+            risk=dados["pharma_judicial"]["total"] > 0,
+        ),
+        cols=3,
     )
-    if len(tendencia_farma_ate_ano) >= 2:
-        st.plotly_chart(
-            sparkline(
-                tendencia_farma_ate_ano["ano"].tolist(), tendencia_farma_ate_ano["empenhado"].tolist(), "#9C27B0"
-            ),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_pharma_sec",
-        )
+)
 st.caption(
     "Os valores acima refletem empenhos diretos classificados na Subfunção 10.303 com Natureza de Despesa 3.3.90.30. "
     "Compras de medicamentos e insumos realizadas via **Adesão a Ata de Registro de Preços Externa** estão "
@@ -715,14 +595,18 @@ if not pharma_trend.empty:
         pharma_trend,
         x="ano",
         y="empenhado",
-        title="Medicamentos e Insumos — Empenhado por Ano",
         labels={"ano": "Ano", "empenhado": "Empenhado"},
+        color_discrete_sequence=["oklch(0.52 0.13 250)"],
     )
-    fig_pharma.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.2f}<extra></extra>")
-    fig_pharma.update_layout(yaxis=dict(tickprefix="R$ ", tickformat=",.0f"))
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.plotly_chart(fig_pharma, width="stretch")
+    fig_pharma.update_traces(hovertemplate="Ano: %{x}<br>Empenhado: R$ %{y:,.0f}<extra></extra>", marker_line_width=0)
+    fig_pharma.update_layout(
+        **plotly_card_layout("Medicamentos e Insumos — Empenhado por Ano", height=280),
+        xaxis=dict(dtick=1, tickformat="d"),
+        yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
+    )
+    st.html(plotly_card_start())
+    st.plotly_chart(fig_pharma, use_container_width=True)
+    st.html(plotly_card_end())
 
 if not pharma["detail"].empty:
     with st.expander("Ver detalhes por fornecedor"):
@@ -764,22 +648,6 @@ st.caption(
     "separadas das compras programadas de medicamentos e insumos."
 )
 pharma_jud = dados["pharma_judicial"]
-jud1, _, _, _ = st.columns(4)
-with jud1:
-    st.metric(
-        "Judicialização",
-        fmt_compact(pharma_jud["total"]),
-        delta=pct_delta(_pharma_jud_serie) if len(_pharma_jud_serie) >= 2 else None,
-        delta_color="inverse",
-        help="Empenhos com Elemento de Despesa 3.3.90.91 (Sentenças Judiciais) no Fundo Municipal de Saúde.",
-    )
-    if len(_pharma_jud_serie) >= 2:
-        st.plotly_chart(
-            sparkline(_all_years, _pharma_jud_serie, "#F44336"),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_jud",
-        )
 if pharma_jud["total"] == 0:
     st.info("Sem registros de judicialização para este ano.")
 elif not pharma_jud["detail"].empty:
