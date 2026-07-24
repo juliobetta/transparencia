@@ -193,7 +193,7 @@ with st.expander("📈 Ver Tendências Históricas"):
                 x=anos_yoy,
                 y=yoy["total_empenhado"].tolist(),
                 name="Empenhado",
-                marker_color=f"{COLOR_ACCENT}55",
+                marker_color="rgba(58,127,193,0.33)",
             )
         )
         fig_trend.add_trace(
@@ -250,7 +250,6 @@ with st.expander("📈 Ver Tendências Históricas"):
             xaxis=dict(dtick=1, tickformat="d"),
             yaxis=dict(ticksuffix="%"),
             hovermode="x unified",
-            showlegend=False,
         )
         st.html(plotly_card_start())
         st.plotly_chart(fig_pct, use_container_width=True)

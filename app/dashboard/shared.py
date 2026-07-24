@@ -339,22 +339,30 @@ def bar_chart_h(rows: list[tuple[str, float, str]]) -> str:
         f"oklch({min(0.55 + i * 0.04, 0.74):.2f} {max(0.08, 0.11 - i * 0.01):.2f} {max(200, 250 - i * 8)})"
         for i in range(n)
     ]
-    items = []
+    cells = []
     for i, (label, value, fmt_val) in enumerate(rows):
         pct = value / max_val * 100 if max_val > 0 else 0
-        items.append(
-            f'<div style="display:flex;align-items:center;gap:14px">'
-            f'<span style="width:130px;font-size:12.5px;color:#4b5563;flex-shrink:0">{label}</span>'
-            f'<div style="flex:1;height:20px;background:#eef0f4;border-radius:4px;overflow:hidden">'
+        _parts = fmt_val.split(" · ", 1)
+        if len(_parts) == 2:
+            _val_html = (
+                f'<span style="color:#6b7280;font-weight:400">{_parts[0]}</span>'
+                f'<span style="color:#6b7280;font-weight:400"> · </span>'
+                f'<span style="color:#1a1d21;font-weight:700">{_parts[1]}</span>'
+            )
+        else:
+            _val_html = f'<span style="color:#1a1d21;font-weight:700">{fmt_val}</span>'
+        cells.append(
+            f'<span style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12.5px;color:#4b5563;align-self:center">{label.title()}</span>'
+            f'<div style="height:20px;background:#eef0f4;border-radius:4px;overflow:hidden;align-self:center">'
             f'<div style="width:{pct:.1f}%;height:100%;background:{blue_steps[i]};border-radius:4px"></div></div>'
-            f"<span style=\"width:80px;min-width:80px;text-align:right;font-family:'Source Serif 4',serif;"
-            f'font-weight:700;font-size:14px">{fmt_val}</span>'
-            f"</div>"
+            f"<span style=\"white-space:nowrap;text-align:right;font-family:'Source Serif 4',serif;"
+            f'font-size:14px;align-self:center">{_val_html}</span>'
         )
     return (
         f'<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;'
-        f'padding:22px 26px;display:flex;flex-direction:column;gap:13px">'
-        f"{''.join(items)}</div>"
+        f"padding:22px 26px;display:grid;grid-template-columns:160px 1fr auto;"
+        f'gap:10px 14px;align-items:center">'
+        f"{''.join(cells)}</div>"
     )
 
 
