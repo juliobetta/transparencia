@@ -24,6 +24,9 @@ from shared import (
     page_header,
     partial_year_month,
     pct_delta,
+    plotly_card_end,
+    plotly_card_layout,
+    plotly_card_start,
     render_aviso_ano_parcial,
     render_metodologia_receita,
     render_sidebar,
@@ -159,8 +162,11 @@ if not df_ano.empty:
             hide_index=True,
         )
     else:
-        fig = px.pie(resumo_df, values="Previsto", names="Fonte", title="Distribuição da Previsão Orçamentária")
+        fig = px.pie(resumo_df, values="Previsto", names="Fonte")
+        fig.update_layout(**plotly_card_layout("Distribuição da Previsão Orçamentária", height=320))
+        st.html(plotly_card_start())
         st.plotly_chart(fig, use_container_width=True)
+        st.html(plotly_card_end())
 
         st.dataframe(
             resumo_df[["Fonte", "Previsto"]],

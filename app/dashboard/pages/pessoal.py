@@ -22,6 +22,9 @@ from shared import (
     page_header,
     partial_year_month,
     pct_delta,
+    plotly_card_end,
+    plotly_card_layout,
+    plotly_card_start,
     render_aviso_ano_parcial,
     render_sidebar,
     section_heading,
@@ -279,8 +282,15 @@ if not df_pessoal.empty:
         labels={"proventos": "Proventos (R$)"},
     )
     fig_histograma.update_traces(hovertemplate="Proventos: R$ %{x:,.2f}<br>Servidores: %{y}")
-    fig_histograma.update_layout(yaxis_title="Nº de Servidores", xaxis_tickprefix="R$ ", xaxis_tickformat=",.0f")
-    st.plotly_chart(fig_histograma, width="stretch")
+    fig_histograma.update_layout(
+        **plotly_card_layout("Distribuição dos Proventos Brutos", height=320),
+        yaxis_title="Nº de Servidores",
+        xaxis_tickprefix="R$ ",
+        xaxis_tickformat=",.0f",
+    )
+    st.html(plotly_card_start())
+    st.plotly_chart(fig_histograma, use_container_width=True)
+    st.html(plotly_card_end())
 else:
     st.info("Dados de proventos não disponíveis para este exercício.")
 
@@ -296,9 +306,13 @@ if not df_cargos.empty:
     )
     fig_cargos.update_xaxes(tickmode="linear", dtick=1)
     fig_cargos.update_layout(
-        legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="left", x=0), margin=dict(b=100)
+        **plotly_card_layout(f"Evolução de Cargos por Tipo de Vínculo ({ANOS[0]}-{ANOS[-1]})", height=340),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="left", x=0),
+        margin=dict(l=16, r=16, t=36, b=110),
     )
+    st.html(plotly_card_start())
     st.plotly_chart(fig_cargos, use_container_width=True)
+    st.html(plotly_card_end())
 
     with st.expander(":material/info: Entenda as categorias e a importância desses dados"):
         st.markdown("""
@@ -342,8 +356,13 @@ if not df_departamentos.empty:
         title=f"Folha distribuída por responsável ({year})",
         labels={"pago": "Total Pago (R$)", "descricao": "Responsável"},
     )
-    fig_departamentos.update_layout(yaxis={"categoryorder": "total ascending"})
+    fig_departamentos.update_layout(
+        **plotly_card_layout(f"Folha distribuída por responsável ({year})", height=340),
+        yaxis={"categoryorder": "total ascending"},
+    )
+    st.html(plotly_card_start())
     st.plotly_chart(fig_departamentos, use_container_width=True)
+    st.html(plotly_card_end())
 else:
     st.info("Nenhum pagamento deste tipo registrado para este exercício.")
 
