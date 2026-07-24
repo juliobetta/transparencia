@@ -109,7 +109,6 @@ _pago_serie = _trend_val("pago")
 _liq_serie = _trend_val("liquidado")
 
 # ── KPIs ────────────────────────────────────────────────────────────────────
-st.html(section_heading("Repasses", numbered="①"))
 st.html(
     kpi_grid(
         kpi_card(
@@ -128,7 +127,7 @@ st.html(
 )
 
 # ── Tendência histórica ──────────────────────────────────────────────────────
-st.html(section_heading("Tendência Histórica", numbered="②"))
+st.html(section_heading("Repasses ao CAPREM, ano a ano"))
 if trend is not None and not trend.empty and len(trend) >= 2:
     fig_trend = px.bar(
         trend.melt(id_vars="ano", value_vars=["empenhado", "pago"], var_name="Tipo", value_name="Valor"),
@@ -152,102 +151,34 @@ if trend is not None and not trend.empty and len(trend) >= 2:
 else:
     st.info("Sem dados históricos disponíveis.")
 
-# ── Por Entidade ─────────────────────────────────────────────────────────────
-st.html(section_heading("Por Entidade", numbered="③"))
-entidades = data.get("entidades")
-if entidades is not None and not entidades.empty:
-    _ent_rows = [
-        (str(r["entidade"]), float(r["empenhado"]), fmt_compact(float(r["empenhado"])))
-        for _, r in entidades.sort_values("empenhado", ascending=False).head(8).iterrows()
-    ]
-    st.html(bar_chart_h(_ent_rows))
+_col_ent, _col_nat = st.columns(2)
+with _col_ent:
+    st.html(section_heading("Por Entidade"))
+    entidades = data.get("entidades")
+    if entidades is not None and not entidades.empty:
+        _ent_rows = [
+            (str(r["entidade"]), float(r["empenhado"]), fmt_compact(float(r["empenhado"])))
+            for _, r in entidades.sort_values("empenhado", ascending=False).head(8).iterrows()
+        ]
+        st.html(bar_chart_h(_ent_rows))
+    else:
+        st.info("Sem dados de entidades para este ano.")
 
-    st.dataframe(
-        entidades[["entidade", "empenhado", "liquidado", "pago"]].rename(
-            columns={"entidade": "Entidade", "empenhado": "Empenhado", "liquidado": "Liquidado", "pago": "Pago"}
-        ),
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Liquidado": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
-    )
-else:
-    st.info("Sem dados de entidades para este ano.")
-
-# ── Por Função de Governo ────────────────────────────────────────────────────
-st.html(section_heading("Por Função de Governo", numbered="④"))
-funcoes = data.get("funcoes")
-if funcoes is not None and not funcoes.empty:
-    _func_totals = funcoes.groupby("funcao_nome")["empenhado"].sum().sort_values(ascending=False)
-    _func_rows = [(str(fn), float(val), fmt_compact(float(val))) for fn, val in _func_totals.head(8).items()]
-    st.html(bar_chart_h(_func_rows))
-
-    st.dataframe(
-        funcoes.sort_values(["funcao_nome", "empenhado", "subfuncao_nome"], ascending=[True, False, True]).rename(
-            columns={
-                "funcao_nome": "Função",
-                "subfuncao_nome": "Subfunção",
-                "empenhado": "Empenhado",
-                "pago": "Pago",
-            }
-        ),
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
-    )
-else:
-    st.info("Sem dados por função para este ano.")
-
-# ── Distribuição Mensal ──────────────────────────────────────────────────────
-st.html(section_heading("Distribuição Mensal", numbered="⑤"))
-mensal = data.get("mensal")
-if mensal is not None and not mensal.empty:
-    mensal = mensal.copy()
-    mensal["mes_nome"] = mensal["mes"].astype(str).str.zfill(2).map(_MESES_PT).fillna(mensal["mes"])
-    fig_mensal = px.bar(
-        mensal.melt(id_vars="mes_nome", value_vars=["empenhado", "pago"], var_name="Tipo", value_name="Valor"),
-        x="mes_nome",
-        y="Valor",
-        color="Tipo",
-        barmode="group",
-        labels={"mes_nome": "Mês", "Valor": "R$", "Tipo": ""},
-        color_discrete_map={"empenhado": "oklch(0.52 0.13 250)", "pago": "oklch(0.35 0.1 250)"},
-        category_orders={"mes_nome": list(_MESES_PT.values())},
-    )
-    fig_mensal.for_each_trace(lambda t: t.update(name="Empenhado" if t.name == "empenhado" else "Pago"))
-    fig_mensal.update_traces(hovertemplate="%{x}<br>R$ %{y:,.0f}<extra></extra>", marker_line_width=0)
-    fig_mensal.update_layout(
-        **plotly_card_layout(f"Repasses Mensais — {year}", height=280),
-        yaxis=dict(tickprefix="R$ ", tickformat=",.0f"),
-        xaxis=dict(tickangle=0),
-    )
-    st.html(plotly_card_start())
-    st.plotly_chart(fig_mensal, use_container_width=True)
-    st.html(plotly_card_end())
-else:
-    st.info("Sem dados mensais para este ano.")
-
-# ── Natureza do Repasse ──────────────────────────────────────────────────────
-st.html(section_heading("Natureza do Repasse", numbered="⑥"))
-natureza = data.get("natureza")
-if natureza is not None and not natureza.empty:
-    st.dataframe(
-        natureza[["descricao", "natureza", "empenhado"]].rename(
-            columns={"descricao": "Elemento", "natureza": "Natureza", "empenhado": "Empenhado"}
-        ),
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
-    )
-else:
-    st.info("Sem dados de natureza para este ano.")
+with _col_nat:
+    st.html(section_heading("Natureza do Repasse"))
+    natureza = data.get("natureza")
+    if natureza is not None and not natureza.empty:
+        st.dataframe(
+            natureza[["descricao", "natureza", "empenhado"]].rename(
+                columns={"descricao": "Elemento", "natureza": "Natureza", "empenhado": "Empenhado"}
+            ),
+            hide_index=True,
+            use_container_width=True,
+            column_config={
+                "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
+            },
+        )
+    else:
+        st.info("Sem dados de natureza para este ano.")
 
 st.caption(f"Fonte: [Portal de Transparência]({constants.PORTAL_URL})")

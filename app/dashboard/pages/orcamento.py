@@ -7,12 +7,10 @@ import constants
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import plotly.graph_objects as go
 import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
-    COLOR_ACCENT,
     bar_chart_h,
     fmt_compact,
     funnel_waterfall,
@@ -23,16 +21,13 @@ from shared import (
     page_header,
     partial_year_month,
     pct_delta,
-    plotly_card_end,
-    plotly_card_layout,
-    plotly_card_start,
     render_aviso_ano_parcial,
     render_sidebar,
     section_heading,
 )
 from sqlalchemy.engine import Engine
 
-from app.analytics import execucao_orcamentaria, orcamento_funcional, tendencias_anuais
+from app.analytics import execucao_orcamentaria, orcamento_funcional
 
 _hash: dict[str | type[Any], Any] = {Engine: lambda e: str(e.url)}
 
@@ -45,11 +40,6 @@ def _orcamento(conn, year, empresa_ids, _extracted_at):
 @st.cache_data(hash_funcs=_hash, show_spinner=False)
 def _orcamento_by_year(conn, years, empresa_ids, _extracted_at):
     return execucao_orcamentaria.summarize_by_year(conn, list(years), empresa_ids=empresa_ids)
-
-
-@st.cache_data(hash_funcs=_hash, show_spinner=False)
-def _yoy(conn, years, empresa_ids, _extracted_at):
-    return tendencias_anuais.run(conn, years, empresa_ids=empresa_ids)
 
 
 conn = get_conn()
@@ -114,26 +104,6 @@ st.html(
     )
 )
 
-with st.expander("Ver Detalhamento por Órgão"):
-    st.dataframe(
-        df_orcamento[["descricao", "empenhado", "dotacao_atualizada", "taxa_execucao", "alerta"]].rename(
-            columns={
-                "descricao": "Órgão",
-                "empenhado": "Empenhado",
-                "dotacao_atualizada": "Dotação",
-                "taxa_execucao": "Taxa de Execução",
-                "alerta": "Situação",
-            }
-        ),
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Dotação": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Taxa de Execução": st.column_config.NumberColumn(format="%.2f%%"),
-        },
-    )
-
 df_funcional = orcamento_funcional.get_orcamento_funcional(conn, year, empresa_ids=empresa_ids)
 df_funcional_resumo = (
     df_funcional.groupby("funcao_nome")[["dotacao_atualizada", "empenhado", "liquidado", "pago"]]
@@ -149,113 +119,5 @@ if not df_funcional_resumo.empty:
         for _, r in df_funcional_resumo.head(8).iterrows()
     ]
     st.html(bar_chart_h(_func_rows))
-
-with st.expander("Ver Detalhamento por Função"):
-    st.dataframe(
-        df_funcional_resumo[["funcao_nome", "dotacao_atualizada", "liquidado", "empenhado", "pago"]]
-        .rename(
-            columns={
-                "funcao_nome": "Função",
-                "dotacao_atualizada": "Total Dotação",
-                "empenhado": "Total Empenhado",
-                "liquidado": "Total Liquidado",
-                "pago": "Total Pago",
-            }
-        )
-        .sort_values(by="Total Pago", ascending=False),
-        width="stretch",
-        hide_index=True,
-        column_config={
-            "Total Dotação": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Total Empenhado": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Total Liquidado": st.column_config.NumberColumn(format="R$ %,.2f"),
-            "Total Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-        },
-        column_order=[
-            "Função",
-            "Total Dotação",
-            "Total Empenhado",
-            "Total Liquidado",
-            "Total Pago",
-        ],
-    )
-
-with st.expander("📈 Ver Tendências Históricas"):
-    yoy = _yoy(conn, _all_years, empresa_ids, _extracted_at)
-    anos_yoy = yoy["ano"].tolist()
-
-    col_tendencia, col_pressao = st.columns([6, 4])
-
-    with col_tendencia:
-        fig_trend = go.Figure()
-        fig_trend.add_trace(
-            go.Bar(
-                x=anos_yoy,
-                y=yoy["total_empenhado"].tolist(),
-                name="Empenhado",
-                marker_color="rgba(58,127,193,0.33)",
-            )
-        )
-        fig_trend.add_trace(
-            go.Bar(
-                x=anos_yoy,
-                y=yoy["total_gasto"].tolist(),
-                name="Pago",
-                marker_color=COLOR_ACCENT,
-            )
-        )
-        fig_trend.update_layout(
-            **plotly_card_layout("Empenhado vs Pago por Ano", height=320),
-            barmode="overlay",
-            xaxis=dict(dtick=1, tickformat="d"),
-            yaxis=dict(tickformat=",.0f", tickprefix="R$ "),
-            hovermode="x unified",
-        )
-        st.html(plotly_card_start())
-        st.plotly_chart(fig_trend, use_container_width=True)
-        st.html(plotly_card_end())
-        st.caption(
-            "A barra clara mostra o total comprometido (empenhado); a barra sólida mostra o que efetivamente saiu para fornecedores (pago). "
-            "Quanto menor a diferença entre as duas, maior a eficiência de pagamento no exercício."
-        )
-
-    with col_pressao:
-        _pressao = tendencias_anuais.gap_pressao_fiscal(yoy)
-        anos_pressao = _pressao["anos"]
-        lacuna = _pressao["gap"]
-        cores = _pressao["colors"]
-        opacidade = [0.4 if a == ANO_ATUAL else 1.0 for a in anos_pressao]
-        fig_pct = go.Figure(
-            go.Bar(
-                x=anos_pressao,
-                y=lacuna,
-                marker_color=cores,
-                marker_opacity=opacidade,
-                hovertemplate="%{x}<br>Pressão: %{y:+.2f}%<extra></extra>",
-            )
-        )
-        fig_pct.add_hline(y=0, line_width=1, line_color="rgba(0,0,0,0.3)")
-        if ANO_ATUAL in anos_pressao:
-            lacuna_parcial = lacuna[anos_pressao.index(ANO_ATUAL)]
-            fig_pct.add_annotation(
-                x=ANO_ATUAL,
-                y=lacuna_parcial,
-                text="ano parcial",
-                showarrow=False,
-                yshift=10 if lacuna_parcial >= 0 else -16,
-                font=dict(size=10, color="rgba(0,0,0,0.45)"),
-            )
-        fig_pct.update_layout(
-            **plotly_card_layout("Pressão Fiscal Anual", height=320),
-            xaxis=dict(dtick=1, tickformat="d"),
-            yaxis=dict(ticksuffix="%"),
-            hovermode="x unified",
-        )
-        st.html(plotly_card_start())
-        st.plotly_chart(fig_pct, use_container_width=True)
-        st.html(plotly_card_end())
-        st.caption(
-            "Barras acima do zero indicam que o total pago cresceu mais do que a receita naquele ano — sinal de pressão fiscal."
-        )
 
 st.caption(f"[Ver no portal oficial →]({constants.PORTAL_URL})")

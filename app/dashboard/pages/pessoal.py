@@ -5,14 +5,11 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import plotly.express as px
 import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
     ANOS,
-    COLOR_ALERT,
-    SPARK_CFG,
     fmt_compact,
     fmt_currency,
     get_conn,
@@ -22,13 +19,9 @@ from shared import (
     page_header,
     partial_year_month,
     pct_delta,
-    plotly_card_end,
-    plotly_card_layout,
-    plotly_card_start,
     render_aviso_ano_parcial,
     render_sidebar,
     section_heading,
-    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -136,30 +129,6 @@ if not df_folha.empty:
             cols=3,
         )
     )
-    kf1, kf2, kf3 = st.columns(3)
-    with kf1:
-        st.plotly_chart(
-            sparkline(_anos_folha, _pct_serie, COLOR_ALERT),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_pes_pct",
-        )
-    with kf2:
-        if len(_series_pct_efetivos) > 1:
-            st.plotly_chart(
-                sparkline(_anos_cargos_serie, _series_pct_efetivos),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_cargos_confianca",
-            )
-    with kf3:
-        st.plotly_chart(
-            sparkline(_anos, _folha_orgao_serie),
-            use_container_width=True,
-            config=SPARK_CFG,
-            key="spark_pes_folha_orgao",
-        )
-
     st.html(section_heading("Folha como % da receita, ano a ano"))
     _chart_h = 170
     _max_ref = max(float(LRF_PESSOAL_LIMITE_LEGAL) * 1.08, max(_pct_serie, default=0) * 1.05)
@@ -240,134 +209,6 @@ if exec_13 is not None and exec_13["empenhado"] > 0:
         f"</div></div>"
     )
 
-    df_det_13 = folha_vs_servicos.detalhe_decimo_terceiro(conn, year)
-    if not df_det_13.empty:
-        with st.expander(":material/search: Ver detalhamento do 13º Salário por Secretaria/Órgão"):
-            df_show = df_det_13.copy()
-            df_show.columns = [
-                "Órgão / Fundo",
-                "Função/Secretaria",
-                "Reservado (Ajustado)",
-                "Liquidado",
-                "Efetivamente Pago",
-                "Quitado (%)",
-            ]
-            st.dataframe(
-                df_show,
-                column_config={
-                    "Reservado (Ajustado)": st.column_config.NumberColumn(format="R$ %,.2f"),
-                    "Liquidado": st.column_config.NumberColumn(format="R$ %,.2f"),
-                    "Efetivamente Pago": st.column_config.NumberColumn(format="R$ %,.2f"),
-                    "Quitado (%)": st.column_config.NumberColumn(format="%.1f%%"),
-                },
-                use_container_width=True,
-                hide_index=True,
-            )
 else:
     st.info(f"Nenhum pagamento de 13º salário registrado para o ano de {year}.")
-st.html(section_heading("Distribuição de Remuneração"))
-st.info(
-    "O portal não disponibiliza a remuneração líquida individual. "
-    "O gráfico abaixo usa **Proventos** (remuneração bruta) como aproximação.",
-    icon=":material/info:",
-)
-df_pessoal = folha_vs_servicos.distribuicao_salarios(conn, year)
-
-if not df_pessoal.empty:
-    fig_histograma = px.histogram(
-        df_pessoal,
-        x="proventos",
-        nbins=30,
-        title="Distribuição dos Proventos Brutos",
-        labels={"proventos": "Proventos (R$)"},
-    )
-    fig_histograma.update_traces(hovertemplate="Proventos: R$ %{x:,.2f}<br>Servidores: %{y}")
-    fig_histograma.update_layout(
-        **plotly_card_layout("Distribuição dos Proventos Brutos", height=320),
-        yaxis_title="Nº de Servidores",
-        xaxis_tickprefix="R$ ",
-        xaxis_tickformat=",.0f",
-    )
-    st.html(plotly_card_start())
-    st.plotly_chart(fig_histograma, use_container_width=True)
-    st.html(plotly_card_end())
-else:
-    st.info("Dados de proventos não disponíveis para este exercício.")
-
-st.html(section_heading("Perfil de Cargos de Confiança"))
-if not df_cargos.empty:
-    fig_cargos = px.area(
-        df_cargos.sort_values("ano"),
-        x="ano",
-        y="quantidade",
-        color="tipo_vinculo_detalhado",
-        title=f"Evolução da Quantidade de Cargos por Tipo de Vínculo ({ANOS[0]}-{ANOS[-1]})",
-        labels={"ano": "Ano", "quantidade": "Quantidade de Servidores", "tipo_vinculo_detalhado": "Tipo de Vínculo"},
-    )
-    fig_cargos.update_xaxes(tickmode="linear", dtick=1)
-    fig_cargos.update_layout(
-        **plotly_card_layout(f"Evolução de Cargos por Tipo de Vínculo ({ANOS[0]}-{ANOS[-1]})", height=340)
-    )
-    fig_cargos.update_layout(
-        legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="left", x=0),
-        margin=dict(l=16, r=16, t=36, b=110),
-    )
-    st.html(plotly_card_start())
-    st.plotly_chart(fig_cargos, use_container_width=True)
-    st.html(plotly_card_end())
-
-    with st.expander(":material/info: Entenda as categorias e a importância desses dados"):
-        st.markdown("""
-        ### O que são Cargos de Confiança?
-        Na administração pública brasileira, cargos de chefia, liderança e assessoramento são divididos em duas naturezas principais:
-
-        1.  **DAS (Direção e Assessoramento Superior) ou Cargos em Comissão:** São cargos de livre nomeação e exoneração. Podem ser preenchidos por qualquer pessoa, inclusive profissionais **externos sem qualquer concurso público** (indicados políticos). No gráfico, constam como **"Comissionado Externo (DAS/CC - Sem Vínculo)"**.
-        2.  **DAI (Direção e Assessoramento Intermediário) ou Funções Gratificadas (FG):** São funções de chefia destinadas **exclusivamente a servidores concursados** (efetivos). No gráfico, constam como **"Servidor Efetivo com Função de Confiança (DAI/FG)"** ou **"Servidor Efetivo com Cargo Comissionado (DAS/CC)"**.
-
-        ### Por que a transformação de DAS em DAI é importante?
-        *   **Profissionalização da Gestão:** Garante que os departamentos sejam liderados por corpo técnico qualificado e permanente, mantendo a continuidade das políticas públicas independentemente de mudanças de governo.
-        *   **Redução do Fisiologismo:** Limita drasticamente o loteamento de cargos com nomeações de fora de prefeitura sem critérios técnicos.
-        *   **Valorização dos Servidores:** Valoriza o quadro funcional de carreira da prefeitura com oportunidades reais de crescimento e liderança.
-        """)
-
-else:
-    st.info("Dados de cargos de confiança não disponíveis.")
-
-st.html(section_heading("Pagamentos via Responsáveis de Secretaria"))
-st.info(
-    """
-    **Por que uma pessoa aparece recebendo milhões de reais?**
-
-    No Brasil, é prática comum em municípios que o ordenador de despesas de cada secretaria
-    (o responsável pelo departamento) receba o montante total da folha de pagamento em seu CPF
-    e o distribua entre os servidores da unidade. O sufixo **"E OUTROS"** no nome indica
-    exatamente isso: o valor não é de uso pessoal — representa salários de toda a equipe.
-
-    Esses pagamentos são **excluídos da análise de Fornecedores e Compras Locais** para não
-    distorcer os índices de concentração e compras locais.
-    """,
-    icon=":material/info:",
-)
-
-if not df_departamentos.empty:
-    fig_departamentos = px.bar(
-        df_departamentos,
-        x="pago",
-        y="descricao",
-        orientation="h",
-        title=f"Folha distribuída por responsável ({year})",
-        labels={"pago": "Total Pago (R$)", "descricao": "Responsável"},
-    )
-    fig_departamentos.update_layout(
-        **plotly_card_layout(f"Folha distribuída por responsável ({year})", height=340),
-        yaxis={"categoryorder": "total ascending"},
-    )
-    st.html(plotly_card_start())
-    st.plotly_chart(fig_departamentos, use_container_width=True)
-    st.html(plotly_card_end())
-else:
-    st.info("Nenhum pagamento deste tipo registrado para este exercício.")
-
-st.divider()
-
 st.caption(f"[Ver no portal oficial →]({constants.PORTAL_URL})")

@@ -10,23 +10,14 @@ import streamlit as st
 from shared import (
     ANO_ATUAL,
     ANO_INICIAL,
-    COLOR_POSITIVE,
-    SPARK_CFG,
-    alert_box,
     fmt_compact,
     funnel_waterfall,
     get_conn,
     get_data_extracao,
-    kpi_card,
-    kpi_grid,
     page_header,
     partial_year_month,
-    pct_delta,
-    render_aviso_ano_parcial,
-    render_metodologia_receita,
     render_sidebar,
     section_heading,
-    sparkline,
 )
 from sqlalchemy.engine import Engine
 
@@ -218,64 +209,10 @@ else:
     st.html(page_header(_eyebrow, "Visão Geral", "Dados de receita não disponíveis para o período selecionado."))
 
 
-# ── Receitas ─────────────────────────────────────────────────────────────────
-st.html(section_heading("Receitas", aside="Ver detalhes →", aside_href="/receitas"))
-render_metodologia_receita()
-
-if year == ANO_ATUAL and _tem_arrecadado:
-    render_aviso_ano_parcial(year, _extracted_at)
-
-if _receita_row is not None:
-    _anos_rec = receita["ano"].tolist()
-    _prev_serie = receita["total_previsto"].tolist()
-    _total_serie = receita["total"].tolist()
-
-    c1, c2 = st.columns(2)
-    with c1:
-        st.html(
-            kpi_card(
-                "Previsão Orçamentária (LOA)",
-                fmt_compact(float(_receita_row["total_previsto"])),
-                sub=pct_delta(_prev_serie) or "",
-            )
-        )
-        st.plotly_chart(
-            sparkline(_anos_rec, _prev_serie), use_container_width=True, config=SPARK_CFG, key="spark_rec_prev"
-        )
-    with c2:
-        if _tem_arrecadado:
-            st.html(
-                kpi_card(
-                    "Total Arrecadado Real",
-                    fmt_compact(float(_receita_row["total_arrecadado"])),
-                    sub="ano parcial" if year == ANO_ATUAL else (pct_delta(_total_serie) or ""),
-                    accent=True,
-                )
-            )
-            st.plotly_chart(
-                sparkline(_anos_rec, _total_serie, COLOR_POSITIVE),
-                use_container_width=True,
-                config=SPARK_CFG,
-                key="spark_rec_total",
-            )
-        else:
-            st.html(kpi_card("Total Arrecadado Real", "N/D"))
-
 # ── Execução Orçamentária ─────────────────────────────────────────────────────
 st.html(section_heading("Do orçamento autorizado ao pagamento", aside="Ver detalhes →", aside_href="/orcamento"))
 
 if _dot > 0:
-    _pct_liq = _liq / _dot
-    _pct_pago = _pago / _dot
-    st.html(
-        kpi_grid(
-            kpi_card("Dotação Atualizada", fmt_compact(_dot), sub="100% autorizado", accent=False),
-            kpi_card("Empenhado", fmt_compact(_emp), sub=f"{_pct_emp:.1%} da dotação", accent=True),
-            kpi_card("Liquidado", fmt_compact(_liq), sub=f"{_pct_liq:.1%} da dotação", accent=True),
-            kpi_card("Pago", fmt_compact(_pago), sub=f"{_pct_pago:.1%} da dotação", accent=True),
-            cols=4,
-        )
-    )
     st.html(
         funnel_waterfall(
             [
@@ -285,13 +222,6 @@ if _dot > 0:
                 ("Pago", _pago, fmt_compact(_pago)),
             ],
             _dot,
-        )
-    )
-    st.html(
-        alert_box(
-            "A cadeia <strong>Dotação → Empenhado → Liquidado → Pago</strong> mostra o ciclo completo da despesa pública. "
-            "Cada etapa é um estágio legal: reservar, confirmar entrega e pagar.",
-            kind="info",
         )
     )
 

@@ -367,24 +367,46 @@ def bar_chart_h(rows: list[tuple[str, float, str]]) -> str:
 
 
 def donut_conic(
-    segments: list[tuple[str, float, str]],
+    segments: list[tuple],
     center_label: str = "",
     center_sub: str = "",
 ) -> str:
-    """CSS conic-gradient donut with legend. segments: (label, percentage 0–100, color)."""
+    """CSS conic-gradient donut with legend.
+    segments: (label, percentage 0–100, color) or (label, percentage 0–100, color, value_str).
+    When value_str is provided, renders stacked layout: label row + large value below.
+    """
     stops = []
     cur = 0.0
-    for _, pct, color in segments:
+    for seg in segments:
+        _, pct, color = seg[0], seg[1], seg[2]
         stops.append(f"{color} {cur:.1f}% {cur + pct:.1f}%")
         cur += pct
     gradient = ",".join(stops)
-    legend_items = "".join(
-        f'<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:3px">'
-        f'<span style="width:9px;height:9px;border-radius:2px;background:{color};flex-shrink:0"></span>'
-        f'<span style="flex:1">{label}</span>'
-        f'<strong style="font-weight:600">{pct:.0f}%</strong></div>'
-        for label, pct, color in segments
-    )
+
+    has_values = any(len(seg) > 3 for seg in segments)
+    legend_rows = []
+    for seg in segments:
+        label, pct, color = seg[0], seg[1], seg[2]
+        value_str = seg[3] if len(seg) > 3 else None
+        if value_str:
+            legend_rows.append(
+                f"<div>"
+                f'<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:3px">'
+                f'<span style="width:9px;height:9px;border-radius:2px;background:{color};flex-shrink:0"></span>'
+                f"{label}</div>"
+                f'<div class="serif" style="font-weight:700;font-size:22px;line-height:1;margin-left:17px">{value_str}</div>'
+                f"</div>"
+            )
+        else:
+            legend_rows.append(
+                f'<div style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:3px">'
+                f'<span style="width:9px;height:9px;border-radius:2px;background:{color};flex-shrink:0"></span>'
+                f'<span style="flex:1">{label}</span>'
+                f'<strong style="font-weight:600">{pct:.0f}%</strong></div>'
+            )
+    gap = "14px" if has_values else "0"
+    legend_html = f'<div style="display:flex;flex-direction:column;gap:{gap}">{"".join(legend_rows)}</div>'
+
     center_html = (
         (
             f'<div class="serif" style="font-weight:700;font-size:19px;line-height:1">{center_label}</div>'
@@ -400,7 +422,7 @@ def donut_conic(
         f'<div style="width:72px;height:72px;border-radius:50%;background:var(--card);'
         f'display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">'
         f"{center_html}</div></div>"
-        f'<div style="flex:1">{legend_items}</div></div>'
+        f'<div style="flex:1">{legend_html}</div></div>'
     )
 
 
@@ -437,14 +459,17 @@ def dense_table(columns: list[str], rows: list[list], footer: str = "") -> str:
     for row in rows:
         cells = []
         for i, cell in enumerate(row):
+            is_last = i == len(row) - 1
+            is_value = i == len(row) - 2
             align = "" if i == 0 else "text-align:right;"
             pad = "padding:12px 18px;" if i == 0 else "padding:12px 14px;"
+            nowrap = "white-space:nowrap;" if is_value or is_last else ""
             if isinstance(cell, dict):
                 inner_html = chip(cell.get("label", ""), cell.get("kind", "default"))
                 cells.append(f'<td style="{pad}">{inner_html}</td>')
             else:
-                serif = "font-family:'Source Serif 4',serif;font-weight:700;" if i == len(row) - 2 else ""
-                cells.append(f'<td style="{pad}{align}{serif}">{cell}</td>')
+                serif = "font-family:'Source Serif 4',serif;font-weight:700;" if is_value else ""
+                cells.append(f'<td style="{pad}{align}{serif}{nowrap}">{cell}</td>')
         trs.append(f'<tr style="border-top:1px solid #f0f1f4">{"".join(cells)}</tr>')
     footer_html = (
         f'<div style="padding:12px 18px;border-top:1px solid #f0f1f4;font-size:12px;color:var(--subtle)">{footer}</div>'
