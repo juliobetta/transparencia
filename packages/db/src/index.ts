@@ -11,6 +11,7 @@ export * from "./queries/fontes_receita";
 export * from "./queries/historia_caprem";
 export * from "./queries/historia_saude";
 export * from "./queries/licitacao_gaps";
+export * from "./queries/metadata";
 export * from "./queries/orcamento_funcional";
 export * from "./queries/posicao_fiscal";
 export * from "./queries/tendencias_anuais";

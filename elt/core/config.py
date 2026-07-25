@@ -16,7 +16,6 @@ class PortalConfig:
     cidade_clean: str
     ano_inicial: int
     empresa_padrao: str
-    github_url: str
     assets: dict[str, str]
 
     @property

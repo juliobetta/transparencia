@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: dim_portais
+    description: "Configurações e metadados dos portais de transparência"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - unique
+      - name: display_name
+        data_type: text
+      - name: uf
+        data_type: text
+      - name: portal_url
+        data_type: text
+      - name: base_host
+        data_type: text
+      - name: cidade_clean
+        data_type: text
+      - name: ano_inicial
+        data_type: integer
+      - name: empresa_padrao
+        data_type: text
+      - name: brasao_asset
+        data_type: text
+      - name: data_extracao
+        data_type: date

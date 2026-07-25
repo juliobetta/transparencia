@@ -1,50 +1,61 @@
 import { describe, expect, it } from "vitest";
-import { getAdesaoDeAta } from "../queries/adesao_de_ata";
-import { getConcentracaoFornecedores } from "../queries/concentracao_fornecedores";
 import {
+  getAdesaoDeAta,
+  getConcentracaoFornecedores,
+  getEntidades,
   getExecucaoOrcamentaria,
-  summarizeExecucao,
-} from "../queries/execucao_orcamentaria";
-import { getFontesReceita } from "../queries/fontes_receita";
-import { getLicitacaoGaps } from "../queries/licitacao_gaps";
-import { getPosicaoFiscal } from "../queries/posicao_fiscal";
-import { getTendenciasAnuais } from "../queries/tendencias_anuais";
+  getFontesReceita,
+  getHistoriaCaprem,
+  getHistoriaSaude,
+  getLicitacaoGaps,
+  getPortalConfig,
+  getPosicaoFiscal,
+  getTendenciasAnuais,
+} from "../index";
 
-describe("Testes de Paridade Kysely DB (@transparencia/db)", () => {
+describe("queries Kysely (paridade e integridade contábil)", () => {
   const TEST_YEAR = 2025;
 
-  it("deve buscar fontes de receita sem erros", async () => {
-    const res = await getFontesReceita([TEST_YEAR]);
-    expect(res).toBeDefined();
-    expect(Array.isArray(res)).toBe(true);
-    if (res.length > 0) {
-      expect(res[0].ano).toBe(TEST_YEAR);
-      expect(typeof res[0].total_arrecadado).toBe("number");
+  it("deve calcular posição fiscal sem erros", async () => {
+    const posicao = await getPosicaoFiscal(TEST_YEAR);
+    expect(posicao).toBeDefined();
+    expect(typeof posicao.total_arrecadado).toBe("number");
+    expect(typeof posicao.despesas_pagas).toBe("number");
+    expect(typeof posicao.total_saidas).toBe("number");
+    expect(typeof posicao.saldo_estimado).toBe("number");
+  });
+
+  it("deve calcular execução orçamentária por unidade", async () => {
+    const exec = await getExecucaoOrcamentaria(TEST_YEAR);
+    expect(Array.isArray(exec)).toBe(true);
+    expect(exec.length).toBeGreaterThan(0);
+    expect(exec[0]).toHaveProperty("dotacao_atualizada");
+    expect(exec[0]).toHaveProperty("empenhado");
+    expect(exec[0]).toHaveProperty("pago");
+  });
+
+  it("deve calcular fontes de receita com progresso", async () => {
+    const fontes = await getFontesReceita([TEST_YEAR]);
+    expect(Array.isArray(fontes)).toBe(true);
+    if (fontes.length > 0) {
+      expect(typeof fontes[0].total_previsto).toBe("number");
+      expect(typeof fontes[0].total_arrecadado).toBe("number");
     }
   });
 
-  it("deve buscar posição fiscal sem erros", async () => {
-    const res = await getPosicaoFiscal(TEST_YEAR);
-    expect(res).toBeDefined();
-    expect(typeof res.total_arrecadado).toBe("number");
-    expect(typeof res.total_saidas).toBe("number");
-    expect(Array.isArray(res.restos_pendentes)).toBe(true);
-  });
-
-  it("deve buscar execução orçamentária e resumir corretamente", async () => {
-    const items = await getExecucaoOrcamentaria(TEST_YEAR);
-    expect(Array.isArray(items)).toBe(true);
-    const summary = summarizeExecucao(items);
-    expect(typeof summary.total_empenhado).toBe("number");
-    expect(typeof summary.total_pago).toBe("number");
-  });
-
-  it("deve buscar licitação gaps sem erros", async () => {
+  it("deve buscar lacunas de licitação", async () => {
     const gaps = await getLicitacaoGaps(TEST_YEAR);
     expect(Array.isArray(gaps)).toBe(true);
   });
 
-  it("deve buscar adesão de ata sem erros", async () => {
+  it("deve buscar ademais históricos (CAPREM e Saúde)", async () => {
+    const caprem = await getHistoriaCaprem(TEST_YEAR);
+    const saude = await getHistoriaSaude(TEST_YEAR);
+    expect(caprem).toBeDefined();
+    expect(saude).toBeDefined();
+  });
+
+  it("deve buscar adessões de ata", async () => {
     const adesao = await getAdesaoDeAta(TEST_YEAR);
     expect(adesao).toBeDefined();
     expect(typeof adesao.quantidade).toBe("number");
@@ -60,5 +71,21 @@ describe("Testes de Paridade Kysely DB (@transparencia/db)", () => {
   it("deve buscar tendências anuais", async () => {
     const tend = await getTendenciasAnuais([2024, 2025]);
     expect(Array.isArray(tend)).toBe(true);
+  });
+
+  it("deve buscar portal config", async () => {
+    const config = await getPortalConfig("porciuncula_prefeitura");
+    if (config) {
+      expect(typeof config.portal_slug).toBe("string");
+      expect(typeof config.display_name).toBe("string");
+      expect(typeof config.uf).toBe("string");
+      expect(typeof config.ano_inicial).toBe("number");
+      expect(typeof config.empresa_padrao).toBe("string");
+    }
+  });
+
+  it("deve buscar lista de entidades", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    expect(Array.isArray(entidades)).toBe(true);
   });
 });
