@@ -1,6 +1,6 @@
 import { sql } from "kysely";
 import { db } from "../client";
-import { NEAR_THRESHOLD_PCT, dispensationThreshold } from "../constants";
+import { dispensationThreshold, NEAR_THRESHOLD_PCT } from "../constants";
 
 export interface ContratoFracionamento {
   ano: number;
@@ -30,7 +30,7 @@ export interface AnomaliasResult {
 
 export async function contagensFracionamentoPorAno(
   years: number[],
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<Record<number, number>> {
   const result: Record<number, number> = {};
   for (const y of years) result[y] = 0;
@@ -52,7 +52,8 @@ export async function contagensFracionamentoPorAno(
       const yearRows = rows.filter((r) => Number(r.ano) === y);
 
       for (const r of yearRows) {
-        const val = parseFloat(String(r.valor_contrato ?? "0").replace(",", ".")) || 0;
+        const val =
+          parseFloat(String(r.valor_contrato ?? "0").replace(",", ".")) || 0;
         const lim = dispensationThreshold(r.numero_obra, r.tipo_obra, r.objeto);
         const limInf = lim * (1 - NEAR_THRESHOLD_PCT);
 
@@ -72,11 +73,11 @@ export async function contagensFracionamentoPorAno(
 
 export async function getAnomaliasContratuais(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<AnomaliasResult> {
-  let fracionamento: ContratoFracionamento[] = [];
-  let fornecedor_recorrente: FornecedorRecorrente[] = [];
-  let janela_curta: any[] = [];
+  const fracionamento: ContratoFracionamento[] = [];
+  const fornecedor_recorrente: FornecedorRecorrente[] = [];
+  const janela_curta: any[] = [];
 
   try {
     let q = sql`
@@ -97,13 +98,15 @@ export async function getAnomaliasContratuais(
     for (const c of contratos) {
       const emp = String(c.empresa ?? "");
       const forn = String(c.fornecedor ?? "");
-      const val = parseFloat(String(c.valor_contrato ?? "0").replace(",", ".")) || 0;
+      const val =
+        parseFloat(String(c.valor_contrato ?? "0").replace(",", ".")) || 0;
       const lim = dispensationThreshold(c.numero_obra, c.tipo_obra, c.objeto);
       const limInf = lim * (1 - NEAR_THRESHOLD_PCT);
 
       empresaTotalCount[emp] = (empresaTotalCount[emp] || 0) + 1;
       if (!empresaFornecedorCount[emp]) empresaFornecedorCount[emp] = {};
-      empresaFornecedorCount[emp][forn] = (empresaFornecedorCount[emp][forn] || 0) + 1;
+      empresaFornecedorCount[emp][forn] =
+        (empresaFornecedorCount[emp][forn] || 0) + 1;
 
       if (val >= limInf && val < lim) {
         proximo.push({ ...c, valor_num: val });
@@ -119,7 +122,7 @@ export async function getAnomaliasContratuais(
     const chavesFrac = new Set(
       Object.entries(countFrac)
         .filter(([_, cnt]) => cnt >= 3)
-        .map(([k, _]) => k)
+        .map(([k, _]) => k),
     );
 
     for (const p of proximo) {

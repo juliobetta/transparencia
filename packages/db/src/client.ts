@@ -1,7 +1,7 @@
+import path from "node:path";
+import dotenv from "dotenv";
 import { Kysely, PostgresDialect } from "kysely";
 import pg from "pg";
-import dotenv from "dotenv";
-import path from "path";
 
 // Tenta carregar .env da raiz se process.env.DATABASE_URL não estiver setado
 if (!process.env.DATABASE_URL) {
@@ -9,7 +9,8 @@ if (!process.env.DATABASE_URL) {
 }
 
 const connectionString =
-  process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5544/postgres";
+  process.env.DATABASE_URL ||
+  "postgresql://postgres:postgres@localhost:5544/postgres";
 
 export const db = new Kysely<any>({
   dialect: new PostgresDialect({

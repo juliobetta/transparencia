@@ -19,7 +19,7 @@ const ELEMENTOS_VAL = ["30", "33", "35", "36", "39", "40", "51", "52"];
 
 export async function getConcentracaoFornecedores(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<ConcentracaoResult> {
   try {
     let q = sql`
@@ -37,7 +37,10 @@ export async function getConcentracaoFornecedores(
     const res = await q.execute(db);
     const rows = (res.rows as any[]) || [];
 
-    const map: Record<string, { codigo: string; descricao: string; empenhado: number }> = {};
+    const map: Record<
+      string,
+      { codigo: string; descricao: string; empenhado: number }
+    > = {};
     let total = 0;
 
     for (const r of rows) {

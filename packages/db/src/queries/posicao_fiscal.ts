@@ -39,7 +39,7 @@ export interface FornecedorPendente {
 
 export interface RestoBaixoValor {
   Ano: number;
-  "Nº": string;
+  Nº: string;
   Descrição: string;
   Empenhado: number;
   Pago: number;
@@ -55,7 +55,7 @@ async function sumVarcharCol(
   col: string,
   year: number,
   whereExtra: string = "",
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<number> {
   try {
     let query = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year} ${sql.raw(whereExtra)}`;
@@ -71,7 +71,7 @@ async function sumVarcharCol(
     let sum = 0;
     for (const r of res.rows as any[]) {
       const num = parseFloat(String(r.val ?? "0").replace(",", "."));
-      if (!isNaN(num)) sum += num;
+      if (!Number.isNaN(num)) sum += num;
     }
     return sum;
   } catch {
@@ -81,18 +81,24 @@ async function sumVarcharCol(
 
 export async function getPosicaoFiscal(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<PosicaoFiscalResult> {
   const revDf = await getFontesReceita([year], empresaIds);
   const total_arrecadado = revDf.length > 0 ? revDf[0].total_arrecadado : 0;
 
-  const despesas_pagas = await sumVarcharCol("fct_despesas_por_orgao", "pago", year, "", empresaIds);
+  const despesas_pagas = await sumVarcharCol(
+    "fct_despesas_por_orgao",
+    "pago",
+    year,
+    "",
+    empresaIds,
+  );
   const restos_pagos_no_ano = await sumVarcharCol(
     "fct_despesas",
     "pago",
     year,
     "AND fonte = 'restos_a_pagar'",
-    empresaIds
+    empresaIds,
   );
 
   const restos_pendentes: RestoPendente[] = [];
@@ -108,7 +114,8 @@ export async function getPosicaoFiscal(
 
     for (const row of (res.rows as any[]) || []) {
       const a = Number(row.ano);
-      const emp = parseFloat(String(row.empenhado ?? "0").replace(",", ".")) || 0;
+      const emp =
+        parseFloat(String(row.empenhado ?? "0").replace(",", ".")) || 0;
       const pag = parseFloat(String(row.pago ?? "0").replace(",", ".")) || 0;
 
       if (!byYear[a]) byYear[a] = { empenhado: 0, pago: 0 };
@@ -116,7 +123,9 @@ export async function getPosicaoFiscal(
       byYear[a].pago += pag;
     }
 
-    const sortedYears = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+    const sortedYears = Object.keys(byYear)
+      .map(Number)
+      .sort((a, b) => a - b);
     for (const a of sortedYears) {
       const emp = byYear[a].empenhado;
       const pag = byYear[a].pago;
@@ -132,7 +141,10 @@ export async function getPosicaoFiscal(
 
   const total_saidas = despesas_pagas + restos_pagos_no_ano;
   const saldo_estimado = total_arrecadado - total_saidas;
-  const restos_pendentes_total = restos_pendentes.reduce((acc, r) => acc + r.pendente, 0);
+  const restos_pendentes_total = restos_pendentes.reduce(
+    (acc, r) => acc + r.pendente,
+    0,
+  );
   const restos_pendentes_anteriores = restos_pendentes
     .filter((r) => r.ano < 2025)
     .reduce((acc, r) => acc + r.pendente, 0);
@@ -177,7 +189,7 @@ export async function getPosicaoFiscal(
 
 export async function getFornecedoresPendentes(
   year?: number | null,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<FornecedorPendente[]> {
   try {
     let q = sql`SELECT descricao, ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar'`;
@@ -187,7 +199,13 @@ export async function getFornecedoresPendentes(
     const res = await q.execute(db);
     const map: Record<
       string,
-      { minAno: number; count: number; totalEmp: number; totalPago: number; pendente: number }
+      {
+        minAno: number;
+        count: number;
+        totalEmp: number;
+        totalPago: number;
+        pendente: number;
+      }
     > = {};
 
     for (const r of (res.rows as any[]) || []) {
@@ -200,7 +218,13 @@ export async function getFornecedoresPendentes(
       const pend = emp - pag;
 
       if (!map[desc]) {
-        map[desc] = { minAno: a, count: 0, totalEmp: 0, totalPago: 0, pendente: 0 };
+        map[desc] = {
+          minAno: a,
+          count: 0,
+          totalEmp: 0,
+          totalPago: 0,
+          pendente: 0,
+        };
       }
       map[desc].count += 1;
       map[desc].minAno = Math.min(map[desc].minAno, a);
@@ -228,7 +252,7 @@ export async function getFornecedoresPendentes(
 export async function getRestosBaixoValor(
   year?: number | null,
   threshold: number = 10.0,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<RestoBaixoValor[]> {
   try {
     let q = sql`SELECT descricao, ano, empenho_id, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar'`;
@@ -248,7 +272,7 @@ export async function getRestosBaixoValor(
       if (emp > 0 && emp < threshold) {
         list.push({
           Ano: a,
-          "Nº": String(r.empenho_id ?? ""),
+          Nº: String(r.empenho_id ?? ""),
           Descrição: sanitizeDescricao(r.descricao),
           Empenhado: emp,
           Pago: pag,

@@ -1,9 +1,12 @@
-import { getExecucaoOrcamentaria, summarizeExecucao } from "./execucao_orcamentaria";
+import { getAdesaoDeAta } from "./adesao_de_ata";
+import { getConcentracaoFornecedores } from "./concentracao_fornecedores";
+import {
+  getExecucaoOrcamentaria,
+  summarizeExecucao,
+} from "./execucao_orcamentaria";
 import { getFolhaVsServicos } from "./folha_vs_servicos";
 import { getFontesReceita } from "./fontes_receita";
 import { getLicitacaoGaps } from "./licitacao_gaps";
-import { getConcentracaoFornecedores } from "./concentracao_fornecedores";
-import { getAdesaoDeAta } from "./adesao_de_ata";
 
 export interface PeriodSpec {
   year: number;
@@ -29,7 +32,7 @@ function calculateDelta(a: number, b: number): DeltaValue {
 
 export async function runComparacao(
   specA: PeriodSpec,
-  specB: PeriodSpec
+  specB: PeriodSpec,
 ): Promise<Record<string, Record<string, DeltaValue>>> {
   // Despesas
   const itemsA = await getExecucaoOrcamentaria(specA.year);
@@ -50,7 +53,10 @@ export async function runComparacao(
 
   const pessoalDelta = {
     total_folha: calculateDelta(folhaRowA.total_folha, folhaRowB.total_folha),
-    percentual_folha: calculateDelta(folhaRowA.percentual_folha, folhaRowB.percentual_folha),
+    percentual_folha: calculateDelta(
+      folhaRowA.percentual_folha,
+      folhaRowB.percentual_folha,
+    ),
   };
 
   // Receitas
@@ -72,9 +78,18 @@ export async function runComparacao(
   };
 
   const receitasDelta = {
-    receita_propria: calculateDelta(rRowA.receita_propria, rRowB.receita_propria),
-    transferencias_uniao: calculateDelta(rRowA.transferencias_uniao, rRowB.transferencias_uniao),
-    transferencias_estado: calculateDelta(rRowA.transferencias_estado, rRowB.transferencias_estado),
+    receita_propria: calculateDelta(
+      rRowA.receita_propria,
+      rRowB.receita_propria,
+    ),
+    transferencias_uniao: calculateDelta(
+      rRowA.transferencias_uniao,
+      rRowB.transferencias_uniao,
+    ),
+    transferencias_estado: calculateDelta(
+      rRowA.transferencias_estado,
+      rRowB.transferencias_estado,
+    ),
     total: calculateDelta(rRowA.total, rRowB.total),
     pct_propria: calculateDelta(rRowA.pct_propria, rRowB.pct_propria),
   };
@@ -87,11 +102,11 @@ export async function runComparacao(
     sem_licitacao: calculateDelta(gapsA.length, gapsB.length),
     acima_limite: calculateDelta(
       gapsA.filter((g) => g.acima_limite).length,
-      gapsB.filter((g) => g.acima_limite).length
+      gapsB.filter((g) => g.acima_limite).length,
     ),
     saude: calculateDelta(
       gapsA.filter((g) => g.acima_limite && g.orgao_saude).length,
-      gapsB.filter((g) => g.acima_limite && g.orgao_saude).length
+      gapsB.filter((g) => g.acima_limite && g.orgao_saude).length,
     ),
   };
 
@@ -109,7 +124,10 @@ export async function runComparacao(
 
   const adesaoDelta = {
     quantidade: calculateDelta(adesaoA.quantidade, adesaoB.quantidade),
-    valor_licitacao: calculateDelta(adesaoA.total_licitacao, adesaoB.total_licitacao),
+    valor_licitacao: calculateDelta(
+      adesaoA.total_licitacao,
+      adesaoB.total_licitacao,
+    ),
     valor_contratos: calculateDelta(adesaoA.valor, adesaoB.valor),
   };
 

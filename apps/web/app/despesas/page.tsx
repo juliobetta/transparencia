@@ -1,12 +1,25 @@
-import { getMetricasGeraisDespesas, getDespesasPorUnidade, getComposicaoDespesa, getTransacoesPesquisaveis } from "@transparencia/db";
-import { KPICard, KPIGrid, SectionHeader, DenseTable, BarChartH, fmtCompact, fmtCurrency, fmtPercent } from "@transparencia/ui";
+import {
+  getComposicaoDespesa,
+  getDespesasPorUnidade,
+  getMetricasGeraisDespesas,
+  getTransacoesPesquisaveis,
+} from "@transparencia/db";
+import {
+  BarChartH,
+  DenseTable,
+  fmtCompact,
+  fmtPercent,
+  KPICard,
+  KPIGrid,
+  SectionHeader,
+} from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
 
 export default async function DespesasPage() {
   const currentYear = 2025;
   const metricas = await getMetricasGeraisDespesas(currentYear);
-  const unidades = await getDespesasPorUnidade(currentYear);
+  const _unidades = await getDespesasPorUnidade(currentYear);
   const composicao = await getComposicaoDespesa(currentYear);
   const transacoes = await getTransacoesPesquisaveis(currentYear, "", 50);
 
@@ -31,17 +44,37 @@ export default async function DespesasPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-serif text-ink">Análise de Despesas</h1>
-        <p className="text-sm text-subtleText mt-1">
-          Detalhamento de gastos públicos, liquidações e pagamentos ({currentYear})
+        <h1 className="font-bold font-serif text-3xl text-ink">
+          Análise de Despesas
+        </h1>
+        <p className="mt-1 text-sm text-subtleText">
+          Detalhamento de gastos públicos, liquidações e pagamentos (
+          {currentYear})
         </p>
       </div>
 
       <KPIGrid columns={4}>
-        <KPICard title="Total Empenhado" value={fmtCompact(metricas.empenhado)} subtext="Compromissos assumidos" accent />
-        <KPICard title="Total Liquidado" value={fmtCompact(metricas.liquidado)} subtext={`Taxa: ${fmtPercent(metricas.taxa_liquidacao)}`} />
-        <KPICard title="Total Pago" value={fmtCompact(metricas.pago)} subtext={`Taxa: ${fmtPercent(metricas.taxa_pagamento)}`} />
-        <KPICard title="Saldo Pendente" value={fmtCompact(metricas.empenhado - metricas.pago)} subtext="A liquidar / pagar" />
+        <KPICard
+          title="Total Empenhado"
+          value={fmtCompact(metricas.empenhado)}
+          subtext="Compromissos assumidos"
+          accent
+        />
+        <KPICard
+          title="Total Liquidado"
+          value={fmtCompact(metricas.liquidado)}
+          subtext={`Taxa: ${fmtPercent(metricas.taxa_liquidacao)}`}
+        />
+        <KPICard
+          title="Total Pago"
+          value={fmtCompact(metricas.pago)}
+          subtext={`Taxa: ${fmtPercent(metricas.taxa_pagamento)}`}
+        />
+        <KPICard
+          title="Saldo Pendente"
+          value={fmtCompact(metricas.empenhado - metricas.pago)}
+          subtext="A liquidar / pagar"
+        />
       </KPIGrid>
 
       <div>
@@ -49,7 +82,7 @@ export default async function DespesasPage() {
           title="Composição da Despesa por Categoria"
           description="Gastos por natureza de despesa (Portaria 163/2001)"
         />
-        <div className="bg-white border border-borderLine rounded-xl p-6">
+        <div className="rounded-xl border border-borderLine bg-white p-6">
           <BarChartH data={chartData} />
         </div>
       </div>
@@ -59,7 +92,11 @@ export default async function DespesasPage() {
           title="Transações e Empenhos Recentes"
           description="Pesquisa direta em empenhos e liquidações efetuadas"
         />
-        <DenseTable data={transacoes} columns={transacoesCols} searchableKeys={["fornecedor", "descricao", "unidade"]} />
+        <DenseTable
+          data={transacoes}
+          columns={transacoesCols}
+          searchableKeys={["fornecedor", "descricao", "unidade"]}
+        />
       </div>
     </div>
   );

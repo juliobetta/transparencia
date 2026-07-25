@@ -21,7 +21,12 @@ const config: Config = {
         cardBg: "#ffffff",
       },
       fontFamily: {
-        serif: ["var(--font-source-serif)", "Source Serif 4", "Georgia", "serif"],
+        serif: [
+          "var(--font-source-serif)",
+          "Source Serif 4",
+          "Georgia",
+          "serif",
+        ],
         sans: ["var(--font-ibm-plex)", "IBM Plex Sans", "sans-serif"],
       },
     },

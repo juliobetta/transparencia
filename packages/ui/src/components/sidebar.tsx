@@ -1,20 +1,20 @@
 "use client";
 
-import React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "../utils/cn";
 import {
-  LayoutDashboard,
-  TrendingUp,
-  PieChart,
-  Receipt,
+  ExternalLink,
   FileText,
-  Users,
   HeartPulse,
   Landmark,
-  ExternalLink,
+  LayoutDashboard,
+  PieChart,
+  Receipt,
+  TrendingUp,
+  Users,
 } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type React from "react";
+import { cn } from "../utils/cn";
 
 export interface NavGroup {
   label: string;
@@ -55,21 +55,21 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white border-r border-borderLine flex flex-col justify-between h-screen sticky top-0 shrink-0 select-none">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 select-none flex-col justify-between border-borderLine border-r bg-white">
       <div>
         {/* Header do Município */}
-        <div className="p-5 border-b border-borderLine">
-          <h1 className="font-serif font-bold text-lg text-ink leading-tight">
+        <div className="border-borderLine border-b p-5">
+          <h1 className="font-bold font-serif text-ink text-lg leading-tight">
             Transparência Municipal
           </h1>
-          <p className="text-xs text-subtleText mt-0.5">Porciúncula / RJ</p>
+          <p className="mt-0.5 text-subtleText text-xs">Porciúncula / RJ</p>
         </div>
 
         {/* Grupos de Navegação */}
-        <nav className="p-4 space-y-6 overflow-y-auto">
+        <nav className="space-y-6 overflow-y-auto p-4">
           {NAV_GROUPS.map((group, gIdx) => (
             <div key={gIdx} className="space-y-1">
-              <p className="px-3 text-[11px] font-semibold text-mutedText uppercase tracking-wider mb-2">
+              <p className="mb-2 px-3 font-semibold text-[11px] text-mutedText uppercase tracking-wider">
                 {group.label}
               </p>
               {group.items.map((item) => {
@@ -80,13 +80,18 @@ export function Sidebar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors",
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-xs transition-colors",
                       isActive
-                        ? "bg-accent/10 text-accent font-semibold"
-                        : "text-subtleText hover:bg-gray-50 hover:text-ink"
+                        ? "bg-accent/10 font-semibold text-accent"
+                        : "text-subtleText hover:bg-gray-50 hover:text-ink",
                     )}
                   >
-                    <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-accent" : "text-mutedText")} />
+                    <Icon
+                      className={cn(
+                        "h-4 w-4 shrink-0",
+                        isActive ? "text-accent" : "text-mutedText",
+                      )}
+                    />
                     <span>{item.name}</span>
                   </Link>
                 );
@@ -97,17 +102,17 @@ export function Sidebar() {
       </div>
 
       {/* Footer com link para o portal oficial */}
-      <div className="p-4 border-t border-borderLine bg-gray-50/50">
+      <div className="border-borderLine border-t bg-gray-50/50 p-4">
         <a
           href="http://servicos.porciuncula.rj.gov.br:8080/transparencia"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between text-xs font-medium text-ink hover:text-accent transition-colors"
+          className="flex items-center justify-between font-medium text-ink text-xs transition-colors hover:text-accent"
         >
           <span>Portal Oficial</span>
-          <ExternalLink className="w-3.5 h-3.5 text-mutedText" />
+          <ExternalLink className="h-3.5 w-3.5 text-mutedText" />
         </a>
-        <p className="text-[10px] text-mutedText mt-1">
+        <p className="mt-1 text-[10px] text-mutedText">
           Dados extraídos e consolidados via ELT
         </p>
       </div>

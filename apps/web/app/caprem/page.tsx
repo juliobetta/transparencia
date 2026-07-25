@@ -1,5 +1,11 @@
 import { getHistoriaCaprem } from "@transparencia/db";
-import { KPICard, KPIGrid, SectionHeader, DenseTable, fmtCompact, fmtCurrency } from "@transparencia/ui";
+import {
+  DenseTable,
+  fmtCompact,
+  KPICard,
+  KPIGrid,
+  SectionHeader,
+} from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -32,16 +38,32 @@ export default async function CapremPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-serif text-ink">Painel CAPREM</h1>
-        <p className="text-sm text-subtleText mt-1">
-          Acompanhamento dos repasses previdenciários e obrigações com a Caixa de Aposentadoria e Pensões ({currentYear})
+        <h1 className="font-bold font-serif text-3xl text-ink">
+          Painel CAPREM
+        </h1>
+        <p className="mt-1 text-sm text-subtleText">
+          Acompanhamento dos repasses previdenciários e obrigações com a Caixa
+          de Aposentadoria e Pensões ({currentYear})
         </p>
       </div>
 
       <KPIGrid columns={3}>
-        <KPICard title="Total Empenhado" value={fmtCompact(caprem.total_empenhado)} subtext="Compromissos previdenciários" accent />
-        <KPICard title="Total Liquidado" value={fmtCompact(caprem.total_liquidado)} subtext="Atestado pelos órgãos" />
-        <KPICard title="Total Repassado/Pago" value={fmtCompact(caprem.total_pago)} subtext="Efetivamente transferido" />
+        <KPICard
+          title="Total Empenhado"
+          value={fmtCompact(caprem.total_empenhado)}
+          subtext="Compromissos previdenciários"
+          accent
+        />
+        <KPICard
+          title="Total Liquidado"
+          value={fmtCompact(caprem.total_liquidado)}
+          subtext="Atestado pelos órgãos"
+        />
+        <KPICard
+          title="Total Repassado/Pago"
+          value={fmtCompact(caprem.total_pago)}
+          subtext="Efetivamente transferido"
+        />
       </KPIGrid>
 
       <div>
@@ -49,7 +71,11 @@ export default async function CapremPage() {
           title="Repasses por Entidade ao CAPREM"
           description="Valores empenhados e repassados por órgão da administração municipal ao regime de previdência"
         />
-        <DenseTable data={caprem.entidades} columns={entidadesCols} searchableKeys={["entidade"]} />
+        <DenseTable
+          data={caprem.entidades}
+          columns={entidadesCols}
+          searchableKeys={["entidade"]}
+        />
       </div>
     </div>
   );

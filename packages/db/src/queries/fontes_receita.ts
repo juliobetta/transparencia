@@ -29,7 +29,7 @@ async function sumColumn(
   col: "previsao_atualizada" | "arrecadado",
   year: number,
   rootOnly: boolean = false,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<number> {
   let query = sql`
     SELECT ${sql.ref(col)} AS val
@@ -43,7 +43,9 @@ async function sumColumn(
   }
 
   if (tipoReceita === "orcamentaria" && empresaIds && empresaIds.length > 1) {
-    const conditions = INTRA_PREFIXES.map((p) => `t.codigo LIKE '${p}%'`).join(" OR ");
+    const conditions = INTRA_PREFIXES.map((p) => `t.codigo LIKE '${p}%'`).join(
+      " OR ",
+    );
     query = sql`${query} AND NOT (${sql.raw(conditions)})`;
   }
 
@@ -66,7 +68,7 @@ async function sumColumn(
     for (const row of res.rows as any[]) {
       const valStr = String(row.val ?? "0").replace(",", ".");
       const num = parseFloat(valStr);
-      if (!isNaN(num)) sum += num;
+      if (!Number.isNaN(num)) sum += num;
     }
     return sum;
   } catch {
@@ -76,25 +78,71 @@ async function sumColumn(
 
 export async function getFontesReceita(
   years: number[],
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<FontesReceitaRecord[]> {
   const records: FontesReceitaRecord[] = [];
 
   for (const year of years) {
-    const total_previsto = await sumColumn("orcamentaria", "previsao_atualizada", year, true, empresaIds);
-    const total_arrecadado = await sumColumn("orcamentaria", "arrecadado", year, true, empresaIds);
+    const total_previsto = await sumColumn(
+      "orcamentaria",
+      "previsao_atualizada",
+      year,
+      true,
+      empresaIds,
+    );
+    const total_arrecadado = await sumColumn(
+      "orcamentaria",
+      "arrecadado",
+      year,
+      true,
+      empresaIds,
+    );
 
-    const uniao_previsto = await sumColumn("uniao", "previsao_atualizada", year, true, empresaIds);
-    const uniao_arrecadado = await sumColumn("uniao", "arrecadado", year, true, empresaIds);
+    const uniao_previsto = await sumColumn(
+      "uniao",
+      "previsao_atualizada",
+      year,
+      true,
+      empresaIds,
+    );
+    const uniao_arrecadado = await sumColumn(
+      "uniao",
+      "arrecadado",
+      year,
+      true,
+      empresaIds,
+    );
 
-    const estado_previsto = await sumColumn("estado", "previsao_atualizada", year, true, empresaIds);
-    const estado_arrecadado = await sumColumn("estado", "arrecadado", year, true, empresaIds);
+    const estado_previsto = await sumColumn(
+      "estado",
+      "previsao_atualizada",
+      year,
+      true,
+      empresaIds,
+    );
+    const estado_arrecadado = await sumColumn(
+      "estado",
+      "arrecadado",
+      year,
+      true,
+      empresaIds,
+    );
 
-    const propria_previsto = Math.max(0, total_previsto - uniao_previsto - estado_previsto);
-    const propria_arrecadado = Math.max(0, total_arrecadado - uniao_arrecadado - estado_arrecadado);
+    const propria_previsto = Math.max(
+      0,
+      total_previsto - uniao_previsto - estado_previsto,
+    );
+    const propria_arrecadado = Math.max(
+      0,
+      total_arrecadado - uniao_arrecadado - estado_arrecadado,
+    );
 
-    const pct_previsto = total_previsto > 0 ? (propria_previsto / total_previsto) * 100 : 0;
-    const pct = total_arrecadado > 0 ? (propria_arrecadado / total_arrecadado) * 100 : pct_previsto;
+    const pct_previsto =
+      total_previsto > 0 ? (propria_previsto / total_previsto) * 100 : 0;
+    const pct =
+      total_arrecadado > 0
+        ? (propria_arrecadado / total_arrecadado) * 100
+        : pct_previsto;
 
     records.push({
       ano: year,
@@ -113,7 +161,8 @@ export async function getFontesReceita(
       transferencias_estado_arrecadado: estado_arrecadado,
       total_previsto,
       total_arrecadado,
-      pct_arrecadado: total_previsto > 0 ? total_arrecadado / total_previsto : 0,
+      pct_arrecadado:
+        total_previsto > 0 ? total_arrecadado / total_previsto : 0,
     });
   }
 
@@ -122,7 +171,10 @@ export async function getFontesReceita(
       records[i].total_pct_change = null;
     } else {
       const prevTotal = records[i - 1].total;
-      records[i].total_pct_change = prevTotal > 0 ? ((records[i].total - prevTotal) / prevTotal) * 100 : null;
+      records[i].total_pct_change =
+        prevTotal > 0
+          ? ((records[i].total - prevTotal) / prevTotal) * 100
+          : null;
     }
   }
 

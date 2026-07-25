@@ -20,16 +20,20 @@ export interface DecimoTerceiroExecucao {
 
 export async function getFolhaVsServicos(
   years: number[],
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<FolhaVsServicosRecord[]> {
   const records: FolhaVsServicosRecord[] = [];
 
   for (const year of years) {
     let total_folha = 0;
     try {
-      const resF = await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(db);
+      const resF =
+        await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(
+          db,
+        );
       for (const r of (resF.rows as any[]) || []) {
-        total_folha += parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
+        total_folha +=
+          parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
 
@@ -47,7 +51,8 @@ export async function getFolhaVsServicos(
 
     const revDf = await getFontesReceita([year], empresaIds);
     const rcl_proxy = revDf.length > 0 ? revDf[0].total : 0;
-    const percentual_folha = rcl_proxy > 0 ? (total_folha / rcl_proxy) * 100 : 0;
+    const percentual_folha =
+      rcl_proxy > 0 ? (total_folha / rcl_proxy) * 100 : 0;
 
     records.push({
       ano: year,
@@ -62,7 +67,7 @@ export async function getFolhaVsServicos(
 }
 
 export async function getExecucaoDecimoTerceiro(
-  year: number
+  year: number,
 ): Promise<DecimoTerceiroExecucao | null> {
   try {
     const res = await sql`
@@ -84,7 +89,8 @@ export async function getExecucaoDecimoTerceiro(
     `.execute(db);
 
     const r = (res.rows as any[])?.[0];
-    if (!r || r.empenhado_bruto === null || r.empenhado_bruto === undefined) return null;
+    if (!r || r.empenhado_bruto === null || r.empenhado_bruto === undefined)
+      return null;
 
     const emp_bruto = parseFloat(String(r.empenhado_bruto ?? "0")) || 0;
     const emp_liq = parseFloat(String(r.empenhado_liquido ?? "0")) || emp_bruto;
@@ -92,7 +98,13 @@ export async function getExecucaoDecimoTerceiro(
     const pag = parseFloat(String(r.pago ?? "0")) || 0;
     const pct_pago = emp_liq > 0 ? pag / emp_liq : 0;
 
-    return { empenhado: emp_liq, empenhado_bruto: emp_bruto, liquidado: liq, pago: pag, pct_pago };
+    return {
+      empenhado: emp_liq,
+      empenhado_bruto: emp_bruto,
+      liquidado: liq,
+      pago: pag,
+      pct_pago,
+    };
   } catch {
     return null;
   }

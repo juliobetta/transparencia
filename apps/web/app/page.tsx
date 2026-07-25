@@ -1,5 +1,19 @@
-import { getPosicaoFiscal, getExecucaoOrcamentaria, summarizeExecucao, getLicitacaoGaps } from "@transparencia/db";
-import { KPICard, KPIGrid, SectionHeader, AlertBox, DenseTable, fmtCompact, fmtCurrency, fmtPercent, Badge } from "@transparencia/ui";
+import {
+  getExecucaoOrcamentaria,
+  getLicitacaoGaps,
+  getPosicaoFiscal,
+  summarizeExecucao,
+} from "@transparencia/db";
+import {
+  AlertBox,
+  DenseTable,
+  fmtCompact,
+  fmtCurrency,
+  fmtPercent,
+  KPICard,
+  KPIGrid,
+  SectionHeader,
+} from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +22,7 @@ export default async function VisaoGeralPage() {
   const posicao = await getPosicaoFiscal(currentYear);
   const execItems = await getExecucaoOrcamentaria(currentYear);
   const execSummary = summarizeExecucao(execItems);
-  const gaps = await getLicitacaoGaps(currentYear);
+  const _gaps = await getLicitacaoGaps(currentYear);
 
   const credoresCols = [
     { header: "Fornecedor", accessorKey: "Fornecedor" as const },
@@ -24,9 +38,12 @@ export default async function VisaoGeralPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold font-serif text-ink">Visão Geral da Gestão Fiscal</h1>
-        <p className="text-sm text-subtleText mt-1">
-          Exercício de {currentYear} — Resumo executivo das contas públicas de Porciúncula/RJ
+        <h1 className="font-bold font-serif text-3xl text-ink">
+          Visão Geral da Gestão Fiscal
+        </h1>
+        <p className="mt-1 text-sm text-subtleText">
+          Exercício de {currentYear} — Resumo executivo das contas públicas de
+          Porciúncula/RJ
         </p>
       </div>
 
@@ -63,8 +80,9 @@ export default async function VisaoGeralPage() {
       {/* Alerta de Restos a Pagar se houver pendência anterior */}
       {posicao.restos_pendentes_anteriores > 0 && (
         <AlertBox type="warning" title="Atenção: Passivo de Gestões Anteriores">
-          O município possui <b>{fmtCurrency(posicao.restos_pendentes_anteriores)}</b> em restos a pagar
-          pendentes referentes a exercícios anteriores a 2025.
+          O município possui{" "}
+          <b>{fmtCurrency(posicao.restos_pendentes_anteriores)}</b> em restos a
+          pagar pendentes referentes a exercícios anteriores a 2025.
         </AlertBox>
       )}
 
@@ -101,7 +119,10 @@ export default async function VisaoGeralPage() {
             title="Maiores Credores da Gestão Atual"
             description="Principais fornecedores com restos a pagar acumulados a partir de 2025"
           />
-          <DenseTable data={posicao.top_credores_adm_atual} columns={credoresCols} />
+          <DenseTable
+            data={posicao.top_credores_adm_atual}
+            columns={credoresCols}
+          />
         </div>
       )}
     </div>

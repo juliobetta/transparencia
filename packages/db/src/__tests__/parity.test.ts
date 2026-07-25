@@ -1,10 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { getFontesReceita } from "../queries/fontes_receita";
-import { getPosicaoFiscal } from "../queries/posicao_fiscal";
-import { getExecucaoOrcamentaria, summarizeExecucao } from "../queries/execucao_orcamentaria";
-import { getLicitacaoGaps } from "../queries/licitacao_gaps";
+import { describe, expect, it } from "vitest";
 import { getAdesaoDeAta } from "../queries/adesao_de_ata";
 import { getConcentracaoFornecedores } from "../queries/concentracao_fornecedores";
+import {
+  getExecucaoOrcamentaria,
+  summarizeExecucao,
+} from "../queries/execucao_orcamentaria";
+import { getFontesReceita } from "../queries/fontes_receita";
+import { getLicitacaoGaps } from "../queries/licitacao_gaps";
+import { getPosicaoFiscal } from "../queries/posicao_fiscal";
 import { getTendenciasAnuais } from "../queries/tendencias_anuais";
 
 describe("Testes de Paridade Kysely DB (@transparencia/db)", () => {

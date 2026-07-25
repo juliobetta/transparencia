@@ -1,4 +1,3 @@
-import React from "react";
 import { cn } from "../utils/cn";
 
 export interface KPICardProps {
@@ -26,33 +25,33 @@ export function KPICard({
   return (
     <div
       className={cn(
-        "bg-white border border-borderLine rounded-xl p-5 flex flex-col justify-between transition-shadow hover:shadow-sm",
+        "flex flex-col justify-between rounded-xl border border-borderLine bg-white p-5 transition-shadow hover:shadow-sm",
         accent && "border-l-4 border-l-accent",
         alert && "border-l-4 border-l-warning bg-amber-50/20",
-        className
+        className,
       )}
     >
       <div>
-        <p className="text-xs font-medium text-subtleText uppercase tracking-wider mb-1">
+        <p className="mb-1 font-medium text-subtleText text-xs uppercase tracking-wider">
           {title}
         </p>
         <p
           className={cn(
-            "text-2xl font-bold font-serif leading-tight",
-            accent ? "text-accent" : alert ? "text-warning" : "text-ink"
+            "font-bold font-serif text-2xl leading-tight",
+            accent ? "text-accent" : alert ? "text-warning" : "text-ink",
           )}
         >
           {value}
         </p>
       </div>
       {(subtext || trend) && (
-        <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-mutedText">
+        <div className="mt-3 flex items-center justify-between border-gray-100 border-t pt-2 text-mutedText text-xs">
           {subtext && <span>{subtext}</span>}
           {trend && (
             <span
               className={cn(
                 "font-semibold",
-                trend.isPositive ? "text-emerald-600" : "text-rose-600"
+                trend.isPositive ? "text-emerald-600" : "text-rose-600",
               )}
             >
               {trend.value}

@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { cn } from "../utils/cn";
 
 export interface KPIGridProps {
@@ -15,7 +15,7 @@ export function KPIGrid({ children, columns = 4, className }: KPIGridProps) {
         columns === 2 && "grid-cols-1 sm:grid-cols-2",
         columns === 3 && "grid-cols-1 sm:grid-cols-3",
         columns === 4 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
-        className
+        className,
       )}
     >
       {children}

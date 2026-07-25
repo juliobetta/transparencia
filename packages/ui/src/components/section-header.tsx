@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { cn } from "../utils/cn";
 
 export interface SectionHeaderProps {
@@ -17,16 +17,16 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "border-t-2 border-ink pt-3 mb-4 flex items-baseline justify-between flex-wrap gap-2",
-        className
+        "mb-4 flex flex-wrap items-baseline justify-between gap-2 border-ink border-t-2 pt-3",
+        className,
       )}
     >
       <div>
-        <h2 className="text-xl font-bold font-serif text-ink tracking-tight">
+        <h2 className="font-bold font-serif text-ink text-xl tracking-tight">
           {title}
         </h2>
         {description && (
-          <p className="text-xs text-subtleText mt-0.5">{description}</p>
+          <p className="mt-0.5 text-subtleText text-xs">{description}</p>
         )}
       </div>
       {action && <div>{action}</div>}

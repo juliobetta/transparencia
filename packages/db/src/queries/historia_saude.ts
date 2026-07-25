@@ -3,7 +3,7 @@ import { db } from "../client";
 import { SAUDE_EMPRESA } from "./licitacao_gaps";
 
 export interface EmendaSaude {
-  "Nº": string;
+  Nº: string;
   Objeto: string;
   "Valor Autorizado": number;
   Empenhado: number | null;
@@ -35,9 +35,9 @@ export interface HistoriaSaudeResult {
 
 export async function getHistoriaSaude(
   year: number,
-  empresaId: string = SAUDE_EMPRESA
+  empresaId: string = SAUDE_EMPRESA,
 ): Promise<HistoriaSaudeResult> {
-  let emendas: EmendaSaude[] = [];
+  const emendas: EmendaSaude[] = [];
   let emendas_total = 0;
 
   try {
@@ -51,11 +51,12 @@ export async function getHistoriaSaude(
 
     const rowsE = (resE.rows as any[]) || [];
     for (const r of rowsE) {
-      const valAut = parseFloat(String(r["Valor Autorizado"] ?? "0").replace(",", ".")) || 0;
+      const valAut =
+        parseFloat(String(r["Valor Autorizado"] ?? "0").replace(",", ".")) || 0;
       const emp = parseFloat(String(r.Empenhado ?? "0").replace(",", ".")) || 0;
       emendas_total += valAut;
       emendas.push({
-        "Nº": String(r["Nº"] ?? ""),
+        Nº: String(r.Nº ?? ""),
         Objeto: String(r.Objeto ?? ""),
         "Valor Autorizado": valAut,
         Empenhado: emp > 0 ? emp : null,
@@ -68,7 +69,12 @@ export async function getHistoriaSaude(
     }
   } catch {}
 
-  let orcamento: BudgetSaude = { dotacao: 0, empenhado: 0, taxa_execucao: 0, alerta_sub_execucao: false };
+  let orcamento: BudgetSaude = {
+    dotacao: 0,
+    empenhado: 0,
+    taxa_execucao: 0,
+    alerta_sub_execucao: false,
+  };
   try {
     const resB = await sql`
       SELECT empenhado, dotacao_atualizada
@@ -79,7 +85,8 @@ export async function getHistoriaSaude(
     let dot = 0;
     let emp = 0;
     for (const r of (resB.rows as any[]) || []) {
-      dot += parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
+      dot +=
+        parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
       emp += parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
     }
     const taxa = dot > 0 ? emp / dot : 0;

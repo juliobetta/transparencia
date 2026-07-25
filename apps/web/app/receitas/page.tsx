@@ -1,5 +1,14 @@
 import { getFontesReceita } from "@transparencia/db";
-import { KPICard, KPIGrid, SectionHeader, AlertBox, DenseTable, fmtCompact, fmtCurrency, fmtPercent, BarChartH } from "@transparencia/ui";
+import {
+  AlertBox,
+  BarChartH,
+  DenseTable,
+  fmtCompact,
+  fmtPercent,
+  KPICard,
+  KPIGrid,
+  SectionHeader,
+} from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +33,18 @@ export default async function ReceitasPage() {
   };
 
   const chartData = [
-    { label: "Transferências da União (Federal)", value: rec.transferencias_uniao_arrecadado },
-    { label: "Transferências do Estado (Estadual)", value: rec.transferencias_estado_arrecadado },
-    { label: "Receita Própria (Municipal)", value: rec.receita_propria_arrecadado },
+    {
+      label: "Transferências da União (Federal)",
+      value: rec.transferencias_uniao_arrecadado,
+    },
+    {
+      label: "Transferências do Estado (Estadual)",
+      value: rec.transferencias_estado_arrecadado,
+    },
+    {
+      label: "Receita Própria (Municipal)",
+      value: rec.receita_propria_arrecadado,
+    },
   ];
 
   const tableData = [
@@ -34,19 +52,33 @@ export default async function ReceitasPage() {
       fonte: "Receita Própria (Municipal)",
       previsto: rec.receita_propria_previsto,
       arrecadado: rec.receita_propria_arrecadado,
-      pct: rec.receita_propria_previsto > 0 ? (rec.receita_propria_arrecadado / rec.receita_propria_previsto) * 100 : 0,
+      pct:
+        rec.receita_propria_previsto > 0
+          ? (rec.receita_propria_arrecadado / rec.receita_propria_previsto) *
+            100
+          : 0,
     },
     {
       fonte: "Transferências da União",
       previsto: rec.transferencias_uniao_previsto,
       arrecadado: rec.transferencias_uniao_arrecadado,
-      pct: rec.transferencias_uniao_previsto > 0 ? (rec.transferencias_uniao_arrecadado / rec.transferencias_uniao_previsto) * 100 : 0,
+      pct:
+        rec.transferencias_uniao_previsto > 0
+          ? (rec.transferencias_uniao_arrecadado /
+              rec.transferencias_uniao_previsto) *
+            100
+          : 0,
     },
     {
       fonte: "Transferências do Estado",
       previsto: rec.transferencias_estado_previsto,
       arrecadado: rec.transferencias_estado_arrecadado,
-      pct: rec.transferencias_estado_previsto > 0 ? (rec.transferencias_estado_arrecadado / rec.transferencias_estado_previsto) * 100 : 0,
+      pct:
+        rec.transferencias_estado_previsto > 0
+          ? (rec.transferencias_estado_arrecadado /
+              rec.transferencias_estado_previsto) *
+            100
+          : 0,
     },
   ];
 
@@ -75,9 +107,12 @@ export default async function ReceitasPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold font-serif text-ink">Fontes de Receita</h1>
-        <p className="text-sm text-subtleText mt-1">
-          Composição da arrecadação municipal e nível de dependência de transferências externas
+        <h1 className="font-bold font-serif text-3xl text-ink">
+          Fontes de Receita
+        </h1>
+        <p className="mt-1 text-sm text-subtleText">
+          Composição da arrecadação municipal e nível de dependência de
+          transferências externas
         </p>
       </div>
 
@@ -106,8 +141,13 @@ export default async function ReceitasPage() {
       </KPIGrid>
 
       {rec.alerta_dependencia && (
-        <AlertBox type="danger" title="Alerta: Alta Dependência de Transferências Externa">
-          A receita própria representa menos de 10% do total arrecadado ({fmtPercent(rec.pct_propria)}). O município apresenta elevada vulnerabilidade fiscal a repasses federais e estaduais.
+        <AlertBox
+          type="danger"
+          title="Alerta: Alta Dependência de Transferências Externa"
+        >
+          A receita própria representa menos de 10% do total arrecadado (
+          {fmtPercent(rec.pct_propria)}). O município apresenta elevada
+          vulnerabilidade fiscal a repasses federais e estaduais.
         </AlertBox>
       )}
 
@@ -116,7 +156,7 @@ export default async function ReceitasPage() {
           title="Distribuição das Fontes de Receita"
           description="Comparativo visual do volume de recursos por origem"
         />
-        <div className="bg-white border border-borderLine rounded-xl p-6">
+        <div className="rounded-xl border border-borderLine bg-white p-6">
           <BarChartH data={chartData} />
         </div>
       </div>

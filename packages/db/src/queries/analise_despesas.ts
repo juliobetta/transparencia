@@ -68,7 +68,7 @@ async function sumColWhere(
   table: string,
   col: string,
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<number> {
   try {
     let q = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year}`;
@@ -89,11 +89,26 @@ async function sumColWhere(
 
 export async function getMetricasGeraisDespesas(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<MetricasDespesas> {
-  const empenhado = await sumColWhere("fct_despesas_por_unidade", "empenhado", year, empresaIds);
-  const liquidado = await sumColWhere("fct_despesas_por_unidade", "liquidado", year, empresaIds);
-  const pago = await sumColWhere("fct_despesas_por_unidade", "pago", year, empresaIds);
+  const empenhado = await sumColWhere(
+    "fct_despesas_por_unidade",
+    "empenhado",
+    year,
+    empresaIds,
+  );
+  const liquidado = await sumColWhere(
+    "fct_despesas_por_unidade",
+    "liquidado",
+    year,
+    empresaIds,
+  );
+  const pago = await sumColWhere(
+    "fct_despesas_por_unidade",
+    "pago",
+    year,
+    empresaIds,
+  );
 
   return {
     empenhado,
@@ -106,7 +121,7 @@ export async function getMetricasGeraisDespesas(
 
 export async function getDespesasPorUnidade(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<DespesaUnidade[]> {
   try {
     let q = sql`
@@ -118,17 +133,31 @@ export async function getDespesasPorUnidade(
       q = sql`${q} AND empresa = ANY(${empresaIds})`;
     }
     const res = await q.execute(db);
-    const map: Record<string, { empenhado: number; liquidado: number; pago: number; dotacao_atualizada: number }> = {};
+    const map: Record<
+      string,
+      {
+        empenhado: number;
+        liquidado: number;
+        pago: number;
+        dotacao_atualizada: number;
+      }
+    > = {};
 
     for (const r of (res.rows as any[]) || []) {
       const desc = String(r.descricao ?? "");
       const emp = parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
       const liq = parseFloat(String(r.liquidado ?? "0").replace(",", ".")) || 0;
       const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
-      const dot = parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
+      const dot =
+        parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
 
       if (!map[desc]) {
-        map[desc] = { empenhado: 0, liquidado: 0, pago: 0, dotacao_atualizada: 0 };
+        map[desc] = {
+          empenhado: 0,
+          liquidado: 0,
+          pago: 0,
+          dotacao_atualizada: 0,
+        };
       }
       map[desc].empenhado += emp;
       map[desc].liquidado += liq;
@@ -146,7 +175,7 @@ export async function getDespesasPorUnidade(
 
 export async function getResumoDiarias(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<ResumoDiarias> {
   try {
     let q = sql`SELECT valor, favorecido FROM fct_diarias WHERE ano = ${year}`;
@@ -155,7 +184,8 @@ export async function getResumoDiarias(
     }
     const res = await q.execute(db);
     const rows = (res.rows as any[]) || [];
-    if (rows.length === 0) return { total_valor: 0, total_viajantes: 0, media_reembolso: 0 };
+    if (rows.length === 0)
+      return { total_valor: 0, total_viajantes: 0, media_reembolso: 0 };
 
     let total_valor = 0;
     const viajantes = new Set<string>();
@@ -180,7 +210,7 @@ export async function getResumoDiarias(
 export async function getTransacoesPesquisaveis(
   year: number,
   queryStr: string = "",
-  limit: number = 500
+  limit: number = 500,
 ): Promise<TransacaoPesquisavel[]> {
   try {
     let q;
@@ -223,7 +253,7 @@ export async function getTransacoesPesquisaveis(
 
 export async function getComposicaoDespesa(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<ComposicaoDespesa[]> {
   try {
     let q = sql`

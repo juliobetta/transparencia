@@ -24,7 +24,7 @@ export interface ExecucaoSummary {
 
 export async function getExecucaoOrcamentaria(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<ItemExecucaoOrcamentaria[]> {
   try {
     let q = sql`
@@ -42,7 +42,8 @@ export async function getExecucaoOrcamentaria(
       const emp = parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
       const liq = parseFloat(String(r.liquidado ?? "0").replace(",", ".")) || 0;
       const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
-      const dot = parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
+      const dot =
+        parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
       const taxa = dot > 0 ? emp / dot : 0;
 
       let alerta: "N/D" | "baixa" | "excesso" | "normal" = "normal";
@@ -72,7 +73,9 @@ export async function getExecucaoOrcamentaria(
   }
 }
 
-export function summarizeExecucao(items: ItemExecucaoOrcamentaria[]): ExecucaoSummary {
+export function summarizeExecucao(
+  items: ItemExecucaoOrcamentaria[],
+): ExecucaoSummary {
   const total_empenhado = items.reduce((acc, i) => acc + i.empenhado, 0);
   const total_liquidado = items.reduce((acc, i) => acc + i.liquidado, 0);
   const total_pago = items.reduce((acc, i) => acc + i.pago, 0);

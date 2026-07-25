@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { cn } from "../utils/cn";
 
 export interface BadgeProps {
@@ -7,7 +7,11 @@ export interface BadgeProps {
   className?: string;
 }
 
-export function Badge({ variant = "default", children, className }: BadgeProps) {
+export function Badge({
+  variant = "default",
+  children,
+  className,
+}: BadgeProps) {
   const styles = {
     default: "bg-gray-100 text-gray-700 border-gray-200",
     accent: "bg-blue-50 text-accent border-blue-200 font-semibold",
@@ -19,9 +23,9 @@ export function Badge({ variant = "default", children, className }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-md text-[11px] border font-medium",
+        "inline-flex items-center rounded-md border px-2 py-0.5 font-medium text-[11px]",
         styles[variant],
-        className
+        className,
       )}
     >
       {children}

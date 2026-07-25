@@ -25,8 +25,10 @@ export interface HistoriaCapremResult {
   total_pago: number;
 }
 
-export async function getHistoriaCaprem(year: number): Promise<HistoriaCapremResult> {
-  let entidades: EntityCaprem[] = [];
+export async function getHistoriaCaprem(
+  year: number,
+): Promise<HistoriaCapremResult> {
+  const entidades: EntityCaprem[] = [];
   let annual_trend: AnnualTrendCaprem[] = [];
   let total_empenhado = 0;
   let total_liquidado = 0;

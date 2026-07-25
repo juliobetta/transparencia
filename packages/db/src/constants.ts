@@ -5,7 +5,7 @@ export const LIMIT_OBRAS_ENGENHARIA = 119812.02;
 export function dispensationThreshold(
   numeroObra?: any,
   tipoObra?: any,
-  objeto?: any
+  objeto?: any,
 ): number {
   if (numeroObra || tipoObra) {
     return LIMIT_OBRAS_ENGENHARIA;

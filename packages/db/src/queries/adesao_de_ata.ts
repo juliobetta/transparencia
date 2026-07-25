@@ -39,7 +39,7 @@ export interface AdesaoExternaResult {
 
 export async function getAdesaoDeAta(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<AdesaoAtaResult> {
   try {
     let q = sql`
@@ -64,7 +64,13 @@ export async function getAdesaoDeAta(
     const rows = (res.rows as any[]) || [];
 
     if (rows.length === 0) {
-      return { lista: [], quantidade: 0, valor: 0, total_licitacao: 0, contratos_associados_count: 0 };
+      return {
+        lista: [],
+        quantidade: 0,
+        valor: 0,
+        total_licitacao: 0,
+        contratos_associados_count: 0,
+      };
     }
 
     const map: Record<
@@ -82,10 +88,13 @@ export async function getAdesaoDeAta(
 
     for (const r of rows) {
       const key = `${r.numero}__${r.objeto}`;
-      const licVal = parseFloat(String(r.licitacao_valor ?? "0").replace(",", ".")) || 0;
+      const licVal =
+        parseFloat(String(r.licitacao_valor ?? "0").replace(",", ".")) || 0;
       const cVal = parseFloat(String(r.c_valor ?? "0").replace(",", ".")) || 0;
-      const cEmp = parseFloat(String(r.c_empenhado ?? "0").replace(",", ".")) || 0;
-      const mesNum = r.mes !== null && r.mes !== undefined ? Number(r.mes) : null;
+      const cEmp =
+        parseFloat(String(r.c_empenhado ?? "0").replace(",", ".")) || 0;
+      const mesNum =
+        r.mes !== null && r.mes !== undefined ? Number(r.mes) : null;
 
       if (!map[key]) {
         map[key] = {
@@ -113,8 +122,13 @@ export async function getAdesaoDeAta(
     });
 
     const valor = lista.reduce((acc, i) => acc + i.total_c_valor, 0);
-    const total_licitacao = lista.reduce((acc, i) => acc + i.licitacao_valor, 0);
-    const contratos_associados_count = lista.filter((i) => i.tem_contrato).length;
+    const total_licitacao = lista.reduce(
+      (acc, i) => acc + i.licitacao_valor,
+      0,
+    );
+    const contratos_associados_count = lista.filter(
+      (i) => i.tem_contrato,
+    ).length;
 
     return {
       lista,
@@ -124,13 +138,19 @@ export async function getAdesaoDeAta(
       contratos_associados_count,
     };
   } catch {
-    return { lista: [], quantidade: 0, valor: 0, total_licitacao: 0, contratos_associados_count: 0 };
+    return {
+      lista: [],
+      quantidade: 0,
+      valor: 0,
+      total_licitacao: 0,
+      contratos_associados_count: 0,
+    };
   }
 }
 
 export async function getAdesaoExterna(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<AdesaoExternaResult> {
   try {
     let q = sql`

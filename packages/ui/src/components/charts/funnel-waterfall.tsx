@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import ReactECharts from "echarts-for-react";
 import { fmtCurrency } from "../../utils/formatters";
 
@@ -15,7 +14,11 @@ export interface FunnelWaterfallProps {
   height?: number;
 }
 
-export function FunnelWaterfall({ data, title, height = 300 }: FunnelWaterfallProps) {
+export function FunnelWaterfall({
+  data,
+  title,
+  height = 300,
+}: FunnelWaterfallProps) {
   const option = {
     title: title
       ? {
@@ -65,10 +68,10 @@ export function FunnelWaterfall({ data, title, height = 300 }: FunnelWaterfallPr
               i === 0
                 ? "oklch(0.55 0.11 250)"
                 : i === 1
-                ? "oklch(0.60 0.11 240)"
-                : i === 2
-                ? "oklch(0.65 0.11 230)"
-                : "oklch(0.50 0.13 145)",
+                  ? "oklch(0.60 0.11 240)"
+                  : i === 2
+                    ? "oklch(0.65 0.11 230)"
+                    : "oklch(0.50 0.13 145)",
           },
         })),
       },

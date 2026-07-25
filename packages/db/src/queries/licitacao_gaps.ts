@@ -26,7 +26,7 @@ export interface ContratoSemLicitacao {
 
 export async function countsByYear(
   years: number[],
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<Record<number, number>> {
   const result: Record<number, number> = {};
   for (const y of years) result[y] = 0;
@@ -48,7 +48,8 @@ export async function countsByYear(
       if (licNum !== "") continue;
 
       const y = Number(r.ano);
-      const val = parseFloat(String(r.valor_contrato ?? "0").replace(",", ".")) || 0;
+      const val =
+        parseFloat(String(r.valor_contrato ?? "0").replace(",", ".")) || 0;
       const th = dispensationThreshold(r.numero_obra, r.tipo_obra, r.objeto);
 
       if (val > th) {
@@ -62,7 +63,7 @@ export async function countsByYear(
 
 export async function totalsSemLicitacaoPorAno(
   years: number[],
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<Record<number, number>> {
   const result: Record<number, number> = {};
   for (const y of years) result[y] = 0;
@@ -91,7 +92,7 @@ export async function totalsSemLicitacaoPorAno(
 
 export async function getLicitacaoGaps(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<ContratoSemLicitacao[]> {
   try {
     let q = sql`
@@ -110,7 +111,8 @@ export async function getLicitacaoGaps(
       if (licNum !== "") continue;
 
       const emp = String(r.empresa ?? "");
-      const val = parseFloat(String(r.valor_contrato ?? "0").replace(",", ".")) || 0;
+      const val =
+        parseFloat(String(r.valor_contrato ?? "0").replace(",", ".")) || 0;
       const th = dispensationThreshold(r.numero_obra, r.tipo_obra, r.objeto);
       const mStr = String(r.mes ?? "").padStart(2, "0");
 

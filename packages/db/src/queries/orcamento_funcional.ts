@@ -12,7 +12,7 @@ export interface ItemOrcamentoFuncional {
 
 export async function getOrcamentoFuncional(
   year: number,
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<ItemOrcamentoFuncional[]> {
   try {
     let q = sql`
@@ -43,7 +43,8 @@ export async function getOrcamentoFuncional(
       const sub = String(r.subfuncao_nome ?? "");
       const key = `${func}__${sub}`;
 
-      const dot = parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
+      const dot =
+        parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
       const emp = parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
       const liq = parseFloat(String(r.liquidado ?? "0").replace(",", ".")) || 0;
       const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;

@@ -18,7 +18,7 @@ export interface TendenciaAnualRecord {
 
 export async function getTendenciasAnuais(
   years: number[],
-  empresaIds?: string[] | null
+  empresaIds?: string[] | null,
 ): Promise<TendenciaAnualRecord[]> {
   const sortedYears = [...years].sort((a, b) => a - b);
   const revDf = await getFontesReceita(sortedYears, empresaIds);
@@ -40,15 +40,20 @@ export async function getTendenciasAnuais(
       const res = await q.execute(db);
       for (const r of (res.rows as any[]) || []) {
         total_gasto += parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
-        total_empenhado += parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
+        total_empenhado +=
+          parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
 
     let total_folha = 0;
     try {
-      const resF = await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(db);
+      const resF =
+        await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(
+          db,
+        );
       for (const r of (resF.rows as any[]) || []) {
-        total_folha += parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
+        total_folha +=
+          parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
 
@@ -88,11 +93,31 @@ export async function getTendenciasAnuais(
       const prev = records[i - 1];
       const curr = records[i];
 
-      curr.total_gasto_pct_change = prev.total_gasto > 0 ? ((curr.total_gasto - prev.total_gasto) / prev.total_gasto) * 100 : null;
-      curr.total_empenhado_pct_change = prev.total_empenhado > 0 ? ((curr.total_empenhado - prev.total_empenhado) / prev.total_empenhado) * 100 : null;
-      curr.total_folha_pct_change = prev.total_folha > 0 ? ((curr.total_folha - prev.total_folha) / prev.total_folha) * 100 : null;
-      curr.total_receita_pct_change = prev.total_receita && prev.total_receita > 0 && curr.total_receita ? ((curr.total_receita - prev.total_receita) / prev.total_receita) * 100 : null;
-      curr.restos_a_pagar_pct_change = prev.restos_a_pagar > 0 ? ((curr.restos_a_pagar - prev.restos_a_pagar) / prev.restos_a_pagar) * 100 : null;
+      curr.total_gasto_pct_change =
+        prev.total_gasto > 0
+          ? ((curr.total_gasto - prev.total_gasto) / prev.total_gasto) * 100
+          : null;
+      curr.total_empenhado_pct_change =
+        prev.total_empenhado > 0
+          ? ((curr.total_empenhado - prev.total_empenhado) /
+              prev.total_empenhado) *
+            100
+          : null;
+      curr.total_folha_pct_change =
+        prev.total_folha > 0
+          ? ((curr.total_folha - prev.total_folha) / prev.total_folha) * 100
+          : null;
+      curr.total_receita_pct_change =
+        prev.total_receita && prev.total_receita > 0 && curr.total_receita
+          ? ((curr.total_receita - prev.total_receita) / prev.total_receita) *
+            100
+          : null;
+      curr.restos_a_pagar_pct_change =
+        prev.restos_a_pagar > 0
+          ? ((curr.restos_a_pagar - prev.restos_a_pagar) /
+              prev.restos_a_pagar) *
+            100
+          : null;
     }
   }
 

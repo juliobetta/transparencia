@@ -1,6 +1,6 @@
-import React from "react";
+import { AlertCircle, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import type React from "react";
 import { cn } from "../utils/cn";
-import { AlertTriangle, Info, CheckCircle, AlertCircle } from "lucide-react";
 
 export interface AlertBoxProps {
   type?: "warning" | "danger" | "info" | "success";
@@ -16,10 +16,10 @@ export function AlertBox({
   className,
 }: AlertBoxProps) {
   const icons = {
-    warning: <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />,
-    danger: <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />,
-    info: <Info className="w-5 h-5 text-blue-600 shrink-0" />,
-    success: <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />,
+    warning: <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />,
+    danger: <AlertCircle className="h-5 w-5 shrink-0 text-rose-600" />,
+    info: <Info className="h-5 w-5 shrink-0 text-blue-600" />,
+    success: <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />,
   };
 
   const styles = {
@@ -32,14 +32,14 @@ export function AlertBox({
   return (
     <div
       className={cn(
-        "flex gap-3 p-4 rounded-xl border text-sm leading-relaxed",
+        "flex gap-3 rounded-xl border p-4 text-sm leading-relaxed",
         styles[type],
-        className
+        className,
       )}
     >
       {icons[type]}
       <div>
-        {title && <h4 className="font-semibold mb-1">{title}</h4>}
+        {title && <h4 className="mb-1 font-semibold">{title}</h4>}
         <div>{children}</div>
       </div>
     </div>
