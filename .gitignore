@@ -44,3 +44,13 @@ elt/transform/logs/
 dbt_packages/
 dbt_internal_packages/
 app/dashboard/.streamlit/secrets.toml
+
+# Node / Next.js / Turborepo
+node_modules/
+.next/
+out/
+.turbo/
+*.log
+.pnpm-debug.log*
+next-env.d.ts
+

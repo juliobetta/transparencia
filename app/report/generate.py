@@ -21,9 +21,10 @@ from app.analytics import (
     tendencias_anuais,
 )
 from app.analytics.constants import THRESHOLD_COMPRAS_SERVICOS, THRESHOLD_OBRAS_ENGENHARIA, THRESHOLD_VEICULOS
-from app.dashboard.shared import ANO_INICIAL
 from config import PortalConfig
 from db import get_metadata
+
+ANO_INICIAL = 2021
 
 REPORTS_DIR = Path("reports")
 TEMPLATE_DIR = Path(__file__).parent

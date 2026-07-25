@@ -134,7 +134,14 @@ dbt/compile:
 dbt/docs:
 	uv run python scripts/run_dbt.py docs generate && uv run python scripts/run_dbt.py docs serve
 
-# DASHBOARD
+# WEB APP (NEXT.JS)
 
-dashboard:
-	cd app && PYTHONPATH=.. uv run streamlit run dashboard/main.py
+dev:
+	pnpm dev
+
+build:
+	pnpm build
+
+test/ts:
+	pnpm test
+

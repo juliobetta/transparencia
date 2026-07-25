@@ -44,7 +44,9 @@ def test_run_upserts_data_for_all_entities(mock_engine):
         pipeline.run(years=[2025])
 
     with mock_engine.connect() as conn:
-        count = conn.execute(text("SELECT COUNT(*) FROM despesas_por_orgao WHERE ano=2025")).fetchone()[0]
+        count = conn.execute(
+            text("SELECT COUNT(*) FROM raw_porciuncula_prefeitura.despesas_por_orgao WHERE ano=2025")
+        ).fetchone()[0]
     assert count >= 1
 
 

@@ -14,9 +14,9 @@ Este repositório possui limites estritos de consumo de tokens (Spend Cap). Todo
 
 ## 2. ARQUITETURA BASEADA EM CAMADAS (DRY / CONTEXT CONSERVATION)
 
-- **Foco na Camada de Negócio (`analysis/`):** Toda a inteligência contábil, cálculos da LRF, queries complexas de bancos de dados, cruzamentos e filtros de licitações pertencem exclusivamente à pasta `analysis/`.
-- **A Camada de Apresentação é Burra:** Os componentes de visualização (`dashboard/pages/` e `report/`) devem apenas importar DataFrames estruturados e renderizá-los.
-- **Eficiência de Desenvolvimento:** Para alterar qualquer lógica ou corrigir anomalias fiscais, **sempre modifique apenas a camada `analysis/`**. Isso poupa a leitura e modificação de dezenas de arquivos Streamlit e templates HTML, economizando até 70% de tokens por modificação.
+- **Camada de Dados / Queries (`packages/db`):** Toda a inteligência contábil, cálculos da LRF, queries Kysely e cruzamentos pertencem exclusivamente a `@transparencia/db/src/queries/`.
+- **A Camada de Apresentação é Burra:** Os componentes de visualização (`packages/ui` e `apps/web/app/`) devem apenas importar os dados tipados do `@transparencia/db` e renderizá-los.
+- **Eficiência de Desenvolvimento:** Para alterar qualquer lógica ou corrigir anomalias fiscais nas telas web, modifique apenas a camada `@transparencia/db`. Isso evita a alteração desnecessária de componentes de página.
 
 ---
 

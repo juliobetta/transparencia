@@ -35,15 +35,23 @@ Para executar o pipeline completo de ingestão de dados:
 make pipeline
 ```
 
-### Dashboard
-Para iniciar o dashboard interativo:
+### Frontend Web App (Next.js + TypeScript)
+Para iniciar o servidor de desenvolvimento do portal web:
 
 ```bash
-make dashboard
+pnpm dev
+# ou
+make dev
 ```
 
-### Relatórios
-Para gerar relatórios:
+Para compilar e testar os pacotes do monorepo:
+
+```bash
+pnpm build
+pnpm test
+```
+
+### Relatórios PDF
 
 ```bash
 # Relatórios gerais
@@ -56,7 +64,7 @@ make report/compare YEAR_A=2024 MONTH_A_START=1 MONTH_A_END=12 YEAR_B=2025 MONTH
 
 ## Desenvolvimento
 
-- **Executar testes:** `make test`
-- **Lint e formatar código:** `make check`
-- **Corrigir problemas de linting:** `make lint/fix`
-- **Formatar código:** `make format`
+- **Executar testes Python:** `make test`
+- **Executar testes TS (Kysely):** `pnpm test`
+- **Lint e formatar código Python:** `make check`
+

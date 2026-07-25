@@ -1,0 +1,20 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+:root {
+  --font-ibm-plex: 'IBM Plex Sans', sans-serif;
+  --font-source-serif: 'Source Serif 4', serif;
+}
+
+body {
+  font-family: var(--font-ibm-plex);
+  background-color: #f4f5f7;
+  color: #1a1d21;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, .serif {
+  font-family: var(--font-source-serif);
+}
