@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { clsx } from "clsx";
+import { cn } from "../utils/cn";
 import { Search } from "lucide-react";
 import { fmtCurrency, fmtPercent, fmtNumber, fmtCompact } from "../utils/formatters";
 import { Badge } from "./badge";
@@ -80,7 +80,7 @@ export function DenseTable<T extends Record<string, any>>({
   };
 
   return (
-    <div className={clsx("bg-white border border-borderLine rounded-xl overflow-hidden", className)}>
+    <div className={cn("bg-white border border-borderLine rounded-xl overflow-hidden", className)}>
       {searchableKeys !== undefined && (
         <div className="p-3 border-b border-borderLine bg-gray-50/50 flex items-center gap-2">
           <Search className="w-4 h-4 text-mutedText shrink-0" />
@@ -100,7 +100,7 @@ export function DenseTable<T extends Record<string, any>>({
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className={clsx(
+                  className={cn(
                     "px-4 py-2.5",
                     col.align === "right" && "text-right",
                     col.align === "center" && "text-center"
@@ -124,7 +124,7 @@ export function DenseTable<T extends Record<string, any>>({
                   {columns.map((col, cIdx) => (
                     <td
                       key={cIdx}
-                      className={clsx(
+                      className={cn(
                         "px-4 py-2 text-ink whitespace-nowrap",
                         col.align === "right" && "text-right",
                         col.align === "center" && "text-center",

@@ -1,5 +1,5 @@
 import React from "react";
-import { clsx } from "clsx";
+import { cn } from "../utils/cn";
 import { AlertTriangle, Info, CheckCircle, AlertCircle } from "lucide-react";
 
 export interface AlertBoxProps {
@@ -31,7 +31,7 @@ export function AlertBox({
 
   return (
     <div
-      className={clsx(
+      className={cn(
         "flex gap-3 p-4 rounded-xl border text-sm leading-relaxed",
         styles[type],
         className

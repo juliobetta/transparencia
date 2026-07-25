@@ -1,5 +1,5 @@
 import React from "react";
-import { clsx } from "clsx";
+import { cn } from "../utils/cn";
 
 export interface KPIGridProps {
   children: React.ReactNode;
@@ -10,7 +10,7 @@ export interface KPIGridProps {
 export function KPIGrid({ children, columns = 4, className }: KPIGridProps) {
   return (
     <div
-      className={clsx(
+      className={cn(
         "grid gap-4",
         columns === 2 && "grid-cols-1 sm:grid-cols-2",
         columns === 3 && "grid-cols-1 sm:grid-cols-3",

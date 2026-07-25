@@ -1,4 +1,5 @@
 export * from "./tokens";
+export * from "./utils/cn";
 export * from "./utils/formatters";
 export * from "./components/kpi-card";
 export * from "./components/kpi-grid";

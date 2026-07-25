@@ -1,5 +1,5 @@
 import React from "react";
-import { clsx } from "clsx";
+import { cn } from "../utils/cn";
 
 export interface BadgeProps {
   variant?: "default" | "accent" | "warning" | "danger" | "success";
@@ -18,7 +18,7 @@ export function Badge({ variant = "default", children, className }: BadgeProps) 
 
   return (
     <span
-      className={clsx(
+      className={cn(
         "inline-flex items-center px-2 py-0.5 rounded-md text-[11px] border font-medium",
         styles[variant],
         className

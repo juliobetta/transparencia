@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { clsx } from "clsx";
+import { cn } from "../utils/cn";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -79,14 +79,14 @@ export function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={clsx(
+                    className={cn(
                       "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors",
                       isActive
                         ? "bg-accent/10 text-accent font-semibold"
                         : "text-subtleText hover:bg-gray-50 hover:text-ink"
                     )}
                   >
-                    <Icon className={clsx("w-4 h-4 shrink-0", isActive ? "text-accent" : "text-mutedText")} />
+                    <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-accent" : "text-mutedText")} />
                     <span>{item.name}</span>
                   </Link>
                 );

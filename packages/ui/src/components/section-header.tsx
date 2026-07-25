@@ -1,5 +1,5 @@
 import React from "react";
-import { clsx } from "clsx";
+import { cn } from "../utils/cn";
 
 export interface SectionHeaderProps {
   title: string;
@@ -16,7 +16,7 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div
-      className={clsx(
+      className={cn(
         "border-t-2 border-ink pt-3 mb-4 flex items-baseline justify-between flex-wrap gap-2",
         className
       )}

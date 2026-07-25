@@ -1,5 +1,5 @@
 import React from "react";
-import { clsx } from "clsx";
+import { cn } from "../utils/cn";
 
 export interface KPICardProps {
   title: string;
@@ -25,7 +25,7 @@ export function KPICard({
 }: KPICardProps) {
   return (
     <div
-      className={clsx(
+      className={cn(
         "bg-white border border-borderLine rounded-xl p-5 flex flex-col justify-between transition-shadow hover:shadow-sm",
         accent && "border-l-4 border-l-accent",
         alert && "border-l-4 border-l-warning bg-amber-50/20",
@@ -37,7 +37,7 @@ export function KPICard({
           {title}
         </p>
         <p
-          className={clsx(
+          className={cn(
             "text-2xl font-bold font-serif leading-tight",
             accent ? "text-accent" : alert ? "text-warning" : "text-ink"
           )}
@@ -50,7 +50,7 @@ export function KPICard({
           {subtext && <span>{subtext}</span>}
           {trend && (
             <span
-              className={clsx(
+              className={cn(
                 "font-semibold",
                 trend.isPositive ? "text-emerald-600" : "text-rose-600"
               )}
