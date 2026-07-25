@@ -1,6 +1,5 @@
 import { getEntidades, getPortalConfig } from "@transparencia/db";
 import { Ribbon } from "@transparencia/ui";
-import type { Metadata } from "next";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
@@ -19,12 +18,6 @@ const sourceSerif4 = Source_Serif_4({
   variable: "--font-source-serif",
 });
 
-export const metadata: Metadata = {
-  title: "Portal de Transparência — Porciúncula/RJ",
-  description:
-    "Portal Cívico de Transparência Fiscal e Orçamentária de Porciúncula",
-};
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -42,11 +35,11 @@ export default async function RootLayout({
         <NuqsAdapter>
           <Suspense fallback={null}>
             <SidebarWrapper
-              cityName={portalConfig?.display_name}
+              portalName={portalConfig?.display_name}
               stateUF={portalConfig?.uf}
               portalTitle={
                 portalConfig
-                  ? `Contas de ${portalConfig.display_name}`
+                  ? `Contas da ${portalConfig.display_name}`
                   : undefined
               }
               anoInicial={portalConfig?.ano_inicial}
@@ -56,7 +49,7 @@ export default async function RootLayout({
             />
           </Suspense>
           <div className="flex min-w-0 flex-1 flex-col">
-            <Ribbon />
+            <Ribbon portalName={portalConfig?.display_name} />
             <main className="max-w-7xl flex-1 overflow-x-hidden p-8">
               {children}
             </main>

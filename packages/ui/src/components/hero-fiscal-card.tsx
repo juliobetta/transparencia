@@ -10,7 +10,7 @@ export interface OriginBreakdownItem {
 }
 
 export interface HeroFiscalCardProps {
-  cityName?: string;
+  portalName?: string;
   periodText?: string;
   headline?: React.ReactNode;
   summary?: React.ReactNode;
@@ -24,7 +24,7 @@ export interface HeroFiscalCardProps {
 }
 
 export function HeroFiscalCard({
-  cityName,
+  portalName,
   periodText,
   headline,
   summary,
@@ -46,16 +46,6 @@ export function HeroFiscalCard({
       ? fmtCompact(previstoTotal)
       : (previstoTotal ?? "R$ 0");
 
-  const displayHeadline =
-    headline ??
-    (cityName
-      ? `Panorama das contas públicas de ${cityName}`
-      : "Panorama das Contas Públicas");
-
-  const displaySummary =
-    summary ??
-    "Acompanhe em tempo real a arrecadação de receitas, aplicação dos recursos orçamentários, despesas detalhadas e indicadores fiscais do município.";
-
   return (
     <div
       className={cn(
@@ -71,15 +61,15 @@ export function HeroFiscalCard({
           </span>
         )}
 
-        {displayHeadline && (
+        {headline && (
           <h1 className="font-bold font-serif text-2xl text-ink leading-tight tracking-tight sm:text-3xl lg:text-[32px]">
-            {displayHeadline}
+            {headline}
           </h1>
         )}
 
-        {displaySummary && (
+        {summary && (
           <div className="space-y-3 text-sm text-subtleText leading-relaxed sm:text-base">
-            {displaySummary}
+            {summary}
           </div>
         )}
       </div>
@@ -89,7 +79,7 @@ export function HeroFiscalCard({
         <div className="mb-4 flex items-center justify-between gap-2">
           <span className="font-medium text-subtleText text-xs">
             {arrecadadoTitle ||
-              `Arrecadado no ano até agora ${cityName ? `· ${cityName}` : ""}`}
+              `Arrecadado no ano até agora ${portalName ? `· ${portalName}` : ""}`}
           </span>
           {statusBadgeText && (
             <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 font-medium text-[11px] text-amber-800">

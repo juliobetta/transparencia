@@ -4,7 +4,7 @@ import { type MultiSelectOption, Sidebar } from "@transparencia/ui";
 import { parseAsString, useQueryState } from "nuqs";
 
 interface SidebarWrapperProps {
-  cityName?: string;
+  portalName?: string;
   stateUF?: string;
   portalTitle?: string;
   anoInicial?: number;
@@ -16,7 +16,7 @@ interface SidebarWrapperProps {
 }
 
 export function SidebarWrapper({
-  cityName,
+  portalName,
   stateUF,
   portalTitle,
   anoInicial,
@@ -54,7 +54,7 @@ export function SidebarWrapper({
 
   return (
     <Sidebar
-      cityName={cityName}
+      portalName={portalName}
       stateUF={stateUF}
       portalTitle={portalTitle}
       anoInicial={anoInicial}

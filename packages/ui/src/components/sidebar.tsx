@@ -53,7 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 export interface SidebarProps {
-  cityName?: string;
+  portalName?: string;
   stateUF?: string;
   portalTitle?: string;
   anoInicial?: number;
@@ -89,7 +89,7 @@ function buildNavUrl(
 }
 
 export function Sidebar({
-  cityName,
+  portalName,
   stateUF,
   portalTitle,
   anoInicial,
@@ -121,7 +121,7 @@ export function Sidebar({
     onEntidadesChange?.(ids);
   };
 
-  const displayTitle = portalTitle || `Contas de ${cityName}`;
+  const displayTitle = portalTitle || `Contas da ${portalName}`;
 
   // Gerar anos dinâmicos do ano atual até anoInicial
   const maxYear = currentYear;
@@ -161,7 +161,7 @@ export function Sidebar({
                 /* biome-ignore lint/performance/noImgElement: brasao asset */
                 <img
                   src={normalizedBrasao}
-                  alt={`Brasão de ${cityName}`}
+                  alt={`Brasão de ${portalName}`}
                   className="h-full w-full object-contain"
                   onError={() => setImgError(true)}
                 />

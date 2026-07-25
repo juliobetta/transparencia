@@ -43,7 +43,7 @@ export default async function VisaoGeralPage({
   const isCurrentYear = selectedYear === currentYear;
 
   const portalConfig = await getPortalConfig();
-  const cityName = portalConfig?.display_name || "Porciúncula";
+  const portalName = portalConfig?.display_name;
 
   const posicao = await getPosicaoFiscal(selectedYear, entidadesIds);
   const execItems = await getExecucaoOrcamentaria(selectedYear, entidadesIds);
@@ -214,8 +214,8 @@ export default async function VisaoGeralPage({
 
   const periodText = `VISÃO GERAL · EXERCÍCIO ${selectedYear}${isCurrentYear ? " (PARCIAL)" : ""}`;
   const arrecadadoTitle = isCurrentYear
-    ? `Arrecadado no ano até agora ${cityName ? `· ${cityName}` : ""}`
-    : `Arrecadado no exercício ${cityName ? `· ${cityName}` : ""}`;
+    ? "Arrecadado no ano até agora"
+    : "Arrecadado no exercício";
 
   const heroHeadline = (
     <>
@@ -246,7 +246,7 @@ export default async function VisaoGeralPage({
   return (
     <div className="mx-auto max-w-[1000px] space-y-9 px-10 py-8">
       <HeroFiscalCard
-        cityName={cityName}
+        portalName={portalName}
         periodText={periodText}
         headline={heroHeadline}
         summary={heroSummary}

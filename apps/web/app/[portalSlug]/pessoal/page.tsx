@@ -1,6 +1,7 @@
 import {
   getExecucaoDecimoTerceiro,
   getFolhaVsServicos,
+  getPortalConfig,
 } from "@transparencia/db";
 import {
   fmtCompact,
@@ -23,6 +24,7 @@ export default async function PessoalPage({
 }: PessoalPageProps) {
   const { portalSlug: _portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
+  const portalConfig = await getPortalConfig();
 
   const currentYear = new Date().getFullYear();
   const selectedYear = resolvedSearchParams.ano
@@ -88,7 +90,7 @@ export default async function PessoalPage({
       <div>
         <SectionHeader
           title="Indicadores da Lei de Responsabilidade Fiscal (LRF)"
-          description="Comprometimento dos gastos com pessoal da Prefeitura de Porciúncula"
+          description={`Comprometimento dos gastos com pessoal da ${portalConfig?.display_name}`}
         />
         <div className="space-y-4 rounded-xl border border-borderLine bg-white p-6">
           <div className="flex justify-between font-semibold text-ink text-xs">
