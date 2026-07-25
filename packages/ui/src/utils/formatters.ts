@@ -41,3 +41,24 @@ export function fmtDate(dateStr: string | null | undefined): string {
   }
   return dateStr;
 }
+
+export function getPartialYearPeriod(referenceDate = new Date()): string {
+  const currentMonthIndex = referenceDate.getMonth();
+  const prevMonthIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 0;
+  const year = referenceDate.getFullYear();
+
+  const formatter = new Intl.DateTimeFormat("pt-BR", { month: "short" });
+
+  const formatMonth = (monthIndex: number) => {
+    const raw = formatter
+      .format(new Date(year, monthIndex, 1))
+      .replace(".", "");
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  };
+
+  const jan = formatMonth(0);
+  if (prevMonthIndex === 0) return jan;
+
+  const prev = formatMonth(prevMonthIndex);
+  return `${jan}–${prev}`;
+}

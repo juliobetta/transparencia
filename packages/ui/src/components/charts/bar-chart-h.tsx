@@ -1,9 +1,12 @@
+import { cn } from "../../utils/cn";
 import { fmtCurrency } from "../../utils/formatters";
 
 export interface BarChartHItem {
   label: string;
   value: number;
   subtext?: string;
+  barColor?: string;
+  colorClass?: string;
 }
 
 export interface BarChartHProps {
@@ -21,20 +24,28 @@ export function BarChartH({
 
   return (
     <div className="space-y-3">
-      {data.map((item, idx) => {
+      {data.map((item, _idx) => {
         const pct = Math.min(100, Math.max(0, (item.value / max) * 100));
+        const itemColor =
+          item.barColor || (!item.colorClass ? barColor : undefined);
         return (
-          <div key={idx} className="space-y-1">
+          <div key={`bar-chart-h-${item.label}`} className="space-y-1">
             <div className="flex justify-between font-medium text-ink text-xs">
-              <span className="max-w-[240px] truncate">{item.label}</span>
+              <span className="max-w-[320px] truncate">{item.label}</span>
               <span className="font-bold font-serif">
                 {fmtCurrency(item.value)}
               </span>
             </div>
             <div className="h-3 w-full overflow-hidden rounded-full bg-gray-100">
               <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${pct}%`, backgroundColor: barColor }}
+                className={cn(
+                  "h-full rounded-full transition-all duration-500",
+                  item.colorClass,
+                )}
+                style={{
+                  width: `${pct}%`,
+                  ...(itemColor ? { backgroundColor: itemColor } : {}),
+                }}
               />
             </div>
           </div>

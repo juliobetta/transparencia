@@ -3,6 +3,7 @@ export * from "./components/badge";
 export * from "./components/cards-secundarios-visao-geral";
 export * from "./components/charts/bar-chart-h";
 export * from "./components/charts/funnel-waterfall";
+export * from "./components/charts/previsto-vs-arrecadado";
 export * from "./components/dense-table";
 export * from "./components/hero-fiscal-card";
 export * from "./components/kpi-card";

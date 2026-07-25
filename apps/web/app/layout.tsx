@@ -50,7 +50,7 @@ export default async function RootLayout({
           </Suspense>
           <div className="flex min-w-0 flex-1 flex-col">
             <Ribbon portalName={portalConfig?.display_name} />
-            <main className="max-w-7xl flex-1 overflow-x-hidden p-8">
+            <main className="mx-auto w-full max-w-[1000px] flex-1 overflow-x-hidden px-10 py-8">
               {children}
             </main>
           </div>

@@ -13,6 +13,7 @@ import {
   DenseTable,
   fmtCompact,
   fmtPercent,
+  getPartialYearPeriod,
   HeroFiscalCard,
   PipelineExecucao,
   toTitleCase,
@@ -29,7 +30,7 @@ export default async function VisaoGeralPage({
   params,
   searchParams,
 }: VisaoGeralPageProps) {
-  const { portalSlug: _portalSlug } = await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
 
   const currentYear = new Date().getFullYear();
@@ -147,7 +148,7 @@ export default async function VisaoGeralPage({
   const despesasCardData = {
     title: "Despesas",
     linkText: "Restos a pagar →",
-    linkHref: "/despesas",
+    linkHref: `/${portalSlug}/despesas`,
     totalRestosPagarFormatted: fmtCompact(posicao.restos_pendentes_total),
     subtext: `pendentes a ${posicao.top_credores_adm_atual.length || 0} fornecedores`,
     antiguidadeBars: posicao.restos_pendentes.map((r) => ({
@@ -164,7 +165,7 @@ export default async function VisaoGeralPage({
   const licitacoesCardData = {
     title: "Licitações",
     linkText: "Contratos →",
-    linkHref: "/licitacoes",
+    linkHref: `/${portalSlug}/licitacoes`,
     items: [
       {
         count: acimaLimiteCount,
@@ -185,7 +186,7 @@ export default async function VisaoGeralPage({
   const pessoalCardData = {
     title: "Pessoal",
     linkText: "Folha →",
-    linkHref: "/pessoal",
+    linkHref: `/${portalSlug}/pessoal`,
     receitaFolhaPercentFormatted: fmtPercent(folhaPct),
     receitaFolhaPercentValue: folhaPct,
     subtext: "da receita comprometida com a folha",
@@ -212,7 +213,10 @@ export default async function VisaoGeralPage({
     Fornecedor: toTitleCase(credor.Fornecedor),
   }));
 
-  const periodText = `VISÃO GERAL · EXERCÍCIO ${selectedYear}${isCurrentYear ? " (PARCIAL)" : ""}`;
+  const partialPeriod = getPartialYearPeriod();
+  const periodText = `VISÃO GERAL · EXERCÍCIO ${selectedYear}${
+    isCurrentYear ? ` (PARCIAL, ${partialPeriod})` : ""
+  }`;
   const arrecadadoTitle = isCurrentYear
     ? "Arrecadado no ano até agora"
     : "Arrecadado no exercício";
@@ -244,7 +248,7 @@ export default async function VisaoGeralPage({
   );
 
   return (
-    <div className="mx-auto max-w-[1000px] space-y-9 px-10 py-8">
+    <div className="space-y-9">
       <HeroFiscalCard
         portalName={portalName}
         periodText={periodText}
@@ -257,7 +261,10 @@ export default async function VisaoGeralPage({
         originBreakdown={originBreakdown}
       />
 
-      <PipelineExecucao stages={pipelineStages} />
+      <PipelineExecucao
+        stages={pipelineStages}
+        detailUrl={`/${portalSlug}/orcamento`}
+      />
 
       <CardsSecundariosVisaoGeral
         despesas={despesasCardData}

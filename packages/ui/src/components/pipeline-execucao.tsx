@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React from "react";
 import { cn } from "../utils/cn";
 
@@ -31,12 +32,12 @@ export function PipelineExecucao({
       <div className="mb-3.5 flex items-baseline justify-between border-[#1a1d21] border-t-2 pt-3">
         <h3 className="font-bold font-serif text-ink text-xl">{title}</h3>
         {detailUrl && (
-          <a
+          <Link
             href={detailUrl}
             className="inline-flex shrink-0 items-center gap-1 font-semibold text-accent text-xs hover:underline"
           >
             Ver detalhes →
-          </a>
+          </Link>
         )}
       </div>
 

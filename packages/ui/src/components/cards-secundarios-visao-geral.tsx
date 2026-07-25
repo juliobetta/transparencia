@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cn } from "../utils/cn";
 
 export interface AntiguidadeBarItem {
@@ -90,12 +91,12 @@ export function CardsSecundariosVisaoGeral({
               {despesasTitle}
             </span>
             {despesasLinkHref && (
-              <a
+              <Link
                 href={despesasLinkHref}
                 className="font-medium text-subtleText text-xs transition-colors hover:text-accent"
               >
                 {despesasLinkText}
-              </a>
+              </Link>
             )}
           </div>
 
@@ -167,12 +168,12 @@ export function CardsSecundariosVisaoGeral({
               {licitacoesTitle}
             </span>
             {licitacoesLinkHref && (
-              <a
+              <Link
                 href={licitacoesLinkHref}
                 className="font-medium text-subtleText text-xs transition-colors hover:text-accent"
               >
                 {licitacoesLinkText}
-              </a>
+              </Link>
             )}
           </div>
 
@@ -215,12 +216,12 @@ export function CardsSecundariosVisaoGeral({
               {pessoalTitle}
             </span>
             {pessoalLinkHref && (
-              <a
+              <Link
                 href={pessoalLinkHref}
                 className="font-medium text-subtleText text-xs transition-colors hover:text-accent"
               >
                 {pessoalLinkText}
-              </a>
+              </Link>
             )}
           </div>
 
