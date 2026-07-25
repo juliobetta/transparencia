@@ -68,9 +68,10 @@ export async function getFolhaVsServicos(
 
 export async function getExecucaoDecimoTerceiro(
   year: number,
+  empresaIds?: string[] | null,
 ): Promise<DecimoTerceiroExecucao | null> {
   try {
-    const res = await sql`
+    let q = sql`
       SELECT
         SUM(CAST(REPLACE(empenhado, ',', '.') AS numeric)) as empenhado_bruto,
         SUM(CAST(REPLACE(empenhado_liquido, ',', '.') AS numeric)) as empenhado_liquido,
@@ -86,7 +87,11 @@ export async function getExecucaoDecimoTerceiro(
         AND descricao NOT ILIKE '%138%'
         AND descricao NOT ILIKE '%139%'
         AND tipo_empenho != 'AN'
-    `.execute(db);
+    `;
+    if (empresaIds && empresaIds.length > 0) {
+      q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
+    }
+    const res = await q.execute(db);
 
     const r = (res.rows as any[])?.[0];
     if (!r || r.empenhado_bruto === null || r.empenhado_bruto === undefined)
@@ -108,4 +113,39 @@ export async function getExecucaoDecimoTerceiro(
   } catch {
     return null;
   }
+}
+
+export async function getPercentualChefiasEfetivas(
+  year: number,
+  _empresaIds?: string[] | null,
+): Promise<number | null> {
+  try {
+    const res = await sql`
+      SELECT
+        COUNT(CASE WHEN (
+          vinculo LIKE '%FG%' OR
+          vinculo LIKE '%CC%' OR
+          categoria_funcional = 'Efetivos ocupantes de cargo comissionado'
+        ) THEN 1 END) AS efetivos_confianca,
+        COUNT(CASE WHEN (
+          categoria_funcional = 'Cargo comissionado extra-quadro' OR
+          vinculo = 'Comissionado INSS' OR
+          LOWER(vinculo) LIKE 'cargo comissionado%'
+        ) THEN 1 END) AS comissionados_externos
+      FROM fct_pessoal
+      WHERE ano = ${year}
+    `.execute(db);
+
+    const row = (res.rows as any[])?.[0];
+    const efetivosConfianca =
+      parseFloat(String(row?.efetivos_confianca ?? "0")) || 0;
+    const comissionadosExternos =
+      parseFloat(String(row?.comissionados_externos ?? "0")) || 0;
+    const totalConfianca = efetivosConfianca + comissionadosExternos;
+
+    if (totalConfianca > 0) {
+      return Number(((efetivosConfianca / totalConfianca) * 100).toFixed(1));
+    }
+  } catch {}
+  return null;
 }

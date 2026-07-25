@@ -48,3 +48,10 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 ## 6. FORMATAÇÃO SQL
 
 - **Sem alinhamento por espaços:** Nunca adicione espaços extras para alinhar colunas, aliases (`AS`) ou qualquer outro elemento em queries SQL de analytics (`analysis/`, `elt/`, `tests/`). Use apenas o espaço mínimo necessário para separar tokens.
+
+---
+
+## 7. GERENCIAMENTO DE DEPENDÊNCIAS (PINNED VERSIONS)
+
+- **Versões Exatas (Pinned Versions):** Sempre instale e declare versões exatas de pacotes e dependências (npm/pnpm/pip) nos arquivos de manifesto (`package.json`, `pyproject.toml`, etc.), **sem** prefixos de variação como `^` ou `~` (ex: `"nuqs": "2.9.1"`). Ao rodar instalações via CLI, utilize flags de versão exata (ex: `pnpm add --save-exact <pacote>`).
+

@@ -30,3 +30,14 @@ export function fmtPercent(value: number): string {
 export function fmtNumber(value: number): string {
   return new Intl.NumberFormat("pt-BR").format(value);
 }
+
+export function fmtDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "--/--/----";
+  const cleanStr = dateStr.split("T")[0];
+  const parts = cleanStr.split("-");
+  if (parts.length === 3 && parts[0].length === 4) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return dateStr;
+}

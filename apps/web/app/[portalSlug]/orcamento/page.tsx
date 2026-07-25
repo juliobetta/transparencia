@@ -14,11 +14,31 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function OrcamentoPage() {
-  const currentYear = 2025;
-  const items = await getExecucaoOrcamentaria(currentYear);
+interface OrcamentoPageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function OrcamentoPage({
+  params,
+  searchParams,
+}: OrcamentoPageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const items = await getExecucaoOrcamentaria(selectedYear, entidadesIds);
   const summary = summarizeExecucao(items);
-  const _funcional = await getOrcamentoFuncional(currentYear);
+  const _funcional = await getOrcamentoFuncional(selectedYear, entidadesIds);
 
   const funnelData = [
     { name: "Dotação Atualizada", value: summary.total_dotacao },
@@ -64,7 +84,8 @@ export default async function OrcamentoPage() {
         </h1>
         <p className="mt-1 text-sm text-subtleText">
           Acompanhamento do funil orçamentário por órgãos e funções de governo (
-          {currentYear})
+          {selectedYear}
+          {isCurrentYear ? " · parcial" : ""})
         </p>
       </div>
 

@@ -11,9 +11,29 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function SaudePage() {
-  const currentYear = 2025;
-  const saude = await getHistoriaSaude(currentYear);
+interface SaudePageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function SaudePage({
+  params,
+  searchParams,
+}: SaudePageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const saude = await getHistoriaSaude(selectedYear, entidadesIds);
 
   const emendasCols = [
     { header: "Nº", accessorKey: "Nº" as const },
@@ -41,7 +61,8 @@ export default async function SaudePage() {
         </h1>
         <p className="mt-1 text-sm text-subtleText">
           Execução orçamentária do Fundo Municipal de Saúde, emendas
-          parlamentares e medicamentos ({currentYear})
+          parlamentares e medicamentos ({selectedYear}
+          {isCurrentYear ? " · parcial" : ""})
         </p>
       </div>
 

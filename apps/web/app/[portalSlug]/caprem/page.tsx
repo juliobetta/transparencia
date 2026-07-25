@@ -9,9 +9,29 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function CapremPage() {
-  const currentYear = 2025;
-  const caprem = await getHistoriaCaprem(currentYear);
+interface CapremPageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function CapremPage({
+  params,
+  searchParams,
+}: CapremPageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const caprem = await getHistoriaCaprem(selectedYear, entidadesIds);
 
   const entidadesCols = [
     { header: "Entidade / Órgão", accessorKey: "entidade" as const },
@@ -43,7 +63,8 @@ export default async function CapremPage() {
         </h1>
         <p className="mt-1 text-sm text-subtleText">
           Acompanhamento dos repasses previdenciários e obrigações com a Caixa
-          de Aposentadoria e Pensões ({currentYear})
+          de Aposentadoria e Pensões ({selectedYear}
+          {isCurrentYear ? " · parcial" : ""})
         </p>
       </div>
 

@@ -12,9 +12,29 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function ReceitasPage() {
-  const currentYear = 2025;
-  const fontes = await getFontesReceita([currentYear]);
+interface ReceitasPageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function ReceitasPage({
+  params,
+  searchParams,
+}: ReceitasPageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const fontes = await getFontesReceita([selectedYear], entidadesIds);
   const rec = fontes[0] || {
     receita_propria: 0,
     transferencias_uniao: 0,
@@ -112,7 +132,8 @@ export default async function ReceitasPage() {
         </h1>
         <p className="mt-1 text-sm text-subtleText">
           Composição da arrecadação municipal e nível de dependência de
-          transferências externas
+          transferências externas ({selectedYear}
+          {isCurrentYear ? " · parcial" : ""})
         </p>
       </div>
 

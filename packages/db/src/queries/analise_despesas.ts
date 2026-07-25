@@ -211,9 +211,10 @@ export async function getTransacoesPesquisaveis(
   year: number,
   queryStr: string = "",
   limit: number = 500,
+  empresaIds?: string[] | null,
 ): Promise<TransacaoPesquisavel[]> {
   try {
-    let q;
+    let q: ReturnType<typeof sql>;
     if (queryStr.trim()) {
       const search = `%${queryStr.trim()}%`;
       q = sql`
@@ -224,9 +225,11 @@ export async function getTransacoesPesquisaveis(
         WHERE f.ano = ${year}
           AND (f.fornecedor_nome ILIKE ${search} OR f.descricao ILIKE ${search}
                OR COALESCE(d.orgao_nome, f.empresa_id) ILIKE ${search})
-        ORDER BY f.pago DESC
-        LIMIT ${limit}
       `;
+      if (empresaIds && empresaIds.length > 0) {
+        q = sql`${q} AND f.empresa_id = ANY(${empresaIds})`;
+      }
+      q = sql`${q} ORDER BY f.pago DESC LIMIT ${limit}`;
     } else {
       q = sql`
         SELECT f.data_empenho AS data, f.fornecedor_nome AS fornecedor, f.pago,
@@ -234,9 +237,11 @@ export async function getTransacoesPesquisaveis(
         FROM fct_despesas f
         LEFT JOIN dim_orgao d ON d.empresa_id = f.empresa_id
         WHERE f.ano = ${year}
-        ORDER BY f.pago DESC
-        LIMIT ${limit}
       `;
+      if (empresaIds && empresaIds.length > 0) {
+        q = sql`${q} AND f.empresa_id = ANY(${empresaIds})`;
+      }
+      q = sql`${q} ORDER BY f.pago DESC LIMIT ${limit}`;
     }
     const res = await q.execute(db);
     return ((res.rows as any[]) || []).map((r) => ({

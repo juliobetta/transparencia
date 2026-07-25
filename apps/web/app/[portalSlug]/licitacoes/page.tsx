@@ -15,12 +15,32 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function LicitacoesPage() {
-  const currentYear = 2025;
-  const gaps = await getLicitacaoGaps(currentYear);
-  const adesao = await getAdesaoDeAta(currentYear);
-  const anomalias = await getAnomaliasContratuais(currentYear);
-  const conc = await getConcentracaoFornecedores(currentYear);
+interface LicitacoesPageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function LicitacoesPage({
+  params,
+  searchParams,
+}: LicitacoesPageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const gaps = await getLicitacaoGaps(selectedYear, entidadesIds);
+  const adesao = await getAdesaoDeAta(selectedYear, entidadesIds);
+  const anomalias = await getAnomaliasContratuais(selectedYear, entidadesIds);
+  const conc = await getConcentracaoFornecedores(selectedYear, entidadesIds);
 
   const acimaLimiteGaps = gaps.filter((g) => g.acima_limite);
 
@@ -55,8 +75,9 @@ export default async function LicitacoesPage() {
           Licitações & Contratos
         </h1>
         <p className="mt-1 text-sm text-subtleText">
-          Monitoramento de contratações públicas, adespões a ata e fracionamento
-          de despesa ({currentYear})
+          Monitoramento de contratações públicas, adesões a ata e fracionamento
+          de despesa ({selectedYear}
+          {isCurrentYear ? " · parcial" : ""})
         </p>
       </div>
 

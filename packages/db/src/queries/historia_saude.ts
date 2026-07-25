@@ -35,8 +35,16 @@ export interface HistoriaSaudeResult {
 
 export async function getHistoriaSaude(
   year: number,
-  empresaId: string = SAUDE_EMPRESA,
+  empresaIds?: string[] | string | null,
 ): Promise<HistoriaSaudeResult> {
+  const targetEmpresas = Array.isArray(empresaIds)
+    ? empresaIds.length > 0
+      ? empresaIds
+      : [SAUDE_EMPRESA]
+    : typeof empresaIds === "string"
+      ? [empresaIds]
+      : [SAUDE_EMPRESA];
+
   const emendas: EmendaSaude[] = [];
   let emendas_total = 0;
 
@@ -46,7 +54,7 @@ export async function getHistoriaSaude(
              empenhado AS "Empenhado", autor AS "Autor", tipo_emenda AS "Tipo da Emenda",
              esfera_origem AS "Esfera de Origem", ato_normativo AS "Ato Normativo", destinacao AS "Destinação"
       FROM fct_emendas
-      WHERE ano = ${year} AND empresa_id = ${empresaId}
+      WHERE ano = ${year} AND empresa_id = ANY(${targetEmpresas})
     `.execute(db);
 
     const rowsE = (resE.rows as any[]) || [];
@@ -79,7 +87,7 @@ export async function getHistoriaSaude(
     const resB = await sql`
       SELECT empenhado, dotacao_atualizada
       FROM fct_despesas_por_orgao
-      WHERE ano = ${year} AND empresa = ${empresaId}
+      WHERE ano = ${year} AND empresa = ANY(${targetEmpresas})
     `.execute(db);
 
     let dot = 0;
@@ -104,7 +112,7 @@ export async function getHistoriaSaude(
     const resT = await sql`
       SELECT ano, SUM(CAST(REPLACE(empenhado, ',', '.') AS numeric)) AS empenhado
       FROM fct_despesas_por_orgao
-      WHERE empresa = ${empresaId}
+      WHERE empresa = ANY(${targetEmpresas})
       GROUP BY ano
       ORDER BY ano
     `.execute(db);

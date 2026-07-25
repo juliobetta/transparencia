@@ -16,12 +16,37 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function DespesasPage() {
-  const currentYear = 2025;
-  const metricas = await getMetricasGeraisDespesas(currentYear);
-  const _unidades = await getDespesasPorUnidade(currentYear);
-  const composicao = await getComposicaoDespesa(currentYear);
-  const transacoes = await getTransacoesPesquisaveis(currentYear, "", 50);
+interface DespesasPageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function DespesasPage({
+  params,
+  searchParams,
+}: DespesasPageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const metricas = await getMetricasGeraisDespesas(selectedYear, entidadesIds);
+  const _unidades = await getDespesasPorUnidade(selectedYear, entidadesIds);
+  const composicao = await getComposicaoDespesa(selectedYear, entidadesIds);
+  const transacoes = await getTransacoesPesquisaveis(
+    selectedYear,
+    "",
+    50,
+    entidadesIds,
+  );
 
   const chartData = composicao.map((c) => ({
     label: c.categoria,
@@ -49,7 +74,8 @@ export default async function DespesasPage() {
         </h1>
         <p className="mt-1 text-sm text-subtleText">
           Detalhamento de gastos públicos, liquidações e pagamentos (
-          {currentYear})
+          {selectedYear}
+          {isCurrentYear ? " · parcial" : ""})
         </p>
       </div>
 

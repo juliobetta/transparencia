@@ -27,6 +27,7 @@ export interface HistoriaCapremResult {
 
 export async function getHistoriaCaprem(
   year: number,
+  empresaIds?: string[] | null,
 ): Promise<HistoriaCapremResult> {
   const entidades: EntityCaprem[] = [];
   let annual_trend: AnnualTrendCaprem[] = [];
@@ -35,7 +36,7 @@ export async function getHistoriaCaprem(
   let total_pago = 0;
 
   try {
-    const resE = await sql`
+    let q = sql`
       SELECT o.orgao_nome AS entidade,
              SUM(CAST(REPLACE(f.empenhado, ',', '.') AS numeric)) AS empenhado,
              SUM(CAST(REPLACE(f.liquidado, ',', '.') AS numeric)) AS liquidado,
@@ -43,9 +44,15 @@ export async function getHistoriaCaprem(
       FROM fct_despesas_por_fornecedor f
       JOIN dim_orgao o ON o.empresa_id = f.empresa::text
       WHERE f.codigo = ${CAPREM_CODE} AND f.ano = ${year}
+    `;
+    if (empresaIds && empresaIds.length > 0) {
+      q = sql`${q} AND f.empresa = ANY(${empresaIds})`;
+    }
+    q = sql`${q}
       GROUP BY o.orgao_nome
       ORDER BY empenhado DESC NULLS LAST
-    `.execute(db);
+    `;
+    const resE = await q.execute(db);
 
     for (const r of (resE.rows as any[]) || []) {
       const emp = parseFloat(String(r.empenhado ?? "0")) || 0;

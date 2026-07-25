@@ -1,0 +1,283 @@
+import {
+  getExecucaoOrcamentaria,
+  getFolhaVsServicos,
+  getFontesReceita,
+  getLicitacaoGaps,
+  getPercentualChefiasEfetivas,
+  getPortalConfig,
+  getPosicaoFiscal,
+  summarizeExecucao,
+} from "@transparencia/db";
+import {
+  CardsSecundariosVisaoGeral,
+  DenseTable,
+  fmtCompact,
+  fmtPercent,
+  HeroFiscalCard,
+  PipelineExecucao,
+  toTitleCase,
+} from "@transparencia/ui";
+
+export const dynamic = "force-dynamic";
+
+interface VisaoGeralPageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function VisaoGeralPage({
+  params,
+  searchParams,
+}: VisaoGeralPageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const portalConfig = await getPortalConfig();
+  const cityName = portalConfig?.display_name || "Porciúncula";
+
+  const posicao = await getPosicaoFiscal(selectedYear, entidadesIds);
+  const execItems = await getExecucaoOrcamentaria(selectedYear, entidadesIds);
+  const execSummary = summarizeExecucao(execItems);
+  const _gaps = await getLicitacaoGaps(selectedYear, entidadesIds);
+  const fontes = await getFontesReceita([selectedYear], entidadesIds);
+  const fonte = fontes[0];
+  const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
+  const folha = folhaData[0] || { percentual_folha: 0 };
+  const folhaPct = Number((folha.percentual_folha || 0).toFixed(1));
+  const pctChefiasEfetivas = await getPercentualChefiasEfetivas(
+    selectedYear,
+    entidadesIds,
+  );
+
+  const totalArr = posicao.total_arrecadado || fonte?.total_arrecadado || 0;
+  const uniaoArr = fonte?.transferencias_uniao_arrecadado || 0;
+  const estadoArr = fonte?.transferencias_estado_arrecadado || 0;
+  const propriaArr =
+    fonte?.receita_propria_arrecadado ||
+    Math.max(0, totalArr - uniaoArr - estadoArr);
+
+  const uniaoPct = totalArr > 0 ? Math.round((uniaoArr / totalArr) * 100) : 0;
+  const estadoPct = totalArr > 0 ? Math.round((estadoArr / totalArr) * 100) : 0;
+  const propriaPct = totalArr > 0 ? Math.max(0, 100 - uniaoPct - estadoPct) : 0;
+
+  const realizationPct =
+    execSummary.total_dotacao > 0
+      ? Math.round((totalArr / execSummary.total_dotacao) * 100)
+      : 0;
+
+  const originBreakdown = [
+    {
+      label: "Transferências da União",
+      amountPerReal: `R$ ${(uniaoArr / (totalArr || 1)).toFixed(2).replace(".", ",")}`,
+      percentage: uniaoPct,
+      colorClass: "bg-blue-600",
+    },
+    {
+      label: "Transferências do Estado",
+      amountPerReal: `R$ ${(estadoArr / (totalArr || 1)).toFixed(2).replace(".", ",")}`,
+      percentage: estadoPct,
+      colorClass: "bg-sky-500",
+    },
+    {
+      label: "Receita Própria",
+      amountPerReal: `R$ ${(propriaArr / (totalArr || 1)).toFixed(2).replace(".", ",")}`,
+      percentage: propriaPct,
+      colorClass: "bg-emerald-600",
+    },
+  ];
+
+  const totalDotacao = execSummary.total_dotacao;
+  const totalEmpenhado = execSummary.total_empenhado;
+  const totalLiquidado = execSummary.total_liquidado;
+  const totalPago = execSummary.total_pago;
+
+  const empPct = totalDotacao > 0 ? (totalEmpenhado / totalDotacao) * 100 : 0;
+  const liqPct = totalDotacao > 0 ? (totalLiquidado / totalDotacao) * 100 : 0;
+  const pagPct = totalDotacao > 0 ? (totalPago / totalDotacao) * 100 : 0;
+
+  const pipelineStages = [
+    {
+      name: "Dotação",
+      formattedValue: fmtCompact(totalDotacao),
+      percentage: 100,
+      label: "100% autorizado",
+      color: "bg-blue-600",
+    },
+    {
+      name: "Empenhado",
+      formattedValue: fmtCompact(totalEmpenhado),
+      percentage: Number(empPct.toFixed(1)),
+      label: `${fmtPercent(empPct)} da dotação`,
+      color: "bg-indigo-600",
+    },
+    {
+      name: "Liquidado",
+      formattedValue: fmtCompact(totalLiquidado),
+      percentage: Number(liqPct.toFixed(1)),
+      label: `${fmtPercent(liqPct)} da dotação`,
+      color: "bg-sky-600",
+    },
+    {
+      name: "Pago",
+      formattedValue: fmtCompact(totalPago),
+      percentage: Number(pagPct.toFixed(1)),
+      label: `${fmtPercent(pagPct)} da dotação`,
+      color: "bg-emerald-600",
+    },
+  ];
+
+  const acimaLimiteCount = _gaps.filter((g) => g.acima_limite).length;
+  const saudeGapsCount = _gaps.filter((g) => g.orgao_saude).length;
+
+  const maxPendente = Math.max(
+    ...posicao.restos_pendentes.map((r) => r.pendente),
+    1,
+  );
+
+  const despesasCardData = {
+    title: "Despesas",
+    linkText: "Restos a pagar →",
+    linkHref: "/despesas",
+    totalRestosPagarFormatted: fmtCompact(posicao.restos_pendentes_total),
+    subtext: `pendentes a ${posicao.top_credores_adm_atual.length || 0} fornecedores`,
+    antiguidadeBars: posicao.restos_pendentes.map((r) => ({
+      year: String(r.ano),
+      amountFormatted: fmtCompact(r.pendente),
+      percentage: Math.round((r.pendente / maxPendente) * 100),
+    })),
+    footerText:
+      posicao.restos_pendentes_anteriores > 0
+        ? `Passivo anterior: ${fmtCompact(posicao.restos_pendentes_anteriores)}`
+        : "Sem pendências de anos anteriores",
+  };
+
+  const licitacoesCardData = {
+    title: "Licitações",
+    linkText: "Contratos →",
+    linkHref: "/licitacoes",
+    items: [
+      {
+        count: acimaLimiteCount,
+        label: "Acima do limite s/ licitação",
+        isAlert: acimaLimiteCount > 0,
+      },
+      {
+        count: _gaps.length,
+        label: "Contratos sem licitação registrados",
+      },
+      {
+        count: saudeGapsCount,
+        label: "Contratos no órgão de Saúde",
+      },
+    ],
+  };
+
+  const pessoalCardData = {
+    title: "Pessoal",
+    linkText: "Folha →",
+    linkHref: "/pessoal",
+    receitaFolhaPercentFormatted: fmtPercent(folhaPct),
+    receitaFolhaPercentValue: folhaPct,
+    subtext: "da receita comprometida com a folha",
+    lrfLimitPercentValue: 54,
+    lrfLimitPercentFormatted: "54% LRF",
+    footerText:
+      pctChefiasEfetivas !== null
+        ? `${pctChefiasEfetivas}% das chefias com servidores efetivos`
+        : "Sem dados de ocupação de chefias no período",
+  };
+
+  const credoresCols = [
+    { header: "Fornecedor", accessorKey: "Fornecedor" as const },
+    {
+      header: "Pendente",
+      accessorKey: "Pendente" as const,
+      align: "right" as const,
+      format: "currency" as const,
+    },
+  ];
+
+  const sanitizedCredores = posicao.top_credores_adm_atual.map((credor) => ({
+    ...credor,
+    Fornecedor: toTitleCase(credor.Fornecedor),
+  }));
+
+  const periodText = `VISÃO GERAL · EXERCÍCIO ${selectedYear}${isCurrentYear ? " (PARCIAL)" : ""}`;
+  const arrecadadoTitle = isCurrentYear
+    ? `Arrecadado no ano até agora ${cityName ? `· ${cityName}` : ""}`
+    : `Arrecadado no exercício ${cityName ? `· ${cityName}` : ""}`;
+
+  const heroHeadline = (
+    <>
+      De cada R$ 100 que entram no caixa,{" "}
+      <span className="text-[oklch(0.55_0.11_250)]">
+        apenas R$ {propriaPct}
+      </span>{" "}
+      a cidade arrecada sozinha.
+    </>
+  );
+
+  const heroSummary = isCurrentYear ? (
+    <p>
+      O município já recebeu <b>{fmtCompact(totalArr)}</b> em {selectedYear} —{" "}
+      <b>{realizationPct}%</b> do previsto para o ano. Quase todo esse dinheiro
+      vem de repasses da União e do Estado, o que torna as contas sensíveis a
+      decisões tomadas longe daqui.
+    </p>
+  ) : (
+    <p>
+      O município arrecadou <b>{fmtCompact(totalArr)}</b> em {selectedYear} —{" "}
+      <b>{realizationPct}%</b> do previsto para o exercício. Quase todo esse
+      dinheiro veio de repasses da União e do Estado, o que torna as contas
+      sensíveis a decisões tomadas longe daqui.
+    </p>
+  );
+
+  return (
+    <div className="mx-auto max-w-[1000px] space-y-9 px-10 py-8">
+      <HeroFiscalCard
+        cityName={cityName}
+        periodText={periodText}
+        headline={heroHeadline}
+        summary={heroSummary}
+        arrecadadoTitle={arrecadadoTitle}
+        totalArrecadado={posicao.total_arrecadado}
+        previstoTotal={execSummary.total_dotacao}
+        realizationPercent={realizationPct}
+        originBreakdown={originBreakdown}
+      />
+
+      <PipelineExecucao stages={pipelineStages} />
+
+      <CardsSecundariosVisaoGeral
+        despesas={despesasCardData}
+        licitacoes={licitacoesCardData}
+        pessoal={pessoalCardData}
+      />
+
+      {sanitizedCredores.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between border-[#1a1d21] border-t-2 pt-3">
+            <h3 className="font-bold font-serif text-ink text-xl">
+              Maiores Credores da Gestão Atual
+            </h3>
+            <span className="font-medium text-subtleText text-xs">
+              Restos a pagar acumulados até {selectedYear}
+            </span>
+          </div>
+          <DenseTable data={sanitizedCredores} columns={credoresCols} />
+        </div>
+      )}
+    </div>
+  );
+}

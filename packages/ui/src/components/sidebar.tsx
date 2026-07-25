@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   ExternalLink,
   FileText,
   HeartPulse,
@@ -16,6 +17,7 @@ import { usePathname } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
 import { cn } from "../utils/cn";
+import { fmtDate } from "../utils/formatters";
 import { MultiSelect, type MultiSelectOption } from "./multi-select";
 
 export interface NavGroup {
@@ -63,6 +65,27 @@ export interface SidebarProps {
   onExerciceChange?: (year: string) => void;
   selectedEntidades?: string[];
   onEntidadesChange?: (selectedIds: string[]) => void;
+  portalSlug?: string;
+}
+
+function buildNavUrl(
+  path: string,
+  slug: string,
+  exercice?: string,
+  entidades?: string[],
+): string {
+  const slugPrefix = slug ? `/${slug}` : "";
+  const basePath = path === "/" ? slugPrefix || "/" : `${slugPrefix}${path}`;
+
+  const params = new URLSearchParams();
+  if (exercice) {
+    params.set("ano", exercice);
+  }
+  if (entidades && entidades.length > 0) {
+    params.set("entidades", entidades.join(","));
+  }
+  const queryString = params.toString();
+  return queryString ? `${basePath}?${queryString}` : basePath;
 }
 
 export function Sidebar({
@@ -78,6 +101,7 @@ export function Sidebar({
   onExerciceChange,
   selectedEntidades,
   onEntidadesChange,
+  portalSlug = "porciuncula_prefeitura",
 }: SidebarProps) {
   const pathname = usePathname();
   const currentYear = new Date().getFullYear();
@@ -99,8 +123,8 @@ export function Sidebar({
 
   const displayTitle = portalTitle || `Contas de ${cityName}`;
 
-  // Gerar anos dinâmicos de 2025 até anoInicial
-  const maxYear = 2025;
+  // Gerar anos dinâmicos do ano atual até anoInicial
+  const maxYear = currentYear;
   const minYear = anoInicial ?? 2021;
   const years = Array.from(
     { length: Math.max(1, maxYear - minYear + 1) },
@@ -113,7 +137,18 @@ export function Sidebar({
       : `/${brasaoAsset}`
     : "/brasao-porciuncula.svg";
 
-  const displayExtractionDate = lastExtractionDate || "--/--/----";
+  const displayExtractionDate = fmtDate(lastExtractionDate);
+
+  const visaoGeralHref = buildNavUrl(
+    "/",
+    portalSlug,
+    currentExercice,
+    currentEntidades,
+  );
+  const isVisaoGeralActive =
+    pathname === "/" ||
+    pathname === `/${portalSlug}` ||
+    pathname === `/${portalSlug}/`;
 
   return (
     <aside className="sticky top-0 flex h-screen w-[266px] shrink-0 select-none flex-col justify-between border-borderLine border-r bg-white">
@@ -159,18 +194,24 @@ export function Sidebar({
               >
                 Exercício
               </label>
-              <select
-                id="exercice-select"
-                value={currentExercice}
-                onChange={(e) => handleExerciceChange(e.target.value)}
-                className="w-full rounded-md border border-borderLine bg-white px-2.5 py-1.5 text-ink text-xs shadow-sm focus:border-accent focus:outline-none"
-              >
-                {years.map((yr) => (
-                  <option key={yr} value={yr}>
-                    {yr}
-                  </option>
-                ))}
-              </select>
+              <div className="relative w-full">
+                <select
+                  id="exercice-select"
+                  value={currentExercice}
+                  onChange={(e) => handleExerciceChange(e.target.value)}
+                  className="w-full cursor-pointer appearance-none rounded-md border border-borderLine bg-white px-2.5 py-1.5 pr-8 font-medium text-ink text-xs shadow-sm transition-colors hover:border-gray-400 focus:border-[#1d64d8] focus:outline-none"
+                >
+                  {years.map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  strokeWidth={1.6}
+                  className="pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 text-mutedText"
+                />
+              </div>
             </div>
             <div>
               <span className="mb-1 block font-medium text-[11px] text-subtleText">
@@ -190,10 +231,10 @@ export function Sidebar({
           {/* Opção "Visão geral" isolada no topo sem cabeçalho de grupo */}
           <div>
             <Link
-              href="/"
+              href={visaoGeralHref}
               className={cn(
                 "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-xs transition-colors",
-                pathname === "/"
+                isVisaoGeralActive
                   ? "bg-[oklch(0.55_0.11_250)]/10 font-semibold text-[oklch(0.55_0.11_250)]"
                   : "text-subtleText hover:bg-gray-50 hover:text-ink",
               )}
@@ -202,7 +243,7 @@ export function Sidebar({
                 strokeWidth={1.6}
                 className={cn(
                   "h-4 w-4 shrink-0",
-                  pathname === "/"
+                  isVisaoGeralActive
                     ? "text-[oklch(0.55_0.11_250)]"
                     : "text-mutedText",
                 )}
@@ -218,12 +259,27 @@ export function Sidebar({
                 {group.label}
               </p>
               {group.items.map((item) => {
-                const isActive = pathname === item.href;
+                const targetPath = portalSlug
+                  ? `/${portalSlug}${item.href}`
+                  : item.href;
+                const isActive =
+                  pathname === item.href ||
+                  pathname === targetPath ||
+                  (pathname
+                    ? pathname.startsWith(targetPath) ||
+                      pathname.startsWith(item.href)
+                    : false);
+                const itemHref = buildNavUrl(
+                  item.href,
+                  portalSlug,
+                  currentExercice,
+                  currentEntidades,
+                );
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={itemHref}
                     className={cn(
                       "flex items-center gap-2.5 rounded-lg px-3 py-2 font-medium text-xs transition-colors",
                       isActive

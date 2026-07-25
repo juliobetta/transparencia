@@ -12,10 +12,30 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function PessoalPage() {
-  const currentYear = 2025;
-  const folhaData = await getFolhaVsServicos([currentYear]);
-  const decimo13 = await getExecucaoDecimoTerceiro(currentYear);
+interface PessoalPageProps {
+  params: Promise<{ portalSlug: string }>;
+  searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export default async function PessoalPage({
+  params,
+  searchParams,
+}: PessoalPageProps) {
+  const { portalSlug: _portalSlug } = await params;
+  const resolvedSearchParams = await searchParams;
+
+  const currentYear = new Date().getFullYear();
+  const selectedYear = resolvedSearchParams.ano
+    ? Number(resolvedSearchParams.ano)
+    : currentYear;
+  const entidadesIds = resolvedSearchParams.entidades
+    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
+    : undefined;
+
+  const isCurrentYear = selectedYear === currentYear;
+
+  const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
+  const decimo13 = await getExecucaoDecimoTerceiro(selectedYear, entidadesIds);
   const row = folhaData[0] || {
     total_folha: 0,
     total_pago: 0,
@@ -31,7 +51,8 @@ export default async function PessoalPage() {
         </h1>
         <p className="mt-1 text-sm text-subtleText">
           Despesas com folha de pagamento, cargos e limites da Lei de
-          Responsabilidade Fiscal ({currentYear})
+          Responsabilidade Fiscal ({selectedYear}
+          {isCurrentYear ? " · parcial" : ""})
         </p>
       </div>
 

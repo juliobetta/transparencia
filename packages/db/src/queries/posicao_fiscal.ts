@@ -103,7 +103,7 @@ export async function getPosicaoFiscal(
 
   const restos_pendentes: RestoPendente[] = [];
   try {
-    let q = sql`SELECT ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar'`;
+    let q = sql`SELECT ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano <= ${year}`;
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
     }
@@ -131,7 +131,7 @@ export async function getPosicaoFiscal(
       const pag = byYear[a].pago;
       restos_pendentes.push({
         ano: a,
-        administracao: a < 2025 ? "Adm. Anterior" : "Adm. Atual",
+        administracao: a < year ? "Adm. Anterior" : "Adm. Atual",
         empenhado: emp,
         pago: pag,
         pendente: emp - pag,
@@ -146,12 +146,12 @@ export async function getPosicaoFiscal(
     0,
   );
   const restos_pendentes_anteriores = restos_pendentes
-    .filter((r) => r.ano < 2025)
+    .filter((r) => r.ano < year)
     .reduce((acc, r) => acc + r.pendente, 0);
 
   let top_credores_adm_atual: TopCredor[] = [];
   try {
-    let qCred = sql`SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano >= 2025`;
+    let qCred = sql`SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano <= ${year}`;
     if (empresaIds && empresaIds.length > 0) {
       qCred = sql`${qCred} AND empresa_id = ANY(${empresaIds})`;
     }
@@ -164,7 +164,9 @@ export async function getPosicaoFiscal(
       const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
       const pend = emp - pag;
 
-      byDesc[desc] = (byDesc[desc] || 0) + pend;
+      if (pend > 0) {
+        byDesc[desc] = (byDesc[desc] || 0) + pend;
+      }
     }
 
     top_credores_adm_atual = Object.entries(byDesc)

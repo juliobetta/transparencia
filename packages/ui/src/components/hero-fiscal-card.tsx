@@ -19,6 +19,7 @@ export interface HeroFiscalCardProps {
   realizationPercent?: number;
   statusBadgeText?: string;
   originBreakdown?: OriginBreakdownItem[];
+  arrecadadoTitle?: string;
   className?: string;
 }
 
@@ -32,6 +33,7 @@ export function HeroFiscalCard({
   realizationPercent = 0,
   statusBadgeText,
   originBreakdown,
+  arrecadadoTitle,
   className,
 }: HeroFiscalCardProps) {
   const formattedTotal =
@@ -43,6 +45,16 @@ export function HeroFiscalCard({
     typeof previstoTotal === "number"
       ? fmtCompact(previstoTotal)
       : (previstoTotal ?? "R$ 0");
+
+  const displayHeadline =
+    headline ??
+    (cityName
+      ? `Panorama das contas públicas de ${cityName}`
+      : "Panorama das Contas Públicas");
+
+  const displaySummary =
+    summary ??
+    "Acompanhe em tempo real a arrecadação de receitas, aplicação dos recursos orçamentários, despesas detalhadas e indicadores fiscais do município.";
 
   return (
     <div
@@ -59,15 +71,15 @@ export function HeroFiscalCard({
           </span>
         )}
 
-        {headline && (
+        {displayHeadline && (
           <h1 className="font-bold font-serif text-2xl text-ink leading-tight tracking-tight sm:text-3xl lg:text-[32px]">
-            {headline}
+            {displayHeadline}
           </h1>
         )}
 
-        {summary && (
+        {displaySummary && (
           <div className="space-y-3 text-sm text-subtleText leading-relaxed sm:text-base">
-            {summary}
+            {displaySummary}
           </div>
         )}
       </div>
@@ -76,7 +88,8 @@ export function HeroFiscalCard({
       <div className="rounded-[14px] border border-[#e7e9ee] bg-white p-6 shadow-sm lg:col-span-5">
         <div className="mb-4 flex items-center justify-between gap-2">
           <span className="font-medium text-subtleText text-xs">
-            Arrecadado no ano até agora {cityName ? `· ${cityName}` : ""}
+            {arrecadadoTitle ||
+              `Arrecadado no ano até agora ${cityName ? `· ${cityName}` : ""}`}
           </span>
           {statusBadgeText && (
             <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 font-medium text-[11px] text-amber-800">
