@@ -1,7 +1,7 @@
 import { getMetricasGeraisDespesas, getDespesasPorUnidade, getComposicaoDespesa, getTransacoesPesquisaveis } from "@transparencia/db";
 import { KPICard, KPIGrid, SectionHeader, DenseTable, BarChartH, fmtCompact, fmtCurrency, fmtPercent } from "@transparencia/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function DespesasPage() {
   const currentYear = 2025;

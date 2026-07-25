@@ -1,7 +1,7 @@
 import { getFolhaVsServicos, getExecucaoDecimoTerceiro } from "@transparencia/db";
 import { KPICard, KPIGrid, SectionHeader, DenseTable, fmtCompact, fmtCurrency, fmtPercent } from "@transparencia/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function PessoalPage() {
   const currentYear = 2025;

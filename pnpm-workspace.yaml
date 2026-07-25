@@ -4,3 +4,5 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+minimumReleaseAgeExclude:
+  - postcss@8.5.23

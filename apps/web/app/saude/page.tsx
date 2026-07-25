@@ -1,7 +1,7 @@
 import { getHistoriaSaude } from "@transparencia/db";
 import { KPICard, KPIGrid, SectionHeader, AlertBox, DenseTable, fmtCompact, fmtCurrency, fmtPercent } from "@transparencia/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function SaudePage() {
   const currentYear = 2025;

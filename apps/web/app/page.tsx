@@ -1,7 +1,7 @@
 import { getPosicaoFiscal, getExecucaoOrcamentaria, summarizeExecucao, getLicitacaoGaps } from "@transparencia/db";
 import { KPICard, KPIGrid, SectionHeader, AlertBox, DenseTable, fmtCompact, fmtCurrency, fmtPercent, Badge } from "@transparencia/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function VisaoGeralPage() {
   const currentYear = 2025;

@@ -1,7 +1,7 @@
 import { getExecucaoOrcamentaria, summarizeExecucao, getOrcamentoFuncional } from "@transparencia/db";
 import { KPICard, KPIGrid, SectionHeader, DenseTable, FunnelWaterfall, fmtCompact, fmtCurrency, fmtPercent, Badge } from "@transparencia/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function OrcamentoPage() {
   const currentYear = 2025;

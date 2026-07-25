@@ -1,7 +1,7 @@
 import { getHistoriaCaprem } from "@transparencia/db";
 import { KPICard, KPIGrid, SectionHeader, DenseTable, fmtCompact, fmtCurrency } from "@transparencia/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function CapremPage() {
   const currentYear = 2025;

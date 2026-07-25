@@ -1,7 +1,7 @@
 import { getLicitacaoGaps, getAdesaoDeAta, getAnomaliasContratuais, getConcentracaoFornecedores } from "@transparencia/db";
 import { KPICard, KPIGrid, SectionHeader, AlertBox, DenseTable, Badge, fmtCompact, fmtCurrency } from "@transparencia/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function LicitacoesPage() {
   const currentYear = 2025;
