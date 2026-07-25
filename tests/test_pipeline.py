@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy import text
 
-import pipeline
+from elt.core import pipeline
 
 
 @pytest.fixture

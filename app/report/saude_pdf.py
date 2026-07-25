@@ -18,9 +18,9 @@ from fpdf.fonts import FontFace
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import db
 from app.analytics import historia_saude
-from config import PortalConfig
+from elt.core import db
+from elt.core.config import PortalConfig
 
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
 BRASAO_PATH = ASSETS_DIR / "brasao-porciuncula.svg"

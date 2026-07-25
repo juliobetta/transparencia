@@ -9,10 +9,9 @@ from jinja2 import Environment, FileSystemLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import constants
-import db
 from app.analytics import historia_saude
-from config import PortalConfig
+from elt.core import constants, db
+from elt.core.config import PortalConfig
 
 REPORTS_DIR = Path("reports")
 TEMPLATE_DIR = Path(__file__).parent

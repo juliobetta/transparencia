@@ -1,7 +1,7 @@
 import pytest
 
-import db
 from app.analytics.folha_vs_servicos import run
+from elt.core import db
 
 
 @pytest.fixture

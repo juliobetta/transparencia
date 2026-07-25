@@ -8,8 +8,6 @@ from jinja2 import Environment, FileSystemLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import constants
-import db
 from app import glossary
 from app.analytics import (
     adesao_de_ata,
@@ -21,8 +19,9 @@ from app.analytics import (
     tendencias_anuais,
 )
 from app.analytics.constants import THRESHOLD_COMPRAS_SERVICOS, THRESHOLD_OBRAS_ENGENHARIA, THRESHOLD_VEICULOS
-from config import PortalConfig
-from db import get_metadata
+from elt.core import constants, db
+from elt.core.config import PortalConfig
+from elt.core.db import get_metadata
 
 ANO_INICIAL = 2021
 

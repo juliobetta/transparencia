@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-import db
 from app.analytics.historia_caprem import run
+from elt.core import db
 
 
 @pytest.fixture

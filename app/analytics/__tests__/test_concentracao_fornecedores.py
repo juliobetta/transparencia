@@ -1,7 +1,7 @@
 import pytest
 
-import db
 from app.analytics.concentracao_fornecedores import hhi_por_ano, run
+from elt.core import db
 
 
 @pytest.fixture

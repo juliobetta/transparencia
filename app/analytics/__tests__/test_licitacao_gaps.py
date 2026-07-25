@@ -1,7 +1,7 @@
 import pytest
 
-import db
 from app.analytics.licitacao_gaps import counts_by_year, run, totals_sem_licitacao_por_ano
+from elt.core import db
 
 SAUDE_EMPRESA = "2"
 

@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-import db
 from app.analytics.execucao_orcamentaria import run, summarize, summarize_by_year
+from elt.core import db
 
 
 @pytest.fixture

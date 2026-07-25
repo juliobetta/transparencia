@@ -4,16 +4,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import constants
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from jinja2 import Environment, FileSystemLoader
 
-import db
 from app import glossary
 from app.analytics.comparacao import PeriodSpec, run
-from config import PortalConfig
+from elt.core import constants, db
+from elt.core.config import PortalConfig
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
 TEMPLATE_DIR = Path(__file__).parent

@@ -1,6 +1,5 @@
 import pytest
 
-import db
 from app.analytics.analise_despesas import (
     get_analise_intensidade_pessoal,
     get_despesas_por_unidade,
@@ -16,6 +15,7 @@ from app.analytics.analise_despesas import (
     get_transacoes_pesquisaveis,
     total_folha_orgao_por_ano,
 )
+from elt.core import db
 
 
 @pytest.fixture
@@ -210,7 +210,7 @@ def test_total_folha_orgao_por_ano(conn):
 
 def test_get_analise_intensidade_pessoal(conn):
     # Inserir dados de despesas gerais para teste
-    import db
+    from elt.core import db
 
     db.upsert(
         conn,
@@ -256,7 +256,7 @@ def test_get_analise_intensidade_pessoal(conn):
 
 def test_get_perfil_cargos_confianca(conn):
     # Inserir dados na tabela pessoal para teste
-    import db
+    from elt.core import db
 
     db.upsert(
         conn,

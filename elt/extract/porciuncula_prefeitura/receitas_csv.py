@@ -22,7 +22,7 @@ from playwright.sync_api import sync_playwright
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config import PortalConfig as _PortalConfig  # noqa: E402
+from elt.core.config import PortalConfig as _PortalConfig  # noqa: E402
 
 _portal_cfg = _PortalConfig.load()
 BASE_URL: str = _portal_cfg.portal_url

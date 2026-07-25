@@ -1,7 +1,7 @@
 import pytest
 
-import db
 from app.analytics.historia_saude import run
+from elt.core import db
 
 SAUDE = "2"
 OTHER = "7"
@@ -288,7 +288,7 @@ def test_licitacao_gaps_dispensa_nao_isento(conn):
 
 
 def test_licitacao_gaps_consorcio_e_rateio_sao_isentos(conn):
-    import db
+    from elt.core import db
 
     db.upsert(
         conn,
@@ -330,7 +330,7 @@ def test_licitacao_gaps_consorcio_e_rateio_sao_isentos(conn):
 
 
 def test_licitacao_gaps_inexigibilidade_e_isento(conn):
-    import db
+    from elt.core import db
 
     db.upsert(
         conn,

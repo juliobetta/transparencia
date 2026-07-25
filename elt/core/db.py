@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.engine import Connection, Engine
 from sqlmodel import create_engine
 
-from config import PortalConfig
+from elt.core.config import PortalConfig
 
 _engine: Engine | None = None
 _table_cache: dict[tuple[str, str], Table] = {}
@@ -61,12 +61,10 @@ def upsert(db: Connectable, table_name: str, rows: list[dict], key_cols: list[st
     filtered = [r for r in filtered if r and all(r.get(k) is not None for k in key_cols)]
     if not filtered:
         return 0
-    # Deduplicate by PK within the batch (last row wins, matching INSERT OR REPLACE behaviour).
     seen: dict[tuple, dict] = {}
     for r in filtered:
         seen[tuple(r.get(k) for k in key_cols)] = r
     filtered = list(seen.values())
-    # Normalise all rows to the same key set so SQLAlchemy can build a uniform multi-row VALUES clause.
     all_cols = {k for r in filtered for k in r}
     filtered = [{k: r.get(k) for k in all_cols} for r in filtered]
     stmt = pg_insert(table).values(filtered)
@@ -97,12 +95,5 @@ def get_metadata(db: Connectable, key: str, portal_slug: str) -> str | None:
     return row[0] if row else None
 
 
-def get_empresas(conn: Connectable) -> dict[str, str]:
-    """Retorna {id_str: nome} das entidades cadastradas no banco."""
-    query = text("SELECT empresa_id, orgao_nome FROM dim_orgao ORDER BY empresa_id")
-    if isinstance(conn, Engine):
-        with conn.connect() as c:
-            rows = c.execute(query).fetchall()
-    else:
-        rows = conn.execute(query).fetchall()
-    return {str(row[0]): row[1] for row in rows}
+def get_empresas(_conn: Connectable | None = None) -> dict[str, str]:
+    return PortalConfig.load().load_orgaos()

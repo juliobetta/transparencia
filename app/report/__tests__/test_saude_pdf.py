@@ -1,7 +1,7 @@
 import pytest
 
-import db
 from app.report.saude_pdf import generate
+from elt.core import db
 
 SAUDE = "2"
 

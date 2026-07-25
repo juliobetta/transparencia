@@ -1,4 +1,4 @@
-import db
+from elt.core import db
 
 
 def test_create_tables_creates_expected_tables(conn):

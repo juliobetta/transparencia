@@ -1,7 +1,7 @@
 import pytest
 
-import db
 from app.analytics.fontes_receita import run
+from elt.core import db
 
 
 @pytest.fixture

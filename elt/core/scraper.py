@@ -37,7 +37,6 @@ class FlareSolverrClient:
         resp.raise_for_status()
         result = cast(dict[str, Any], resp.json())
         if result["status"] == "error":
-            # Check if it's a transient server error
             if "500" in str(result.get("message", "")):
                 raise requests.HTTPError("FlareSolverr reported 500 error")
         return result
@@ -54,8 +53,6 @@ class FlareSolverrClient:
 
                 body = result["solution"]["response"]
 
-                # FlareSolverr returns browser-rendered HTML; JSON APIs get wrapped in <pre>
-                # Extract the raw text from HTML wrapper if it's there
                 if body.lstrip().startswith("<"):
                     extractor = cls._TextExtractor()
                     extractor.feed(body)
@@ -63,8 +60,6 @@ class FlareSolverrClient:
                 else:
                     extracted_body = body
 
-                # If the extracted text is empty or doesn't look like JSON (starts with [ or {),
-                # it's likely an HTML error page or server-side exception page.
                 stripped_body = extracted_body.lstrip()
                 if not stripped_body or not (stripped_body.startswith("[") or stripped_body.startswith("{")):
                     raise RuntimeError(
@@ -82,7 +77,6 @@ class FlareSolverrClient:
                 logger.error("All %d attempts failed for %s", max_attempts, url)
                 raise
 
-        # Parse JSON
         try:
             return cast(list[dict[str, Any]], json.loads(body))
         except json.JSONDecodeError:

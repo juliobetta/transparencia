@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-import db
 from app.analytics.comparacao import PeriodSpec, _delta, _filter_months, run
+from elt.core import db
 
 
 def test_period_spec_fields():

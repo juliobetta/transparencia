@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Optional
 from urllib.parse import urlencode
 
-from scraper import fetch
+from elt.core.scraper import fetch
 
 
 @dataclass

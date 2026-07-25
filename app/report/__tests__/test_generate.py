@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-import db
 from app.report.generate import generate
+from elt.core import db
 
 
 @pytest.fixture
