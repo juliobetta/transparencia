@@ -31,7 +31,7 @@ export async function getFolhaVsServicos(
         await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(
           db,
         );
-      for (const r of (resF.rows as any[]) || []) {
+      for (const r of (resF.rows as Record<string, unknown>[]) || []) {
         totalFolha +=
           parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
       }
@@ -44,7 +44,7 @@ export async function getFolhaVsServicos(
         qP = sql`${qP} AND empresa = ANY(${empresaIds})`;
       }
       const resP = await qP.execute(db);
-      for (const r of (resP.rows as any[]) || []) {
+      for (const r of (resP.rows as Record<string, unknown>[]) || []) {
         totalPago += parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
@@ -78,8 +78,14 @@ export async function getExecucaoDecimoTerceiro(
         SUM(CAST(REPLACE(pago, ',', '.') AS numeric)) as pago
       FROM fct_despesas
       WHERE ano = ${year}
-        AND elemento IN ('01', '03', '11', '96')
-        AND (descricao ILIKE '%13%' OR descricao ILIKE '%decimo terceiro%' OR descricao ILIKE '%décimo terceiro%')
+        AND (
+          descricao ILIKE '%13%' OR
+          descricao ILIKE '%decimo terceiro%' OR
+          descricao ILIKE '%décimo terceiro%' OR
+          historico ILIKE '%13%' OR
+          historico ILIKE '%decimo terceiro%' OR
+          historico ILIKE '%décimo terceiro%'
+        )
         AND descricao NOT ILIKE '%anula%'
         AND descricao NOT ILIKE '%136%'
         AND descricao NOT ILIKE '%137%'
@@ -92,7 +98,7 @@ export async function getExecucaoDecimoTerceiro(
     }
     const res = await q.execute(db);
 
-    const r = (res.rows as any[])?.[0];
+    const r = (res.rows as Record<string, unknown>[])?.[0];
     if (!r || r.empenhado_bruto === null || r.empenhado_bruto === undefined)
       return null;
 
@@ -111,6 +117,92 @@ export async function getExecucaoDecimoTerceiro(
     };
   } catch {
     return null;
+  }
+}
+
+export interface SalaryBin {
+  faixa: string;
+  min: number;
+  max: number;
+  count: number;
+}
+
+export async function getDistribuicaoProventos(
+  year: number,
+): Promise<SalaryBin[]> {
+  try {
+    const res = await sql`
+      SELECT proventos
+      FROM fct_pessoal
+      WHERE ano = ${year}
+    `.execute(db);
+
+    const values: number[] = [];
+    for (const r of (res.rows as Record<string, unknown>[]) || []) {
+      const v = parseFloat(String(r.proventos ?? "0").replace(",", "."));
+      if (!Number.isNaN(v) && v > 0) {
+        values.push(v);
+      }
+    }
+
+    const BINS = [
+      { faixa: "R$ 0 - 2,5k", min: 0, max: 2500 },
+      { faixa: "R$ 2,5k - 5k", min: 2500, max: 5000 },
+      { faixa: "R$ 5k - 7,5k", min: 5000, max: 7500 },
+      { faixa: "R$ 7,5k - 10k", min: 7500, max: 10000 },
+      { faixa: "R$ 10k - 12,5k", min: 10000, max: 12500 },
+      { faixa: "R$ 12,5k - 15k", min: 12500, max: 15000 },
+      { faixa: "R$ 15k - 17,5k", min: 15000, max: 17500 },
+      { faixa: "R$ 17,5k - 20k", min: 17500, max: 20000 },
+      { faixa: "> R$ 20k", min: 20000, max: Infinity },
+    ];
+
+    const counts = BINS.map((b) => ({ ...b, count: 0 }));
+    for (const val of values) {
+      for (const b of counts) {
+        if (val >= b.min && (val < b.max || b.max === Infinity)) {
+          b.count += 1;
+          break;
+        }
+      }
+    }
+
+    return counts;
+  } catch {
+    return [];
+  }
+}
+
+export interface DepartmentalPayrollItem {
+  descricao: string;
+  pago: number;
+}
+
+export async function getDepartmentalPayroll(
+  year: number,
+  empresaIds?: string[] | null,
+): Promise<DepartmentalPayrollItem[]> {
+  try {
+    let q = sql`
+      SELECT
+        descricao,
+        SUM(CAST(REPLACE(pago, ',', '.') AS numeric)) as total_pago
+      FROM fct_despesas_por_fornecedor
+      WHERE ano = ${year}
+        AND (descricao ~* ' E OUT(ROS?|\\.)' OR descricao ILIKE '%E OUTROS%' OR descricao ILIKE '%E OUTRO%')
+    `;
+    if (empresaIds && empresaIds.length > 0) {
+      q = sql`${q} AND empresa = ANY(${empresaIds})`;
+    }
+    q = sql`${q} GROUP BY descricao ORDER BY total_pago DESC`;
+
+    const res = await q.execute(db);
+    return (res.rows as Record<string, unknown>[]).map((r) => ({
+      descricao: String(r.descricao || ""),
+      pago: parseFloat(String(r.total_pago ?? "0")) || 0,
+    }));
+  } catch {
+    return [];
   }
 }
 
@@ -135,7 +227,7 @@ export async function getPercentualChefiasEfetivas(
       WHERE ano = ${year}
     `.execute(db);
 
-    const row = (res.rows as any[])?.[0];
+    const row = (res.rows as Record<string, unknown>[])?.[0];
     const efetivosConfianca =
       parseFloat(String(row?.efetivos_confianca ?? "0")) || 0;
     const comissionadosExternos =

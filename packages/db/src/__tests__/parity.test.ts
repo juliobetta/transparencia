@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   getAdesaoDeAta,
   getConcentracaoFornecedores,
+  getDepartmentalPayroll,
   getDistribucaoModalidades,
+  getDistribuicaoProventos,
   getEntidades,
+  getExecucaoDecimoTerceiro,
   getExecucaoOrcamentaria,
   getFontesReceita,
   getImpactoGastosLocais,
@@ -108,5 +111,21 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
       year: TEST_YEAR,
     });
     expect(Array.isArray(beneficiarios)).toBe(true);
+  });
+
+  it("deve buscar execução do 13º salário, distribuição de proventos e folha departamental", async () => {
+    const decimoTerceiro = await getExecucaoDecimoTerceiro(TEST_YEAR);
+    if (decimoTerceiro) {
+      expect(typeof decimoTerceiro.empenhado).toBe("number");
+      expect(typeof decimoTerceiro.pago).toBe("number");
+      expect(typeof decimoTerceiro.pctPago).toBe("number");
+    }
+
+    const distProventos = await getDistribuicaoProventos(TEST_YEAR);
+    expect(Array.isArray(distProventos)).toBe(true);
+    expect(distProventos.length).toBe(9);
+
+    const departmental = await getDepartmentalPayroll(TEST_YEAR);
+    expect(Array.isArray(departmental)).toBe(true);
   });
 });
