@@ -58,6 +58,13 @@ export interface ResumoDiarias {
   mediaReembolso: number;
 }
 
+export interface BeneficiarioDiaria {
+  favorecido: string;
+  cargo: string | null;
+  valor: number;
+  viagens: number;
+}
+
 export interface TransacaoPesquisavel {
   data: string;
   fornecedor: string;
@@ -80,12 +87,17 @@ export interface ComposicaoDespesa {
   pago: number;
 }
 
-async function sumColWhere(
-  table: string,
-  col: string,
-  year: number,
-  empresaIds?: string[] | null,
-): Promise<number> {
+async function sumColWhere({
+  table,
+  col,
+  year,
+  empresaIds,
+}: {
+  table: string;
+  col: string;
+  year: number;
+  empresaIds?: string[] | null;
+}): Promise<number> {
   try {
     let q = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year}`;
     if (empresaIds && empresaIds.length > 0) {
@@ -107,24 +119,24 @@ export async function getMetricasGeraisDespesas(
   year: number,
   empresaIds?: string[] | null,
 ): Promise<MetricasDespesas> {
-  const empenhado = await sumColWhere(
-    "fct_despesas_por_unidade",
-    "empenhado",
+  const empenhado = await sumColWhere({
+    table: "fct_despesas_por_unidade",
+    col: "empenhado",
     year,
     empresaIds,
-  );
-  const liquidado = await sumColWhere(
-    "fct_despesas_por_unidade",
-    "liquidado",
+  });
+  const liquidado = await sumColWhere({
+    table: "fct_despesas_por_unidade",
+    col: "liquidado",
     year,
     empresaIds,
-  );
-  const pago = await sumColWhere(
-    "fct_despesas_por_unidade",
-    "pago",
+  });
+  const pago = await sumColWhere({
+    table: "fct_despesas_por_unidade",
+    col: "pago",
     year,
     empresaIds,
-  );
+  });
 
   return {
     empenhado,
@@ -192,9 +204,13 @@ export async function getDespesasPorUnidade(
 export async function getResumoDiarias(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug?: string | null,
 ): Promise<ResumoDiarias> {
   try {
     let q = sql`SELECT valor, favorecido FROM fct_diarias WHERE ano = ${year}`;
+    if (portalSlug) {
+      q = sql`${q} AND portal_slug = ${portalSlug}`;
+    }
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
     }
@@ -223,12 +239,82 @@ export async function getResumoDiarias(
   }
 }
 
-export async function getTransacoesPesquisaveis(
-  year: number,
-  queryStr: string = "",
-  limit: number = 500,
-  empresaIds?: string[] | null,
-): Promise<TransacaoPesquisavel[]> {
+export interface GetBeneficiariosDiariasParams {
+  year: number;
+  limit?: number;
+  empresaIds?: string[] | null;
+  portalSlug?: string | null;
+}
+
+export async function getPrincipaisBeneficiariosDiarias({
+  year,
+  limit = 10,
+  empresaIds,
+  portalSlug,
+}: GetBeneficiariosDiariasParams): Promise<BeneficiarioDiaria[]> {
+  try {
+    let q = sql`
+      SELECT favorecido, cargo, valor
+      FROM fct_diarias
+      WHERE ano = ${year}
+    `;
+    if (portalSlug) {
+      q = sql`${q} AND portal_slug = ${portalSlug}`;
+    }
+    if (empresaIds && empresaIds.length > 0) {
+      q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
+    }
+    const res = await q.execute(db);
+    const rows = (res.rows as any[]) || [];
+    if (rows.length === 0) return [];
+
+    const map = new Map<
+      string,
+      {
+        favorecido: string;
+        cargo: string | null;
+        valor: number;
+        viagens: number;
+      }
+    >();
+
+    for (const r of rows) {
+      const fav = String(r.favorecido || "").trim();
+      if (!fav) continue;
+      const cargo = r.cargo ? String(r.cargo).trim() : null;
+      const key = `${fav}||${cargo ?? ""}`;
+      const v = parseFloat(String(r.valor ?? "0").replace(",", ".")) || 0;
+
+      const existing = map.get(key);
+      if (existing) {
+        existing.valor += v;
+        existing.viagens += 1;
+      } else {
+        map.set(key, { favorecido: fav, cargo, valor: v, viagens: 1 });
+      }
+    }
+
+    return Array.from(map.values())
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+export interface GetTransacoesPesquisaveisParams {
+  year: number;
+  queryStr?: string;
+  limit?: number;
+  empresaIds?: string[] | null;
+}
+
+export async function getTransacoesPesquisaveis({
+  year,
+  queryStr = "",
+  limit = 500,
+  empresaIds,
+}: GetTransacoesPesquisaveisParams): Promise<TransacaoPesquisavel[]> {
   try {
     let q: ReturnType<typeof sql>;
     if (queryStr.trim()) {

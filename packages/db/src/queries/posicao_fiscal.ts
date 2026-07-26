@@ -51,13 +51,19 @@ function sanitizeDescricao(s: string): string {
   return s.trim().replace(/^\d{2}\.\d{3}\.\d{3}\s+/, "");
 }
 
-async function sumVarcharCol(
-  table: string,
-  col: string,
-  year: number,
-  whereExtra: string = "",
-  empresaIds?: string[] | null,
-): Promise<number> {
+async function sumVarcharCol({
+  table,
+  col,
+  year,
+  whereExtra = "",
+  empresaIds,
+}: {
+  table: string;
+  col: string;
+  year: number;
+  whereExtra?: string;
+  empresaIds?: string[] | null;
+}): Promise<number> {
   try {
     let query = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year} ${sql.raw(whereExtra)}`;
     if (empresaIds && empresaIds.length > 0) {
@@ -87,20 +93,19 @@ export async function getPosicaoFiscal(
   const revDf = await getFontesReceita([year], empresaIds);
   const totalArrecadado = revDf.length > 0 ? revDf[0].totalArrecadado : 0;
 
-  const despesasPagas = await sumVarcharCol(
-    "fct_despesas_por_orgao",
-    "pago",
+  const despesasPagas = await sumVarcharCol({
+    table: "fct_despesas_por_orgao",
+    col: "pago",
     year,
-    "",
     empresaIds,
-  );
-  const restosPagosNoAno = await sumVarcharCol(
-    "fct_despesas",
-    "pago",
+  });
+  const restosPagosNoAno = await sumVarcharCol({
+    table: "fct_despesas",
+    col: "pago",
     year,
-    "AND fonte = 'restos_a_pagar'",
+    whereExtra: "AND fonte = 'restos_a_pagar'",
     empresaIds,
-  );
+  });
 
   const restosPendentes: RestoPendente[] = [];
   try {

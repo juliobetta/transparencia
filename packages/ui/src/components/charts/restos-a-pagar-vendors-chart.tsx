@@ -54,7 +54,7 @@ export function RestosAPagarVendorsChart({
               <div className="w-1/3 truncate font-medium text-ink">
                 {toTitleCase(item.fornecedor)}
               </div>
-              <div className="flex h-5 flex-1 items-center overflow-hidden rounded-lg bg-[#F0F2F5]">
+              <div className="flex h-5 flex-1 items-center overflow-hidden rounded-lg">
                 <div
                   className="h-full rounded-lg transition-all duration-300"
                   style={{

@@ -42,7 +42,7 @@ export function GastoPorFuncaoBars({ items, maxVal }: GastoPorFuncaoBarsProps) {
             <span className="w-32 shrink-0 truncate font-semibold text-ink">
               {item.funcao}
             </span>
-            <div className="h-4 flex-1 overflow-hidden rounded-full bg-[#eef0f4]">
+            <div className="h-4 flex-1 overflow-hidden rounded-full">
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-500",

@@ -68,12 +68,17 @@ export interface SidebarProps {
   portalSlug?: string;
 }
 
-function buildNavUrl(
-  path: string,
-  slug: string,
-  exercice?: string,
-  entidades?: string[],
-): string {
+function buildNavUrl({
+  path,
+  slug,
+  exercice,
+  entidades,
+}: {
+  path: string;
+  slug: string;
+  exercice?: string;
+  entidades?: string[];
+}): string {
   const slugPrefix = slug ? `/${slug}` : "";
   const basePath = path === "/" ? slugPrefix || "/" : `${slugPrefix}${path}`;
 
@@ -139,12 +144,12 @@ export function Sidebar({
 
   const displayExtractionDate = fmtDate(lastExtractionDate);
 
-  const visaoGeralHref = buildNavUrl(
-    "/",
-    portalSlug,
-    currentExercice,
-    currentEntidades,
-  );
+  const visaoGeralHref = buildNavUrl({
+    path: "/",
+    slug: portalSlug,
+    exercice: currentExercice,
+    entidades: currentEntidades,
+  });
   const isVisaoGeralActive =
     pathname === "/" ||
     pathname === `/${portalSlug}` ||
@@ -269,12 +274,12 @@ export function Sidebar({
                     ? pathname.startsWith(targetPath) ||
                       pathname.startsWith(item.href)
                     : false);
-                const itemHref = buildNavUrl(
-                  item.href,
-                  portalSlug,
-                  currentExercice,
-                  currentEntidades,
-                );
+                const itemHref = buildNavUrl({
+                  path: item.href,
+                  slug: portalSlug,
+                  exercice: currentExercice,
+                  entidades: currentEntidades,
+                });
                 const Icon = item.icon;
                 return (
                   <Link

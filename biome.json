@@ -33,6 +33,14 @@
     "enabled": true,
     "rules": {
       "preset": "recommended",
+      "complexity": {
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 3
+          }
+        }
+      },
       "style": {
         "useImportType": "warn"
       },

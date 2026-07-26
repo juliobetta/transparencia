@@ -24,13 +24,19 @@ export interface FontesReceitaRecord {
 
 const INTRA_PREFIXES = ["17", "27"];
 
-async function sumColumn(
-  tipoReceita: string,
-  col: "previsao_atualizada" | "arrecadado",
-  year: number,
-  rootOnly: boolean = false,
-  empresaIds?: string[] | null,
-): Promise<number> {
+async function sumColumn({
+  tipoReceita,
+  col,
+  year,
+  rootOnly = false,
+  empresaIds,
+}: {
+  tipoReceita: string;
+  col: "previsao_atualizada" | "arrecadado";
+  year: number;
+  rootOnly?: boolean;
+  empresaIds?: string[] | null;
+}): Promise<number> {
   let query = sql`
     SELECT ${sql.ref(col)} AS val
     FROM fct_receitas t
@@ -83,50 +89,50 @@ export async function getFontesReceita(
   const records: FontesReceitaRecord[] = [];
 
   for (const year of years) {
-    const totalPrevisto = await sumColumn(
-      "orcamentaria",
-      "previsao_atualizada",
+    const totalPrevisto = await sumColumn({
+      tipoReceita: "orcamentaria",
+      col: "previsao_atualizada",
       year,
-      true,
+      rootOnly: true,
       empresaIds,
-    );
-    const totalArrecadado = await sumColumn(
-      "orcamentaria",
-      "arrecadado",
+    });
+    const totalArrecadado = await sumColumn({
+      tipoReceita: "orcamentaria",
+      col: "arrecadado",
       year,
-      true,
+      rootOnly: true,
       empresaIds,
-    );
+    });
 
-    const uniaoPrevisto = await sumColumn(
-      "uniao",
-      "previsao_atualizada",
+    const uniaoPrevisto = await sumColumn({
+      tipoReceita: "uniao",
+      col: "previsao_atualizada",
       year,
-      true,
+      rootOnly: true,
       empresaIds,
-    );
-    const uniaoArrecadado = await sumColumn(
-      "uniao",
-      "arrecadado",
+    });
+    const uniaoArrecadado = await sumColumn({
+      tipoReceita: "uniao",
+      col: "arrecadado",
       year,
-      true,
+      rootOnly: true,
       empresaIds,
-    );
+    });
 
-    const estadoPrevisto = await sumColumn(
-      "estado",
-      "previsao_atualizada",
+    const estadoPrevisto = await sumColumn({
+      tipoReceita: "estado",
+      col: "previsao_atualizada",
       year,
-      true,
+      rootOnly: true,
       empresaIds,
-    );
-    const estadoArrecadado = await sumColumn(
-      "estado",
-      "arrecadado",
+    });
+    const estadoArrecadado = await sumColumn({
+      tipoReceita: "estado",
+      col: "arrecadado",
       year,
-      true,
+      rootOnly: true,
       empresaIds,
-    );
+    });
 
     const propriaPrevisto = Math.max(
       0,

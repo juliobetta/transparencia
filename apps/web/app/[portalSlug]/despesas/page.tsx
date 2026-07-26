@@ -3,15 +3,20 @@ import {
   getDespesasPorUnidade,
   getImpactoGastosLocais,
   getPortalConfig,
+  getPrincipaisBeneficiariosDiarias,
   getRestosAPagarResumo,
+  getResumoDiarias,
 } from "@transparencia/db";
 import {
+  BarChartH,
   DonutGastosLocais,
   fmtCompact,
+  fmtCurrency,
   fmtPercent,
   KPICard,
   KPIGrid,
   RestosAPagarVendorsChart,
+  toTitleCase,
   UnidadesGastosChart,
 } from "@transparencia/ui";
 
@@ -55,6 +60,17 @@ export default async function DespesasPage({
     selectedYear,
     entidadesIds,
   );
+  const diariasResumo = await getResumoDiarias(
+    selectedYear,
+    entidadesIds,
+    portalSlug,
+  );
+  const diariasBeneficiarios = await getPrincipaisBeneficiariosDiarias({
+    year: selectedYear,
+    limit: 10,
+    empresaIds: entidadesIds,
+    portalSlug,
+  });
 
   // HHI text status
   const hhiVal = Math.round(concentracao.hhi || 0);
@@ -142,6 +158,48 @@ export default async function DespesasPage({
 
         {despesasUnidades.length > 0 && (
           <UnidadesGastosChart items={despesasUnidades.slice(0, 10)} />
+        )}
+
+        <hr className="border-borderLine" />
+
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold font-serif text-ink text-xl">
+            Diárias e Auxílios de Viagem a Serviço
+          </h3>
+          <span className="font-medium text-subtleText text-xs">
+            gastos com reembolsos de viagem e diárias a servidores
+          </span>
+        </div>
+
+        <KPIGrid columns={3}>
+          <KPICard
+            title="Total pago em diárias"
+            value={fmtCurrency(diariasResumo.totalValor)}
+          />
+          <KPICard
+            title="Servidores beneficiários"
+            value={diariasResumo.totalViajantes}
+          />
+          <KPICard
+            title="Média por viagem"
+            value={fmtCurrency(diariasResumo.mediaReembolso)}
+          />
+        </KPIGrid>
+
+        {diariasBeneficiarios.length > 0 && (
+          <div className="space-y-4 rounded-2xl border border-borderLine bg-white p-6">
+            <h4 className="font-bold text-ink text-sm">
+              Principais servidores beneficiários de diárias
+            </h4>
+            <BarChartH
+              data={diariasBeneficiarios.map((b) => ({
+                label: b.cargo
+                  ? `${toTitleCase(b.favorecido)} (${toTitleCase(b.cargo)})`
+                  : toTitleCase(b.favorecido),
+                value: b.valor,
+              }))}
+            />
+          </div>
         )}
       </section>
 

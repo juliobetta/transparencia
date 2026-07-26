@@ -9,6 +9,8 @@ import {
   getLicitacaoGaps,
   getPortalConfig,
   getPosicaoFiscal,
+  getPrincipaisBeneficiariosDiarias,
+  getResumoDiarias,
   getTendenciasAnuais,
 } from "../index";
 
@@ -89,5 +91,18 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
   it("deve buscar lista de entidades", async () => {
     const entidades = await getEntidades("porciuncula_prefeitura");
     expect(Array.isArray(entidades)).toBe(true);
+  });
+
+  it("deve calcular resumo de diárias e principais beneficiários", async () => {
+    const resumo = await getResumoDiarias(TEST_YEAR);
+    expect(resumo).toBeDefined();
+    expect(typeof resumo.totalValor).toBe("number");
+    expect(typeof resumo.totalViajantes).toBe("number");
+    expect(typeof resumo.mediaReembolso).toBe("number");
+
+    const beneficiarios = await getPrincipaisBeneficiariosDiarias({
+      year: TEST_YEAR,
+    });
+    expect(Array.isArray(beneficiarios)).toBe(true);
   });
 });
