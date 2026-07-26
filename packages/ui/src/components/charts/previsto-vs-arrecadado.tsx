@@ -63,9 +63,6 @@ export function PrevistoVsArrecadadoOrigem({
                     style={{ width: `${previstoPct}%` }}
                   />
                 </div>
-                <div className="mt-1 font-medium text-subtleText text-xs">
-                  {formattedPrevisto}
-                </div>
               </div>
 
               {/* Barra de Arrecadado */}
@@ -76,8 +73,13 @@ export function PrevistoVsArrecadadoOrigem({
                     style={{ width: `${arrecadadoPct}%` }}
                   />
                 </div>
-                <div className="mt-1 text-right font-medium text-subtleText text-xs">
-                  {formattedArrecadado}
+                <div className="flex justify-between">
+                  <div className="mt-1 font-medium text-subtleText text-xs">
+                    {formattedPrevisto}
+                  </div>
+                  <div className="mt-1 text-right font-medium text-subtleText text-xs">
+                    {formattedArrecadado}
+                  </div>
                 </div>
               </div>
             </div>
