@@ -55,3 +55,9 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 
 - **Versões Exatas (Pinned Versions):** Sempre instale e declare versões exatas de pacotes e dependências (npm/pnpm/pip) nos arquivos de manifesto (`package.json`, `pyproject.toml`, etc.), **sem** prefixos de variação como `^` ou `~` (ex: `"nuqs": "2.9.1"`). Ao rodar instalações via CLI, utilize flags de versão exata (ex: `pnpm add --save-exact <pacote>`).
 
+---
+
+## 8. FILTRAGEM MANDATÓRIA POR `portalSlug`
+
+- **Isolamento de Dados por Portal:** Todas as queries em `@transparencia/db` devem obrigatoriamente incluir o filtro por `portalSlug` (ex: `WHERE portal_slug = ${portalSlug}`).
+- **Modelagem DBT:** Caso a tabela consultada não possua a coluna `portal_slug`, é **obrigatório** rever a modelagem no dbt (adicionando a coluna no mart/staging correspondente) ou realizar o `JOIN` necessário com uma tabela que possua a dimensão de portal. Nenhuma consulta no repositório deve retornar dados multi-tenant não filtrados por portal.
