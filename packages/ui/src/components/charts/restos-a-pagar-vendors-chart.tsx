@@ -39,7 +39,7 @@ export function RestosAPagarVendorsChart({
     <div
       className={`space-y-4 rounded-2xl border border-borderLine bg-white p-6 ${className}`}
     >
-      {title && <h3 className="font-bold text-base text-ink">{title}</h3>}
+      {title && <h4 className="font-bold text-base text-ink">{title}</h4>}
       <div className="space-y-3">
         {items.map((item) => {
           const ratio = Math.max(Math.min(item.valor / maxVal, 1), 0);

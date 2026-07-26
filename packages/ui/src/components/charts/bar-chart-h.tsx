@@ -31,15 +31,15 @@ export function BarChartH({
         return (
           <div key={`bar-chart-h-${item.label}`} className="space-y-1">
             <div className="flex justify-between font-medium text-ink text-xs">
-              <span className="max-w-[420px] truncate">{item.label}</span>
+              <span className="max-w-[480px] truncate">{item.label}</span>
               <span className="font-bold font-serif">
                 {fmtCurrency(item.value)}
               </span>
             </div>
-            <div className="h-3 w-full overflow-hidden rounded-full">
+            <div className="h-3 w-full overflow-hidden rounded-md">
               <div
                 className={cn(
-                  "h-full rounded-full transition-all duration-500",
+                  "h-full rounded-md transition-all duration-500",
                   item.colorClass,
                 )}
                 style={{

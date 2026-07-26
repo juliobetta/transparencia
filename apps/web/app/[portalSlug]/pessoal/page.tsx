@@ -99,9 +99,9 @@ export default async function PessoalPage({
             </span>
             <span>Limite Máximo LRF: 54.00%</span>
           </div>
-          <div className="relative h-4 w-full overflow-hidden rounded-full bg-gray-100">
+          <div className="relative h-4 w-full overflow-hidden rounded-md bg-gray-100">
             <div
-              className="h-full rounded-full transition-all duration-500"
+              className="h-full rounded-md transition-all duration-500"
               style={{
                 width: `${Math.min(100, (row.percentualFolha / 54) * 100)}%`,
                 backgroundColor:

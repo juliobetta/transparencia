@@ -52,10 +52,10 @@ export function PipelineExecucao({
                     <div className="mb-2 font-semibold text-ink text-xs">
                       {stage.name}
                     </div>
-                    <div className="mb-3 h-2.5 w-full overflow-hidden rounded-full bg-[#f4f5f7]">
+                    <div className="mb-3 h-2.5 w-full overflow-hidden rounded-md bg-[#f4f5f7]">
                       <div
                         className={cn(
-                          "h-full rounded-full transition-all duration-500",
+                          "h-full rounded-md transition-all duration-500",
                           stage.color || "bg-accent",
                         )}
                         style={{

@@ -165,7 +165,7 @@ export default async function ReceitasPage({
           ADMINISTRATIVO · EXERCÍCIO {selectedYear}
           {isCurrentYear ? ` (PARCIAL, ${partialPeriod})` : ""}
         </span>
-        <h1 className="mt-1 font-bold font-serif text-3xl text-ink lg:text-4xl">
+        <h1 className="font-bold font-serif text-3xl text-slate-900">
           Fontes de Receita
         </h1>
         <p className="mt-2 text-sm text-subtleText">
@@ -225,9 +225,9 @@ export default async function ReceitasPage({
           <span>Progresso de arrecadação anual</span>
           <span className="font-bold">{fmtPercent(pctArrecadadoAnual)}</span>
         </div>
-        <div className="h-3.5 w-full overflow-hidden rounded-full bg-[#eef0f4]">
+        <div className="h-3.5 w-full overflow-hidden rounded-md bg-[#eef0f4]">
           <div
-            className="h-full rounded-full bg-accent transition-all duration-500"
+            className="h-full rounded-md bg-accent transition-all duration-500"
             style={{
               width: `${Math.min(100, Math.max(0, pctArrecadadoAnual))}%`,
             }}

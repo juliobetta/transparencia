@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getAdesaoDeAta,
   getConcentracaoFornecedores,
+  getDistribucaoModalidades,
   getEntidades,
   getExecucaoOrcamentaria,
   getFontesReceita,
@@ -44,9 +45,12 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     }
   });
 
-  it("deve buscar lacunas de licitação", async () => {
+  it("deve buscar lacunas de licitação e distribuição de modalidades", async () => {
     const gaps = await getLicitacaoGaps(TEST_YEAR);
     expect(Array.isArray(gaps)).toBe(true);
+
+    const dist = await getDistribucaoModalidades(TEST_YEAR);
+    expect(Array.isArray(dist)).toBe(true);
   });
 
   it("deve calcular impacto de gastos locais e resumo de restos a pagar", async () => {

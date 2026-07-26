@@ -1,16 +1,14 @@
 import {
   getAdesaoDeAta,
+  getAdesaoExterna,
   getAnomaliasContratuais,
-  getConcentracaoFornecedores,
+  getDistribucaoModalidades,
   getLicitacaoGaps,
 } from "@transparencia/db";
 import {
-  AlertBox,
-  DenseTable,
-  fmtCompact,
-  KPICard,
-  KPIGrid,
-  SectionHeader,
+  DistribucaoModalidadesChart,
+  getPartialYearPeriod,
+  LicitacoesTable,
 } from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
@@ -36,104 +34,158 @@ export default async function LicitacoesPage({
     : undefined;
 
   const isCurrentYear = selectedYear === currentYear;
+  const partialPeriod = getPartialYearPeriod();
 
+  // DB Queries
   const gaps = await getLicitacaoGaps(selectedYear, entidadesIds);
   const adesao = await getAdesaoDeAta(selectedYear, entidadesIds);
+  const adesaoExterna = await getAdesaoExterna(selectedYear, entidadesIds);
   const anomalias = await getAnomaliasContratuais(selectedYear, entidadesIds);
-  const conc = await getConcentracaoFornecedores(selectedYear, entidadesIds);
+  const modalidades = await getDistribucaoModalidades(
+    selectedYear,
+    entidadesIds,
+  );
 
   const acimaLimiteGaps = gaps.filter((g) => g.acimaLimite);
 
-  const gapsCols = [
-    { header: "Nº Contrato", accessorKey: "numero" as const },
-    { header: "Fornecedor / Credor", accessorKey: "fornecedor" as const },
-    { header: "Objeto", accessorKey: "objeto" as const },
-    {
-      header: "Valor (R$)",
-      accessorKey: "valorContrato" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-    {
-      header: "Limite Dispensa",
-      accessorKey: "limiteDispensa" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-    {
-      header: "Status",
-      accessorKey: "acimaLimite" as const,
-      align: "center" as const,
-      format: "statusBadge" as const,
-    },
-  ];
+  // Map fracionamento count per supplier
+  const fracionamentoVendorsMap: Record<string, number> = {};
+  for (const f of anomalias.fracionamento) {
+    fracionamentoVendorsMap[f.fornecedor] =
+      (fracionamentoVendorsMap[f.fornecedor] || 0) + 1;
+  }
+  const numCasosFracionamento = Object.keys(fracionamentoVendorsMap).length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
+      {/* Header & Subtitle */}
       <div>
-        <h1 className="font-bold font-serif text-3xl text-ink">
-          Licitações & Contratos
+        <span className="inline-block font-semibold text-accent text-xs uppercase tracking-wider">
+          ADMINISTRATIVO · EXERCÍCIO {selectedYear}
+          {isCurrentYear ? ` (PARCIAL, ${partialPeriod})` : ""}
+        </span>
+        <h1 className="font-bold font-serif text-3xl text-slate-900">
+          Licitações e Contratos
         </h1>
-        <p className="mt-1 text-sm text-subtleText">
-          Monitoramento de contratações públicas, adesões a ata e fracionamento
-          de despesa ({selectedYear}
-          {isCurrentYear ? " · parcial" : ""})
+        <p className="mt-2 max-w-4xl text-slate-600 text-xs leading-relaxed sm:text-sm">
+          Contratos sem licitação são comuns e frequentemente legais — dispensas
+          de baixo valor e inexigibilidades são permitidas por lei. O ponto de
+          atenção são os contratos{" "}
+          <strong className="font-semibold text-slate-900">
+            acima de R$ 62.725,59 sem licitação
+          </strong>
+          , que exigem justificativa formal.
         </p>
       </div>
 
-      <KPIGrid columns={4}>
-        <KPICard
-          title="Sem Licitação Vinculada"
-          value={gaps.length}
-          subtext="Contratos sem nº de licitação"
-          accent
-        />
-        <KPICard
-          title="Contratos Acima do Limite"
-          value={acimaLimiteGaps.length}
-          subtext="Requerem auditoria"
-          alert={acimaLimiteGaps.length > 0}
-        />
-        <KPICard
-          title="Adesões a Ata de Registro"
-          value={adesao.quantidade}
-          subtext={`Valor: ${fmtCompact(adesao.valor)}`}
-        />
-        <KPICard
-          title="Índice HHI (Concentração)"
-          value={conc.hhi.toFixed(0)}
-          subtext={
-            conc.dominante ? `Dominante: ${conc.dominante}` : "Equilibrado"
-          }
-        />
-      </KPIGrid>
+      {/* Top 4 KPI Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Card 1 */}
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <p className="mb-2 font-medium text-slate-500 text-xs">
+            Acima do limite s/ licitação
+          </p>
+          <p className="font-bold font-serif text-3xl text-[#c05621]">
+            {acimaLimiteGaps.length}
+          </p>
+        </div>
 
-      {acimaLimiteGaps.length > 0 && (
-        <AlertBox type="danger" title="Alerta de Inconformidade Legal">
-          Identificados <b>{acimaLimiteGaps.length} contratos sem licitação</b>{" "}
-          cujo valor individual excede o limite legal de dispensa por valor.
-        </AlertBox>
-      )}
+        {/* Card 2 */}
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <p className="mb-2 font-medium text-slate-500 text-xs">
+            Total sem processo licitatório
+          </p>
+          <p className="font-bold font-serif text-3xl text-slate-900">
+            {gaps.length}
+          </p>
+        </div>
 
-      {anomalias.fracionamento.length > 0 && (
-        <AlertBox type="warning" title="Possível Fracionamento de Despesa">
-          Encontrados <b>{anomalias.fracionamento.length} contratos</b> com o
-          mesmo fornecedor em valores próximos ao limite de dispensa no mesmo
-          período.
-        </AlertBox>
-      )}
+        {/* Card 3 */}
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <p className="mb-2 font-medium text-slate-500 text-xs">
+            Adesões de ata (carona)
+          </p>
+          <p className="font-bold font-serif text-3xl text-slate-900">
+            {adesao.quantidade}
+          </p>
+        </div>
 
-      <div>
-        <SectionHeader
-          title="Contratos sem Licitação Vinculada"
-          description="Relação completa de contratações diretas ou sem código de licitação informado"
-        />
-        <DenseTable
-          data={gaps}
-          columns={gapsCols}
-          searchableKeys={["fornecedor", "objeto", "numero"]}
-        />
+        {/* Card 4 */}
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+          <p className="mb-2 font-medium text-slate-500 text-xs">
+            Empenhos via ata externa
+          </p>
+          <p className="font-bold font-serif text-3xl text-slate-900">
+            {adesaoExterna.quantidade}
+          </p>
+        </div>
       </div>
+
+      {/* Warning Alert Banner */}
+      {numCasosFracionamento > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border-amber-500 border-l-4 bg-[#fffaf0] p-4 text-[#7b341e] text-xs shadow-2xs sm:text-sm">
+          <span className="mt-0.5 shrink-0 text-base">⚠️</span>
+          <div>
+            <span className="font-bold text-[#9c4221]">
+              {numCasosFracionamento}{" "}
+              {numCasosFracionamento === 1 ? "caso" : "casos"} de possível
+              fracionamento.
+            </span>{" "}
+            Fornecedores com 3+ contratos próximos ao limite de dispensa no
+            mesmo órgão, sugerindo divisão artificial de compras para evitar
+            licitação.
+          </div>
+        </div>
+      )}
+
+      {/* Section 1: Distribuição por modalidade */}
+      <section className="space-y-4">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-bold font-serif text-slate-900 text-xl">
+            Distribuição por modalidade
+          </h2>
+          <span className="font-medium text-slate-400 text-xs">
+            valor contratado · quantidade
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+          {modalidades.length === 0 ? (
+            <div className="py-6 text-center text-slate-400 text-xs italic">
+              Nenhuma informação de modalidade disponível para o período.
+            </div>
+          ) : (
+            <DistribucaoModalidadesChart data={modalidades} />
+          )}
+        </div>
+      </section>
+
+      {/* Section 2: Contratos acima do limite, sem licitação */}
+      <section className="space-y-4">
+        <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
+          <h2 className="font-bold font-serif text-slate-900 text-xl">
+            Contratos acima do limite, sem licitação
+          </h2>
+          <span className="font-medium text-slate-400 text-xs">
+            {acimaLimiteGaps.length} contratos · exige justificativa formal
+          </span>
+        </div>
+
+        <p className="text-slate-600 text-xs leading-relaxed sm:text-sm">
+          Cada linha merece análise da justificativa oficial. Quando o mesmo
+          fornecedor aparece várias vezes com valores próximos ao teto de R$
+          62.725,59, pode indicar{" "}
+          <strong className="font-semibold text-slate-900">
+            fracionamento
+          </strong>
+          .
+        </p>
+
+        <LicitacoesTable
+          data={acimaLimiteGaps}
+          fracionamentoVendors={fracionamentoVendorsMap}
+        />
+      </section>
     </div>
   );
 }

@@ -141,3 +141,50 @@ export async function getLicitacaoGaps(
     return [];
   }
 }
+
+export interface ItemDistribucaoModalidade {
+  modalidade: string;
+  valorTotal: number;
+  quantidade: number;
+  pctValor: number;
+}
+
+export async function getDistribucaoModalidades(
+  year: number,
+  empresaIds?: string[] | null,
+): Promise<ItemDistribucaoModalidade[]> {
+  try {
+    let q = sql`
+      SELECT
+        COALESCE(NULLIF(TRIM(modalidade), ''), 'Outros') AS modalidade,
+        COUNT(*)::int AS quantidade,
+        SUM(COALESCE(valor_contrato, 0))::numeric AS valor_total
+      FROM fct_contratos
+      WHERE ano = ${year}
+    `;
+    if (empresaIds && empresaIds.length > 0) {
+      q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
+    }
+    q = sql`${q} GROUP BY 1 ORDER BY valor_total DESC`;
+
+    const res = await q.execute(db);
+    const rows = (res.rows as any[]) || [];
+
+    const grandTotal = rows.reduce(
+      (acc, r) => acc + (parseFloat(String(r.valor_total ?? "0")) || 0),
+      0,
+    );
+
+    return rows.map((r) => {
+      const val = parseFloat(String(r.valor_total ?? "0")) || 0;
+      return {
+        modalidade: String(r.modalidade ?? "Outros"),
+        valorTotal: val,
+        quantidade: Number(r.quantidade ?? 0),
+        pctValor: grandTotal > 0 ? (val / grandTotal) * 100 : 0,
+      };
+    });
+  } catch {
+    return [];
+  }
+}

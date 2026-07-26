@@ -82,7 +82,7 @@ export function HeroFiscalCard({
               `Arrecadado no ano até agora ${portalName ? `· ${portalName}` : ""}`}
           </span>
           {statusBadgeText && (
-            <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 font-medium text-[11px] text-amber-800">
+            <span className="inline-flex shrink-0 items-center rounded-md border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 font-medium text-[11px] text-amber-800">
               {statusBadgeText}
             </span>
           )}
@@ -103,9 +103,9 @@ export function HeroFiscalCard({
             </span>
           </div>
 
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#f4f5f7]">
+          <div className="h-2.5 w-full overflow-hidden rounded-md bg-[#f4f5f7]">
             <div
-              className="h-full rounded-full bg-accent transition-all duration-500 ease-out"
+              className="h-full rounded-md bg-accent transition-all duration-500 ease-out"
               style={{
                 width: `${Math.min(100, Math.max(0, realizationPercent))}%`,
               }}
@@ -130,10 +130,10 @@ export function HeroFiscalCard({
                         {item.percentage}%)
                       </span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-[#f4f5f7]">
+                    <div className="h-2 w-full overflow-hidden rounded-md bg-[#f4f5f7]">
                       <div
                         className={cn(
-                          "h-full rounded-full transition-all duration-500",
+                          "h-full rounded-md transition-all duration-500",
                           colorClass,
                         )}
                         style={{

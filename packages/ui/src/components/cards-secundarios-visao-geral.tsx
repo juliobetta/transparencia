@@ -246,10 +246,10 @@ export function CardsSecundariosVisaoGeral({
           {/* Barra de Progresso + Marcador LRF */}
           {pessoalPercentFormatted && (
             <div className="my-3 space-y-1.5">
-              <div className="relative h-2.5 w-full overflow-visible rounded-full bg-[#f4f5f7]">
+              <div className="relative h-2.5 w-full overflow-visible rounded-md bg-[#f4f5f7]">
                 {/* Progresso da Folha */}
                 <div
-                  className="h-full rounded-full bg-sky-600 transition-all duration-500"
+                  className="h-full rounded-md bg-sky-600 transition-all duration-500"
                   style={{
                     width: `${Math.min(100, Math.max(0, pessoalPercentVal))}%`,
                   }}

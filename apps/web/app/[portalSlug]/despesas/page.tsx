@@ -13,6 +13,7 @@ import {
   fmtCompact,
   fmtCurrency,
   fmtPercent,
+  getPartialYearPeriod,
   KPICard,
   KPIGrid,
   RestosAPagarVendorsChart,
@@ -43,6 +44,8 @@ export default async function DespesasPage({
     : undefined;
 
   const portalConfig = await getPortalConfig();
+  const isCurrentYear = selectedYear === currentYear;
+  const partialPeriod = getPartialYearPeriod();
 
   // Query DB data
   const impactoLocais = await getImpactoGastosLocais({
@@ -85,6 +88,10 @@ export default async function DespesasPage({
     <div className="space-y-10">
       {/* Header */}
       <div>
+        <span className="inline-block font-semibold text-accent text-xs uppercase tracking-wider">
+          ADMINISTRATIVO · EXERCÍCIO {selectedYear}
+          {isCurrentYear ? ` (PARCIAL, ${partialPeriod})` : ""}
+        </span>
         <h1 className="font-bold font-serif text-3xl text-ink">
           Despesas Detalhadas
         </h1>

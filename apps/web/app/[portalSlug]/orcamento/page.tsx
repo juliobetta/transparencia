@@ -39,7 +39,7 @@ export default async function OrcamentoPage({
   const summary = summarizeExecucao(items);
   const funcionalData = await getOrcamentoFuncional(selectedYear, entidadesIds);
 
-  const partialPeriod = getPartialYearPeriod(new Date());
+  const partialPeriod = getPartialYearPeriod();
 
   const totalDotacao = summary.totalDotacao;
   const totalEmpenhado = summary.totalEmpenhado;
@@ -124,7 +124,7 @@ export default async function OrcamentoPage({
           ADMINISTRATIVO · EXERCÍCIO {selectedYear}
           {isCurrentYear ? ` (PARCIAL, ${partialPeriod})` : ""}
         </span>
-        <h1 className="mt-1 font-bold font-serif text-3xl text-ink lg:text-4xl">
+        <h1 className="font-bold font-serif text-3xl text-slate-900">
           Execução Orçamentária
         </h1>
         <p className="mt-2 text-sm text-subtleText leading-relaxed">
