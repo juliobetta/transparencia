@@ -4,6 +4,7 @@ export * from "./components/cards-secundarios-visao-geral";
 export * from "./components/charts/bar-chart-h";
 export * from "./components/charts/distribuicao-modalidades-chart";
 export * from "./components/charts/donut-gastos-locais";
+export * from "./components/charts/folha-lrf-history-chart";
 export * from "./components/charts/funil-execucao-horizontal";
 export * from "./components/charts/funnel-waterfall";
 export * from "./components/charts/gasto-por-funcao-bars";
