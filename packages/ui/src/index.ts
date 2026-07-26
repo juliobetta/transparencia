@@ -9,6 +9,7 @@ export * from "./components/charts/funil-execucao-horizontal";
 export * from "./components/charts/funnel-waterfall";
 export * from "./components/charts/gasto-por-funcao-bars";
 export * from "./components/charts/previsto-vs-arrecadado";
+export * from "./components/charts/proventos-distribution-chart";
 export * from "./components/charts/restos-a-pagar-vendors-chart";
 export * from "./components/charts/unidades-gastos-chart";
 export * from "./components/decimo-terceiro-card";
