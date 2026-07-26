@@ -35,21 +35,21 @@ export default async function RootLayout({
         <NuqsAdapter>
           <Suspense fallback={null}>
             <SidebarWrapper
-              portalName={portalConfig?.display_name}
+              portalName={portalConfig?.displayName}
               stateUF={portalConfig?.uf}
               portalTitle={
                 portalConfig
-                  ? `Contas da ${portalConfig.display_name}`
+                  ? `Contas da ${portalConfig.displayName}`
                   : undefined
               }
-              anoInicial={portalConfig?.ano_inicial}
-              lastExtractionDate={portalConfig?.data_extracao}
-              officialPortalUrl={portalConfig?.portal_url}
+              anoInicial={portalConfig?.anoInicial}
+              lastExtractionDate={portalConfig?.dataExtracao}
+              officialPortalUrl={portalConfig?.portalUrl}
               entidades={entidades}
             />
           </Suspense>
           <div className="flex min-w-0 flex-1 flex-col">
-            <Ribbon portalName={portalConfig?.display_name} />
+            <Ribbon portalName={portalConfig?.displayName} />
             <main className="mx-auto w-full max-w-[1000px] flex-1 overflow-x-hidden px-10 py-8">
               {children}
             </main>

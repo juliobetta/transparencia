@@ -10,8 +10,8 @@ import { getLicitacaoGaps } from "./licitacao_gaps";
 
 export interface PeriodSpec {
   year: number;
-  mes_inicio: number;
-  mes_fim: number;
+  mesInicio: number;
+  mesFim: number;
 }
 
 export interface DeltaValue {
@@ -41,21 +41,21 @@ export async function runComparacao(
   const sumB = summarizeExecucao(itemsB);
 
   const despesasDelta = {
-    empenhado: calculateDelta(sumA.total_empenhado, sumB.total_empenhado),
-    dotacao: calculateDelta(sumA.total_dotacao, sumB.total_dotacao),
+    empenhado: calculateDelta(sumA.totalEmpenhado, sumB.totalEmpenhado),
+    dotacao: calculateDelta(sumA.totalDotacao, sumB.totalDotacao),
   };
 
   // Pessoal
   const folhaA = await getFolhaVsServicos([specA.year]);
   const folhaB = await getFolhaVsServicos([specB.year]);
-  const folhaRowA = folhaA[0] || { total_folha: 0, percentual_folha: 0 };
-  const folhaRowB = folhaB[0] || { total_folha: 0, percentual_folha: 0 };
+  const folhaRowA = folhaA[0] || { totalFolha: 0, percentualFolha: 0 };
+  const folhaRowB = folhaB[0] || { totalFolha: 0, percentualFolha: 0 };
 
   const pessoalDelta = {
-    total_folha: calculateDelta(folhaRowA.total_folha, folhaRowB.total_folha),
-    percentual_folha: calculateDelta(
-      folhaRowA.percentual_folha,
-      folhaRowB.percentual_folha,
+    totalFolha: calculateDelta(folhaRowA.totalFolha, folhaRowB.totalFolha),
+    percentualFolha: calculateDelta(
+      folhaRowA.percentualFolha,
+      folhaRowB.percentualFolha,
     ),
   };
 
@@ -63,35 +63,32 @@ export async function runComparacao(
   const recA = await getFontesReceita([specA.year]);
   const recB = await getFontesReceita([specB.year]);
   const rRowA = recA[0] || {
-    receita_propria: 0,
-    transferencias_uniao: 0,
-    transferencias_estado: 0,
+    receitaPropria: 0,
+    transferenciasUniao: 0,
+    transferenciasEstado: 0,
     total: 0,
-    pct_propria: 0,
+    pctPropria: 0,
   };
   const rRowB = recB[0] || {
-    receita_propria: 0,
-    transferencias_uniao: 0,
-    transferencias_estado: 0,
+    receitaPropria: 0,
+    transferenciasUniao: 0,
+    transferenciasEstado: 0,
     total: 0,
-    pct_propria: 0,
+    pctPropria: 0,
   };
 
   const receitasDelta = {
-    receita_propria: calculateDelta(
-      rRowA.receita_propria,
-      rRowB.receita_propria,
+    receitaPropria: calculateDelta(rRowA.receitaPropria, rRowB.receitaPropria),
+    transferenciasUniao: calculateDelta(
+      rRowA.transferenciasUniao,
+      rRowB.transferenciasUniao,
     ),
-    transferencias_uniao: calculateDelta(
-      rRowA.transferencias_uniao,
-      rRowB.transferencias_uniao,
-    ),
-    transferencias_estado: calculateDelta(
-      rRowA.transferencias_estado,
-      rRowB.transferencias_estado,
+    transferenciasEstado: calculateDelta(
+      rRowA.transferenciasEstado,
+      rRowB.transferenciasEstado,
     ),
     total: calculateDelta(rRowA.total, rRowB.total),
-    pct_propria: calculateDelta(rRowA.pct_propria, rRowB.pct_propria),
+    pctPropria: calculateDelta(rRowA.pctPropria, rRowB.pctPropria),
   };
 
   // Licitações
@@ -99,14 +96,14 @@ export async function runComparacao(
   const gapsB = await getLicitacaoGaps(specB.year);
 
   const licitacoesDelta = {
-    sem_licitacao: calculateDelta(gapsA.length, gapsB.length),
-    acima_limite: calculateDelta(
-      gapsA.filter((g) => g.acima_limite).length,
-      gapsB.filter((g) => g.acima_limite).length,
+    semLicitacao: calculateDelta(gapsA.length, gapsB.length),
+    acimaLimite: calculateDelta(
+      gapsA.filter((g) => g.acimaLimite).length,
+      gapsB.filter((g) => g.acimaLimite).length,
     ),
     saude: calculateDelta(
-      gapsA.filter((g) => g.acima_limite && g.orgao_saude).length,
-      gapsB.filter((g) => g.acima_limite && g.orgao_saude).length,
+      gapsA.filter((g) => g.acimaLimite && g.orgaoSaude).length,
+      gapsB.filter((g) => g.acimaLimite && g.orgaoSaude).length,
     ),
   };
 
@@ -124,11 +121,11 @@ export async function runComparacao(
 
   const adesaoDelta = {
     quantidade: calculateDelta(adesaoA.quantidade, adesaoB.quantidade),
-    valor_licitacao: calculateDelta(
-      adesaoA.total_licitacao,
-      adesaoB.total_licitacao,
+    valorLicitacao: calculateDelta(
+      adesaoA.totalLicitacao,
+      adesaoB.totalLicitacao,
     ),
-    valor_contratos: calculateDelta(adesaoA.valor, adesaoB.valor),
+    valorContratos: calculateDelta(adesaoA.valor, adesaoB.valor),
   };
 
   return {

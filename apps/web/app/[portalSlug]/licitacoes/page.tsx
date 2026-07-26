@@ -42,7 +42,7 @@ export default async function LicitacoesPage({
   const anomalias = await getAnomaliasContratuais(selectedYear, entidadesIds);
   const conc = await getConcentracaoFornecedores(selectedYear, entidadesIds);
 
-  const acimaLimiteGaps = gaps.filter((g) => g.acima_limite);
+  const acimaLimiteGaps = gaps.filter((g) => g.acimaLimite);
 
   const gapsCols = [
     { header: "Nº Contrato", accessorKey: "numero" as const },
@@ -50,19 +50,19 @@ export default async function LicitacoesPage({
     { header: "Objeto", accessorKey: "objeto" as const },
     {
       header: "Valor (R$)",
-      accessorKey: "valor_contrato" as const,
+      accessorKey: "valorContrato" as const,
       align: "right" as const,
       format: "currency" as const,
     },
     {
       header: "Limite Dispensa",
-      accessorKey: "limite_dispensa" as const,
+      accessorKey: "limiteDispensa" as const,
       align: "right" as const,
       format: "currency" as const,
     },
     {
       header: "Status",
-      accessorKey: "acima_limite" as const,
+      accessorKey: "acimaLimite" as const,
       align: "center" as const,
       format: "statusBadge" as const,
     },

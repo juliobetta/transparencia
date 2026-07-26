@@ -9,17 +9,17 @@ export interface ItemExecucaoOrcamentaria {
   empenhado: number;
   liquidado: number;
   pago: number;
-  dotacao_atualizada: number;
-  taxa_execucao: number;
+  dotacaoAtualizada: number;
+  taxaExecucao: number;
   alerta: "N/D" | "baixa" | "excesso" | "normal";
 }
 
 export interface ExecucaoSummary {
-  total_empenhado: number;
-  total_liquidado: number;
-  total_pago: number;
-  total_dotacao: number;
-  saldo_orcamentario: number;
+  totalEmpenhado: number;
+  totalLiquidado: number;
+  totalPago: number;
+  totalDotacao: number;
+  saldoOrcamentario: number;
 }
 
 export async function getExecucaoOrcamentaria(
@@ -63,8 +63,8 @@ export async function getExecucaoOrcamentaria(
         empenhado: emp,
         liquidado: liq,
         pago: pag,
-        dotacao_atualizada: dot,
-        taxa_execucao: taxa,
+        dotacaoAtualizada: dot,
+        taxaExecucao: taxa,
         alerta,
       };
     });
@@ -76,15 +76,15 @@ export async function getExecucaoOrcamentaria(
 export function summarizeExecucao(
   items: ItemExecucaoOrcamentaria[],
 ): ExecucaoSummary {
-  const total_empenhado = items.reduce((acc, i) => acc + i.empenhado, 0);
-  const total_liquidado = items.reduce((acc, i) => acc + i.liquidado, 0);
-  const total_pago = items.reduce((acc, i) => acc + i.pago, 0);
-  const total_dotacao = items.reduce((acc, i) => acc + i.dotacao_atualizada, 0);
+  const totalEmpenhado = items.reduce((acc, i) => acc + i.empenhado, 0);
+  const totalLiquidado = items.reduce((acc, i) => acc + i.liquidado, 0);
+  const totalPago = items.reduce((acc, i) => acc + i.pago, 0);
+  const totalDotacao = items.reduce((acc, i) => acc + i.dotacaoAtualizada, 0);
   return {
-    total_empenhado,
-    total_liquidado,
-    total_pago,
-    total_dotacao,
-    saldo_orcamentario: total_dotacao - total_empenhado,
+    totalEmpenhado,
+    totalLiquidado,
+    totalPago,
+    totalDotacao,
+    saldoOrcamentario: totalDotacao - totalEmpenhado,
   };
 }

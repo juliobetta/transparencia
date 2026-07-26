@@ -2,9 +2,9 @@ import { sql } from "kysely";
 import { db } from "../client";
 
 export interface ItemOrcamentoFuncional {
-  funcao_nome: string;
-  subfuncao_nome: string;
-  dotacao_atualizada: number;
+  funcaoNome: string;
+  subfuncaoNome: string;
+  dotacaoAtualizada: number;
   empenhado: number;
   liquidado: number;
   pago: number;
@@ -29,9 +29,9 @@ export async function getOrcamentoFuncional(
     const map: Record<
       string,
       {
-        funcao_nome: string;
-        subfuncao_nome: string;
-        dotacao_atualizada: number;
+        funcaoNome: string;
+        subfuncaoNome: string;
+        dotacaoAtualizada: number;
         empenhado: number;
         liquidado: number;
         pago: number;
@@ -51,15 +51,15 @@ export async function getOrcamentoFuncional(
 
       if (!map[key]) {
         map[key] = {
-          funcao_nome: func,
-          subfuncao_nome: sub,
-          dotacao_atualizada: 0,
+          funcaoNome: func,
+          subfuncaoNome: sub,
+          dotacaoAtualizada: 0,
           empenhado: 0,
           liquidado: 0,
           pago: 0,
         };
       }
-      map[key].dotacao_atualizada += dot;
+      map[key].dotacaoAtualizada += dot;
       map[key].empenhado += emp;
       map[key].liquidado += liq;
       map[key].pago += pag;

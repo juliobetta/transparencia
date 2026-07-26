@@ -43,7 +43,7 @@ export default async function DespesasPage({
   const impactoLocais = await getImpactoGastosLocais({
     year: selectedYear,
     empresaIds: entidadesIds,
-    cidadeClean: portalConfig?.cidade_clean || "",
+    cidadeClean: portalConfig?.cidadeClean || "",
     portalSlug,
   });
   const concentracao = await getConcentracaoFornecedores(
@@ -101,9 +101,9 @@ export default async function DespesasPage({
         <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
           <div className="lg:col-span-7">
             <DonutGastosLocais
-              localValor={impactoLocais.local_pago}
-              externoValor={impactoLocais.externo_pago}
-              pctLocal={impactoLocais.pct_local}
+              localValor={impactoLocais.localPago}
+              externoValor={impactoLocais.externoPago}
+              pctLocal={impactoLocais.pctLocal}
               className="h-full"
             />
           </div>
@@ -111,10 +111,10 @@ export default async function DespesasPage({
           <div className="flex flex-col justify-between gap-4 lg:col-span-5">
             <KPICard
               title="Índice de compras locais"
-              value={fmtPercent(impactoLocais.pct_local)}
+              value={fmtPercent(impactoLocais.pctLocal)}
               subtext={
-                impactoLocais.historico_pct_local
-                  ? `dos recursos em ${selectedYear} (${fmtPercent(impactoLocais.historico_pct_local)} no acumulado histórico)`
+                impactoLocais.historicoPctLocal
+                  ? `dos recursos em ${selectedYear} (${fmtPercent(impactoLocais.historicoPctLocal)} no acumulado histórico)`
                   : ""
               }
               className="flex-1 justify-center"
@@ -168,23 +168,23 @@ export default async function DespesasPage({
             title="Total pendente"
             value={
               <span className="font-bold text-amber-900">
-                {fmtCompact(restosResumo.total_pendente)}
+                {fmtCompact(restosResumo.totalPendente)}
               </span>
             }
           />
           <KPICard
             title="Fornecedores aguardando"
-            value={restosResumo.fornecedores_aguardando}
+            value={restosResumo.fornecedoresAguardando}
           />
           <KPICard
             title="Dívida mais antiga desde"
-            value={restosResumo.divida_mais_antiga_ano}
+            value={restosResumo.dividaMaisAntigaAno}
           />
         </KPIGrid>
 
         {/* Ranking Fornecedores com maior pendência */}
-        {restosResumo.top_fornecedores.length > 0 && (
-          <RestosAPagarVendorsChart items={restosResumo.top_fornecedores} />
+        {restosResumo.topFornecedores.length > 0 && (
+          <RestosAPagarVendorsChart items={restosResumo.topFornecedores} />
         )}
       </section>
     </div>

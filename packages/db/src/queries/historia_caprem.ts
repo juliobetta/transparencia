@@ -19,10 +19,10 @@ export interface AnnualTrendCaprem {
 
 export interface HistoriaCapremResult {
   entidades: EntityCaprem[];
-  annual_trend: AnnualTrendCaprem[];
-  total_empenhado: number;
-  total_liquidado: number;
-  total_pago: number;
+  annualTrend: AnnualTrendCaprem[];
+  totalEmpenhado: number;
+  totalLiquidado: number;
+  totalPago: number;
 }
 
 export async function getHistoriaCaprem(
@@ -30,10 +30,10 @@ export async function getHistoriaCaprem(
   empresaIds?: string[] | null,
 ): Promise<HistoriaCapremResult> {
   const entidades: EntityCaprem[] = [];
-  let annual_trend: AnnualTrendCaprem[] = [];
-  let total_empenhado = 0;
-  let total_liquidado = 0;
-  let total_pago = 0;
+  let annualTrend: AnnualTrendCaprem[] = [];
+  let totalEmpenhado = 0;
+  let totalLiquidado = 0;
+  let totalPago = 0;
 
   try {
     let q = sql`
@@ -58,9 +58,9 @@ export async function getHistoriaCaprem(
       const emp = parseFloat(String(r.empenhado ?? "0")) || 0;
       const liq = parseFloat(String(r.liquidado ?? "0")) || 0;
       const pag = parseFloat(String(r.pago ?? "0")) || 0;
-      total_empenhado += emp;
-      total_liquidado += liq;
-      total_pago += pag;
+      totalEmpenhado += emp;
+      totalLiquidado += liq;
+      totalPago += pag;
       entidades.push({
         entidade: String(r.entidade ?? ""),
         empenhado: emp,
@@ -81,7 +81,7 @@ export async function getHistoriaCaprem(
       GROUP BY ano ORDER BY ano
     `.execute(db);
 
-    annual_trend = ((resA.rows as any[]) || []).map((r) => ({
+    annualTrend = ((resA.rows as any[]) || []).map((r) => ({
       ano: Number(r.ano),
       empenhado: parseFloat(String(r.empenhado ?? "0")) || 0,
       liquidado: parseFloat(String(r.liquidado ?? "0")) || 0,
@@ -91,9 +91,9 @@ export async function getHistoriaCaprem(
 
   return {
     entidades,
-    annual_trend,
-    total_empenhado,
-    total_liquidado,
-    total_pago,
+    annualTrend,
+    totalEmpenhado,
+    totalLiquidado,
+    totalPago,
   };
 }

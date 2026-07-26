@@ -5,8 +5,8 @@ export interface MetricasDespesas {
   empenhado: number;
   liquidado: number;
   pago: number;
-  taxa_liquidacao: number;
-  taxa_pagamento: number;
+  taxaLiquidacao: number;
+  taxaPagamento: number;
 }
 
 export interface DespesaUnidade {
@@ -14,7 +14,7 @@ export interface DespesaUnidade {
   empenhado: number;
   liquidado: number;
   pago: number;
-  dotacao_atualizada: number;
+  dotacaoAtualizada: number;
 }
 
 export interface FornecedorDetalhado {
@@ -30,14 +30,14 @@ export interface FornecedorDetalhado {
 }
 
 export interface ImpactoGastosLocais {
-  local_pago: number;
-  externo_pago: number;
-  total_pago: number;
-  pct_local: number;
-  historico_local_pago: number;
-  historico_externo_pago: number;
-  historico_total_pago: number;
-  historico_pct_local: number;
+  localPago: number;
+  externoPago: number;
+  totalPago: number;
+  pctLocal: number;
+  historicoLocalPago: number;
+  historicoExternoPago: number;
+  historicoTotalPago: number;
+  historicoPctLocal: number;
 }
 
 export interface FornecedorRestosPendente {
@@ -46,16 +46,16 @@ export interface FornecedorRestosPendente {
 }
 
 export interface RestosAPagarResumo {
-  total_pendente: number;
-  fornecedores_aguardando: number;
-  divida_mais_antiga_ano: number;
-  top_fornecedores: FornecedorRestosPendente[];
+  totalPendente: number;
+  fornecedoresAguardando: number;
+  dividaMaisAntigaAno: number;
+  topFornecedores: FornecedorRestosPendente[];
 }
 
 export interface ResumoDiarias {
-  total_valor: number;
-  total_viajantes: number;
-  media_reembolso: number;
+  totalValor: number;
+  totalViajantes: number;
+  mediaReembolso: number;
 }
 
 export interface TransacaoPesquisavel {
@@ -130,8 +130,8 @@ export async function getMetricasGeraisDespesas(
     empenhado,
     liquidado,
     pago,
-    taxa_liquidacao: empenhado > 0 ? (liquidado / empenhado) * 100 : 0,
-    taxa_pagamento: empenhado > 0 ? (pago / empenhado) * 100 : 0,
+    taxaLiquidacao: empenhado > 0 ? (liquidado / empenhado) * 100 : 0,
+    taxaPagamento: empenhado > 0 ? (pago / empenhado) * 100 : 0,
   };
 }
 
@@ -155,7 +155,7 @@ export async function getDespesasPorUnidade(
         empenhado: number;
         liquidado: number;
         pago: number;
-        dotacao_atualizada: number;
+        dotacaoAtualizada: number;
       }
     > = {};
 
@@ -172,13 +172,13 @@ export async function getDespesasPorUnidade(
           empenhado: 0,
           liquidado: 0,
           pago: 0,
-          dotacao_atualizada: 0,
+          dotacaoAtualizada: 0,
         };
       }
       map[desc].empenhado += emp;
       map[desc].liquidado += liq;
       map[desc].pago += pag;
-      map[desc].dotacao_atualizada += dot;
+      map[desc].dotacaoAtualizada += dot;
     }
 
     return Object.entries(map)
@@ -201,25 +201,25 @@ export async function getResumoDiarias(
     const res = await q.execute(db);
     const rows = (res.rows as any[]) || [];
     if (rows.length === 0)
-      return { total_valor: 0, total_viajantes: 0, media_reembolso: 0 };
+      return { totalValor: 0, totalViajantes: 0, mediaReembolso: 0 };
 
-    let total_valor = 0;
+    let totalValor = 0;
     const viajantes = new Set<string>();
 
     for (const r of rows) {
       const v = parseFloat(String(r.valor ?? "0").replace(",", ".")) || 0;
-      total_valor += v;
+      totalValor += v;
       if (r.favorecido) viajantes.add(String(r.favorecido));
     }
 
-    const total_viajantes = viajantes.size;
+    const totalViajantes = viajantes.size;
     return {
-      total_valor,
-      total_viajantes,
-      media_reembolso: rows.length > 0 ? total_valor / rows.length : 0,
+      totalValor,
+      totalViajantes,
+      mediaReembolso: rows.length > 0 ? totalValor / rows.length : 0,
     };
   } catch {
-    return { total_valor: 0, total_viajantes: 0, media_reembolso: 0 };
+    return { totalValor: 0, totalViajantes: 0, mediaReembolso: 0 };
   }
 }
 
@@ -373,8 +373,8 @@ export async function getImpactoGastosLocais({
     const resYear = await qYear.execute(db);
     const rowsYear = (resYear.rows as any[]) || [];
 
-    let local_pago = 0;
-    let externo_pago = 0;
+    let localPago = 0;
+    let externoPago = 0;
 
     for (const r of rowsYear) {
       const p = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
@@ -385,14 +385,14 @@ export async function getImpactoGastosLocais({
         .toUpperCase();
       const cid = rawCid.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (cid === cidadeClean) {
-        local_pago += p;
+        localPago += p;
       } else {
-        externo_pago += p;
+        externoPago += p;
       }
     }
 
-    const total_pago = local_pago + externo_pago;
-    const pct_local = total_pago > 0 ? (local_pago / total_pago) * 100 : 0;
+    const totalPago = localPago + externoPago;
+    const pctLocal = totalPago > 0 ? (localPago / totalPago) * 100 : 0;
 
     // 2. Query plurianual acumulada (todos os anos)
     let qHist = sql`
@@ -414,8 +414,8 @@ export async function getImpactoGastosLocais({
     const resHist = await qHist.execute(db);
     const rowsHist = (resHist.rows as any[]) || [];
 
-    let historico_local_pago = 0;
-    let historico_externo_pago = 0;
+    let historicoLocalPago = 0;
+    let historicoExternoPago = 0;
 
     for (const r of rowsHist) {
       const p = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
@@ -426,38 +426,38 @@ export async function getImpactoGastosLocais({
         .toUpperCase();
       const cid = rawCid.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       if (cid === cidadeClean) {
-        historico_local_pago += p;
+        historicoLocalPago += p;
       } else {
-        historico_externo_pago += p;
+        historicoExternoPago += p;
       }
     }
 
-    const historico_total_pago = historico_local_pago + historico_externo_pago;
-    const historico_pct_local =
-      historico_total_pago > 0
-        ? (historico_local_pago / historico_total_pago) * 100
+    const historicoTotalPago = historicoLocalPago + historicoExternoPago;
+    const historicoPctLocal =
+      historicoTotalPago > 0
+        ? (historicoLocalPago / historicoTotalPago) * 100
         : 0;
 
     return {
-      local_pago,
-      externo_pago,
-      total_pago,
-      pct_local,
-      historico_local_pago,
-      historico_externo_pago,
-      historico_total_pago,
-      historico_pct_local,
+      localPago,
+      externoPago,
+      totalPago,
+      pctLocal,
+      historicoLocalPago,
+      historicoExternoPago,
+      historicoTotalPago,
+      historicoPctLocal,
     };
   } catch {
     return {
-      local_pago: 0,
-      externo_pago: 0,
-      total_pago: 0,
-      pct_local: 0,
-      historico_local_pago: 0,
-      historico_externo_pago: 0,
-      historico_total_pago: 0,
-      historico_pct_local: 0,
+      localPago: 0,
+      externoPago: 0,
+      totalPago: 0,
+      pctLocal: 0,
+      historicoLocalPago: 0,
+      historicoExternoPago: 0,
+      historicoTotalPago: 0,
+      historicoPctLocal: 0,
     };
   }
 }
@@ -484,9 +484,9 @@ export async function getRestosAPagarResumo(
     const res = await q.execute(db);
     const rows = (res.rows as any[]) || [];
 
-    let total_pendente = 0;
+    let totalPendente = 0;
     const fornecedoresSet = new Set<string>();
-    let divida_mais_antiga_ano = year;
+    let dividaMaisAntigaAno = year;
     const mapFornecedores: Record<string, number> = {};
 
     for (const r of rows) {
@@ -495,10 +495,10 @@ export async function getRestosAPagarResumo(
       const pend = emp - pag;
       if (pend > 0) {
         const a = Number(r.ano);
-        if (a > 0 && a < divida_mais_antiga_ano) {
-          divida_mais_antiga_ano = a;
+        if (a > 0 && a < dividaMaisAntigaAno) {
+          dividaMaisAntigaAno = a;
         }
-        total_pendente += pend;
+        totalPendente += pend;
         const nome = String(
           r.fornecedor_nome || r.descricao || "Não identificado",
         ).trim();
@@ -507,23 +507,23 @@ export async function getRestosAPagarResumo(
       }
     }
 
-    const top_fornecedores = Object.entries(mapFornecedores)
+    const topFornecedores = Object.entries(mapFornecedores)
       .map(([fornecedor, valor]) => ({ fornecedor, valor }))
       .sort((a, b) => b.valor - a.valor)
       .slice(0, 5);
 
     return {
-      total_pendente,
-      fornecedores_aguardando: fornecedoresSet.size,
-      divida_mais_antiga_ano,
-      top_fornecedores,
+      totalPendente,
+      fornecedoresAguardando: fornecedoresSet.size,
+      dividaMaisAntigaAno,
+      topFornecedores,
     };
   } catch {
     return {
-      total_pendente: 0,
-      fornecedores_aguardando: 0,
-      divida_mais_antiga_ano: year,
-      top_fornecedores: [],
+      totalPendente: 0,
+      fornecedoresAguardando: 0,
+      dividaMaisAntigaAno: year,
+      topFornecedores: [],
     };
   }
 }

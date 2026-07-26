@@ -76,23 +76,21 @@ export default async function SaudePage({
         <KPICard
           title="Empenhado"
           value={fmtCompact(saude.orcamento.empenhado)}
-          subtext={`Execução: ${fmtPercent(saude.orcamento.taxa_execucao * 100)}`}
+          subtext={`Execução: ${fmtPercent(saude.orcamento.taxaExecucao * 100)}`}
         />
         <KPICard
           title="Emendas Parlamentares"
-          value={fmtCompact(saude.emendas_total)}
+          value={fmtCompact(saude.emendasTotal)}
           subtext={`${saude.emendas.length} emendas destinadas`}
         />
         <KPICard
           title="Status Orçamentário"
-          value={
-            saude.orcamento.alerta_sub_execucao ? "Subexecutado" : "Normal"
-          }
-          alert={saude.orcamento.alerta_sub_execucao}
+          value={saude.orcamento.alertaSubExecucao ? "Subexecutado" : "Normal"}
+          alert={saude.orcamento.alertaSubExecucao}
         />
       </KPIGrid>
 
-      {saude.orcamento.alerta_sub_execucao && (
+      {saude.orcamento.alertaSubExecucao && (
         <AlertBox type="warning" title="Alerta de Subexecução Orçamentária">
           A execução da Saúde está abaixo de 70% da dotação aprovada para o
           exercício.

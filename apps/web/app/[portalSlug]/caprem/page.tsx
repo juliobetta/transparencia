@@ -71,18 +71,18 @@ export default async function CapremPage({
       <KPIGrid columns={3}>
         <KPICard
           title="Total Empenhado"
-          value={fmtCompact(caprem.total_empenhado)}
+          value={fmtCompact(caprem.totalEmpenhado)}
           subtext="Compromissos previdenciários"
           accent
         />
         <KPICard
           title="Total Liquidado"
-          value={fmtCompact(caprem.total_liquidado)}
+          value={fmtCompact(caprem.totalLiquidado)}
           subtext="Atestado pelos órgãos"
         />
         <KPICard
           title="Total Repassado/Pago"
-          value={fmtCompact(caprem.total_pago)}
+          value={fmtCompact(caprem.totalPago)}
           subtext="Efetivamente transferido"
         />
       </KPIGrid>

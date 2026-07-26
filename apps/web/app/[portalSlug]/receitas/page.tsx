@@ -36,61 +36,60 @@ export default async function ReceitasPage({
 
   const fontes = await getFontesReceita([selectedYear], entidadesIds);
   const rec = fontes[0] || {
-    receita_propria: 0,
-    transferencias_uniao: 0,
-    transferencias_estado: 0,
+    receitaPropria: 0,
+    transferenciasUniao: 0,
+    transferenciasEstado: 0,
     total: 0,
-    pct_propria: 0,
-    alerta_dependencia: false,
-    receita_propria_previsto: 0,
-    receita_propria_arrecadado: 0,
-    transferencias_uniao_previsto: 0,
-    transferencias_uniao_arrecadado: 0,
-    transferencias_estado_previsto: 0,
-    transferencias_estado_arrecadado: 0,
-    total_previsto: 0,
-    total_arrecadado: 0,
-    pct_arrecadado: 0,
-    total_pct_change: null,
+    pctPropria: 0,
+    alertaDependencia: false,
+    receitaPropriaPrevisto: 0,
+    receitaPropriaArrecadado: 0,
+    transferenciasUniaoPrevisto: 0,
+    transferenciasUniaoArrecadado: 0,
+    transferenciasEstadoPrevisto: 0,
+    transferenciasEstadoArrecadado: 0,
+    totalPrevisto: 0,
+    totalArrecadado: 0,
+    pctArrecadado: 0,
+    totalPctChange: null,
   };
 
-  const totalArr = rec.total_arrecadado;
-  const totalPrev = rec.total_previsto;
-  const pctArrecadadoAnual = (rec.pct_arrecadado || 0) * 100;
+  const totalArr = rec.totalArrecadado;
+  const totalPrev = rec.totalPrevisto;
+  const pctArrecadadoAnual = (rec.pctArrecadado || 0) * 100;
 
   const partialPeriod = getPartialYearPeriod();
 
   const origensData = [
     {
       fonte: "Transferências da União",
-      previsto: rec.transferencias_uniao_previsto,
-      arrecadado: rec.transferencias_uniao_arrecadado,
+      previsto: rec.transferenciasUniaoPrevisto,
+      arrecadado: rec.transferenciasUniaoArrecadado,
       pctRealizado:
-        rec.transferencias_uniao_previsto > 0
-          ? (rec.transferencias_uniao_arrecadado /
-              rec.transferencias_uniao_previsto) *
+        rec.transferenciasUniaoPrevisto > 0
+          ? (rec.transferenciasUniaoArrecadado /
+              rec.transferenciasUniaoPrevisto) *
             100
           : 0,
     },
     {
       fonte: "Transferências do Estado",
-      previsto: rec.transferencias_estado_previsto,
-      arrecadado: rec.transferencias_estado_arrecadado,
+      previsto: rec.transferenciasEstadoPrevisto,
+      arrecadado: rec.transferenciasEstadoArrecadado,
       pctRealizado:
-        rec.transferencias_estado_previsto > 0
-          ? (rec.transferencias_estado_arrecadado /
-              rec.transferencias_estado_previsto) *
+        rec.transferenciasEstadoPrevisto > 0
+          ? (rec.transferenciasEstadoArrecadado /
+              rec.transferenciasEstadoPrevisto) *
             100
           : 0,
     },
     {
       fonte: "Receita própria",
-      previsto: rec.receita_propria_previsto,
-      arrecadado: rec.receita_propria_arrecadado,
+      previsto: rec.receitaPropriaPrevisto,
+      arrecadado: rec.receitaPropriaArrecadado,
       pctRealizado:
-        rec.receita_propria_previsto > 0
-          ? (rec.receita_propria_arrecadado / rec.receita_propria_previsto) *
-            100
+        rec.receitaPropriaPrevisto > 0
+          ? (rec.receitaPropriaArrecadado / rec.receitaPropriaPrevisto) * 100
           : 0,
     },
   ];
@@ -98,33 +97,32 @@ export default async function ReceitasPage({
   const tableData = [
     {
       fonte: "Receita Própria (Municipal)",
-      previsto: rec.receita_propria_previsto,
-      arrecadado: rec.receita_propria_arrecadado,
+      previsto: rec.receitaPropriaPrevisto,
+      arrecadado: rec.receitaPropriaArrecadado,
       pct:
-        rec.receita_propria_previsto > 0
-          ? (rec.receita_propria_arrecadado / rec.receita_propria_previsto) *
-            100
+        rec.receitaPropriaPrevisto > 0
+          ? (rec.receitaPropriaArrecadado / rec.receitaPropriaPrevisto) * 100
           : 0,
     },
     {
       fonte: "Transferências da União",
-      previsto: rec.transferencias_uniao_previsto,
-      arrecadado: rec.transferencias_uniao_arrecadado,
+      previsto: rec.transferenciasUniaoPrevisto,
+      arrecadado: rec.transferenciasUniaoArrecadado,
       pct:
-        rec.transferencias_uniao_previsto > 0
-          ? (rec.transferencias_uniao_arrecadado /
-              rec.transferencias_uniao_previsto) *
+        rec.transferenciasUniaoPrevisto > 0
+          ? (rec.transferenciasUniaoArrecadado /
+              rec.transferenciasUniaoPrevisto) *
             100
           : 0,
     },
     {
       fonte: "Transferências do Estado",
-      previsto: rec.transferencias_estado_previsto,
-      arrecadado: rec.transferencias_estado_arrecadado,
+      previsto: rec.transferenciasEstadoPrevisto,
+      arrecadado: rec.transferenciasEstadoArrecadado,
       pct:
-        rec.transferencias_estado_previsto > 0
-          ? (rec.transferencias_estado_arrecadado /
-              rec.transferencias_estado_previsto) *
+        rec.transferenciasEstadoPrevisto > 0
+          ? (rec.transferenciasEstadoArrecadado /
+              rec.transferenciasEstadoPrevisto) *
             100
           : 0,
     },
@@ -153,10 +151,10 @@ export default async function ReceitasPage({
   ];
 
   const variationText =
-    rec.total_pct_change != null
-      ? rec.total_pct_change >= 0
-        ? `▲ ${rec.total_pct_change.toFixed(1).replace(".", ",")}% vs. ${selectedYear - 1}`
-        : `▼ ${Math.abs(rec.total_pct_change).toFixed(1).replace(".", ",")}% vs. ${selectedYear - 1}`
+    rec.totalPctChange != null
+      ? rec.totalPctChange >= 0
+        ? `▲ ${rec.totalPctChange.toFixed(1).replace(".", ",")}% vs. ${selectedYear - 1}`
+        : `▼ ${Math.abs(rec.totalPctChange).toFixed(1).replace(".", ",")}% vs. ${selectedYear - 1}`
       : "Orçamento aprovado";
 
   return (
@@ -257,12 +255,12 @@ export default async function ReceitasPage({
       </div>
 
       {/* Alerta de Vulnerabilidade Fiscal caso exista */}
-      {rec.alerta_dependencia && (
+      {rec.alertaDependencia && (
         <AlertBox
           type="danger"
           title="Alerta: Alta Dependência de Transferências Externas"
         >
-          A receita própria representa apenas {fmtPercent(rec.pct_propria)} do
+          A receita própria representa apenas {fmtPercent(rec.pctPropria)} do
           total arrecadado. O município apresenta elevada vulnerabilidade fiscal
           a repasses constitucionais federais e estaduais para manter o custeio
           público.

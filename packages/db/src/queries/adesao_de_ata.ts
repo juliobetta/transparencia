@@ -4,12 +4,12 @@ import { db } from "../client";
 export interface ItemAdesaoAta {
   numero: string;
   objeto: string;
-  licitacao_valor: number;
+  licitacaoValor: number;
   carona: string;
-  total_c_valor: number;
-  total_c_empenhado: number;
+  totalCValor: number;
+  totalCEmpenhado: number;
   mes: number | null;
-  tem_contrato: boolean;
+  temContrato: boolean;
   periodo: string;
 }
 
@@ -17,8 +17,8 @@ export interface AdesaoAtaResult {
   lista: ItemAdesaoAta[];
   quantidade: number;
   valor: number;
-  total_licitacao: number;
-  contratos_associados_count: number;
+  totalLicitacao: number;
+  contratosAssociadosCount: number;
 }
 
 export interface ItemAdesaoExterna {
@@ -28,13 +28,13 @@ export interface ItemAdesaoExterna {
   pago: number;
   unidade: string;
   justificativa: string;
-  num_licitacao: string;
+  numLicitacao: string;
 }
 
 export interface AdesaoExternaResult {
   lista: ItemAdesaoExterna[];
   quantidade: number;
-  total_pago: number;
+  totalPago: number;
 }
 
 export async function getAdesaoDeAta(
@@ -68,8 +68,8 @@ export async function getAdesaoDeAta(
         lista: [],
         quantidade: 0,
         valor: 0,
-        total_licitacao: 0,
-        contratos_associados_count: 0,
+        totalLicitacao: 0,
+        contratosAssociadosCount: 0,
       };
     }
 
@@ -78,10 +78,10 @@ export async function getAdesaoDeAta(
       {
         numero: string;
         objeto: string;
-        licitacao_valor: number;
+        licitacaoValor: number;
         carona: string;
-        total_c_valor: number;
-        total_c_empenhado: number;
+        totalCValor: number;
+        totalCEmpenhado: number;
         mes: number | null;
       }
     > = {};
@@ -100,15 +100,15 @@ export async function getAdesaoDeAta(
         map[key] = {
           numero: String(r.numero ?? ""),
           objeto: String(r.objeto ?? ""),
-          licitacao_valor: licVal,
+          licitacaoValor: licVal,
           carona: String(r.carona ?? "S"),
-          total_c_valor: 0,
-          total_c_empenhado: 0,
+          totalCValor: 0,
+          totalCEmpenhado: 0,
           mes: mesNum,
         };
       }
-      map[key].total_c_valor += cVal;
-      map[key].total_c_empenhado += cEmp;
+      map[key].totalCValor += cVal;
+      map[key].totalCEmpenhado += cEmp;
       if (map[key].mes === null && mesNum !== null) map[key].mes = mesNum;
     }
 
@@ -116,34 +116,29 @@ export async function getAdesaoDeAta(
       const mStr = item.mes ? String(item.mes).padStart(2, "0") : "";
       return {
         ...item,
-        tem_contrato: item.total_c_valor > 0,
+        temContrato: item.totalCValor > 0,
         periodo: mStr ? `${mStr}/${year}` : "",
       };
     });
 
-    const valor = lista.reduce((acc, i) => acc + i.total_c_valor, 0);
-    const total_licitacao = lista.reduce(
-      (acc, i) => acc + i.licitacao_valor,
-      0,
-    );
-    const contratos_associados_count = lista.filter(
-      (i) => i.tem_contrato,
-    ).length;
+    const valor = lista.reduce((acc, i) => acc + i.totalCValor, 0);
+    const totalLicitacao = lista.reduce((acc, i) => acc + i.licitacaoValor, 0);
+    const contratosAssociadosCount = lista.filter((i) => i.temContrato).length;
 
     return {
       lista,
       quantidade: lista.length,
       valor,
-      total_licitacao,
-      contratos_associados_count,
+      totalLicitacao,
+      contratosAssociadosCount,
     };
   } catch {
     return {
       lista: [],
       quantidade: 0,
       valor: 0,
-      total_licitacao: 0,
-      contratos_associados_count: 0,
+      totalLicitacao: 0,
+      contratosAssociadosCount: 0,
     };
   }
 }
@@ -190,13 +185,13 @@ export async function getAdesaoExterna(
         pago: pag,
         unidade: String(r.unidade ?? ""),
         justificativa: String(r.justificativa ?? ""),
-        num_licitacao: String(r.num_licitacao ?? ""),
+        numLicitacao: String(r.num_licitacao ?? ""),
       };
     });
 
-    const total_pago = lista.reduce((acc, i) => acc + i.pago, 0);
-    return { lista, quantidade: lista.length, total_pago };
+    const totalPago = lista.reduce((acc, i) => acc + i.pago, 0);
+    return { lista, quantidade: lista.length, totalPago };
   } catch {
-    return { lista: [], quantidade: 0, total_pago: 0 };
+    return { lista: [], quantidade: 0, totalPago: 0 };
   }
 }

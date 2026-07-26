@@ -17,8 +17,8 @@ export interface EmendaSaude {
 export interface BudgetSaude {
   dotacao: number;
   empenhado: number;
-  taxa_execucao: number;
-  alerta_sub_execucao: boolean;
+  taxaExecucao: number;
+  alertaSubExecucao: boolean;
 }
 
 export interface ExecutionTrendSaude {
@@ -28,9 +28,9 @@ export interface ExecutionTrendSaude {
 
 export interface HistoriaSaudeResult {
   emendas: EmendaSaude[];
-  emendas_total: number;
+  emendasTotal: number;
   orcamento: BudgetSaude;
-  execution_trend: ExecutionTrendSaude[];
+  executionTrend: ExecutionTrendSaude[];
 }
 
 export async function getHistoriaSaude(
@@ -46,7 +46,7 @@ export async function getHistoriaSaude(
       : [SAUDE_EMPRESA];
 
   const emendas: EmendaSaude[] = [];
-  let emendas_total = 0;
+  let emendasTotal = 0;
 
   try {
     const resE = await sql`
@@ -62,7 +62,7 @@ export async function getHistoriaSaude(
       const valAut =
         parseFloat(String(r["Valor Autorizado"] ?? "0").replace(",", ".")) || 0;
       const emp = parseFloat(String(r.Empenhado ?? "0").replace(",", ".")) || 0;
-      emendas_total += valAut;
+      emendasTotal += valAut;
       emendas.push({
         Nº: String(r.Nº ?? ""),
         Objeto: String(r.Objeto ?? ""),
@@ -80,8 +80,8 @@ export async function getHistoriaSaude(
   let orcamento: BudgetSaude = {
     dotacao: 0,
     empenhado: 0,
-    taxa_execucao: 0,
-    alerta_sub_execucao: false,
+    taxaExecucao: 0,
+    alertaSubExecucao: false,
   };
   try {
     const resB = await sql`
@@ -102,12 +102,12 @@ export async function getHistoriaSaude(
     orcamento = {
       dotacao: dot,
       empenhado: emp,
-      taxa_execucao: taxa,
-      alerta_sub_execucao: taxa < 0.7 && year < currentYear,
+      taxaExecucao: taxa,
+      alertaSubExecucao: taxa < 0.7 && year < currentYear,
     };
   } catch {}
 
-  let execution_trend: ExecutionTrendSaude[] = [];
+  let executionTrend: ExecutionTrendSaude[] = [];
   try {
     const resT = await sql`
       SELECT ano, SUM(CAST(REPLACE(empenhado, ',', '.') AS numeric)) AS empenhado
@@ -116,7 +116,7 @@ export async function getHistoriaSaude(
       GROUP BY ano
       ORDER BY ano
     `.execute(db);
-    execution_trend = ((resT.rows as any[]) || []).map((r) => ({
+    executionTrend = ((resT.rows as any[]) || []).map((r) => ({
       ano: Number(r.ano),
       empenhado: parseFloat(String(r.empenhado ?? "0")) || 0,
     }));
@@ -124,8 +124,8 @@ export async function getHistoriaSaude(
 
   return {
     emendas,
-    emendas_total,
+    emendasTotal,
     orcamento,
-    execution_trend,
+    executionTrend,
   };
 }

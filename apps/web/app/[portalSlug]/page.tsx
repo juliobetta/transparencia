@@ -44,7 +44,7 @@ export default async function VisaoGeralPage({
   const isCurrentYear = selectedYear === currentYear;
 
   const portalConfig = await getPortalConfig();
-  const portalName = portalConfig?.display_name;
+  const portalName = portalConfig?.displayName;
 
   const posicao = await getPosicaoFiscal(selectedYear, entidadesIds);
   const execItems = await getExecucaoOrcamentaria(selectedYear, entidadesIds);
@@ -53,18 +53,18 @@ export default async function VisaoGeralPage({
   const fontes = await getFontesReceita([selectedYear], entidadesIds);
   const fonte = fontes[0];
   const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
-  const folha = folhaData[0] || { percentual_folha: 0 };
-  const folhaPct = Number((folha.percentual_folha || 0).toFixed(1));
+  const folha = folhaData[0] || { percentualFolha: 0 };
+  const folhaPct = Number((folha.percentualFolha || 0).toFixed(1));
   const pctChefiasEfetivas = await getPercentualChefiasEfetivas(
     selectedYear,
     entidadesIds,
   );
 
-  const totalArr = posicao.totalArrecadado || fonte?.total_arrecadado || 0;
-  const uniaoArr = fonte?.transferencias_uniao_arrecadado || 0;
-  const estadoArr = fonte?.transferencias_estado_arrecadado || 0;
+  const totalArr = posicao.totalArrecadado || fonte?.totalArrecadado || 0;
+  const uniaoArr = fonte?.transferenciasUniaoArrecadado || 0;
+  const estadoArr = fonte?.transferenciasEstadoArrecadado || 0;
   const propriaArr =
-    fonte?.receita_propria_arrecadado ||
+    fonte?.receitaPropriaArrecadado ||
     Math.max(0, totalArr - uniaoArr - estadoArr);
 
   const uniaoPct = totalArr > 0 ? Math.round((uniaoArr / totalArr) * 100) : 0;
@@ -72,8 +72,8 @@ export default async function VisaoGeralPage({
   const propriaPct = totalArr > 0 ? Math.max(0, 100 - uniaoPct - estadoPct) : 0;
 
   const realizationPct =
-    execSummary.total_dotacao > 0
-      ? Math.round((totalArr / execSummary.total_dotacao) * 100)
+    execSummary.totalDotacao > 0
+      ? Math.round((totalArr / execSummary.totalDotacao) * 100)
       : 0;
 
   const originBreakdown = [
@@ -97,10 +97,10 @@ export default async function VisaoGeralPage({
     },
   ];
 
-  const totalDotacao = execSummary.total_dotacao;
-  const totalEmpenhado = execSummary.total_empenhado;
-  const totalLiquidado = execSummary.total_liquidado;
-  const totalPago = execSummary.total_pago;
+  const totalDotacao = execSummary.totalDotacao;
+  const totalEmpenhado = execSummary.totalEmpenhado;
+  const totalLiquidado = execSummary.totalLiquidado;
+  const totalPago = execSummary.totalPago;
 
   const empPct = totalDotacao > 0 ? (totalEmpenhado / totalDotacao) * 100 : 0;
   const liqPct = totalDotacao > 0 ? (totalLiquidado / totalDotacao) * 100 : 0;
@@ -137,8 +137,8 @@ export default async function VisaoGeralPage({
     },
   ];
 
-  const acimaLimiteCount = _gaps.filter((g) => g.acima_limite).length;
-  const saudeGapsCount = _gaps.filter((g) => g.orgao_saude).length;
+  const acimaLimiteCount = _gaps.filter((g) => g.acimaLimite).length;
+  const saudeGapsCount = _gaps.filter((g) => g.orgaoSaude).length;
 
   const maxPendente = Math.max(
     ...posicao.restosPendentes.map((r) => r.pendente),
@@ -256,7 +256,7 @@ export default async function VisaoGeralPage({
         summary={heroSummary}
         arrecadadoTitle={arrecadadoTitle}
         totalArrecadado={posicao.totalArrecadado}
-        previstoTotal={execSummary.total_dotacao}
+        previstoTotal={execSummary.totalDotacao}
         realizationPercent={realizationPct}
         originBreakdown={originBreakdown}
       />

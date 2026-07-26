@@ -39,10 +39,10 @@ export default async function PessoalPage({
   const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
   const decimo13 = await getExecucaoDecimoTerceiro(selectedYear, entidadesIds);
   const row = folhaData[0] || {
-    total_folha: 0,
-    total_pago: 0,
-    rcl_proxy: 0,
-    percentual_folha: 0,
+    totalFolha: 0,
+    totalPago: 0,
+    rclProxy: 0,
+    percentualFolha: 0,
   };
 
   return (
@@ -61,20 +61,20 @@ export default async function PessoalPage({
       <KPIGrid columns={4}>
         <KPICard
           title="Total Folha de Pagamento"
-          value={fmtCompact(row.total_folha)}
+          value={fmtCompact(row.totalFolha)}
           subtext="Proventos brutos"
           accent
         />
         <KPICard
           title="Receita Corrente Líquida"
-          value={fmtCompact(row.rcl_proxy)}
+          value={fmtCompact(row.rclProxy)}
           subtext="Proxy RCL"
         />
         <KPICard
           title="Comprometimento LRF"
-          value={fmtPercent(row.percentual_folha)}
+          value={fmtPercent(row.percentualFolha)}
           subtext="Limite Máximo LRF: 54.0%"
-          alert={row.percentual_folha > 54}
+          alert={row.percentualFolha > 54}
         />
         <KPICard
           title="13º Salário Executado"
@@ -90,12 +90,12 @@ export default async function PessoalPage({
       <div>
         <SectionHeader
           title="Indicadores da Lei de Responsabilidade Fiscal (LRF)"
-          description={`Comprometimento dos gastos com pessoal da ${portalConfig?.display_name}`}
+          description={`Comprometimento dos gastos com pessoal da ${portalConfig?.displayName}`}
         />
         <div className="space-y-4 rounded-xl border border-borderLine bg-white p-6">
           <div className="flex justify-between font-semibold text-ink text-xs">
             <span>
-              Comprometimento Atual: {fmtPercent(row.percentual_folha)}
+              Comprometimento Atual: {fmtPercent(row.percentualFolha)}
             </span>
             <span>Limite Máximo LRF: 54.00%</span>
           </div>
@@ -103,9 +103,9 @@ export default async function PessoalPage({
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
-                width: `${Math.min(100, (row.percentual_folha / 54) * 100)}%`,
+                width: `${Math.min(100, (row.percentualFolha / 54) * 100)}%`,
                 backgroundColor:
-                  row.percentual_folha > 54
+                  row.percentualFolha > 54
                     ? "oklch(0.55 0.11 25)"
                     : "oklch(0.55 0.11 250)",
               }}

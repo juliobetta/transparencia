@@ -3,23 +3,23 @@ import { db } from "../client";
 
 export interface FontesReceitaRecord {
   ano: number;
-  receita_propria: number;
-  transferencias_uniao: number;
-  transferencias_estado: number;
+  receitaPropria: number;
+  transferenciasUniao: number;
+  transferenciasEstado: number;
   total: number;
-  pct_propria: number;
-  pct_propria_previsto: number;
-  alerta_dependencia: boolean;
-  receita_propria_previsto: number;
-  receita_propria_arrecadado: number;
-  transferencias_uniao_previsto: number;
-  transferencias_uniao_arrecadado: number;
-  transferencias_estado_previsto: number;
-  transferencias_estado_arrecadado: number;
-  total_previsto: number;
-  total_arrecadado: number;
-  pct_arrecadado: number;
-  total_pct_change?: number | null;
+  pctPropria: number;
+  pctPropriaPrevisto: number;
+  alertaDependencia: boolean;
+  receitaPropriaPrevisto: number;
+  receitaPropriaArrecadado: number;
+  transferenciasUniaoPrevisto: number;
+  transferenciasUniaoArrecadado: number;
+  transferenciasEstadoPrevisto: number;
+  transferenciasEstadoArrecadado: number;
+  totalPrevisto: number;
+  totalArrecadado: number;
+  pctArrecadado: number;
+  totalPctChange?: number | null;
 }
 
 const INTRA_PREFIXES = ["17", "27"];
@@ -83,14 +83,14 @@ export async function getFontesReceita(
   const records: FontesReceitaRecord[] = [];
 
   for (const year of years) {
-    const total_previsto = await sumColumn(
+    const totalPrevisto = await sumColumn(
       "orcamentaria",
       "previsao_atualizada",
       year,
       true,
       empresaIds,
     );
-    const total_arrecadado = await sumColumn(
+    const totalArrecadado = await sumColumn(
       "orcamentaria",
       "arrecadado",
       year,
@@ -98,14 +98,14 @@ export async function getFontesReceita(
       empresaIds,
     );
 
-    const uniao_previsto = await sumColumn(
+    const uniaoPrevisto = await sumColumn(
       "uniao",
       "previsao_atualizada",
       year,
       true,
       empresaIds,
     );
-    const uniao_arrecadado = await sumColumn(
+    const uniaoArrecadado = await sumColumn(
       "uniao",
       "arrecadado",
       year,
@@ -113,14 +113,14 @@ export async function getFontesReceita(
       empresaIds,
     );
 
-    const estado_previsto = await sumColumn(
+    const estadoPrevisto = await sumColumn(
       "estado",
       "previsao_atualizada",
       year,
       true,
       empresaIds,
     );
-    const estado_arrecadado = await sumColumn(
+    const estadoArrecadado = await sumColumn(
       "estado",
       "arrecadado",
       year,
@@ -128,50 +128,49 @@ export async function getFontesReceita(
       empresaIds,
     );
 
-    const propria_previsto = Math.max(
+    const propriaPrevisto = Math.max(
       0,
-      total_previsto - uniao_previsto - estado_previsto,
+      totalPrevisto - uniaoPrevisto - estadoPrevisto,
     );
-    const propria_arrecadado = Math.max(
+    const propriaArrecadado = Math.max(
       0,
-      total_arrecadado - uniao_arrecadado - estado_arrecadado,
+      totalArrecadado - uniaoArrecadado - estadoArrecadado,
     );
 
-    const pct_previsto =
-      total_previsto > 0 ? (propria_previsto / total_previsto) * 100 : 0;
+    const pctPrevisto =
+      totalPrevisto > 0 ? (propriaPrevisto / totalPrevisto) * 100 : 0;
     const pct =
-      total_arrecadado > 0
-        ? (propria_arrecadado / total_arrecadado) * 100
-        : pct_previsto;
+      totalArrecadado > 0
+        ? (propriaArrecadado / totalArrecadado) * 100
+        : pctPrevisto;
 
     records.push({
       ano: year,
-      receita_propria: propria_arrecadado,
-      transferencias_uniao: uniao_arrecadado,
-      transferencias_estado: estado_arrecadado,
-      total: total_arrecadado,
-      pct_propria: pct,
-      pct_propria_previsto: pct_previsto,
-      alerta_dependencia: pct < 10,
-      receita_propria_previsto: propria_previsto,
-      receita_propria_arrecadado: propria_arrecadado,
-      transferencias_uniao_previsto: uniao_previsto,
-      transferencias_uniao_arrecadado: uniao_arrecadado,
-      transferencias_estado_previsto: estado_previsto,
-      transferencias_estado_arrecadado: estado_arrecadado,
-      total_previsto,
-      total_arrecadado,
-      pct_arrecadado:
-        total_previsto > 0 ? total_arrecadado / total_previsto : 0,
+      receitaPropria: propriaArrecadado,
+      transferenciasUniao: uniaoArrecadado,
+      transferenciasEstado: estadoArrecadado,
+      total: totalArrecadado,
+      pctPropria: pct,
+      pctPropriaPrevisto: pctPrevisto,
+      alertaDependencia: pct < 10,
+      receitaPropriaPrevisto: propriaPrevisto,
+      receitaPropriaArrecadado: propriaArrecadado,
+      transferenciasUniaoPrevisto: uniaoPrevisto,
+      transferenciasUniaoArrecadado: uniaoArrecadado,
+      transferenciasEstadoPrevisto: estadoPrevisto,
+      transferenciasEstadoArrecadado: estadoArrecadado,
+      totalPrevisto,
+      totalArrecadado,
+      pctArrecadado: totalPrevisto > 0 ? totalArrecadado / totalPrevisto : 0,
     });
   }
 
   for (let i = 0; i < records.length; i++) {
     if (i === 0) {
-      records[i].total_pct_change = null;
+      records[i].totalPctChange = null;
     } else {
       const prevTotal = records[i - 1].total;
-      records[i].total_pct_change =
+      records[i].totalPctChange =
         prevTotal > 0
           ? ((records[i].total - prevTotal) / prevTotal) * 100
           : null;

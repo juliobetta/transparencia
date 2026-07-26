@@ -28,7 +28,7 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     const exec = await getExecucaoOrcamentaria(TEST_YEAR);
     expect(Array.isArray(exec)).toBe(true);
     expect(exec.length).toBeGreaterThan(0);
-    expect(exec[0]).toHaveProperty("dotacao_atualizada");
+    expect(exec[0]).toHaveProperty("dotacaoAtualizada");
     expect(exec[0]).toHaveProperty("empenhado");
     expect(exec[0]).toHaveProperty("pago");
   });
@@ -37,8 +37,8 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     const fontes = await getFontesReceita([TEST_YEAR]);
     expect(Array.isArray(fontes)).toBe(true);
     if (fontes.length > 0) {
-      expect(typeof fontes[0].total_previsto).toBe("number");
-      expect(typeof fontes[0].total_arrecadado).toBe("number");
+      expect(typeof fontes[0].totalPrevisto).toBe("number");
+      expect(typeof fontes[0].totalArrecadado).toBe("number");
     }
   });
 
@@ -54,7 +54,7 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
       portalSlug: "porciuncula_prefeitura",
     });
     expect(impacto).toBeDefined();
-    expect(typeof impacto.local_pago).toBe("number");
+    expect(typeof impacto.localPago).toBe("number");
   });
 
   it("deve buscar adessões de ata", async () => {
@@ -78,11 +78,11 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
   it("deve buscar portal config", async () => {
     const config = await getPortalConfig("porciuncula_prefeitura");
     if (config) {
-      expect(typeof config.portal_slug).toBe("string");
-      expect(typeof config.display_name).toBe("string");
+      expect(typeof config.portalSlug).toBe("string");
+      expect(typeof config.displayName).toBe("string");
       expect(typeof config.uf).toBe("string");
-      expect(typeof config.ano_inicial).toBe("number");
-      expect(typeof config.empresa_padrao).toBe("string");
+      expect(typeof config.anoInicial).toBe("number");
+      expect(typeof config.empresaPadrao).toBe("string");
     }
   });
 

@@ -4,16 +4,16 @@ import { getFontesReceita } from "./fontes_receita";
 
 export interface TendenciaAnualRecord {
   ano: number;
-  total_gasto: number;
-  total_empenhado: number;
-  total_folha: number;
-  total_receita: number | null;
-  restos_a_pagar: number;
-  total_gasto_pct_change?: number | null;
-  total_empenhado_pct_change?: number | null;
-  total_folha_pct_change?: number | null;
-  total_receita_pct_change?: number | null;
-  restos_a_pagar_pct_change?: number | null;
+  totalGasto: number;
+  totalEmpenhado: number;
+  totalFolha: number;
+  totalReceita: number | null;
+  restosAPagar: number;
+  totalGastoPctChange?: number | null;
+  totalEmpenhadoPctChange?: number | null;
+  totalFolhaPctChange?: number | null;
+  totalReceitaPctChange?: number | null;
+  restosAPagarPctChange?: number | null;
 }
 
 export async function getTendenciasAnuais(
@@ -24,14 +24,14 @@ export async function getTendenciasAnuais(
   const revDf = await getFontesReceita(sortedYears, empresaIds);
   const revMap = new Map<number, number>();
   for (const r of revDf) {
-    revMap.set(r.ano, r.total_arrecadado);
+    revMap.set(r.ano, r.totalArrecadado);
   }
 
   const records: TendenciaAnualRecord[] = [];
 
   for (const year of sortedYears) {
-    let total_gasto = 0;
-    let total_empenhado = 0;
+    let totalGasto = 0;
+    let totalEmpenhado = 0;
     try {
       let q = sql`SELECT pago, empenhado FROM fct_despesas_por_orgao WHERE ano = ${year}`;
       if (empresaIds && empresaIds.length > 0) {
@@ -39,26 +39,26 @@ export async function getTendenciasAnuais(
       }
       const res = await q.execute(db);
       for (const r of (res.rows as any[]) || []) {
-        total_gasto += parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
-        total_empenhado +=
+        totalGasto += parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
+        totalEmpenhado +=
           parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
 
-    let total_folha = 0;
+    let totalFolha = 0;
     try {
       const resF =
         await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(
           db,
         );
       for (const r of (resF.rows as any[]) || []) {
-        total_folha +=
+        totalFolha +=
           parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
 
-    const total_rec = revMap.get(year) || 0;
-    const receita = total_rec > 0 ? total_rec : null;
+    const totalRec = revMap.get(year) || 0;
+    const receita = totalRec > 0 ? totalRec : null;
 
     let restos = 0;
     try {
@@ -74,49 +74,46 @@ export async function getTendenciasAnuais(
 
     records.push({
       ano: year,
-      total_gasto,
-      total_empenhado,
-      total_folha,
-      total_receita: receita,
-      restos_a_pagar: restos,
+      totalGasto,
+      totalEmpenhado,
+      totalFolha,
+      totalReceita: receita,
+      restosAPagar: restos,
     });
   }
 
   for (let i = 0; i < records.length; i++) {
     if (i === 0) {
-      records[i].total_gasto_pct_change = null;
-      records[i].total_empenhado_pct_change = null;
-      records[i].total_folha_pct_change = null;
-      records[i].total_receita_pct_change = null;
-      records[i].restos_a_pagar_pct_change = null;
+      records[i].totalGastoPctChange = null;
+      records[i].totalEmpenhadoPctChange = null;
+      records[i].totalFolhaPctChange = null;
+      records[i].totalReceitaPctChange = null;
+      records[i].restosAPagarPctChange = null;
     } else {
       const prev = records[i - 1];
       const curr = records[i];
 
-      curr.total_gasto_pct_change =
-        prev.total_gasto > 0
-          ? ((curr.total_gasto - prev.total_gasto) / prev.total_gasto) * 100
+      curr.totalGastoPctChange =
+        prev.totalGasto > 0
+          ? ((curr.totalGasto - prev.totalGasto) / prev.totalGasto) * 100
           : null;
-      curr.total_empenhado_pct_change =
-        prev.total_empenhado > 0
-          ? ((curr.total_empenhado - prev.total_empenhado) /
-              prev.total_empenhado) *
+      curr.totalEmpenhadoPctChange =
+        prev.totalEmpenhado > 0
+          ? ((curr.totalEmpenhado - prev.totalEmpenhado) /
+              prev.totalEmpenhado) *
             100
           : null;
-      curr.total_folha_pct_change =
-        prev.total_folha > 0
-          ? ((curr.total_folha - prev.total_folha) / prev.total_folha) * 100
+      curr.totalFolhaPctChange =
+        prev.totalFolha > 0
+          ? ((curr.totalFolha - prev.totalFolha) / prev.totalFolha) * 100
           : null;
-      curr.total_receita_pct_change =
-        prev.total_receita && prev.total_receita > 0 && curr.total_receita
-          ? ((curr.total_receita - prev.total_receita) / prev.total_receita) *
-            100
+      curr.totalReceitaPctChange =
+        prev.totalReceita && prev.totalReceita > 0 && curr.totalReceita
+          ? ((curr.totalReceita - prev.totalReceita) / prev.totalReceita) * 100
           : null;
-      curr.restos_a_pagar_pct_change =
-        prev.restos_a_pagar > 0
-          ? ((curr.restos_a_pagar - prev.restos_a_pagar) /
-              prev.restos_a_pagar) *
-            100
+      curr.restosAPagarPctChange =
+        prev.restosAPagar > 0
+          ? ((curr.restosAPagar - prev.restosAPagar) / prev.restosAPagar) * 100
           : null;
     }
   }

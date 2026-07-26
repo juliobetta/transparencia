@@ -4,18 +4,18 @@ import { getFontesReceita } from "./fontes_receita";
 
 export interface FolhaVsServicosRecord {
   ano: number;
-  total_folha: number;
-  total_pago: number;
-  rcl_proxy: number;
-  percentual_folha: number;
+  totalFolha: number;
+  totalPago: number;
+  rclProxy: number;
+  percentualFolha: number;
 }
 
 export interface DecimoTerceiroExecucao {
   empenhado: number;
-  empenhado_bruto: number;
+  empenhadoBruto: number;
   liquidado: number;
   pago: number;
-  pct_pago: number;
+  pctPago: number;
 }
 
 export async function getFolhaVsServicos(
@@ -25,19 +25,19 @@ export async function getFolhaVsServicos(
   const records: FolhaVsServicosRecord[] = [];
 
   for (const year of years) {
-    let total_folha = 0;
+    let totalFolha = 0;
     try {
       const resF =
         await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(
           db,
         );
       for (const r of (resF.rows as any[]) || []) {
-        total_folha +=
+        totalFolha +=
           parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
 
-    let total_pago = 0;
+    let totalPago = 0;
     try {
       let qP = sql`SELECT pago FROM fct_despesas_por_orgao WHERE ano = ${year}`;
       if (empresaIds && empresaIds.length > 0) {
@@ -45,21 +45,20 @@ export async function getFolhaVsServicos(
       }
       const resP = await qP.execute(db);
       for (const r of (resP.rows as any[]) || []) {
-        total_pago += parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
+        totalPago += parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
       }
     } catch {}
 
     const revDf = await getFontesReceita([year], empresaIds);
-    const rcl_proxy = revDf.length > 0 ? revDf[0].total : 0;
-    const percentual_folha =
-      rcl_proxy > 0 ? (total_folha / rcl_proxy) * 100 : 0;
+    const rclProxy = revDf.length > 0 ? revDf[0].total : 0;
+    const percentualFolha = rclProxy > 0 ? (totalFolha / rclProxy) * 100 : 0;
 
     records.push({
       ano: year,
-      total_folha,
-      total_pago,
-      rcl_proxy,
-      percentual_folha,
+      totalFolha,
+      totalPago,
+      rclProxy,
+      percentualFolha,
     });
   }
 
@@ -97,18 +96,18 @@ export async function getExecucaoDecimoTerceiro(
     if (!r || r.empenhado_bruto === null || r.empenhado_bruto === undefined)
       return null;
 
-    const emp_bruto = parseFloat(String(r.empenhado_bruto ?? "0")) || 0;
-    const emp_liq = parseFloat(String(r.empenhado_liquido ?? "0")) || emp_bruto;
+    const empBruto = parseFloat(String(r.empenhado_bruto ?? "0")) || 0;
+    const empLiq = parseFloat(String(r.empenhado_liquido ?? "0")) || empBruto;
     const liq = parseFloat(String(r.liquidado ?? "0")) || 0;
     const pag = parseFloat(String(r.pago ?? "0")) || 0;
-    const pct_pago = emp_liq > 0 ? pag / emp_liq : 0;
+    const pctPago = empLiq > 0 ? pag / empLiq : 0;
 
     return {
-      empenhado: emp_liq,
-      empenhado_bruto: emp_bruto,
+      empenhado: empLiq,
+      empenhadoBruto: empBruto,
       liquidado: liq,
       pago: pag,
-      pct_pago,
+      pctPago,
     };
   } catch {
     return null;

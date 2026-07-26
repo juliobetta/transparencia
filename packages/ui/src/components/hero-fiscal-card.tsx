@@ -56,7 +56,7 @@ export function HeroFiscalCard({
       {/* Coluna Esquerda: Narrativa */}
       <div className="space-y-4 lg:col-span-7">
         {periodText && (
-          <span className="inline-block font-semibold text-accent text-xs tracking-normal">
+          <span className="inline-block font-semibold text-accent text-xs uppercase tracking-normal">
             {periodText}
           </span>
         )}

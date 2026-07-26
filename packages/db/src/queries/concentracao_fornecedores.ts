@@ -12,7 +12,7 @@ export interface ConcentracaoResult {
   top10: ItemFornecedorTop[];
   hhi: number;
   dominante: string | null;
-  total_all: number;
+  totalAll: number;
 }
 
 const FORNECEDORES_NATUREZA_MAP = [
@@ -78,8 +78,8 @@ export async function getConcentracaoFornecedores(
     const domItem = items.find((i) => i.percentual > 40);
     const dominante = domItem ? domItem.descricao : null;
 
-    return { top10, hhi, dominante, total_all: total };
+    return { top10, hhi, dominante, totalAll: total };
   } catch {
-    return { top10: [], hhi: 0, dominante: null, total_all: 0 };
+    return { top10: [], hhi: 0, dominante: null, totalAll: 0 };
   }
 }

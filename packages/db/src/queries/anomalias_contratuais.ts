@@ -8,8 +8,8 @@ export interface ContratoFracionamento {
   numero: string;
   fornecedor: string;
   objeto: string;
-  valor_contrato: number;
-  licitacao_numero: string;
+  valorContrato: number;
+  licitacaoNumero: string;
   mes: number;
   Periodo: string;
 }
@@ -24,8 +24,8 @@ export interface FornecedorRecorrente {
 
 export interface AnomaliasResult {
   fracionamento: ContratoFracionamento[];
-  fornecedor_recorrente: FornecedorRecorrente[];
-  janela_curta: any[];
+  fornecedorRecorrente: FornecedorRecorrente[];
+  janelaCurta: any[];
 }
 
 export async function contagensFracionamentoPorAno(
@@ -76,8 +76,8 @@ export async function getAnomaliasContratuais(
   empresaIds?: string[] | null,
 ): Promise<AnomaliasResult> {
   const fracionamento: ContratoFracionamento[] = [];
-  const fornecedor_recorrente: FornecedorRecorrente[] = [];
-  const janela_curta: any[] = [];
+  const fornecedorRecorrente: FornecedorRecorrente[] = [];
+  const janelaCurta: any[] = [];
 
   try {
     let q = sql`
@@ -109,7 +109,7 @@ export async function getAnomaliasContratuais(
         (empresaFornecedorCount[emp][forn] || 0) + 1;
 
       if (val >= limInf && val < lim) {
-        proximo.push({ ...c, valor_num: val });
+        proximo.push({ ...c, valorNum: val });
       }
     }
 
@@ -135,8 +135,8 @@ export async function getAnomaliasContratuais(
           numero: String(p.numero ?? ""),
           fornecedor: String(p.fornecedor ?? ""),
           objeto: String(p.objeto ?? ""),
-          valor_contrato: p.valor_num,
-          licitacao_numero: String(p.licitacao_numero ?? ""),
+          valorContrato: p.valorNum,
+          licitacaoNumero: String(p.licitacao_numero ?? ""),
           mes: Number(p.mes),
           Periodo: `${mStr}/${p.ano}`,
         });
@@ -149,7 +149,7 @@ export async function getAnomaliasContratuais(
       for (const [forn, qtd] of Object.entries(mapForn)) {
         const pct = qtd / tot;
         if (pct > 0.5) {
-          fornecedor_recorrente.push({
+          fornecedorRecorrente.push({
             empresa: emp,
             fornecedor: forn,
             quantidade: qtd,
@@ -163,7 +163,7 @@ export async function getAnomaliasContratuais(
 
   return {
     fracionamento,
-    fornecedor_recorrente,
-    janela_curta,
+    fornecedorRecorrente,
+    janelaCurta,
   };
 }

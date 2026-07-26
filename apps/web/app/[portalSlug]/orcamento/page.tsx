@@ -41,10 +41,10 @@ export default async function OrcamentoPage({
 
   const partialPeriod = getPartialYearPeriod(new Date());
 
-  const totalDotacao = summary.total_dotacao;
-  const totalEmpenhado = summary.total_empenhado;
-  const totalLiquidado = summary.total_liquidado;
-  const totalPago = summary.total_pago;
+  const totalDotacao = summary.totalDotacao;
+  const totalEmpenhado = summary.totalEmpenhado;
+  const totalLiquidado = summary.totalLiquidado;
+  const totalPago = summary.totalPago;
 
   const empPct = totalDotacao > 0 ? (totalEmpenhado / totalDotacao) * 100 : 0;
   const liqPct = totalDotacao > 0 ? (totalLiquidado / totalDotacao) * 100 : 0;
@@ -80,7 +80,7 @@ export default async function OrcamentoPage({
   // Agrupamento por função de governo
   const funcMap: Record<string, number> = {};
   for (const item of funcionalData) {
-    const fname = item.funcao_nome || "Outras funções";
+    const fname = item.funcaoNome || "Outras funções";
     funcMap[fname] = (funcMap[fname] || 0) + (item.pago || item.empenhado || 0);
   }
   const funcItems = Object.entries(funcMap)
@@ -92,7 +92,7 @@ export default async function OrcamentoPage({
     { header: "Órgão / Unidade", accessorKey: "descricao" as const },
     {
       header: "Dotação (R$)",
-      accessorKey: "dotacao_atualizada" as const,
+      accessorKey: "dotacaoAtualizada" as const,
       align: "right" as const,
       format: "currency" as const,
     },

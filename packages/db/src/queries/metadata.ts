@@ -2,16 +2,16 @@ import { sql } from "kysely";
 import { db } from "../client";
 
 export interface PortalConfig {
-  portal_slug: string;
-  display_name: string;
+  portalSlug: string;
+  displayName: string;
   uf: string;
-  portal_url: string;
-  base_host: string;
-  cidade_clean: string;
-  ano_inicial: number;
-  empresa_padrao: string;
-  brasao_asset: string;
-  data_extracao: string;
+  portalUrl: string;
+  baseHost: string;
+  cidadeClean: string;
+  anoInicial: number;
+  empresaPadrao: string;
+  brasaoAsset: string;
+  dataExtracao: string;
 }
 
 export interface EntidadeItem {
@@ -23,7 +23,7 @@ export async function getPortalConfig(
   portalSlug = "porciuncula_prefeitura",
 ): Promise<PortalConfig | null> {
   try {
-    const result = await sql<PortalConfig>`
+    const result = await sql<any>`
       select * from dim_portais where portal_slug = ${portalSlug} limit 1
     `.execute(db);
 
@@ -45,16 +45,16 @@ export async function getPortalConfig(
       }
 
       return {
-        portal_slug: String(row.portal_slug || ""),
-        display_name: String(row.display_name || ""),
+        portalSlug: String(row.portal_slug || ""),
+        displayName: String(row.display_name || ""),
         uf: String(row.uf || ""),
-        portal_url: String(row.portal_url || ""),
-        base_host: String(row.base_host || ""),
-        cidade_clean: String(row.cidade_clean || ""),
-        ano_inicial: Number(row.ano_inicial) || new Date().getFullYear(),
-        empresa_padrao: String(row.empresa_padrao || ""),
-        brasao_asset: String(row.brasao_asset || ""),
-        data_extracao: dataExtracaoStr,
+        portalUrl: String(row.portal_url || ""),
+        baseHost: String(row.base_host || ""),
+        cidadeClean: String(row.cidade_clean || ""),
+        anoInicial: Number(row.ano_inicial) || new Date().getFullYear(),
+        empresaPadrao: String(row.empresa_padrao || ""),
+        brasaoAsset: String(row.brasao_asset || ""),
+        dataExtracao: dataExtracaoStr,
       };
     }
   } catch (_error) {}

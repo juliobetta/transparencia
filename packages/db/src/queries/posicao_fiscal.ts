@@ -31,10 +31,10 @@ export interface PosicaoFiscalResult {
 
 export interface FornecedorPendente {
   descricao: string;
-  aguardando_desde: number;
-  num_registros: number;
-  total_empenhado: number;
-  total_pago: number;
+  aguardandoDesde: number;
+  numRegistros: number;
+  totalEmpenhado: number;
+  totalPago: number;
   pendente: number;
 }
 
@@ -85,16 +85,16 @@ export async function getPosicaoFiscal(
   empresaIds?: string[] | null,
 ): Promise<PosicaoFiscalResult> {
   const revDf = await getFontesReceita([year], empresaIds);
-  const total_arrecadado = revDf.length > 0 ? revDf[0].total_arrecadado : 0;
+  const totalArrecadado = revDf.length > 0 ? revDf[0].totalArrecadado : 0;
 
-  const despesas_pagas = await sumVarcharCol(
+  const despesasPagas = await sumVarcharCol(
     "fct_despesas_por_orgao",
     "pago",
     year,
     "",
     empresaIds,
   );
-  const restos_pagos_no_ano = await sumVarcharCol(
+  const restosPagosNoAno = await sumVarcharCol(
     "fct_despesas",
     "pago",
     year,
@@ -102,7 +102,7 @@ export async function getPosicaoFiscal(
     empresaIds,
   );
 
-  const restos_pendentes: RestoPendente[] = [];
+  const restosPendentes: RestoPendente[] = [];
   try {
     let q = sql`SELECT ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano <= ${year}`;
     if (empresaIds && empresaIds.length > 0) {
@@ -130,7 +130,7 @@ export async function getPosicaoFiscal(
     for (const a of sortedYears) {
       const emp = byYear[a].empenhado;
       const pag = byYear[a].pago;
-      restos_pendentes.push({
+      restosPendentes.push({
         ano: a,
         administracao: a < year ? "Adm. Anterior" : "Adm. Atual",
         empenhado: emp,
@@ -140,13 +140,13 @@ export async function getPosicaoFiscal(
     }
   } catch {}
 
-  const total_saidas = despesas_pagas + restos_pagos_no_ano;
-  const saldo_estimado = total_arrecadado - total_saidas;
-  const restos_pendentes_total = restos_pendentes.reduce(
+  const totalSaidas = despesasPagas + restosPagosNoAno;
+  const saldoEstimado = totalArrecadado - totalSaidas;
+  const restosPendentesTotal = restosPendentes.reduce(
     (acc, r) => acc + r.pendente,
     0,
   );
-  const restos_pendentes_anteriores = restos_pendentes
+  const restosPendentesAnteriores = restosPendentes
     .filter((r) => r.ano < year)
     .reduce((acc, r) => acc + r.pendente, 0);
 
@@ -176,15 +176,15 @@ export async function getPosicaoFiscal(
   } catch {}
 
   return {
-    totalArrecadado: total_arrecadado,
-    despesasPagas: despesas_pagas,
-    restosPagosNoAno: restos_pagos_no_ano,
-    totalSaidas: total_saidas,
-    saldoEstimado: saldo_estimado,
-    saldoAposRestos: saldo_estimado - restos_pendentes_total,
-    restosPendentes: restos_pendentes,
-    restosPendentesTotal: restos_pendentes_total,
-    restosPendentesAnteriores: restos_pendentes_anteriores,
+    totalArrecadado,
+    despesasPagas,
+    restosPagosNoAno,
+    totalSaidas,
+    saldoEstimado,
+    saldoAposRestos: saldoEstimado - restosPendentesTotal,
+    restosPendentes,
+    restosPendentesTotal,
+    restosPendentesAnteriores,
     topCredoresAdmAtual: credoresAdmAtual.slice(0, 5),
     totalCredoresAdmAtual: credoresAdmAtual.length,
   };
@@ -240,10 +240,10 @@ export async function getFornecedoresPendentes(
       .filter(([_, v]) => v.pendente > 0)
       .map(([descricao, v]) => ({
         descricao,
-        aguardando_desde: v.minAno,
-        num_registros: v.count,
-        total_empenhado: v.totalEmp,
-        total_pago: v.totalPago,
+        aguardandoDesde: v.minAno,
+        numRegistros: v.count,
+        totalEmpenhado: v.totalEmp,
+        totalPago: v.totalPago,
         pendente: v.pendente,
       }))
       .sort((a, b) => b.pendente - a.pendente);

@@ -10,18 +10,18 @@ export interface ContratoSemLicitacao {
   numero: string;
   fornecedor: string;
   objeto: string;
-  valor_contrato: string;
-  licitacao_numero: string;
+  valorContrato: string;
+  licitacaoNumero: string;
   mes: number;
-  numero_obra: string | null;
-  tipo_obra: string | null;
+  numeroObra: string | null;
+  tipoObra: string | null;
   modalidade: string | null;
   fundlegal: string | null;
-  limite_dispensa: number;
-  acima_limite: boolean;
-  orgao_saude: boolean;
+  limiteDispensa: number;
+  acimaLimite: boolean;
+  orgaoSaude: boolean;
   periodo: string;
-  isento_legalmente?: boolean;
+  isentoLegalmente?: boolean;
 }
 
 export async function countsByYear(
@@ -122,16 +122,16 @@ export async function getLicitacaoGaps(
         numero: String(r.numero ?? ""),
         fornecedor: String(r.fornecedor ?? ""),
         objeto: String(r.objeto ?? ""),
-        valor_contrato: String(r.valor_contrato ?? "0"),
-        licitacao_numero: licNum,
+        valorContrato: String(r.valor_contrato ?? "0"),
+        licitacaoNumero: licNum,
         mes: Number(r.mes),
-        numero_obra: r.numero_obra ?? null,
-        tipo_obra: r.tipo_obra ?? null,
+        numeroObra: r.numero_obra ?? null,
+        tipoObra: r.tipo_obra ?? null,
         modalidade: r.modalidade ?? null,
         fundlegal: r.fundlegal ?? null,
-        limite_dispensa: th,
-        acima_limite: val > th,
-        orgao_saude: emp === SAUDE_EMPRESA,
+        limiteDispensa: th,
+        acimaLimite: val > th,
+        orgaoSaude: emp === SAUDE_EMPRESA,
         periodo: `${mStr}/${r.ano}`,
       });
     }
