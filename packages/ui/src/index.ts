@@ -11,6 +11,7 @@ export * from "./components/charts/gasto-por-funcao-bars";
 export * from "./components/charts/previsto-vs-arrecadado";
 export * from "./components/charts/restos-a-pagar-vendors-chart";
 export * from "./components/charts/unidades-gastos-chart";
+export * from "./components/decimo-terceiro-card";
 export * from "./components/dense-table";
 export * from "./components/hero-fiscal-card";
 export * from "./components/kpi-card";
