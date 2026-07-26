@@ -18,35 +18,42 @@ export interface DecimoTerceiroExecucao {
   pctPago: number;
 }
 
-export async function getFolhaVsServicos(
-  years: number[],
-  empresaIds?: string[] | null,
-): Promise<FolhaVsServicosRecord[]> {
+export async function getFolhaVsServicos({
+  years,
+  empresaIds,
+  portalSlug: _portalSlug,
+}: {
+  years: number[];
+  empresaIds?: string[] | null;
+  portalSlug?: string;
+}): Promise<FolhaVsServicosRecord[]> {
   const records: FolhaVsServicosRecord[] = [];
 
   for (const year of years) {
     let totalFolha = 0;
     try {
-      const resF =
-        await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(
-          db,
-        );
-      for (const r of (resF.rows as Record<string, unknown>[]) || []) {
-        totalFolha +=
-          parseFloat(String(r.proventos ?? "0").replace(",", ".")) || 0;
+      let qF = sql`
+        SELECT SUM(CAST(pago AS numeric)) as total
+        FROM fct_despesas
+        WHERE ano = ${year} AND elemento IN ('01', '03', '11', '96')
+      `;
+      if (empresaIds && empresaIds.length > 0) {
+        qF = sql`${qF} AND empresa_id = ANY(${empresaIds})`;
       }
+      const resF = await qF.execute(db);
+      const rowF = (resF.rows as Record<string, unknown>[])?.[0];
+      totalFolha = parseFloat(String(rowF?.total ?? "0")) || 0;
     } catch {}
 
     let totalPago = 0;
     try {
-      let qP = sql`SELECT pago FROM fct_despesas_por_orgao WHERE ano = ${year}`;
+      let qP = sql`SELECT SUM(CAST(pago AS numeric)) as total FROM fct_despesas_por_orgao WHERE ano = ${year}`;
       if (empresaIds && empresaIds.length > 0) {
         qP = sql`${qP} AND empresa = ANY(${empresaIds})`;
       }
       const resP = await qP.execute(db);
-      for (const r of (resP.rows as Record<string, unknown>[]) || []) {
-        totalPago += parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
-      }
+      const rowP = (resP.rows as Record<string, unknown>[])?.[0];
+      totalPago = parseFloat(String(rowP?.total ?? "0")) || 0;
     } catch {}
 
     const revDf = await getFontesReceita([year], empresaIds);
@@ -72,19 +79,17 @@ export async function getExecucaoDecimoTerceiro(
   try {
     let q = sql`
       SELECT
-        SUM(CAST(REPLACE(empenhado, ',', '.') AS numeric)) as empenhado_bruto,
-        SUM(CAST(REPLACE(empenhado_liquido, ',', '.') AS numeric)) as empenhado_liquido,
-        SUM(CAST(REPLACE(liquidado, ',', '.') AS numeric)) as liquidado,
-        SUM(CAST(REPLACE(pago, ',', '.') AS numeric)) as pago
+        SUM(CAST(empenhado AS numeric)) as empenhado_bruto,
+        SUM(CAST(empenhado_liquido AS numeric)) as empenhado_liquido,
+        SUM(CAST(liquidado AS numeric)) as liquidado,
+        SUM(CAST(pago AS numeric)) as pago
       FROM fct_despesas
       WHERE ano = ${year}
+        AND elemento IN ('01', '03', '11', '96')
         AND (
           descricao ILIKE '%13%' OR
           descricao ILIKE '%decimo terceiro%' OR
-          descricao ILIKE '%décimo terceiro%' OR
-          historico ILIKE '%13%' OR
-          historico ILIKE '%decimo terceiro%' OR
-          historico ILIKE '%décimo terceiro%'
+          descricao ILIKE '%décimo terceiro%'
         )
         AND descricao NOT ILIKE '%anula%'
         AND descricao NOT ILIKE '%136%'
@@ -106,6 +111,11 @@ export async function getExecucaoDecimoTerceiro(
     const empLiq = parseFloat(String(r.empenhado_liquido ?? "0")) || empBruto;
     const liq = parseFloat(String(r.liquidado ?? "0")) || 0;
     const pag = parseFloat(String(r.pago ?? "0")) || 0;
+
+    if (empBruto === 0 && empLiq === 0 && pag === 0) {
+      return null;
+    }
+
     const pctPago = empLiq > 0 ? pag / empLiq : 0;
 
     return {
@@ -139,7 +149,7 @@ export async function getDistribuicaoProventos(
 
     const values: number[] = [];
     for (const r of (res.rows as Record<string, unknown>[]) || []) {
-      const v = parseFloat(String(r.proventos ?? "0").replace(",", "."));
+      const v = parseFloat(String(r.proventos ?? "0"));
       if (!Number.isNaN(v) && v > 0) {
         values.push(v);
       }
@@ -186,7 +196,7 @@ export async function getDepartmentalPayroll(
     let q = sql`
       SELECT
         descricao,
-        SUM(CAST(REPLACE(pago, ',', '.') AS numeric)) as total_pago
+        SUM(CAST(pago AS numeric)) as total_pago
       FROM fct_despesas_por_fornecedor
       WHERE ano = ${year}
         AND (descricao ~* ' E OUT(ROS?|\\.)' OR descricao ILIKE '%E OUTROS%' OR descricao ILIKE '%E OUTRO%')
