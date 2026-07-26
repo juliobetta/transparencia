@@ -60,7 +60,7 @@ export default async function VisaoGeralPage({
     entidadesIds,
   );
 
-  const totalArr = posicao.total_arrecadado || fonte?.total_arrecadado || 0;
+  const totalArr = posicao.totalArrecadado || fonte?.total_arrecadado || 0;
   const uniaoArr = fonte?.transferencias_uniao_arrecadado || 0;
   const estadoArr = fonte?.transferencias_estado_arrecadado || 0;
   const propriaArr =
@@ -141,7 +141,7 @@ export default async function VisaoGeralPage({
   const saudeGapsCount = _gaps.filter((g) => g.orgao_saude).length;
 
   const maxPendente = Math.max(
-    ...posicao.restos_pendentes.map((r) => r.pendente),
+    ...posicao.restosPendentes.map((r) => r.pendente),
     1,
   );
 
@@ -149,16 +149,16 @@ export default async function VisaoGeralPage({
     title: "Despesas",
     linkText: "Restos a pagar →",
     linkHref: `/${portalSlug}/despesas`,
-    totalRestosPagarFormatted: fmtCompact(posicao.restos_pendentes_total),
-    subtext: `pendentes a ${posicao.top_credores_adm_atual.length || 0} fornecedores`,
-    antiguidadeBars: posicao.restos_pendentes.map((r) => ({
+    totalRestosPagarFormatted: fmtCompact(posicao.restosPendentesTotal),
+    subtext: `pendentes a ${posicao.totalCredoresAdmAtual || 0} fornecedores`,
+    antiguidadeBars: posicao.restosPendentes.map((r) => ({
       year: String(r.ano),
       amountFormatted: fmtCompact(r.pendente),
       percentage: Math.round((r.pendente / maxPendente) * 100),
     })),
     footerText:
-      posicao.restos_pendentes_anteriores > 0
-        ? `Passivo anterior: ${fmtCompact(posicao.restos_pendentes_anteriores)}`
+      posicao.restosPendentesAnteriores > 0
+        ? `Passivo anterior: ${fmtCompact(posicao.restosPendentesAnteriores)}`
         : "Sem pendências de anos anteriores",
   };
 
@@ -208,7 +208,7 @@ export default async function VisaoGeralPage({
     },
   ];
 
-  const sanitizedCredores = posicao.top_credores_adm_atual.map((credor) => ({
+  const sanitizedCredores = posicao.topCredoresAdmAtual.map((credor) => ({
     ...credor,
     Fornecedor: toTitleCase(credor.Fornecedor),
   }));
@@ -255,7 +255,7 @@ export default async function VisaoGeralPage({
         headline={heroHeadline}
         summary={heroSummary}
         arrecadadoTitle={arrecadadoTitle}
-        totalArrecadado={posicao.total_arrecadado}
+        totalArrecadado={posicao.totalArrecadado}
         previstoTotal={execSummary.total_dotacao}
         realizationPercent={realizationPct}
         originBreakdown={originBreakdown}

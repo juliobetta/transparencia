@@ -16,16 +16,17 @@ export interface TopCredor {
 }
 
 export interface PosicaoFiscalResult {
-  total_arrecadado: number;
-  despesas_pagas: number;
-  restos_pagos_no_ano: number;
-  total_saidas: number;
-  saldo_estimado: number;
-  saldo_apos_restos: number;
-  restos_pendentes: RestoPendente[];
-  restos_pendentes_total: number;
-  restos_pendentes_anteriores: number;
-  top_credores_adm_atual: TopCredor[];
+  totalArrecadado: number;
+  despesasPagas: number;
+  restosPagosNoAno: number;
+  totalSaidas: number;
+  saldoEstimado: number;
+  saldoAposRestos: number;
+  restosPendentes: RestoPendente[];
+  restosPendentesTotal: number;
+  restosPendentesAnteriores: number;
+  topCredoresAdmAtual: TopCredor[];
+  totalCredoresAdmAtual: number;
 }
 
 export interface FornecedorPendente {
@@ -149,7 +150,7 @@ export async function getPosicaoFiscal(
     .filter((r) => r.ano < year)
     .reduce((acc, r) => acc + r.pendente, 0);
 
-  let top_credores_adm_atual: TopCredor[] = [];
+  let credoresAdmAtual: TopCredor[] = [];
   try {
     let qCred = sql`SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano <= ${year}`;
     if (empresaIds && empresaIds.length > 0) {
@@ -169,23 +170,23 @@ export async function getPosicaoFiscal(
       }
     }
 
-    top_credores_adm_atual = Object.entries(byDesc)
+    credoresAdmAtual = Object.entries(byDesc)
       .map(([Fornecedor, Pendente]) => ({ Fornecedor, Pendente }))
-      .sort((a, b) => b.Pendente - a.Pendente)
-      .slice(0, 5);
+      .sort((a, b) => b.Pendente - a.Pendente);
   } catch {}
 
   return {
-    total_arrecadado,
-    despesas_pagas,
-    restos_pagos_no_ano,
-    total_saidas,
-    saldo_estimado,
-    saldo_apos_restos: saldo_estimado - restos_pendentes_total,
-    restos_pendentes,
-    restos_pendentes_total,
-    restos_pendentes_anteriores,
-    top_credores_adm_atual,
+    totalArrecadado: total_arrecadado,
+    despesasPagas: despesas_pagas,
+    restosPagosNoAno: restos_pagos_no_ano,
+    totalSaidas: total_saidas,
+    saldoEstimado: saldo_estimado,
+    saldoAposRestos: saldo_estimado - restos_pendentes_total,
+    restosPendentes: restos_pendentes,
+    restosPendentesTotal: restos_pendentes_total,
+    restosPendentesAnteriores: restos_pendentes_anteriores,
+    topCredoresAdmAtual: credoresAdmAtual.slice(0, 5),
+    totalCredoresAdmAtual: credoresAdmAtual.length,
   };
 }
 

@@ -2,7 +2,7 @@ import { cn } from "../utils/cn";
 
 export interface KPICardProps {
   title: string;
-  value: string | number;
+  value: React.ReactNode;
   subtext?: string;
   trend?: {
     value: string | number;
@@ -32,7 +32,7 @@ export function KPICard({
       )}
     >
       <div>
-        <p className="mb-1 font-medium text-subtleText text-xs uppercase tracking-wider">
+        <p className="mb-1 font-medium text-subtleText text-xs tracking-wider">
           {title}
         </p>
         <p

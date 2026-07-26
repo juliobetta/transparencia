@@ -6,6 +6,7 @@ import { cn } from "../utils/cn";
 import {
   fmtCompact,
   fmtCurrency,
+  fmtDate,
   fmtNumber,
   fmtPercent,
 } from "../utils/formatters";
@@ -16,7 +17,14 @@ export interface Column<T> {
   accessorKey?: keyof T;
   align?: "left" | "center" | "right";
   isSerifNumeric?: boolean;
-  format?: "currency" | "percent" | "number" | "compact" | "statusBadge";
+  format?:
+    | "currency"
+    | "percent"
+    | "number"
+    | "compact"
+    | "statusBadge"
+    | "date";
+  className?: string;
 }
 
 export interface DenseTableProps<T> {
@@ -58,6 +66,9 @@ export function DenseTable<T extends Record<string, any>>({
     const raw = col.accessorKey ? row[col.accessorKey] : undefined;
     if (raw === null || raw === undefined) return "-";
 
+    if (col.format === "date") {
+      return fmtDate(String(raw));
+    }
     if (col.format === "currency") {
       const num =
         typeof raw === "number"
@@ -122,13 +133,14 @@ export function DenseTable<T extends Record<string, any>>({
         <table className="w-full border-collapse text-left text-xs">
           <thead>
             <tr className="border-borderLine border-b bg-gray-100/70 font-semibold text-subtleText uppercase tracking-wider">
-              {columns.map((col, idx) => (
+              {columns.map((col, _idx) => (
                 <th
-                  key={idx}
+                  key={col.header}
                   className={cn(
                     "px-4 py-2.5",
                     col.align === "right" && "text-right",
                     col.align === "center" && "text-center",
+                    col.className,
                   )}
                 >
                   {col.header}
@@ -147,16 +159,17 @@ export function DenseTable<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              filteredData.map((row, rIdx) => (
+              filteredData.map((row) => (
                 <tr
-                  key={rIdx}
+                  key={`row-${row[columns[0].accessorKey as string]}`}
                   className="transition-colors hover:bg-gray-50/80"
                 >
-                  {columns.map((col, cIdx) => (
+                  {columns.map((col) => (
                     <td
-                      key={cIdx}
+                      key={`cell-${row[columns[0].accessorKey as string]}-${col.accessorKey as string}`}
                       className={cn(
-                        "whitespace-nowrap px-4 py-2 text-ink",
+                        col.className ? col.className : "whitespace-nowrap",
+                        "px-4 py-2 text-ink",
                         col.align === "right" && "text-right",
                         col.align === "center" && "text-center",
                         (col.isSerifNumeric ||

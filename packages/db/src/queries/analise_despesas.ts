@@ -34,6 +34,22 @@ export interface ImpactoGastosLocais {
   externo_pago: number;
   total_pago: number;
   pct_local: number;
+  historico_local_pago: number;
+  historico_externo_pago: number;
+  historico_total_pago: number;
+  historico_pct_local: number;
+}
+
+export interface FornecedorRestosPendente {
+  fornecedor: string;
+  valor: number;
+}
+
+export interface RestosAPagarResumo {
+  total_pendente: number;
+  fornecedores_aguardando: number;
+  divida_mais_antiga_ano: number;
+  top_fornecedores: FornecedorRestosPendente[];
 }
 
 export interface ResumoDiarias {
@@ -300,5 +316,214 @@ export async function getComposicaoDespesa(
       .filter((i) => i.pago > 0);
   } catch {
     return [];
+  }
+}
+
+const FORNECEDORES_NATUREZA_MAP = [
+  "30", // Material de Consumo",
+  "36", // Serv. Terceiros (Pessoa Física)",
+  "39", // Serv. Terceiros (Pessoa Jurídica)",
+  "52", // Equipamentos e Mat. Permanente",
+];
+
+const _ELEMENTOS_COMPRAS_SERVICOS_INVESTIMENTOS = [
+  ...FORNECEDORES_NATUREZA_MAP,
+  "31",
+  "32",
+  "33",
+  "35",
+  "37",
+  "40",
+  "51",
+];
+
+export async function getImpactoGastosLocais({
+  year,
+  empresaIds,
+  cidadeClean,
+  portalSlug,
+}: {
+  year: number;
+  empresaIds?: string[] | null;
+  /** Nome da cidade limpa (sem acentos e em caixa alta) */
+  cidadeClean: string;
+  portalSlug: string;
+}): Promise<ImpactoGastosLocais> {
+  try {
+    // 1. Query para o ano selecionado
+    let qYear = sql`
+      SELECT DISTINCT
+        f.codigo,
+        f.descricao,
+        f.fornecedor_cidade,
+        f.fornecedor_cidade_clean,
+        f.pago,
+        f.empenhado
+      FROM fct_despesas_por_fornecedor f
+      LEFT JOIN fct_despesas g
+        ON f.ano = g.ano
+        AND f.descricao = g.fornecedor_nome
+      WHERE f.ano = ${year}
+        AND g.elemento = ANY(${FORNECEDORES_NATUREZA_MAP})
+        AND g.portal_slug = ${portalSlug}
+    `;
+    if (empresaIds && empresaIds.length > 0) {
+      qYear = sql`${qYear} AND f.empresa = ANY(${empresaIds})`;
+    }
+    const resYear = await qYear.execute(db);
+    const rowsYear = (resYear.rows as any[]) || [];
+
+    let local_pago = 0;
+    let externo_pago = 0;
+
+    for (const r of rowsYear) {
+      const p = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
+      const rawCid = String(
+        r.fornecedor_cidade_clean || r.fornecedor_cidade || "",
+      )
+        .trim()
+        .toUpperCase();
+      const cid = rawCid.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (cid === cidadeClean) {
+        local_pago += p;
+      } else {
+        externo_pago += p;
+      }
+    }
+
+    const total_pago = local_pago + externo_pago;
+    const pct_local = total_pago > 0 ? (local_pago / total_pago) * 100 : 0;
+
+    // 2. Query plurianual acumulada (todos os anos)
+    let qHist = sql`
+      SELECT DISTINCT
+        f.codigo,
+        f.descricao,
+        f.fornecedor_cidade,
+        f.fornecedor_cidade_clean,
+        f.pago
+      FROM fct_despesas_por_fornecedor f
+      LEFT JOIN fct_despesas g
+        ON f.ano = g.ano
+        AND f.descricao = g.fornecedor_nome
+      WHERE g.elemento = ANY(${FORNECEDORES_NATUREZA_MAP}) and f.ano < ${year}
+    `;
+    if (empresaIds && empresaIds.length > 0) {
+      qHist = sql`${qHist} AND f.empresa = ANY(${empresaIds})`;
+    }
+    const resHist = await qHist.execute(db);
+    const rowsHist = (resHist.rows as any[]) || [];
+
+    let historico_local_pago = 0;
+    let historico_externo_pago = 0;
+
+    for (const r of rowsHist) {
+      const p = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
+      const rawCid = String(
+        r.fornecedor_cidade_clean || r.fornecedor_cidade || "",
+      )
+        .trim()
+        .toUpperCase();
+      const cid = rawCid.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (cid === cidadeClean) {
+        historico_local_pago += p;
+      } else {
+        historico_externo_pago += p;
+      }
+    }
+
+    const historico_total_pago = historico_local_pago + historico_externo_pago;
+    const historico_pct_local =
+      historico_total_pago > 0
+        ? (historico_local_pago / historico_total_pago) * 100
+        : 0;
+
+    return {
+      local_pago,
+      externo_pago,
+      total_pago,
+      pct_local,
+      historico_local_pago,
+      historico_externo_pago,
+      historico_total_pago,
+      historico_pct_local,
+    };
+  } catch {
+    return {
+      local_pago: 0,
+      externo_pago: 0,
+      total_pago: 0,
+      pct_local: 0,
+      historico_local_pago: 0,
+      historico_externo_pago: 0,
+      historico_total_pago: 0,
+      historico_pct_local: 0,
+    };
+  }
+}
+
+export async function getRestosAPagarResumo(
+  year: number,
+  empresaIds?: string[] | null,
+): Promise<RestosAPagarResumo> {
+  try {
+    let q = sql`
+      SELECT
+        ano,
+        descricao,
+        fornecedor_nome,
+        empenhado,
+        pago
+      FROM fct_despesas
+      WHERE fonte = 'restos_a_pagar'
+        AND ano <= ${year}
+    `;
+    if (empresaIds && empresaIds.length > 0) {
+      q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
+    }
+    const res = await q.execute(db);
+    const rows = (res.rows as any[]) || [];
+
+    let total_pendente = 0;
+    const fornecedoresSet = new Set<string>();
+    let divida_mais_antiga_ano = year;
+    const mapFornecedores: Record<string, number> = {};
+
+    for (const r of rows) {
+      const emp = parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
+      const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
+      const pend = emp - pag;
+      if (pend > 0) {
+        const a = Number(r.ano);
+        if (a > 0 && a < divida_mais_antiga_ano) {
+          divida_mais_antiga_ano = a;
+        }
+        total_pendente += pend;
+        const nome = String(
+          r.fornecedor_nome || r.descricao || "Não identificado",
+        ).trim();
+        fornecedoresSet.add(nome);
+        mapFornecedores[nome] = (mapFornecedores[nome] || 0) + pend;
+      }
+    }
+
+    const top_fornecedores = Object.entries(mapFornecedores)
+      .map(([fornecedor, valor]) => ({ fornecedor, valor }))
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, 5);
+
+    return {
+      total_pendente,
+      fornecedores_aguardando: fornecedoresSet.size,
+      divida_mais_antiga_ano,
+      top_fornecedores,
+    };
+  } catch {
+    return {
+      total_pendente: 0,
+      fornecedores_aguardando: 0,
+      divida_mais_antiga_ano: year,
+      top_fornecedores: [],
+    };
   }
 }

@@ -5,8 +5,7 @@ import {
   getEntidades,
   getExecucaoOrcamentaria,
   getFontesReceita,
-  getHistoriaCaprem,
-  getHistoriaSaude,
+  getImpactoGastosLocais,
   getLicitacaoGaps,
   getPortalConfig,
   getPosicaoFiscal,
@@ -19,10 +18,10 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
   it("deve calcular posição fiscal sem erros", async () => {
     const posicao = await getPosicaoFiscal(TEST_YEAR);
     expect(posicao).toBeDefined();
-    expect(typeof posicao.total_arrecadado).toBe("number");
-    expect(typeof posicao.despesas_pagas).toBe("number");
-    expect(typeof posicao.total_saidas).toBe("number");
-    expect(typeof posicao.saldo_estimado).toBe("number");
+    expect(typeof posicao.totalArrecadado).toBe("number");
+    expect(typeof posicao.despesasPagas).toBe("number");
+    expect(typeof posicao.totalSaidas).toBe("number");
+    expect(typeof posicao.saldoEstimado).toBe("number");
   });
 
   it("deve calcular execução orçamentária por unidade", async () => {
@@ -48,11 +47,14 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     expect(Array.isArray(gaps)).toBe(true);
   });
 
-  it("deve buscar ademais históricos (CAPREM e Saúde)", async () => {
-    const caprem = await getHistoriaCaprem(TEST_YEAR);
-    const saude = await getHistoriaSaude(TEST_YEAR);
-    expect(caprem).toBeDefined();
-    expect(saude).toBeDefined();
+  it("deve calcular impacto de gastos locais e resumo de restos a pagar", async () => {
+    const impacto = await getImpactoGastosLocais({
+      year: TEST_YEAR,
+      cidadeClean: "PORCIUNCULA",
+      portalSlug: "porciuncula_prefeitura",
+    });
+    expect(impacto).toBeDefined();
+    expect(typeof impacto.local_pago).toBe("number");
   });
 
   it("deve buscar adessões de ata", async () => {

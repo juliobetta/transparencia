@@ -1,17 +1,18 @@
 import {
-  getComposicaoDespesa,
+  getConcentracaoFornecedores,
   getDespesasPorUnidade,
-  getMetricasGeraisDespesas,
-  getTransacoesPesquisaveis,
+  getImpactoGastosLocais,
+  getPortalConfig,
+  getRestosAPagarResumo,
 } from "@transparencia/db";
 import {
-  BarChartH,
-  DenseTable,
+  DonutGastosLocais,
   fmtCompact,
   fmtPercent,
   KPICard,
   KPIGrid,
-  SectionHeader,
+  RestosAPagarVendorsChart,
+  UnidadesGastosChart,
 } from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function DespesasPage({
   params,
   searchParams,
 }: DespesasPageProps) {
-  const { portalSlug: _portalSlug } = await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
 
   const currentYear = new Date().getFullYear();
@@ -36,94 +37,156 @@ export default async function DespesasPage({
     ? resolvedSearchParams.entidades.split(",").filter(Boolean)
     : undefined;
 
-  const isCurrentYear = selectedYear === currentYear;
+  const portalConfig = await getPortalConfig();
 
-  const metricas = await getMetricasGeraisDespesas(selectedYear, entidadesIds);
-  const _unidades = await getDespesasPorUnidade(selectedYear, entidadesIds);
-  const composicao = await getComposicaoDespesa(selectedYear, entidadesIds);
-  const transacoes = await getTransacoesPesquisaveis(
+  // Query DB data
+  const impactoLocais = await getImpactoGastosLocais({
+    year: selectedYear,
+    empresaIds: entidadesIds,
+    cidadeClean: portalConfig?.cidade_clean || "",
+    portalSlug,
+  });
+  const concentracao = await getConcentracaoFornecedores(
     selectedYear,
-    "",
-    50,
+    entidadesIds,
+  );
+  const restosResumo = await getRestosAPagarResumo(selectedYear, entidadesIds);
+  const despesasUnidades = await getDespesasPorUnidade(
+    selectedYear,
     entidadesIds,
   );
 
-  const chartData = composicao.map((c) => ({
-    label: c.categoria,
-    value: c.pago,
-  }));
-
-  const transacoesCols = [
-    { header: "Data", accessorKey: "data" as const },
-    { header: "Unidade / Órgão", accessorKey: "unidade" as const },
-    { header: "Fornecedor / Credor", accessorKey: "fornecedor" as const },
-    { header: "Histórico", accessorKey: "descricao" as const },
-    {
-      header: "Valor Pago",
-      accessorKey: "pago" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-  ];
+  // HHI text status
+  const hhiVal = Math.round(concentracao.hhi || 0);
+  const hhiStatusText =
+    hhiVal <= 1500
+      ? "baixa · abaixo de 1.500"
+      : hhiVal <= 2500
+        ? "moderada · abaixo de 2.500"
+        : "alta · acima de 2.500";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
+      {/* Header */}
       <div>
         <h1 className="font-bold font-serif text-3xl text-ink">
-          Análise de Despesas
+          Despesas Detalhadas
         </h1>
-        <p className="mt-1 text-sm text-subtleText">
-          Detalhamento de gastos públicos, liquidações e pagamentos (
-          {selectedYear}
-          {isCurrentYear ? " · parcial" : ""})
+        <p className="mt-1 max-w-3xl text-sm text-subtleText leading-relaxed">
+          Onde e como os recursos são aplicados: quanto fica na economia local,
+          se há concentração em poucos fornecedores e quais compromissos de anos
+          anteriores ainda não foram pagos.
         </p>
       </div>
 
-      <KPIGrid columns={4}>
-        <KPICard
-          title="Total Empenhado"
-          value={fmtCompact(metricas.empenhado)}
-          subtext="Compromissos assumidos"
-          accent
-        />
-        <KPICard
-          title="Total Liquidado"
-          value={fmtCompact(metricas.liquidado)}
-          subtext={`Taxa: ${fmtPercent(metricas.taxa_liquidacao)}`}
-        />
-        <KPICard
-          title="Total Pago"
-          value={fmtCompact(metricas.pago)}
-          subtext={`Taxa: ${fmtPercent(metricas.taxa_pagamento)}`}
-        />
-        <KPICard
-          title="Saldo Pendente"
-          value={fmtCompact(metricas.empenhado - metricas.pago)}
-          subtext="A liquidar / pagar"
-        />
-      </KPIGrid>
+      <hr className="border-borderLine" />
 
-      <div>
-        <SectionHeader
-          title="Composição da Despesa por Categoria"
-          description="Gastos por natureza de despesa (Portaria 163/2001)"
-        />
-        <div className="rounded-xl border border-borderLine bg-white p-6">
-          <BarChartH data={chartData} />
+      {/* Seção 1: Para onde vai o dinheiro */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold font-serif text-2xl text-ink">
+            Para onde vai o dinheiro
+          </h2>
         </div>
-      </div>
 
-      <div>
-        <SectionHeader
-          title="Transações e Empenhos Recentes"
-          description="Pesquisa direta em empenhos e liquidações efetuadas"
-        />
-        <DenseTable
-          data={transacoes}
-          columns={transacoesCols}
-          searchableKeys={["fornecedor", "descricao", "unidade"]}
-        />
-      </div>
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold font-serif text-ink text-xl">
+            Fornecedores e gastos locais
+          </h3>
+          <span className="font-medium text-subtleText text-xs">
+            apenas compras, materiais, serviços e equipamentos
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <DonutGastosLocais
+              localValor={impactoLocais.local_pago}
+              externoValor={impactoLocais.externo_pago}
+              pctLocal={impactoLocais.pct_local}
+              className="h-full"
+            />
+          </div>
+
+          <div className="flex flex-col justify-between gap-4 lg:col-span-5">
+            <KPICard
+              title="Índice de compras locais"
+              value={fmtPercent(impactoLocais.pct_local)}
+              subtext={
+                impactoLocais.historico_pct_local
+                  ? `dos recursos em ${selectedYear} (${fmtPercent(impactoLocais.historico_pct_local)} no acumulado histórico)`
+                  : ""
+              }
+              className="flex-1 justify-center"
+            />
+
+            <KPICard
+              title="HHI — concentração de fornecedores"
+              value={hhiVal.toLocaleString("pt-BR")}
+              subtext={hhiStatusText}
+              className="flex-1 justify-center"
+            />
+          </div>
+        </div>
+
+        <hr className="border-borderLine" />
+
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold font-serif text-ink text-xl">
+            Unidades Administrativas
+          </h3>
+          <span className="font-medium text-subtleText text-xs">
+            análise de despesas por unidade do governo
+          </span>
+        </div>
+
+        {despesasUnidades.length > 0 && (
+          <UnidadesGastosChart items={despesasUnidades.slice(0, 10)} />
+        )}
+      </section>
+
+      <hr className="border-[#1a1d21] border-t-2" />
+
+      {/* Seção 2: Restos a pagar */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-bold font-serif text-2xl text-ink">
+            Restos a pagar
+          </h2>
+        </div>
+
+        {/* Banner Informativo */}
+        <div className="rounded-xl border-[#2B5278] border-l-4 bg-[#F0F6FD] p-4 text-[#1B3A5A] text-sm leading-relaxed">
+          São despesas empenhadas em anos anteriores ainda não pagas —
+          compromissos legais que continuam válidos até serem quitados ou
+          cancelados.
+        </div>
+
+        {/* 3 KPI Grid */}
+        <KPIGrid columns={3}>
+          <KPICard
+            title="Total pendente"
+            value={
+              <span className="font-bold text-amber-900">
+                {fmtCompact(restosResumo.total_pendente)}
+              </span>
+            }
+          />
+          <KPICard
+            title="Fornecedores aguardando"
+            value={restosResumo.fornecedores_aguardando}
+          />
+          <KPICard
+            title="Dívida mais antiga desde"
+            value={restosResumo.divida_mais_antiga_ano}
+          />
+        </KPIGrid>
+
+        {/* Ranking Fornecedores com maior pendência */}
+        {restosResumo.top_fornecedores.length > 0 && (
+          <RestosAPagarVendorsChart items={restosResumo.top_fornecedores} />
+        )}
+      </section>
     </div>
   );
 }

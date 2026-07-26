@@ -1,9 +1,16 @@
+{{ config(
+    pre_hook=[
+        "CREATE EXTENSION IF NOT EXISTS unaccent;"
+    ]
+) }}
+
 select
     empresa,
     ano::int as ano,
     codigo,
     descricao,
     insmf as fornecedor_cpf_cnpj,
+    upper(unaccent(cepci)) as fornecedor_cidade_clean,
     cepci as fornecedor_cidade,
     nullif(replace(empenhado, ',', '.'), '')::numeric as empenhado,
     nullif(replace(liquidado, ',', '.'), '')::numeric as liquidado,

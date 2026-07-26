@@ -15,7 +15,12 @@ export interface ConcentracaoResult {
   total_all: number;
 }
 
-const ELEMENTOS_VAL = ["30", "33", "35", "36", "39", "40", "51", "52"];
+const FORNECEDORES_NATUREZA_MAP = [
+  "30", // Material de Consumo",
+  "36", // Serv. Terceiros (Pessoa Física)",
+  "39", // Serv. Terceiros (Pessoa Jurídica)",
+  "52", // Equipamentos e Mat. Permanente",
+];
 
 export async function getConcentracaoFornecedores(
   year: number,
@@ -29,7 +34,7 @@ export async function getConcentracaoFornecedores(
         ON f.ano = g.ano
         AND f.descricao = g.fornecedor_nome
       WHERE f.ano = ${year}
-        AND g.elemento = ANY(${ELEMENTOS_VAL})
+        AND g.elemento = ANY(${FORNECEDORES_NATUREZA_MAP})
     `;
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND f.empresa = ANY(${empresaIds})`;
