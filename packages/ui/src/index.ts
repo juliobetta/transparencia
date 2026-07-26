@@ -2,6 +2,7 @@ export * from "./components/alert-box";
 export * from "./components/badge";
 export * from "./components/cards-secundarios-visao-geral";
 export * from "./components/charts/bar-chart-h";
+export * from "./components/charts/departmental-payroll-chart";
 export * from "./components/charts/distribuicao-modalidades-chart";
 export * from "./components/charts/donut-gastos-locais";
 export * from "./components/charts/folha-lrf-history-chart";
