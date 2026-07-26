@@ -1,14 +1,16 @@
 import {
   getExecucaoDecimoTerceiro,
   getFolhaVsServicos,
-  getPortalConfig,
+  getPercentualChefiasEfetivas,
 } from "@transparencia/db";
 import {
+  DecimoTerceiroCard,
+  FolhaLrfHistoryChart,
   fmtCompact,
   fmtPercent,
+  getPartialYearPeriod,
   KPICard,
   KPIGrid,
-  SectionHeader,
 } from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +26,6 @@ export default async function PessoalPage({
 }: PessoalPageProps) {
   const { portalSlug: _portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-  const portalConfig = await getPortalConfig();
 
   const currentYear = new Date().getFullYear();
   const selectedYear = resolvedSearchParams.ano
@@ -35,88 +36,98 @@ export default async function PessoalPage({
     : undefined;
 
   const isCurrentYear = selectedYear === currentYear;
+  const partialPeriod = getPartialYearPeriod();
 
-  const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
+  // Queries
+  const yearsHistory = [
+    selectedYear - 4,
+    selectedYear - 3,
+    selectedYear - 2,
+    selectedYear - 1,
+    selectedYear,
+  ];
+
+  const folhaData = await getFolhaVsServicos(yearsHistory, entidadesIds);
+  const pctChefias = await getPercentualChefiasEfetivas(
+    selectedYear,
+    entidadesIds,
+  );
   const decimo13 = await getExecucaoDecimoTerceiro(selectedYear, entidadesIds);
-  const row = folhaData[0] || {
+
+  const currentYearRow = folhaData.find((r) => r.ano === selectedYear) || {
     totalFolha: 0,
     totalPago: 0,
     rclProxy: 0,
     percentualFolha: 0,
   };
 
+  const chartItems = folhaData.map((r) => ({
+    ano: r.ano,
+    percentualFolha: r.percentualFolha,
+    isCurrentYear: r.ano === currentYear,
+  }));
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
+      {/* Header & Subtitle */}
       <div>
-        <h1 className="font-bold font-serif text-3xl text-ink">
-          Pessoal & Vencimentos
+        <span className="inline-block font-semibold text-accent text-xs uppercase tracking-wider">
+          ADMINISTRATIVO · EXERCÍCIO {selectedYear}
+          {isCurrentYear ? ` (PARCIAL, ${partialPeriod})` : ""}
+        </span>
+        <h1 className="font-bold font-serif text-3xl text-slate-900">
+          Folha de Pagamento
         </h1>
-        <p className="mt-1 text-sm text-subtleText">
-          Despesas com folha de pagamento, cargos e limites da Lei de
-          Responsabilidade Fiscal ({selectedYear}
-          {isCurrentYear ? " · parcial" : ""})
+        <p className="mt-2 max-w-4xl text-slate-600 text-xs leading-relaxed sm:text-sm">
+          Quanto da receita arrecadada é comprometido com salários e proventos.
+          A Lei de Responsabilidade Fiscal limita esse gasto a{" "}
+          <strong className="font-semibold text-slate-900">
+            54% da receita corrente líquida
+          </strong>{" "}
+          para o Poder Executivo.
         </p>
       </div>
 
-      <KPIGrid columns={4}>
+      {/* 3 Key KPI Cards */}
+      <KPIGrid columns={3}>
         <KPICard
-          title="Total Folha de Pagamento"
-          value={fmtCompact(row.totalFolha)}
-          subtext="Proventos brutos"
+          title="Folha / Receita Arrecadada"
+          value={fmtPercent(currentYearRow.percentualFolha)}
+          subtext={
+            currentYearRow.percentualFolha <= 54
+              ? "abaixo do teto de 54%"
+              : "acima do teto de 54%"
+          }
+          alert={currentYearRow.percentualFolha > 54}
           accent
         />
         <KPICard
-          title="Receita Corrente Líquida"
-          value={fmtCompact(row.rclProxy)}
-          subtext="Proxy RCL"
+          title="Efetivos no comando das chefias"
+          value={pctChefias !== null ? fmtPercent(pctChefias) : "N/D"}
+          subtext="cargos de liderança concursados"
         />
         <KPICard
-          title="Comprometimento LRF"
-          value={fmtPercent(row.percentualFolha)}
-          subtext="Limite Máximo LRF: 54.0%"
-          alert={row.percentualFolha > 54}
-        />
-        <KPICard
-          title="13º Salário Executado"
-          value={decimo13 ? fmtCompact(decimo13.pago) : "N/D"}
-          subtext={
-            decimo13
-              ? `Empenhado: ${fmtCompact(decimo13.empenhado)}`
-              : "Sem dados"
-          }
+          title="Total pago em folha"
+          value={fmtCompact(currentYearRow.totalFolha)}
+          subtext={`proventos brutos, ${selectedYear}`}
         />
       </KPIGrid>
 
-      <div>
-        <SectionHeader
-          title="Indicadores da Lei de Responsabilidade Fiscal (LRF)"
-          description={`Comprometimento dos gastos com pessoal da ${portalConfig?.displayName}`}
+      {/* Historical LRF Chart */}
+      <FolhaLrfHistoryChart data={chartItems} />
+
+      {/* 13º Salário Card */}
+      {decimo13 ? (
+        <DecimoTerceiroCard
+          empenhado={decimo13.empenhado}
+          pago={decimo13.pago}
+          pctPago={decimo13.pctPago}
         />
-        <div className="space-y-4 rounded-xl border border-borderLine bg-white p-6">
-          <div className="flex justify-between font-semibold text-ink text-xs">
-            <span>
-              Comprometimento Atual: {fmtPercent(row.percentualFolha)}
-            </span>
-            <span>Limite Máximo LRF: 54.00%</span>
-          </div>
-          <div className="relative h-4 w-full overflow-hidden rounded-md bg-gray-100">
-            <div
-              className="h-full rounded-md transition-all duration-500"
-              style={{
-                width: `${Math.min(100, (row.percentualFolha / 54) * 100)}%`,
-                backgroundColor:
-                  row.percentualFolha > 54
-                    ? "oklch(0.55 0.11 25)"
-                    : "oklch(0.55 0.11 250)",
-              }}
-            />
-          </div>
-          <p className="text-subtleText text-xs">
-            A LRF estabelece limite teto de 54% da Receita Corrente Líquida
-            (RCL) para o Poder Executivo Municipal.
-          </p>
+      ) : (
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-500 text-sm shadow-sm">
+          Sem dados de 13º salário para {selectedYear}.
         </div>
-      </div>
+      )}
     </div>
   );
 }
