@@ -1,16 +1,19 @@
 import {
+  getDepartmentalPayroll,
+  getDistribuicaoProventos,
   getExecucaoDecimoTerceiro,
   getFolhaVsServicos,
   getPercentualChefiasEfetivas,
 } from "@transparencia/db";
 import {
   DecimoTerceiroCard,
-  FolhaLrfHistoryChart,
+  DepartmentalPayrollChart,
   fmtCompact,
   fmtPercent,
   getPartialYearPeriod,
   KPICard,
   KPIGrid,
+  ProventosDistributionChart,
 } from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
@@ -39,33 +42,24 @@ export default async function PessoalPage({
   const partialPeriod = getPartialYearPeriod();
 
   // Queries
-  const yearsHistory = [
-    selectedYear - 4,
-    selectedYear - 3,
-    selectedYear - 2,
-    selectedYear - 1,
-    selectedYear,
-  ];
-
-  const folhaData = await getFolhaVsServicos(yearsHistory, entidadesIds);
+  const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
   const pctChefias = await getPercentualChefiasEfetivas(
     selectedYear,
     entidadesIds,
   );
   const decimo13 = await getExecucaoDecimoTerceiro(selectedYear, entidadesIds);
+  const distribuicaoProventos = await getDistribuicaoProventos(selectedYear);
+  const departmentalPayroll = await getDepartmentalPayroll(
+    selectedYear,
+    entidadesIds,
+  );
 
-  const currentYearRow = folhaData.find((r) => r.ano === selectedYear) || {
+  const currentYearRow = folhaData[0] || {
     totalFolha: 0,
     totalPago: 0,
     rclProxy: 0,
     percentualFolha: 0,
   };
-
-  const chartItems = folhaData.map((r) => ({
-    ano: r.ano,
-    percentualFolha: r.percentualFolha,
-    isCurrentYear: r.ano === currentYear,
-  }));
 
   return (
     <div className="space-y-8 pb-10">
@@ -113,8 +107,14 @@ export default async function PessoalPage({
         />
       </KPIGrid>
 
-      {/* Historical LRF Chart */}
-      <FolhaLrfHistoryChart data={chartItems} />
+      {/* Proventos Distribution Histogram Chart */}
+      <ProventosDistributionChart data={distribuicaoProventos} />
+
+      {/* Departmental Payroll (E OUTROS) Chart */}
+      <DepartmentalPayrollChart
+        data={departmentalPayroll}
+        selectedYear={selectedYear}
+      />
 
       {/* 13º Salário Card */}
       {decimo13 ? (
