@@ -17,6 +17,7 @@ class PortalConfig:
     ano_inicial: int
     empresa_padrao: str
     assets: dict[str, str]
+    github_url: str | None = None
 
     @property
     def raw_schema(self) -> str:

@@ -38,7 +38,7 @@ def run(conn: Any, years: list[int], empresa_ids: list[str] | None = None) -> pd
         )
         total_pago = pd.to_numeric(pago["pago"].astype(str).str.replace(",", "."), errors="coerce").fillna(0).sum()
 
-        rev_df = fontes_receita.run(conn, [year], empresa_ids=empresa_ids)
+        rev_df = fontes_receita.run(conn, [year])
         rcl_proxy = float(rev_df.iloc[0]["total"]) if not rev_df.empty else 0.0
 
         percentual = total_folha / rcl_proxy * 100 if rcl_proxy > 0 else 0

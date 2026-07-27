@@ -8,6 +8,7 @@ import {
   getEntidades,
   getExecucaoDecimoTerceiro,
   getExecucaoOrcamentaria,
+  getFolhaVsServicos,
   getFontesReceita,
   getImpactoGastosLocais,
   getLicitacaoGaps,
@@ -127,5 +128,16 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
 
     const departmental = await getDepartmentalPayroll(TEST_YEAR);
     expect(Array.isArray(departmental)).toBe(true);
+  });
+
+  it("deve calcular folha vs servicos acumulado a partir de fct_despesas e LRF", async () => {
+    const folha = await getFolhaVsServicos({ years: [TEST_YEAR] });
+    expect(Array.isArray(folha)).toBe(true);
+    if (folha.length > 0) {
+      expect(typeof folha[0].totalFolha).toBe("number");
+      expect(typeof folha[0].percentualFolha).toBe("number");
+      expect(folha[0].percentualFolha).toBeGreaterThan(20);
+      expect(folha[0].percentualFolha).toBeLessThan(54);
+    }
   });
 });

@@ -21,7 +21,7 @@ export interface DecimoTerceiroExecucao {
 export async function getFolhaVsServicos({
   years,
   empresaIds,
-  portalSlug: _portalSlug,
+  portalSlug,
 }: {
   years: number[];
   empresaIds?: string[] | null;
@@ -37,6 +37,9 @@ export async function getFolhaVsServicos({
         FROM fct_despesas
         WHERE ano = ${year} AND elemento IN ('01', '03', '11', '96')
       `;
+      if (portalSlug) {
+        qF = sql`${qF} AND portal_slug = ${portalSlug}`;
+      }
       if (empresaIds && empresaIds.length > 0) {
         qF = sql`${qF} AND empresa_id = ANY(${empresaIds})`;
       }
@@ -56,7 +59,10 @@ export async function getFolhaVsServicos({
       totalPago = parseFloat(String(rowP?.total ?? "0")) || 0;
     } catch {}
 
-    const revDf = await getFontesReceita([year], empresaIds);
+    // A RCL é um parâmetro único e consolidado do Município (LC 101/2000).
+    // Ao filtrar por entidade, o percentual indica a parcela da receita municipal
+    // comprometida com a folha daquela entidade.
+    const revDf = await getFontesReceita([year]);
     const rclProxy = revDf.length > 0 ? revDf[0].total : 0;
     const percentualFolha = rclProxy > 0 ? (totalFolha / rclProxy) * 100 : 0;
 
