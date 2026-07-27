@@ -12,6 +12,8 @@ export * from "./components/charts/gasto-por-funcao-bars";
 export * from "./components/charts/previsto-vs-arrecadado";
 export * from "./components/charts/proventos-distribution-chart";
 export * from "./components/charts/restos-a-pagar-vendors-chart";
+export * from "./components/charts/saude-fontes-donut";
+export * from "./components/charts/saude-trend-chart";
 export * from "./components/charts/unidades-gastos-chart";
 export * from "./components/decimo-terceiro-card";
 export * from "./components/dense-table";
