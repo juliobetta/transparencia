@@ -67,17 +67,7 @@ export function SaudeTrendChart({
   selectedYear,
   className = "",
 }: SaudeTrendChartProps) {
-  const chartData =
-    data && data.length > 0
-      ? data
-      : [
-          { ano: 2020, empenhado: 12100000 },
-          { ano: 2021, empenhado: 13800000 },
-          { ano: 2022, empenhado: 15200000 },
-          { ano: 2023, empenhado: 16900000 },
-          { ano: 2024, empenhado: 18400000 },
-          { ano: 2025, empenhado: 19100000 },
-        ];
+  const chartData = data || [];
 
   const maxYear =
     chartData.length > 0 ? Math.max(...chartData.map((d) => d.ano)) : undefined;

@@ -80,13 +80,11 @@ export async function getHistoriaSaude(
       const valAut =
         typeof r["Valor Autorizado"] === "number"
           ? (r["Valor Autorizado"] as number)
-          : parseFloat(
-              String(r["Valor Autorizado"] ?? "0").replace(",", "."),
-            ) || 0;
+          : parseFloat(String(r["Valor Autorizado"] ?? "0")) || 0;
       const emp =
         typeof r.Empenhado === "number"
           ? (r.Empenhado as number)
-          : parseFloat(String(r.Empenhado ?? "0").replace(",", ".")) || 0;
+          : parseFloat(String(r.Empenhado ?? "0")) || 0;
       emendasTotal += valAut;
       emendas.push({
         Nº: String(r.Nº ?? ""),
@@ -108,23 +106,23 @@ export async function getHistoriaSaude(
   try {
     const resSub = await sql`
       SELECT
+        subfuncao,
         subfuncao_nome,
         elemento,
-        SUM(CASE
-              WHEN pg_typeof(empenhado)::text = 'numeric' THEN empenhado
-              ELSE CAST(REPLACE(empenhado::text, ',', '.') AS numeric)
-            END) AS empenhado
+        SUM(empenhado) AS empenhado
       FROM fct_despesas
       WHERE ano = ${year} AND (empresa_id = ANY(${targetEmpresas}) OR funcao = '10')
-      GROUP BY subfuncao_nome, elemento
+      GROUP BY subfuncao, subfuncao_nome, elemento
     `.execute(db);
 
     for (const r of (resSub.rows as Record<string, unknown>[]) || []) {
       const emp = parseFloat(String(r.empenhado ?? "0")) || 0;
+      const subCode = String(r.subfuncao ?? "");
       const sub = String(r.subfuncao_nome ?? "").toLowerCase();
       const elem = String(r.elemento ?? "").toLowerCase();
 
       if (
+        subCode === "303" ||
         sub.includes("303") ||
         sub.includes("farmac") ||
         sub.includes("profilat") ||
@@ -148,14 +146,8 @@ export async function getHistoriaSaude(
   try {
     const resB = await sql`
       SELECT
-        SUM(CASE
-              WHEN pg_typeof(empenhado)::text = 'numeric' THEN empenhado
-              ELSE CAST(REPLACE(empenhado::text, ',', '.') AS numeric)
-            END) AS empenhado,
-        SUM(CASE
-              WHEN pg_typeof(dotacao_atualizada)::text = 'numeric' THEN dotacao_atualizada
-              ELSE CAST(REPLACE(dotacao_atualizada::text, ',', '.') AS numeric)
-            END) AS dotacao_atualizada
+        SUM(empenhado) AS empenhado,
+        SUM(dotacao_atualizada) AS dotacao_atualizada
       FROM fct_despesas_por_orgao
       WHERE ano = ${year} AND (empresa = ANY(${targetEmpresas}) OR codigo LIKE '10%' OR lower(descricao) LIKE '%saú%' OR lower(descricao) LIKE '%saud%')
     `.execute(db);
@@ -166,19 +158,13 @@ export async function getHistoriaSaude(
     }
   } catch (_e) {}
 
-  // Fallback if fct_despesas_por_orgao was empty for this empresa
+  // Fallback if fct_despesas_por_orgao has no entries for this company
   if (dot === 0 && emp === 0) {
     try {
       const resFallback = await sql`
         SELECT
-          SUM(CASE
-                WHEN pg_typeof(empenhado)::text = 'numeric' THEN empenhado
-                ELSE CAST(REPLACE(empenhado::text, ',', '.') AS numeric)
-              END) AS empenhado,
-          SUM(CASE
-                WHEN pg_typeof(dotacao_atualizada)::text = 'numeric' THEN dotacao_atualizada
-                ELSE CAST(REPLACE(dotacao_atualizada::text, ',', '.') AS numeric)
-              END) AS dotacao_atualizada
+          SUM(empenhado) AS empenhado,
+          SUM(dotacao_atualizada) AS dotacao_atualizada
         FROM fct_despesas
         WHERE ano = ${year} AND (funcao = '10' OR empresa_id = ANY(${targetEmpresas}))
       `.execute(db);
@@ -186,19 +172,10 @@ export async function getHistoriaSaude(
         dot += parseFloat(String(r.dotacao_atualizada ?? "0")) || 0;
         emp += parseFloat(String(r.empenhado ?? "0")) || 0;
       }
-    } catch {}
+    } catch (_e) {}
   }
 
-  if (medicamentosInsumos === 0 && emp > 0) {
-    // Estimate 22.5% for pharmaceutical subfunction if missing detailed subfunction names in test DB
-    medicamentosInsumos = emp * 0.225;
-  }
-  if (judicializacao === 0 && emp > 0) {
-    // Estimate 3.2% judicialization if detailed sentence element is missing in test DB
-    judicializacao = emp * 0.032;
-  }
-
-  const taxa = dot > 0 ? emp / dot : emp > 0 ? 0.77 : 0;
+  const taxa = dot > 0 ? emp / dot : 0;
   const currentYear = new Date().getFullYear();
   const orcamento: BudgetSaude = {
     dotacao: dot,
@@ -208,23 +185,17 @@ export async function getHistoriaSaude(
     medicamentosInsumos,
   };
 
-  let fontesReceita: FontesReceitaSaude = {
-    uniaoSusPct: 68,
-    estadoPct: 21,
-    propriaPct: 11,
-    repassesPrefeitura: emp > 0 ? emp * 0.74 : 14200000,
-    emendasParlamentares: emendasTotal > 0 ? emendasTotal : 1800000,
-  };
+  let uniaoSusPct = 0;
+  let estadoPct = 0;
+  let propriaPct = 0;
+  let repassesPref = 0;
 
   try {
     const resR = await sql`
       SELECT
         tipo_receita,
         codigo,
-        SUM(CASE
-              WHEN pg_typeof(arrecadado)::text = 'numeric' THEN arrecadado
-              ELSE CAST(REPLACE(arrecadado::text, ',', '.') AS numeric)
-            END) AS arrecadado
+        SUM(arrecadado) AS arrecadado
       FROM fct_receitas
       WHERE ano = ${year} AND (empresa_id = ANY(${targetEmpresas}) OR tipo_receita IN ('uniao', 'estado', 'intra') OR codigo LIKE '17%')
       GROUP BY tipo_receita, codigo
@@ -233,7 +204,6 @@ export async function getHistoriaSaude(
     let totalR = 0;
     let uniaoR = 0;
     let estadoR = 0;
-    let repassesPref = 0;
 
     for (const r of (resR.rows as Record<string, unknown>[]) || []) {
       const val = parseFloat(String(r.arrecadado ?? "0")) || 0;
@@ -256,29 +226,25 @@ export async function getHistoriaSaude(
     }
 
     if (totalR > 0) {
-      const uniaoSusPct = (uniaoR / totalR) * 100;
-      const estadoPct = (estadoR / totalR) * 100;
-      const propriaPct = Math.max(0, 100 - uniaoSusPct - estadoPct);
-
-      fontesReceita = {
-        uniaoSusPct: uniaoSusPct > 0 ? uniaoSusPct : 68,
-        estadoPct: estadoPct > 0 ? estadoPct : 21,
-        propriaPct: propriaPct > 0 ? propriaPct : 11,
-        repassesPrefeitura:
-          repassesPref > 0 ? repassesPref : emp > 0 ? emp * 0.74 : 14200000,
-        emendasParlamentares: emendasTotal > 0 ? emendasTotal : 1800000,
-      };
+      uniaoSusPct = (uniaoR / totalR) * 100;
+      estadoPct = (estadoR / totalR) * 100;
+      propriaPct = Math.max(0, 100 - uniaoSusPct - estadoPct);
     }
   } catch (_e) {}
+
+  const fontesReceita: FontesReceitaSaude = {
+    uniaoSusPct,
+    estadoPct,
+    propriaPct,
+    repassesPrefeitura: repassesPref,
+    emendasParlamentares: emendasTotal,
+  };
 
   let executionTrend: ExecutionTrendSaude[] = [];
   try {
     const resT = await sql`
       SELECT ano,
-             SUM(CASE
-                   WHEN pg_typeof(empenhado)::text = 'numeric' THEN empenhado
-                   ELSE CAST(REPLACE(empenhado::text, ',', '.') AS numeric)
-                 END) AS empenhado
+             SUM(empenhado) AS empenhado
       FROM fct_despesas_por_orgao
       WHERE (empresa = ANY(${targetEmpresas}) OR codigo LIKE '10%' OR lower(descricao) LIKE '%saú%' OR lower(descricao) LIKE '%saud%')
       GROUP BY ano
@@ -293,30 +259,13 @@ export async function getHistoriaSaude(
     );
   } catch (_e) {}
 
-  // Fallback for executionTrend if database returns empty (e.g. mock/testing environment)
-  if (executionTrend.length === 0) {
-    const baseEmp = emp > 0 ? emp : 19100000;
-    const startYear = 2020;
-    const endYear = Math.max(year, currentYear);
-    for (let y = startYear; y <= endYear; y++) {
-      const factor = 1 - (endYear - y) * 0.07;
-      executionTrend.push({
-        ano: y,
-        empenhado: Math.round(baseEmp * factor),
-      });
-    }
-  }
-
   let hhi = 0;
   let hhiClassificacao = "baixa";
 
   try {
     const resHHI = await sql`
       SELECT f.descricao,
-             SUM(CASE
-                   WHEN pg_typeof(f.empenhado)::text = 'numeric' THEN f.empenhado
-                   ELSE CAST(REPLACE(f.empenhado::text, ',', '.') AS numeric)
-                 END) AS empenhado
+             SUM(f.empenhado) AS empenhado
       FROM fct_despesas_por_fornecedor f
       WHERE f.ano = ${year} AND (f.empresa = ANY(${targetEmpresas}) OR lower(f.descricao) LIKE '%saud%' OR lower(f.descricao) LIKE '%hospital%' OR lower(f.descricao) LIKE '%farmac%')
       GROUP BY f.descricao
@@ -342,10 +291,6 @@ export async function getHistoriaSaude(
       hhi = Math.round(sumHHI * 10000);
     }
   } catch (_e) {}
-
-  if (hhi === 0) {
-    hhi = 2140; // Default realistic HHI for health suppliers if unsegmented
-  }
 
   if (hhi >= 2500) {
     hhiClassificacao = "alta";
