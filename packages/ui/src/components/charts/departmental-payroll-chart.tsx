@@ -1,4 +1,5 @@
 import { fmtCompact } from "../../utils/formatters";
+import { toTitleCase } from "../../utils/text";
 
 export interface DepartmentalItem {
   descricao: string;
@@ -54,9 +55,9 @@ export function DepartmentalPayrollChart({
 
       {/* Bar Chart Container */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="mb-6 font-bold text-base text-slate-900">
+        <h4 className="mb-6 font-bold text-base text-slate-900">
           Folha distribuída por responsável ({selectedYear})
-        </h3>
+        </h4>
 
         {data.length === 0 ? (
           <p className="py-6 text-center text-slate-500 text-sm">
@@ -70,7 +71,7 @@ export function DepartmentalPayrollChart({
                 <div key={item.descricao} className="space-y-1">
                   <div className="flex justify-between text-xs">
                     <span className="max-w-xl truncate font-medium text-slate-800">
-                      {item.descricao}
+                      {toTitleCase(item.descricao)}
                     </span>
                     <span className="ml-2 font-bold text-slate-900">
                       {fmtCompact(item.pago)}

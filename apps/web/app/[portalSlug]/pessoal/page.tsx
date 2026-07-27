@@ -4,6 +4,7 @@ import {
   getExecucaoDecimoTerceiro,
   getFolhaVsServicos,
   getPercentualChefiasEfetivas,
+  getPortalConfig,
 } from "@transparencia/db";
 import {
   DecimoTerceiroCard,
@@ -42,7 +43,12 @@ export default async function PessoalPage({
   const partialPeriod = getPartialYearPeriod();
 
   // Queries
-  const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
+  const portalConfig = await getPortalConfig();
+  const folhaData = await getFolhaVsServicos({
+    years: [selectedYear],
+    empresaIds: entidadesIds,
+    portalSlug: portalConfig?.portalSlug ?? "",
+  });
   const pctChefias = await getPercentualChefiasEfetivas(
     selectedYear,
     entidadesIds,

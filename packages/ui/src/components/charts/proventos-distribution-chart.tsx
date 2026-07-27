@@ -17,9 +17,9 @@ export function ProventosDistributionChart({
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-4">
-        <h3 className="font-bold text-lg text-slate-900">
+        <h4 className="font-bold text-lg text-slate-900">
           Distribuição dos Proventos Brutos
-        </h3>
+        </h4>
         <p className="mt-1 text-slate-500 text-xs">
           O portal não disponibiliza a remuneração líquida individual. O gráfico
           abaixo utiliza os proventos (remuneração bruta) como aproximação.

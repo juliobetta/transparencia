@@ -52,7 +52,11 @@ export default async function VisaoGeralPage({
   const _gaps = await getLicitacaoGaps(selectedYear, entidadesIds);
   const fontes = await getFontesReceita([selectedYear], entidadesIds);
   const fonte = fontes[0];
-  const folhaData = await getFolhaVsServicos([selectedYear], entidadesIds);
+  const folhaData = await getFolhaVsServicos({
+    years: [selectedYear],
+    empresaIds: entidadesIds,
+    portalSlug,
+  });
   const folha = folhaData[0] || { percentualFolha: 0 };
   const folhaPct = Number((folha.percentualFolha || 0).toFixed(1));
   const pctChefiasEfetivas = await getPercentualChefiasEfetivas(

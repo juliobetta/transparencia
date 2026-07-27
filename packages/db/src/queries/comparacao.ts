@@ -46,8 +46,14 @@ export async function runComparacao(
   };
 
   // Pessoal
-  const folhaA = await getFolhaVsServicos([specA.year]);
-  const folhaB = await getFolhaVsServicos([specB.year]);
+  const folhaA = await getFolhaVsServicos({
+    years: [specA.year],
+    portalSlug: "",
+  });
+  const folhaB = await getFolhaVsServicos({
+    years: [specB.year],
+    portalSlug: "",
+  });
   const folhaRowA = folhaA[0] || { totalFolha: 0, percentualFolha: 0 };
   const folhaRowB = folhaB[0] || { totalFolha: 0, percentualFolha: 0 };
 
