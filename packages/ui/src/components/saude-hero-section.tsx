@@ -84,27 +84,51 @@ export function SaudeHeroSection({
         </h1>
 
         <p className="text-slate-600 text-sm leading-relaxed sm:text-base">
-          O Fundo Municipal de Saúde já empenhou{" "}
-          <strong className="font-bold text-slate-900">
-            {fmtCompact(orcamento.empenhado)}
-          </strong>{" "}
-          em {ano} — {fmtPercent(orcamento.taxaExecucao * 100)} da dotação
-          aprovada. Com a destinação de recursos oriundos do SUS e repasses
-          governamentais, a transparência e a eficiência de cada contrato de
-          insumos, exames e serviços garantem que a atenção básica chegue a quem
-          precisa.
+          {isCurrentYear ? (
+            <>
+              O Fundo Municipal de Saúde já empenhou{" "}
+              <strong className="font-bold text-slate-900">
+                {fmtCompact(orcamento.empenhado)}
+              </strong>{" "}
+              em {ano} — {fmtPercent(orcamento.taxaExecucao * 100)} da dotação
+              aprovada. Com a destinação de recursos oriundos do SUS e repasses
+              governamentais, a transparência e a eficiência de cada contrato de
+              insumos, exames e serviços garantem que a atenção básica chegue a
+              quem precisa.
+            </>
+          ) : (
+            <>
+              O Fundo Municipal de Saúde empenhou{" "}
+              <strong className="font-bold text-slate-900">
+                {fmtCompact(orcamento.empenhado)}
+              </strong>{" "}
+              no exercício de {ano} — {fmtPercent(orcamento.taxaExecucao * 100)}{" "}
+              da dotação aprovada. Dos recursos oriundos do SUS e repasses
+              governamentais, a execução de cada contrato de insumos, exames e
+              serviços definiu a cobertura da atenção básica no município
+              naquele ano.
+            </>
+          )}
         </p>
       </div>
 
       {/* Coluna Direita: Card Visual do Empenho ao Pagamento */}
       <div className="rounded-[14px] border border-[#e7e9ee] bg-white p-6 shadow-sm lg:col-span-5">
         <div className="mb-4 flex items-center justify-between gap-2">
-          <span className="font-medium text-slate-500 text-xs">
-            Empenhado no ano até agora
-          </span>
-          <span className="inline-flex shrink-0 items-center rounded-md border border-emerald-200/80 bg-emerald-50 px-2.5 py-0.5 font-medium text-[11px] text-emerald-800">
-            no ritmo
-          </span>
+          {isCurrentYear ? (
+            <>
+              <span className="font-medium text-slate-500 text-xs">
+                Empenhado no ano até agora
+              </span>
+              <span className="inline-flex shrink-0 items-center rounded-md border border-emerald-200/80 bg-emerald-50 px-2.5 py-0.5 font-medium text-[11px] text-emerald-800">
+                no ritmo
+              </span>
+            </>
+          ) : (
+            <span className="font-medium text-slate-500 text-xs">
+              Empenhado no exercício
+            </span>
+          )}
         </div>
 
         <div className="mb-2 font-bold font-serif text-3xl text-slate-900 tracking-tight sm:text-4xl">
