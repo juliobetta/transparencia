@@ -6,8 +6,11 @@ import {
   getLicitacaoGaps,
 } from "@transparencia/db";
 import {
+  cn,
   DistribucaoModalidadesChart,
   getPartialYearPeriod,
+  KPICard,
+  KPIGrid,
   LicitacoesTable,
 } from "@transparencia/ui";
 
@@ -78,48 +81,26 @@ export default async function LicitacoesPage({
         </p>
       </div>
 
-      {/* Top 4 KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1 */}
-        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-          <p className="mb-2 font-medium text-slate-500 text-xs">
-            Acima do limite s/ licitação
-          </p>
-          <p className="font-bold font-serif text-3xl text-[#c05621]">
-            {acimaLimiteGaps.length}
-          </p>
-        </div>
-
-        {/* Card 2 */}
-        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-          <p className="mb-2 font-medium text-slate-500 text-xs">
-            Total sem processo licitatório
-          </p>
-          <p className="font-bold font-serif text-3xl text-slate-900">
-            {gaps.length}
-          </p>
-        </div>
-
-        {/* Card 3 */}
-        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-          <p className="mb-2 font-medium text-slate-500 text-xs">
-            Adesões de ata (carona)
-          </p>
-          <p className="font-bold font-serif text-3xl text-slate-900">
-            {adesao.quantidade}
-          </p>
-        </div>
-
-        {/* Card 4 */}
-        <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-          <p className="mb-2 font-medium text-slate-500 text-xs">
-            Empenhos via ata externa
-          </p>
-          <p className="font-bold font-serif text-3xl text-slate-900">
-            {adesaoExterna.quantidade}
-          </p>
-        </div>
-      </div>
+      <KPIGrid columns={4}>
+        <KPICard
+          title="Acima do limite s/ licitação"
+          value={
+            <span
+              className={cn(acimaLimiteGaps.length > 0 && "text-amber-600")}
+            >
+              {acimaLimiteGaps.length}
+            </span>
+          }
+          alert={acimaLimiteGaps.length > 0}
+          accent
+        />
+        <KPICard title="Sem processo licitatório" value={gaps.length} />
+        <KPICard title="Adesões de ata (carona)" value={adesao.quantidade} />
+        <KPICard
+          title="Empenhos via ata externa"
+          value={adesaoExterna.quantidade}
+        />
+      </KPIGrid>
 
       {/* Warning Alert Banner */}
       {numCasosFracionamento > 0 && (
