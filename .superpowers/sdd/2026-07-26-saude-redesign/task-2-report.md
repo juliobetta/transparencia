@@ -14,9 +14,5 @@ Created the visualization components required for the Saúde page redesign:
 - Installed `recharts` package (`3.10.1`) in `@transparencia/ui` with exact pinned versioning.
 - Ran `pnpm --filter @transparencia/ui build` (`tsc --noEmit`), which compiled cleanly with zero errors.
 
-## Artifacts Created / Modified
-- `packages/ui/src/components/charts/saude-fontes-donut.tsx`
-- `packages/ui/src/components/charts/saude-trend-chart.tsx`
-- `packages/ui/src/index.ts`
-- `packages/ui/package.json`
-- `pnpm-lock.yaml`
+## Commit Hash
+`40eceec`
