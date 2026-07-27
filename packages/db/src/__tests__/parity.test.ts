@@ -145,6 +145,10 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     const saude = await getHistoriaSaude(TEST_YEAR);
     expect(saude).toBeDefined();
     expect(saude.orcamento).toBeDefined();
+    expect(typeof saude.orcamento.liquidado).toBe("number");
+    expect(typeof saude.orcamento.pago).toBe("number");
     expect(typeof saude.fontesReceita.repassesPrefeitura).toBe("number");
+    expect(saude.licitacoesSaude).toBeDefined();
+    expect(saude.emendasStats).toBeDefined();
   });
 });

@@ -20,9 +20,13 @@ export interface AssistenciaFarmaceuticaSaude {
 export interface BudgetSaude {
   dotacao: number;
   empenhado: number;
+  liquidado: number;
+  pago: number;
   taxaExecucao: number;
   alertaSubExecucao: boolean;
   medicamentosInsumos: number;
+  contratosVinculadosCount: number;
+  fornecedoresAtivosCount: number;
 }
 
 export interface ExecutionTrendSaude {
@@ -43,13 +47,60 @@ export interface EmendaSaude {
   Destinação: string;
 }
 
+export interface LicitacaoModalidadeItem {
+  nome: string;
+  valor: number;
+  pct: number;
+}
+
+export interface LicitacoesSaudeResult {
+  adesaoCaronaCount: number;
+  adesaoCaronaValor: number;
+  empenhosAtaExternaCount: number;
+  pagoAtaExternaValor: number;
+  modalidades: LicitacaoModalidadeItem[];
+}
+
+export interface EmendasStatsSaude {
+  totalAutorizado: number;
+  totalEmpenhado: number;
+  taxaEmpenho: number;
+  maiorEmenda: number;
+  lista: EmendaSaude[];
+}
+
 export interface HistoriaSaudeResult {
   orcamento: BudgetSaude;
   fontesReceita: FontesReceitaSaude;
   executionTrend: ExecutionTrendSaude[];
   farmaceutica: AssistenciaFarmaceuticaSaude;
+  licitacoesSaude: LicitacoesSaudeResult;
+  emendasStats: EmendasStatsSaude;
   emendas: EmendaSaude[];
   emendasTotal: number;
+}
+
+function normalizeModalidadeName(
+  rawName: string,
+  carona: string | null,
+): string {
+  const norm = rawName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (carona === "S" || norm.includes("carona") || norm.includes("adesao")) {
+    return "Adesão a ata (carona)";
+  }
+  if (norm.includes("pregao")) {
+    return "Pregão eletrônico";
+  }
+  if (norm.includes("dispensa")) {
+    return "Dispensa de licitação";
+  }
+  if (norm.includes("inexig")) {
+    return "Inexigibilidade";
+  }
+  return "Tomada de preços / outros";
 }
 
 export async function getHistoriaSaude(
@@ -66,6 +117,8 @@ export async function getHistoriaSaude(
 
   const emendas: EmendaSaude[] = [];
   let emendasTotal = 0;
+  let emendasEmpenhadoTotal = 0;
+  let maiorEmenda = 0;
 
   try {
     const resE = await sql`
@@ -86,7 +139,13 @@ export async function getHistoriaSaude(
         typeof r.Empenhado === "number"
           ? (r.Empenhado as number)
           : parseFloat(String(r.Empenhado ?? "0")) || 0;
+
       emendasTotal += valAut;
+      emendasEmpenhadoTotal += emp;
+      if (valAut > maiorEmenda) {
+        maiorEmenda = valAut;
+      }
+
       emendas.push({
         id: `${r.Autor ?? ""}-${r.Objeto ?? ""}-${r.Nº ?? ""}-${emendas.length}`,
         Nº: String(r.Nº ?? ""),
@@ -101,6 +160,14 @@ export async function getHistoriaSaude(
       });
     }
   } catch (_e) {}
+
+  const emendasStats: EmendasStatsSaude = {
+    totalAutorizado: emendasTotal,
+    totalEmpenhado: emendasEmpenhadoTotal,
+    taxaEmpenho: emendasTotal > 0 ? emendasEmpenhadoTotal / emendasTotal : 0,
+    maiorEmenda,
+    lista: emendas,
+  };
 
   let medicamentosInsumos = 0;
   let judicializacao = 0;
@@ -144,11 +211,15 @@ export async function getHistoriaSaude(
 
   let dot = 0;
   let emp = 0;
+  let liq = 0;
+  let pag = 0;
 
   try {
     const resB = await sql`
       SELECT
         SUM(empenhado) AS empenhado,
+        SUM(liquidado) AS liquidado,
+        SUM(pago) AS pago,
         SUM(dotacao_atualizada) AS dotacao_atualizada
       FROM fct_despesas_por_orgao
       WHERE ano = ${year} AND (empresa = ANY(${targetEmpresas}) OR codigo LIKE '10%' OR lower(descricao) LIKE '%saú%' OR lower(descricao) LIKE '%saud%')
@@ -157,15 +228,18 @@ export async function getHistoriaSaude(
     for (const r of (resB.rows as Record<string, unknown>[]) || []) {
       dot += parseFloat(String(r.dotacao_atualizada ?? "0")) || 0;
       emp += parseFloat(String(r.empenhado ?? "0")) || 0;
+      liq += parseFloat(String(r.liquidado ?? "0")) || 0;
+      pag += parseFloat(String(r.pago ?? "0")) || 0;
     }
   } catch (_e) {}
 
-  // Fallback if fct_despesas_por_orgao has no entries for this company
   if (dot === 0 && emp === 0) {
     try {
       const resFallback = await sql`
         SELECT
           SUM(empenhado) AS empenhado,
+          SUM(liquidado) AS liquidado,
+          SUM(pago) AS pago,
           SUM(dotacao_atualizada) AS dotacao_atualizada
         FROM fct_despesas
         WHERE ano = ${year} AND (funcao = '10' OR empresa_id = ANY(${targetEmpresas}))
@@ -173,19 +247,22 @@ export async function getHistoriaSaude(
       for (const r of (resFallback.rows as Record<string, unknown>[]) || []) {
         dot += parseFloat(String(r.dotacao_atualizada ?? "0")) || 0;
         emp += parseFloat(String(r.empenhado ?? "0")) || 0;
+        liq += parseFloat(String(r.liquidado ?? "0")) || 0;
+        pag += parseFloat(String(r.pago ?? "0")) || 0;
       }
     } catch (_e) {}
   }
 
-  const taxa = dot > 0 ? emp / dot : 0;
-  const currentYear = new Date().getFullYear();
-  const orcamento: BudgetSaude = {
-    dotacao: dot,
-    empenhado: emp,
-    taxaExecucao: taxa,
-    alertaSubExecucao: taxa < 0.7 && year < currentYear,
-    medicamentosInsumos,
-  };
+  let contratosVinculadosCount = 0;
+  try {
+    const resC = await sql`
+      SELECT COUNT(*)::int AS count
+      FROM fct_contratos
+      WHERE ano = ${year} AND empresa_id = ANY(${targetEmpresas})
+    `.execute(db);
+    const row = resC.rows[0] as Record<string, unknown> | undefined;
+    contratosVinculadosCount = Number(row?.count ?? 0);
+  } catch (_e) {}
 
   let uniaoSusPct = 0;
   let estadoPct = 0;
@@ -216,8 +293,6 @@ export async function getHistoriaSaude(
       const codClean = rawCod.replace(/\./g, "");
       const desc = String(r.descricao ?? "").toLowerCase();
 
-      // Only count parent or leaf items without duplicating header totals
-      // If code is 1713.00.0.0.00.00 or 1720.00.0.0.00.00 (broad headers) or leaf items
       if (
         tipo === "uniao" ||
         codClean.startsWith("171") ||
@@ -226,7 +301,6 @@ export async function getHistoriaSaude(
         desc.includes("união") ||
         desc.includes("uniao")
       ) {
-        // If it's the main header 1713.00.0.0.00.00 or leaves
         if (
           codClean === "171300000000" ||
           (!rawCod.endsWith(".00.00") && codClean.startsWith("171"))
@@ -259,7 +333,6 @@ export async function getHistoriaSaude(
       }
     }
 
-    // Repasses da Prefeitura ao Fundo: intra-budgetary receipts or treasury counterpart
     repassesPref = intraR > 0 ? intraR : Math.max(0, emp - uniaoR - estadoR);
 
     const baseCalculo = Math.max(emp, uniaoR + estadoR + repassesPref);
@@ -299,6 +372,7 @@ export async function getHistoriaSaude(
 
   let hhi = 0;
   let hhiClassificacao = "baixa";
+  let fornecedoresAtivosCount = 0;
 
   try {
     const resHHI = await sql`
@@ -320,6 +394,8 @@ export async function getHistoriaSaude(
         totalSuppliers += val;
       }
     }
+
+    fornecedoresAtivosCount = supplierEmpenhados.length;
 
     if (totalSuppliers > 0) {
       const sumHHI = supplierEmpenhados.reduce((acc, val) => {
@@ -345,11 +421,108 @@ export async function getHistoriaSaude(
     hhiClassificacao,
   };
 
+  const taxa = dot > 0 ? emp / dot : 0;
+  const currentYear = new Date().getFullYear();
+  const orcamento: BudgetSaude = {
+    dotacao: dot,
+    empenhado: emp,
+    liquidado: liq,
+    pago: pag,
+    taxaExecucao: taxa,
+    alertaSubExecucao: taxa < 0.7 && year < currentYear,
+    medicamentosInsumos,
+    contratosVinculadosCount,
+    fornecedoresAtivosCount,
+  };
+
+  let adesaoCaronaCount = 0;
+  let adesaoCaronaValor = 0;
+  let empenhosAtaExternaCount = 0;
+  let pagoAtaExternaValor = 0;
+  const modalityTotals: Record<string, number> = {
+    "Pregão eletrônico": 0,
+    "Adesão a ata (carona)": 0,
+    "Dispensa de licitação": 0,
+    Inexigibilidade: 0,
+    "Tomada de preços / outros": 0,
+  };
+
+  try {
+    const resL = await sql`
+      SELECT
+        l.licitacao_numero,
+        l.modalidade,
+        l.valor AS licitacao_valor,
+        l.carona,
+        c.valor_contrato,
+        c.empenhado AS c_empenhado,
+        c.pago AS c_pago
+      FROM fct_licitacoes l
+      LEFT JOIN fct_contratos c
+        ON c.licitacao_numero = l.licitacao_numero
+        AND c.ano = l.ano
+        AND c.empresa_id = l.empresa_id
+      WHERE l.ano = ${year} AND l.empresa_id = ANY(${targetEmpresas})
+    `.execute(db);
+
+    const rowsL = (resL.rows as Record<string, unknown>[]) || [];
+    const seenLicitacoes = new Set<string>();
+
+    for (const r of rowsL) {
+      const licNum = String(r.licitacao_numero ?? "");
+      const isCarona = String(r.carona ?? "").toUpperCase() === "S";
+      const licVal = parseFloat(String(r.licitacao_valor ?? "0")) || 0;
+      const cVal = parseFloat(String(r.valor_contrato ?? "0")) || 0;
+      const cEmp = parseFloat(String(r.c_empenhado ?? "0")) || 0;
+      const cPag = parseFloat(String(r.c_pago ?? "0")) || 0;
+      const rawMod = String(r.modalidade ?? "");
+
+      const modGroup = normalizeModalidadeName(rawMod, isCarona ? "S" : "N");
+      const valToAdd = cVal > 0 ? cVal : licVal;
+
+      modalityTotals[modGroup] = (modalityTotals[modGroup] || 0) + valToAdd;
+
+      if (isCarona) {
+        if (!seenLicitacoes.has(licNum)) {
+          seenLicitacoes.add(licNum);
+          adesaoCaronaCount++;
+        }
+        adesaoCaronaValor += valToAdd;
+        if (cEmp > 0 || cVal > 0) {
+          empenhosAtaExternaCount++;
+        }
+        pagoAtaExternaValor += cPag > 0 ? cPag : cEmp;
+      }
+    }
+  } catch (_e) {}
+
+  const totalModalityValue = Object.values(modalityTotals).reduce(
+    (a, b) => a + b,
+    0,
+  );
+  const modalidades: LicitacaoModalidadeItem[] = Object.entries(
+    modalityTotals,
+  ).map(([nome, valor]) => ({
+    nome,
+    valor,
+    pct: totalModalityValue > 0 ? (valor / totalModalityValue) * 100 : 0,
+  }));
+
+  const licitacoesSaude: LicitacoesSaudeResult = {
+    adesaoCaronaCount,
+    adesaoCaronaValor,
+    empenhosAtaExternaCount,
+    pagoAtaExternaValor,
+    modalidades,
+  };
+
   return {
     orcamento,
     fontesReceita,
     executionTrend,
     farmaceutica,
+    licitacoesSaude,
+    emendasStats,
     emendas,
     emendasTotal,
   };
