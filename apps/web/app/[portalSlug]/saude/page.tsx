@@ -1,13 +1,13 @@
 import { getHistoriaSaude } from "@transparencia/db";
 import {
   AlertBox,
-  DenseTable,
   fmtCompact,
-  fmtPercent,
   getPartialYearPeriod,
   KPICard,
-  KPIGrid,
+  SaudeContratacaoSection,
+  SaudeEmendasSection,
   SaudeFontesDonut,
+  SaudeHeroSection,
   SaudeTrendChart,
 } from "@transparencia/ui";
 
@@ -22,7 +22,7 @@ export default async function SaudePage({
   params,
   searchParams,
 }: SaudePageProps) {
-  const { portalSlug: _portalSlug } = await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
 
   const currentYear = new Date().getFullYear();
@@ -38,71 +38,18 @@ export default async function SaudePage({
 
   const saude = await getHistoriaSaude(selectedYear, entidadesIds);
 
-  const emendasCols = [
-    { header: "Autor da Emenda", accessorKey: "Autor" as const },
-    {
-      header: "Objeto",
-      accessorKey: "Objeto" as const,
-      className: "max-w-[200px]",
-    },
-    {
-      header: "Valor Autorizado",
-      accessorKey: "Valor Autorizado" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-    {
-      header: "Empenhado",
-      accessorKey: "Empenhado" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-  ];
-
   return (
-    <div className="space-y-10">
-      {/* Header & Subtitle */}
-      <div>
-        <p className="mb-1 font-semibold text-slate-500 text-xs uppercase tracking-wider">
-          TEMAS · EXERCÍCIO {selectedYear}
-          {isCurrentYear ? ` (PARCIAL, ${partialPeriod})` : ""}
-        </p>
-        <h1 className="font-bold font-serif text-3xl text-slate-900">
-          Fundo Municipal de Saúde
-        </h1>
-        <p className="mt-2 text-slate-600 text-sm">
-          Acompanha o dinheiro do Fundo Municipal de Saúde do começo ao fim:{" "}
-          <strong className="font-bold text-slate-900">o que entrou</strong>, o
-          que foi empenhado, como foi contratado e quem recebeu.
-        </p>
-      </div>
+    <div className="space-y-12 pb-12">
+      {/* Seção 1: Hero (Novo) */}
+      <SaudeHeroSection
+        ano={selectedYear}
+        isCurrentYear={isCurrentYear}
+        partialPeriod={partialPeriod}
+        orcamento={saude.orcamento}
+        fontesReceita={saude.fontesReceita}
+      />
 
-      {/* Top KPI Grid */}
-      <KPIGrid columns={4}>
-        <KPICard
-          title="Dotação Atualizada"
-          value={fmtCompact(saude.orcamento.dotacao)}
-          subtext="Orçamento aprovado"
-        />
-        <KPICard
-          title="Total Empenhado"
-          value={
-            <span className="font-bold text-blue-700">
-              {fmtCompact(saude.orcamento.empenhado)}
-            </span>
-          }
-        />
-        <KPICard
-          title="Taxa de Execução"
-          value={fmtPercent(saude.orcamento.taxaExecucao * 100)}
-        />
-        <KPICard
-          title="Medicamentos e Insumos"
-          value={fmtCompact(saude.farmaceutica.medicamentosInsumos)}
-        />
-      </KPIGrid>
-
-      {/* Alert Box if Sub-execution */}
+      {/* Alerta de Subexecução se aplicável */}
       {saude.orcamento.alertaSubExecucao && (
         <AlertBox type="warning" title="Alerta de Subexecução Orçamentária">
           A execução da Saúde está abaixo de 70% da dotação aprovada para o
@@ -110,13 +57,13 @@ export default async function SaudePage({
         </AlertBox>
       )}
 
-      {/* Section 1: O que entrou no Fundo */}
+      {/* Seção 2: O que entrou no Fundo (Existente) */}
       <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
           O que entrou no Fundo
         </h2>
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="md:col-span-2">
             <SaudeFontesDonut data={saude.fontesReceita} ano={selectedYear} />
           </div>
           <div className="flex flex-col gap-4">
@@ -132,10 +79,10 @@ export default async function SaudePage({
         </div>
       </section>
 
-      {/* Section 2: Empenhado ano a ano */}
+      {/* Seção 3: Empenhado no ano (Existente) */}
       <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
-          Empenhado ano a ano
+          Empenhado no ano
         </h2>
         <SaudeTrendChart
           data={saude.executionTrend}
@@ -143,7 +90,14 @@ export default async function SaudePage({
         />
       </section>
 
-      {/* Section 3: Insumos e assistência farmacêutica */}
+      {/* Seção 4: Como o Fundo contrata (Novo) */}
+      <SaudeContratacaoSection
+        portalSlug={portalSlug}
+        orcamento={saude.orcamento}
+        licitacoesSaude={saude.licitacoesSaude}
+      />
+
+      {/* Seção 5: Insumos e assistência farmacêutica (Existente) */}
       <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
           Insumos e assistência farmacêutica
@@ -175,18 +129,11 @@ export default async function SaudePage({
         </div>
       </section>
 
-      {/* Section 4: Emendas Parlamentares Destinadas à Saúde */}
-      <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
-        <h2 className="font-bold font-serif text-2xl text-slate-900">
-          Emendas Parlamentares Destinadas à Saúde
-        </h2>
-        <DenseTable
-          data={saude.emendas}
-          columns={emendasCols}
-          searchableKeys={["Autor", "Objeto"]}
-          rowKey="id"
-        />
-      </section>
+      {/* Seção 6: Emendas parlamentares destinadas à Saúde (Existente, com mais detalhes) */}
+      <SaudeEmendasSection
+        ano={selectedYear}
+        emendasStats={saude.emendasStats}
+      />
     </div>
   );
 }
