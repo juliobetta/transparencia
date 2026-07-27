@@ -9,6 +9,8 @@ import {
   fmtCompact,
   GastoPorFuncaoBars,
   getPartialYearPeriod,
+  KPICard,
+  KPIGrid,
 } from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +90,6 @@ export default async function OrcamentoPage({
     .sort((a, b) => b.valor - a.valor);
 
   const orgaosCols = [
-    { header: "Código", accessorKey: "codigo" as const },
     { header: "Órgão / Unidade", accessorKey: "descricao" as const },
     {
       header: "Dotação (R$)",
@@ -140,52 +141,29 @@ export default async function OrcamentoPage({
         </p>
       </div>
 
-      {/* Grid dos 4 KPI Cards dos Estágios Orçamentários */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Dotação Atualizada */}
-        <div className="rounded-[14px] border border-[#e7e9ee] bg-white p-5 shadow-sm">
-          <div className="text-subtleText text-xs">Dotação Atualizada</div>
-          <div className="mt-2 font-bold font-serif text-2xl text-ink tracking-tight lg:text-3xl">
-            {fmtCompact(totalDotacao)}
-          </div>
-          <div className="mt-2 font-medium text-subtleText text-xs">
-            100% autorizado
-          </div>
-        </div>
-
-        {/* Card 2: Empenhado */}
-        <div className="rounded-[14px] border border-[#e7e9ee] bg-white p-5 shadow-sm">
-          <div className="text-subtleText text-xs">Empenhado</div>
-          <div className="mt-2 font-bold font-serif text-2xl text-[#2563eb] tracking-tight lg:text-3xl">
-            {fmtCompact(totalEmpenhado)}
-          </div>
-          <div className="mt-2 font-medium text-subtleText text-xs">
-            {empPct.toFixed(0)}% da dotação
-          </div>
-        </div>
-
-        {/* Card 3: Liquidado */}
-        <div className="rounded-[14px] border border-[#e7e9ee] bg-white p-5 shadow-sm">
-          <div className="text-subtleText text-xs">Liquidado</div>
-          <div className="mt-2 font-bold font-serif text-2xl text-[#0284c7] tracking-tight lg:text-3xl">
-            {fmtCompact(totalLiquidado)}
-          </div>
-          <div className="mt-2 font-medium text-subtleText text-xs">
-            {liqPct.toFixed(0)}% da dotação
-          </div>
-        </div>
-
-        {/* Card 4: Pago */}
-        <div className="rounded-[14px] border border-[#e7e9ee] bg-white p-5 shadow-sm">
-          <div className="text-subtleText text-xs">Pago</div>
-          <div className="mt-2 font-bold font-serif text-2xl text-[#0891b2] tracking-tight lg:text-3xl">
-            {fmtCompact(totalPago)}
-          </div>
-          <div className="mt-2 font-medium text-subtleText text-xs">
-            {pagPct.toFixed(0)}% da dotação
-          </div>
-        </div>
-      </div>
+      <KPIGrid columns={4}>
+        <KPICard
+          title="Dotação Atualizada"
+          value={fmtCompact(totalDotacao)}
+          subtext="100% autorizado"
+          accent
+        />
+        <KPICard
+          title="Empenhado"
+          value={fmtCompact(totalEmpenhado)}
+          subtext={`${empPct.toFixed(0)}% da dotação`}
+        />
+        <KPICard
+          title="Liquidado"
+          value={fmtCompact(totalLiquidado)}
+          subtext={`${liqPct.toFixed(0)}% da dotação`}
+        />
+        <KPICard
+          title="Pago"
+          value={fmtCompact(totalPago)}
+          subtext={`${pagPct.toFixed(0)}% da dotação`}
+        />
+      </KPIGrid>
 
       {/* Funil da Execução */}
       <FunnelExecucaoHorizontal stages={funnelStages} />
@@ -214,7 +192,7 @@ export default async function OrcamentoPage({
         <DenseTable
           data={items}
           columns={orgaosCols}
-          searchableKeys={["descricao", "codigo"]}
+          searchableKeys={["descricao"]}
         />
       </div>
     </div>
