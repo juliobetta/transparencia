@@ -4,6 +4,7 @@ import {
   fmtCompact,
   getPartialYearPeriod,
   KPICard,
+  KPIGrid,
   SaudeContratacaoSection,
   SaudeEmendasSection,
   SaudeFontesDonut,
@@ -102,7 +103,7 @@ export default async function SaudePage({
         <h2 className="font-bold font-serif text-2xl text-slate-900">
           Insumos e assistência farmacêutica
         </h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <KPIGrid columns={3}>
           <KPICard
             title="Medicamentos e insumos"
             value={fmtCompact(saude.farmaceutica.medicamentosInsumos)}
@@ -126,7 +127,7 @@ export default async function SaudePage({
             }
             subtext={saude.farmaceutica.hhiClassificacao}
           />
-        </div>
+        </KPIGrid>
       </section>
 
       {/* Seção 6: Emendas parlamentares destinadas à Saúde (Existente, com mais detalhes) */}

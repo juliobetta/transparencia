@@ -83,8 +83,8 @@ export function SaudeHeroSection({
 
           <h1 className="font-bold font-serif text-3xl text-slate-900 leading-tight tracking-tight sm:text-4xl">
             {susPct} de cada R$ 100 da saúde vêm do SUS.{" "}
-            <span className="text-accent">O que a cidade faz com eles</span> se
-            decide na forma de contratar.
+            <span className="text-accent">O que o município faz com eles</span>{" "}
+            se decide na forma de contratar.
           </h1>
 
           <p className="text-slate-600 text-sm leading-relaxed sm:text-base">
@@ -92,10 +92,11 @@ export function SaudeHeroSection({
             <strong className="font-bold text-slate-900">
               {fmtCompact(orcamento.empenhado)}
             </strong>{" "}
-            em {ano} — {fmtPercent(orcamento.taxaExecucao * 100)} da dotação.
-            Numa cidade pequena que depende quase inteiramente de repasses da
-            União e do Estado, cada contrato de remédio, exame ou serviço é
-            atenção básica que chega — ou não — a quem precisa.
+            em {ano} — {fmtPercent(orcamento.taxaExecucao * 100)} da dotação
+            aprovada. Com a destinação de recursos oriundos do SUS e repasses
+            governamentais, a transparência e a eficiência de cada contrato de
+            insumos, exames e serviços garantem que a atenção básica chegue a
+            quem precisa.
           </p>
         </div>
 
@@ -188,7 +189,7 @@ export function SaudeHeroSection({
         </div>
       </div>
 
-      {/* Grid Inferior com 4 KPI Cards */}
+      {/* Grid Inferior com KPIGrid e KPICard */}
       <KPIGrid columns={4}>
         <KPICard
           title="Dotação Atualizada"
