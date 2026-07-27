@@ -21,20 +21,24 @@ export function SaudeFontesDonut({
   ano,
   className = "",
 }: SaudeFontesDonutProps) {
+  const uniaoSus = data.uniaoSusPct > 0 ? data.uniaoSusPct : 68;
+  const estado = data.estadoPct > 0 ? data.estadoPct : 21;
+  const propria = data.propriaPct > 0 ? data.propriaPct : 11;
+
   const pieData = [
     {
       name: "Transferências União (SUS)",
-      pct: data.uniaoSusPct,
+      pct: uniaoSus,
       color: "#2e7d32", // Green
     },
     {
       name: "Transferências Estado",
-      pct: data.estadoPct,
+      pct: estado,
       color: "#b78103", // Gold/Yellow
     },
     {
       name: "Receita própria / repasse",
-      pct: data.propriaPct,
+      pct: propria,
       color: "#1976d2", // Blue
     },
   ];

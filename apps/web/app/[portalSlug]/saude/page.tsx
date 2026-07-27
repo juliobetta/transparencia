@@ -39,9 +39,12 @@ export default async function SaudePage({
   const saude = await getHistoriaSaude(selectedYear, entidadesIds);
 
   const emendasCols = [
-    { header: "Nº", accessorKey: "Nº" as const },
     { header: "Autor da Emenda", accessorKey: "Autor" as const },
-    { header: "Objeto", accessorKey: "Objeto" as const },
+    {
+      header: "Objeto",
+      accessorKey: "Objeto" as const,
+      className: "max-w-[200px]",
+    },
     {
       header: "Valor Autorizado",
       accessorKey: "Valor Autorizado" as const,
@@ -108,12 +111,14 @@ export default async function SaudePage({
       )}
 
       {/* Section 1: O que entrou no Fundo */}
-      <section className="space-y-6 border-slate-200 border-t pt-8">
+      <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
           O que entrou no Fundo
         </h2>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <SaudeFontesDonut data={saude.fontesReceita} ano={selectedYear} />
+        <div className="grid grid-cols-3 gap-6">
+          <div className="col-span-2">
+            <SaudeFontesDonut data={saude.fontesReceita} ano={selectedYear} />
+          </div>
           <div className="flex flex-col gap-4">
             <KPICard
               title="Repasses da Prefeitura ao Fundo"
@@ -128,7 +133,7 @@ export default async function SaudePage({
       </section>
 
       {/* Section 2: Empenhado ano a ano */}
-      <section className="space-y-6 border-slate-200 border-t pt-8">
+      <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
           Empenhado ano a ano
         </h2>
@@ -139,7 +144,7 @@ export default async function SaudePage({
       </section>
 
       {/* Section 3: Insumos e assistência farmacêutica */}
-      <section className="space-y-6 border-slate-200 border-t pt-8">
+      <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
           Insumos e assistência farmacêutica
         </h2>
@@ -171,14 +176,14 @@ export default async function SaudePage({
       </section>
 
       {/* Section 4: Emendas Parlamentares Destinadas à Saúde */}
-      <section className="space-y-6 border-slate-200 border-t pt-8">
+      <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
           Emendas Parlamentares Destinadas à Saúde
         </h2>
         <DenseTable
           data={saude.emendas}
           columns={emendasCols}
-          searchableKeys={["Autor", "Objeto", "Nº"]}
+          searchableKeys={["Autor", "Objeto"]}
         />
       </section>
     </div>
