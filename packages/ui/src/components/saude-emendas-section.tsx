@@ -1,4 +1,5 @@
 import { fmtCompact, fmtCurrency, fmtPercent } from "../utils/formatters";
+import { toTitleCase } from "../utils/text";
 import { DenseTable } from "./dense-table";
 import { KPICard } from "./kpi-card";
 import { KPIGrid } from "./kpi-grid";
@@ -37,7 +38,11 @@ export function SaudeEmendasSection({
   const isZeroEmpenhado = emendasStats.totalEmpenhado === 0;
 
   const emendasCols = [
-    { header: "Autor da Emenda", accessorKey: "Autor" as const },
+    {
+      header: "Autor da Emenda",
+      accessorKey: "Autor" as const,
+      className: "font-bold",
+    },
     {
       header: "Objeto",
       accessorKey: "Objeto" as const,
@@ -81,30 +86,32 @@ export function SaudeEmendasSection({
       </div>
 
       {/* Banner de Alerta Vermelho / Salmão */}
-      <div className="flex items-start gap-3 rounded-xl border-rose-600 border-l-4 bg-[#fff5f5] p-4 text-[#8c1d1d] text-xs shadow-2xs sm:text-sm">
-        <div>
-          <strong className="font-bold">
-            {fmtCompact(emendasStats.totalAutorizado)} foram destinados por
-            emendas.
-          </strong>{" "}
-          {isZeroEmpenhado ? (
-            <>
-              Até agora, <strong className="font-bold">R$ 0</strong> haviam sido
-              empenhados. O recurso está disponível, mas ainda não virou
-              contrato — sinal de alerta para acompanhar de perto.
-            </>
-          ) : (
-            <>
-              Até agora,{" "}
-              <strong className="font-bold">
-                {fmtCompact(emendasStats.totalEmpenhado)}
-              </strong>{" "}
-              foram empenhados ({fmtPercent(emendasStats.taxaEmpenho * 100)} do
-              total).
-            </>
-          )}
+      {emendasStats.totalAutorizado > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border-rose-600 border-l-4 bg-[#fff5f5] p-4 text-[#8c1d1d] text-xs shadow-2xs sm:text-sm">
+          <div>
+            <strong className="font-bold">
+              {fmtCompact(emendasStats.totalAutorizado)} foram destinados por
+              emendas.
+            </strong>{" "}
+            {isZeroEmpenhado ? (
+              <>
+                Até agora, <strong className="font-bold">R$ 0</strong> haviam
+                sido empenhados. O recurso está disponível, mas ainda não virou
+                contrato — sinal de alerta para acompanhar de perto.
+              </>
+            ) : (
+              <>
+                Até agora,{" "}
+                <strong className="font-bold">
+                  {fmtCompact(emendasStats.totalEmpenhado)}
+                </strong>{" "}
+                foram empenhados ({fmtPercent(emendasStats.taxaEmpenho * 100)}{" "}
+                do total).
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 4 KPI Cards */}
       <KPIGrid columns={4}>
@@ -149,7 +156,11 @@ export function SaudeEmendasSection({
       {/* Tabela Densa com Linha de Totalizador */}
       <div className="space-y-2">
         <DenseTable
-          data={emendasStats.lista}
+          data={emendasStats.lista.map((item) => ({
+            ...item,
+            Autor: toTitleCase(item.Autor),
+            Objeto: toTitleCase(item.Objeto),
+          }))}
           columns={emendasCols}
           searchableKeys={["Autor", "Objeto"]}
           rowKey="id"
