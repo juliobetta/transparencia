@@ -1,6 +1,7 @@
 import { sql } from "kysely";
 import { db } from "../client";
-import { SAUDE_EMPRESA } from "./licitacao_gaps";
+import { getAdesaoDeAta, getAdesaoExterna } from "./adesao_de_ata";
+import { getDistribucaoModalidades, SAUDE_EMPRESA } from "./licitacao_gaps";
 
 export interface FontesReceitaSaude {
   uniaoSusPct: number;
@@ -91,7 +92,7 @@ function normalizeModalidadeName(
   if (carona === "S" || norm.includes("carona") || norm.includes("adesao")) {
     return "Adesão a ata (carona)";
   }
-  if (norm.includes("pregao")) {
+  if (norm.includes("pregao eletronico")) {
     return "Pregão eletrônico";
   }
   if (norm.includes("dispensa")) {
@@ -435,10 +436,11 @@ export async function getHistoriaSaude(
     fornecedoresAtivosCount,
   };
 
-  let adesaoCaronaCount = 0;
-  let adesaoCaronaValor = 0;
-  let empenhosAtaExternaCount = 0;
-  let pagoAtaExternaValor = 0;
+  // Reusando as queries unificadas de licitação e adesão de ata para garantir 100% de paridade com a página de Licitações
+  const adesao = await getAdesaoDeAta(year, targetEmpresas);
+  const adesaoExterna = await getAdesaoExterna(year, targetEmpresas);
+  const distModalidades = await getDistribucaoModalidades(year, targetEmpresas);
+
   const modalityTotals: Record<string, number> = {
     "Pregão eletrônico": 0,
     "Adesão a ata (carona)": 0,
@@ -447,124 +449,24 @@ export async function getHistoriaSaude(
     "Tomada de preços / outros": 0,
   };
 
-  // 1. Query fct_contratos directly for contracts of Health
-  try {
-    const resContracts = await sql`
-      SELECT
-        COALESCE(modalidade, '') AS modalidade,
-        COALESCE(carona, 'N') AS carona,
-        SUM(COALESCE(valor_contrato, empenhado, 0)) AS total_valor,
-        SUM(COALESCE(pago, empenhado, 0)) AS total_pago,
-        COUNT(*)::int AS cnt
-      FROM fct_contratos
-      WHERE ano = ${year} AND (empresa_id = ANY(${targetEmpresas}) OR lower(objeto) LIKE '%saud%' OR lower(modalidade) LIKE '%saud%')
-      GROUP BY modalidade, carona
-    `.execute(db);
+  for (const item of distModalidades) {
+    const modGroup = normalizeModalidadeName(item.modalidade, "N");
+    modalityTotals[modGroup] =
+      (modalityTotals[modGroup] || 0) + item.valorTotal;
+  }
 
-    const rowsC = (resContracts.rows as Record<string, unknown>[]) || [];
-    for (const r of rowsC) {
-      const isCarona = String(r.carona ?? "").toUpperCase() === "S";
-      const val = parseFloat(String(r.total_valor ?? "0")) || 0;
-      const pagVal = parseFloat(String(r.total_pago ?? "0")) || 0;
-      const cnt = Number(r.cnt ?? 0);
-      const rawMod = String(r.modalidade ?? "");
-
-      const modGroup = normalizeModalidadeName(rawMod, isCarona ? "S" : "N");
-      modalityTotals[modGroup] = (modalityTotals[modGroup] || 0) + val;
-
-      if (isCarona) {
-        adesaoCaronaCount += cnt;
-        adesaoCaronaValor += val;
-        empenhosAtaExternaCount += cnt;
-        pagoAtaExternaValor += pagVal;
-      }
-    }
-  } catch (_e) {}
-
-  // 2. Query fct_despesas for despesas modalities & carona ata empenhos
-  try {
-    const resDespMod = await sql`
-      SELECT
-        descricao,
-        modalidade,
-        SUM(COALESCE(empenhado, 0)) AS total_empenhado,
-        SUM(COALESCE(pago, 0)) AS total_pago,
-        COUNT(*)::int AS cnt
-      FROM fct_despesas
-      WHERE ano = ${year} AND (empresa_id = ANY(${targetEmpresas}) OR funcao = '10')
-      GROUP BY descricao, modalidade
-    `.execute(db);
-
-    for (const r of (resDespMod.rows as Record<string, unknown>[]) || []) {
-      const desc = String(r.descricao ?? "").toUpperCase();
-      const rawMod = String(r.modalidade ?? "").toUpperCase();
-      const val = parseFloat(String(r.total_empenhado ?? "0")) || 0;
-      const pagVal = parseFloat(String(r.total_pago ?? "0")) || 0;
-      const cnt = Number(r.cnt ?? 0);
-
-      const isCarona =
-        desc.includes("ATA DE REGISTRO DE PRE") ||
-        desc.includes("ADESAO") ||
-        desc.includes("ADESÃO") ||
-        rawMod.includes("CARONA") ||
-        rawMod.includes("ADESAO") ||
-        rawMod.includes("ADESÃO");
-
-      if (isCarona && adesaoCaronaValor === 0) {
-        adesaoCaronaCount += cnt;
-        adesaoCaronaValor += val;
-        empenhosAtaExternaCount += cnt;
-        pagoAtaExternaValor += pagVal;
-      }
-
-      let modGroup = "Tomada de preços / outros";
-      if (isCarona) {
-        modGroup = "Adesão a ata (carona)";
-      } else if (
-        desc.includes("PREGAO") ||
-        desc.includes("PREGÃO") ||
-        rawMod.includes("PREGAO")
-      ) {
-        modGroup = "Pregão eletrônico";
-      } else if (desc.includes("DISPENSA") || rawMod.includes("DISPENSA")) {
-        modGroup = "Dispensa de licitação";
-      } else if (desc.includes("INEXIG") || rawMod.includes("INEXIG")) {
-        modGroup = "Inexigibilidade";
-      }
-
-      if (modalityTotals[modGroup] === 0 || isCarona) {
-        modalityTotals[modGroup] = (modalityTotals[modGroup] || 0) + val;
-      }
-    }
-  } catch (_e) {}
-
-  // 3. Fallback distribution if other modalities are 0 but total empenho exists
-  const hasOtherModalities =
-    modalityTotals["Pregão eletrônico"] > 0 ||
-    modalityTotals["Dispensa de licitação"] > 0 ||
-    modalityTotals.Inexigibilidade > 0 ||
-    modalityTotals["Tomada de preços / outros"] > 0;
-
-  if (!hasOtherModalities && emp > 0) {
-    const remainingEmp = Math.max(
-      0,
-      emp - (modalityTotals["Adesão a ata (carona)"] || 0),
+  if (adesao.valor > 0) {
+    modalityTotals["Adesão a ata (carona)"] = Math.max(
+      modalityTotals["Adesão a ata (carona)"],
+      adesao.valor,
     );
-    modalityTotals["Pregão eletrônico"] = Math.round(remainingEmp * 0.62);
-    modalityTotals["Dispensa de licitação"] = Math.round(remainingEmp * 0.18);
-    modalityTotals.Inexigibilidade = Math.round(remainingEmp * 0.1);
-    modalityTotals["Tomada de preços / outros"] = Math.round(
-      remainingEmp * 0.1,
-    );
-    if (modalityTotals["Adesão a ata (carona)"] === 0) {
-      modalityTotals["Adesão a ata (carona)"] = Math.round(emp * 0.13);
-    }
   }
 
   const totalModalityValue = Object.values(modalityTotals).reduce(
     (a, b) => a + b,
     0,
   );
+
   const modalidades: LicitacaoModalidadeItem[] = Object.entries(
     modalityTotals,
   ).map(([nome, valor]) => ({
@@ -574,10 +476,10 @@ export async function getHistoriaSaude(
   }));
 
   const licitacoesSaude: LicitacoesSaudeResult = {
-    adesaoCaronaCount,
-    adesaoCaronaValor,
-    empenhosAtaExternaCount,
-    pagoAtaExternaValor,
+    adesaoCaronaCount: adesao.quantidade,
+    adesaoCaronaValor: adesao.valor,
+    empenhosAtaExternaCount: adesaoExterna.quantidade,
+    pagoAtaExternaValor: adesaoExterna.totalPago,
     modalidades,
   };
 

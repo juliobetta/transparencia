@@ -75,13 +75,32 @@ export function SaudeContratacaoSection({
       {/* Banner de Alerta Âmbar */}
       <div className="flex items-start gap-3 rounded-xl border-amber-600 border-l-4 bg-[#fffaf0] p-4 text-[#7b341e] text-xs shadow-2xs sm:text-sm">
         <div>
-          <strong className="font-bold">
-            {fmtCompact(caronaValor)} — {fmtPercent(caronaPct)} do empenho do
-            Fundo —
-          </strong>{" "}
-          foram contratados por adesão a atas (carona). Modalidade legal, mas
-          que dispensa licitação própria: exige acompanhamento para garantir
-          preço e entrega.
+          {caronaValor > 0 ? (
+            <>
+              <strong className="font-bold">
+                {fmtCompact(caronaValor)} — {fmtPercent(caronaPct)} do empenho
+                do Fundo —
+              </strong>{" "}
+              foram contratados por adesão a atas (carona). Modalidade legal,
+              mas que dispensa licitação própria: exige acompanhamento para
+              garantir preço e entrega.
+            </>
+          ) : licitacoesSaude.empenhosAtaExternaCount > 0 ? (
+            <>
+              <strong className="font-bold">
+                {licitacoesSaude.empenhosAtaExternaCount} empenhos via ata
+                externa ({fmtCompact(licitacoesSaude.pagoAtaExternaValor)}{" "}
+                pagos)
+              </strong>{" "}
+              foram registrados no exercício. Modalidades por adesão a ata
+              dispensam licitação própria do município.
+            </>
+          ) : (
+            <>
+              O Fundo registrou seus contratos e compras no exercício sob as
+              modalidades legais cabíveis.
+            </>
+          )}
         </div>
       </div>
 
