@@ -23,29 +23,35 @@ export interface SaudeTrendChartProps {
 }
 
 interface CustomBarLabelProps {
-  x?: number;
-  y?: number;
-  width?: number;
-  value?: number;
+  x?: unknown;
+  y?: unknown;
+  width?: unknown;
+  value?: unknown;
 }
 
 const renderCustomBarLabel = (props: CustomBarLabelProps) => {
   const { x, y, width, value } = props;
+  const numX = Number(x);
+  const numY = Number(y);
+  const numWidth = Number(width);
+  const numValue = Number(value);
+
   if (
     value === undefined ||
     value === null ||
-    typeof x !== "number" ||
-    typeof y !== "number" ||
-    typeof width !== "number"
+    Number.isNaN(numX) ||
+    Number.isNaN(numY) ||
+    Number.isNaN(numWidth) ||
+    Number.isNaN(numValue)
   ) {
     return null;
   }
-  const milhoes = value / 1_000_000;
+  const milhoes = numValue / 1_000_000;
   const formatted = milhoes.toFixed(1).replace(".", ",");
   return (
     <text
-      x={x + width / 2}
-      y={y - 8}
+      x={numX + numWidth / 2}
+      y={numY - 8}
       fill="#334155"
       textAnchor="middle"
       fontSize={12}
