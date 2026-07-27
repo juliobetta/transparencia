@@ -42,13 +42,35 @@ export default async function SaudePage({
   return (
     <div className="space-y-12 pb-12">
       {/* Seção 1: Hero (Novo) */}
-      <SaudeHeroSection
-        ano={selectedYear}
-        isCurrentYear={isCurrentYear}
-        partialPeriod={partialPeriod}
-        orcamento={saude.orcamento}
-        fontesReceita={saude.fontesReceita}
-      />
+      <div className="space-y-8">
+        <SaudeHeroSection
+          ano={selectedYear}
+          isCurrentYear={isCurrentYear}
+          partialPeriod={partialPeriod}
+          orcamento={saude.orcamento}
+          fontesReceita={saude.fontesReceita}
+        />
+
+        {/* Hero KPIs com KPIGrid e KPICard */}
+        <KPIGrid columns={4}>
+          <KPICard
+            title="Dotação Atualizada"
+            value={fmtCompact(saude.orcamento.dotacao)}
+          />
+          <KPICard
+            title="Contratos vinculados"
+            value={saude.orcamento.contratosVinculadosCount}
+          />
+          <KPICard
+            title="Fornecedores ativos"
+            value={saude.orcamento.fornecedoresAtivosCount}
+          />
+          <KPICard
+            title="Medicamentos e Insumos"
+            value={fmtCompact(saude.orcamento.medicamentosInsumos)}
+          />
+        </KPIGrid>
+      </div>
 
       {/* Alerta de Subexecução se aplicável */}
       {saude.orcamento.alertaSubExecucao && (
