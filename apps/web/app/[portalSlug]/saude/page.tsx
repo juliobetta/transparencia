@@ -184,6 +184,7 @@ export default async function SaudePage({
           data={saude.emendas}
           columns={emendasCols}
           searchableKeys={["Autor", "Objeto"]}
+          rowKey="id"
         />
       </section>
     </div>

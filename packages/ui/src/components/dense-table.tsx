@@ -34,8 +34,10 @@ export interface DenseTableProps<T> {
   searchableKeys?: (keyof T)[];
   emptyMessage?: string;
   className?: string;
+  rowKey?: keyof T;
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: T accepts any typed object model
 export function DenseTable<T extends Record<string, any>>({
   data,
   columns,
@@ -43,6 +45,7 @@ export function DenseTable<T extends Record<string, any>>({
   searchableKeys,
   emptyMessage = "Nenhum registro encontrado.",
   className,
+  rowKey,
 }: DenseTableProps<T>) {
   const [query, setQuery] = useState("");
 
@@ -61,6 +64,16 @@ export function DenseTable<T extends Record<string, any>>({
       });
     });
   }, [data, query, searchableKeys]);
+
+  const getRowId = (row: T, idx: number): string => {
+    if (rowKey && row[rowKey] !== undefined && row[rowKey] !== null) {
+      return String(row[rowKey]);
+    }
+    const firstColKey = columns[0]?.accessorKey
+      ? String(row[columns[0].accessorKey] ?? "")
+      : "";
+    return firstColKey ? `${firstColKey}-${idx}` : `row-${idx}`;
+  };
 
   const renderCellValue = (col: Column<T>, row: T) => {
     const raw = col.accessorKey ? row[col.accessorKey] : undefined;
@@ -159,30 +172,33 @@ export function DenseTable<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              filteredData.map((row) => (
-                <tr
-                  key={`row-${row[columns[0].accessorKey as string]}`}
-                  className="transition-colors hover:bg-gray-50/80"
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={`cell-${row[columns[0].accessorKey as string]}-${col.accessorKey as string}`}
-                      className={cn(
-                        col.className ? col.className : "whitespace-nowrap",
-                        "px-4 py-2 text-ink",
-                        col.align === "right" && "text-right",
-                        col.align === "center" && "text-center",
-                        (col.isSerifNumeric ||
-                          col.format === "currency" ||
-                          col.format === "compact") &&
-                          "font-semibold font-serif",
-                      )}
-                    >
-                      {renderCellValue(col, row)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              filteredData.map((row, index) => {
+                const rKey = getRowId(row, index);
+                return (
+                  <tr
+                    key={`tr-${rKey}`}
+                    className="transition-colors hover:bg-gray-50/80"
+                  >
+                    {columns.map((col) => (
+                      <td
+                        key={`td-${rKey}-${String(col.accessorKey || col.header)}`}
+                        className={cn(
+                          col.className ? col.className : "whitespace-nowrap",
+                          "px-4 py-2 text-ink",
+                          col.align === "right" && "text-right",
+                          col.align === "center" && "text-center",
+                          (col.isSerifNumeric ||
+                            col.format === "currency" ||
+                            col.format === "compact") &&
+                            "font-semibold font-serif",
+                        )}
+                      >
+                        {renderCellValue(col, row)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

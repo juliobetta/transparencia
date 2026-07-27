@@ -31,6 +31,7 @@ export interface ExecutionTrendSaude {
 }
 
 export interface EmendaSaude {
+  id: string;
   Nº: string;
   Objeto: string;
   "Valor Autorizado": number;
@@ -87,6 +88,7 @@ export async function getHistoriaSaude(
           : parseFloat(String(r.Empenhado ?? "0")) || 0;
       emendasTotal += valAut;
       emendas.push({
+        id: `${r.Autor ?? ""}-${r.Objeto ?? ""}-${r.Nº ?? ""}-${emendas.length}`,
         Nº: String(r.Nº ?? ""),
         Objeto: String(r.Objeto ?? ""),
         "Valor Autorizado": valAut,
@@ -195,39 +197,75 @@ export async function getHistoriaSaude(
       SELECT
         tipo_receita,
         codigo,
-        SUM(arrecadado) AS arrecadado
+        descricao,
+        arrecadado
       FROM fct_receitas
-      WHERE ano = ${year} AND (empresa_id = ANY(${targetEmpresas}) OR tipo_receita IN ('uniao', 'estado', 'intra') OR codigo LIKE '17%')
-      GROUP BY tipo_receita, codigo
+      WHERE ano = ${year} AND empresa_id = ANY(${targetEmpresas})
     `.execute(db);
 
-    let totalR = 0;
     let uniaoR = 0;
     let estadoR = 0;
+    let intraR = 0;
 
     for (const r of (resR.rows as Record<string, unknown>[]) || []) {
       const val = parseFloat(String(r.arrecadado ?? "0")) || 0;
-      const tipo = String(r.tipo_receita ?? "").toLowerCase();
-      const cod = String(r.codigo ?? "");
+      if (val <= 0) continue;
 
-      if (tipo === "intra" || cod.startsWith("17") || cod.startsWith("27")) {
-        repassesPref += val;
-      }
-      if (tipo === "uniao" || cod.startsWith("1718") || cod.startsWith("171")) {
-        uniaoR += val;
+      const tipo = String(r.tipo_receita ?? "").toLowerCase();
+      const rawCod = String(r.codigo ?? "");
+      const codClean = rawCod.replace(/\./g, "");
+      const desc = String(r.descricao ?? "").toLowerCase();
+
+      // Only count parent or leaf items without duplicating header totals
+      // If code is 1713.00.0.0.00.00 or 1720.00.0.0.00.00 (broad headers) or leaf items
+      if (
+        tipo === "uniao" ||
+        codClean.startsWith("171") ||
+        codClean.startsWith("241") ||
+        desc.includes("sus") ||
+        desc.includes("união") ||
+        desc.includes("uniao")
+      ) {
+        // If it's the main header 1713.00.0.0.00.00 or leaves
+        if (
+          codClean === "171300000000" ||
+          (!rawCod.endsWith(".00.00") && codClean.startsWith("171"))
+        ) {
+          if (codClean === "171300000000") {
+            uniaoR = Math.max(uniaoR, val);
+          } else {
+            uniaoR += val;
+          }
+        }
       } else if (
         tipo === "estado" ||
-        cod.startsWith("1728") ||
-        cod.startsWith("172")
+        codClean.startsWith("172") ||
+        codClean.startsWith("242") ||
+        desc.includes("estado")
       ) {
-        estadoR += val;
+        if (codClean === "172000000000") {
+          estadoR = Math.max(estadoR, val);
+        } else {
+          estadoR += val;
+        }
+      } else if (
+        tipo === "intra" ||
+        codClean.startsWith("175") ||
+        codClean.startsWith("275") ||
+        desc.includes("intra") ||
+        desc.includes("repasse")
+      ) {
+        intraR += val;
       }
-      totalR += val;
     }
 
-    if (totalR > 0) {
-      uniaoSusPct = (uniaoR / totalR) * 100;
-      estadoPct = (estadoR / totalR) * 100;
+    // Repasses da Prefeitura ao Fundo: intra-budgetary receipts or treasury counterpart
+    repassesPref = intraR > 0 ? intraR : Math.max(0, emp - uniaoR - estadoR);
+
+    const baseCalculo = Math.max(emp, uniaoR + estadoR + repassesPref);
+    if (baseCalculo > 0) {
+      uniaoSusPct = Math.round((uniaoR / baseCalculo) * 100);
+      estadoPct = Math.round((estadoR / baseCalculo) * 100);
       propriaPct = Math.max(0, 100 - uniaoSusPct - estadoPct);
     }
   } catch (_e) {}

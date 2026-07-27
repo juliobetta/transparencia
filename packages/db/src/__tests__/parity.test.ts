@@ -10,6 +10,7 @@ import {
   getExecucaoOrcamentaria,
   getFolhaVsServicos,
   getFontesReceita,
+  getHistoriaSaude,
   getImpactoGastosLocais,
   getLicitacaoGaps,
   getPortalConfig,
@@ -139,5 +140,11 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
       expect(folha[0].percentualFolha).toBeGreaterThan(20);
       expect(folha[0].percentualFolha).toBeLessThan(54);
     }
+  });
+  it("deve calcular historia da saude corretamente", async () => {
+    const saude = await getHistoriaSaude(TEST_YEAR);
+    expect(saude).toBeDefined();
+    expect(saude.orcamento).toBeDefined();
+    expect(typeof saude.fontesReceita.repassesPrefeitura).toBe("number");
   });
 });
