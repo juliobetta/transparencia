@@ -274,17 +274,17 @@ export async function getFontesReceita(
       sumFilteredColumn({
         year,
         empresaIds,
-        whereSql: sql`t.codigo LIKE '1.7.1.8.01.2%' OR t.descricao ILIKE '%FUNDO DE PARTICIPACAO%'`,
+        whereSql: sql`t.codigo ILIKE '%FPM%' OR t.codigo LIKE '1.7.1.8.01.2%' OR t.codigo LIKE '1718012%' OR t.descricao ILIKE '%FPM%' OR t.descricao ILIKE '%FUNDO DE PARTICIPA%' OR t.descricao ILIKE '%PARTICIPACAO DOS MUNICIPIOS%'`,
       }),
       sumFilteredColumn({
         year,
         empresaIds,
-        whereSql: sql`t.codigo LIKE '1.7.2.8.01.1%' OR t.descricao ILIKE '%ICMS%'`,
+        whereSql: sql`t.codigo ILIKE '%ICMS%' OR t.codigo LIKE '1.7.2.8.01.1%' OR t.codigo LIKE '1728011%' OR t.descricao ILIKE '%ICMS%'`,
       }),
       sumFilteredColumn({
         year,
         empresaIds,
-        whereSql: sql`t.codigo LIKE '1.1.1.8.01%' OR t.codigo LIKE '1.1.1.8.02%' OR t.descricao ILIKE '%IPTU%' OR t.descricao ILIKE '%ISS%'`,
+        whereSql: sql`t.codigo ILIKE '%ISS%' OR t.codigo ILIKE '%IPTU%' OR t.codigo LIKE '1.1.1.8.01%' OR t.codigo LIKE '1.1.1.8.02%' OR t.descricao ILIKE '%IPTU%' OR t.descricao ILIKE '%ISS%' OR t.descricao ILIKE '%PROPRIEDADE PREDIA%' OR t.descricao ILIKE '%SERVICOS DE QUALQUER NATUREZA%'`,
       }),
     ]);
 
