@@ -1,7 +1,9 @@
 import { getFontesReceita, getPortalConfig } from "@transparencia/db";
 import {
   AlertBox,
+  CarrosChefeArrecadacao,
   DenseTable,
+  EmendasCard,
   fmtCompact,
   fmtPercent,
   getPartialYearPeriod,
@@ -41,6 +43,7 @@ export default async function ReceitasPage({
     transferenciasEstado: 0,
     total: 0,
     pctPropria: 0,
+    pctPropriaPrevisto: 0,
     alertaDependencia: false,
     receitaPropriaPrevisto: 0,
     receitaPropriaArrecadado: 0,
@@ -52,6 +55,12 @@ export default async function ReceitasPage({
     totalArrecadado: 0,
     pctArrecadado: 0,
     totalPctChange: null,
+    emendasTotalArrecadado: 0,
+    emendasPixArrecadado: 0,
+    emendasIndividuaisArrecadado: 0,
+    fpmArrecadado: 0,
+    icmsArrecadado: 0,
+    issIptuArrecadado: 0,
   };
 
   const totalArr = rec.totalArrecadado;
@@ -112,6 +121,16 @@ export default async function ReceitasPage({
         rec.transferenciasUniaoPrevisto > 0
           ? (rec.transferenciasUniaoArrecadado /
               rec.transferenciasUniaoPrevisto) *
+            100
+          : 0,
+    },
+    {
+      fonte: "↳ dos quais, emendas parlamentares",
+      previsto: null as number | null,
+      arrecadado: rec.emendasTotalArrecadado,
+      pct:
+        rec.transferenciasUniaoArrecadado > 0
+          ? (rec.emendasTotalArrecadado / rec.transferenciasUniaoArrecadado) *
             100
           : 0,
     },
@@ -219,6 +238,16 @@ export default async function ReceitasPage({
         </div>
       </div>
 
+      {/* Destaque de Emendas Parlamentares */}
+      <EmendasCard
+        totalEmendas={rec.emendasTotalArrecadado || 0}
+        pctDoArrecadado={
+          totalArr > 0 ? (rec.emendasTotalArrecadado / totalArr) * 100 : 0
+        }
+        emendasPix={rec.emendasPixArrecadado || 0}
+        emendasIndividuais={rec.emendasIndividuaisArrecadado || 0}
+      />
+
       {/* Card de Progresso de Arrecadação Anual */}
       <div className="space-y-2 rounded-[14px] border border-[#e7e9ee] bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between font-semibold text-ink text-sm">
@@ -254,6 +283,19 @@ export default async function ReceitasPage({
         <PrevistoVsArrecadadoOrigem items={origensData} />
       </div>
 
+      {/* Os 3 carros-chefe da arrecadação */}
+      <CarrosChefeArrecadacao
+        fpm={rec.fpmArrecadado || 0}
+        icms={rec.icmsArrecadado || 0}
+        issIptu={rec.issIptuArrecadado || 0}
+        totalArrecadado={totalArr}
+      />
+
+      {/* Tabela Detalhada de Previsão vs Arrecadação */}
+      <div className="pt-4">
+        <DenseTable data={tableData} columns={tableCols} />
+      </div>
+
       {/* Alerta de Vulnerabilidade Fiscal caso exista */}
       {rec.alertaDependencia && (
         <AlertBox
@@ -266,11 +308,6 @@ export default async function ReceitasPage({
           público.
         </AlertBox>
       )}
-
-      {/* Tabela Detalhada de Previsão vs Arrecadação */}
-      <div className="pt-4">
-        <DenseTable data={tableData} columns={tableCols} />
-      </div>
     </div>
   );
 }
