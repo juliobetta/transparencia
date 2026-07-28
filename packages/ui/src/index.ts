@@ -1,6 +1,7 @@
 export * from "./components/alert-box";
 export * from "./components/badge";
 export * from "./components/cards-secundarios-visao-geral";
+export * from "./components/carros-chefe-arrecadacao";
 export * from "./components/charts/bar-chart-h";
 export * from "./components/charts/departmental-payroll-chart";
 export * from "./components/charts/distribuicao-modalidades-chart";
@@ -17,6 +18,7 @@ export * from "./components/charts/saude-trend-chart";
 export * from "./components/charts/unidades-gastos-chart";
 export * from "./components/decimo-terceiro-card";
 export * from "./components/dense-table";
+export * from "./components/emendas-card";
 export * from "./components/hero-fiscal-card";
 export * from "./components/kpi-card";
 export * from "./components/kpi-grid";
