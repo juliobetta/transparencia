@@ -1,7 +1,10 @@
 import { getHistoriaCaprem } from "@transparencia/db";
 import {
+  CapremHeroSection,
   DenseTable,
   fmtCompact,
+  fmtPercent,
+  getPartialYearPeriod,
   KPICard,
   KPIGrid,
   SectionHeader,
@@ -18,7 +21,7 @@ export default async function CapremPage({
   params,
   searchParams,
 }: CapremPageProps) {
-  const { portalSlug: _portalSlug } = await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
 
   const currentYear = new Date().getFullYear();
@@ -30,8 +33,9 @@ export default async function CapremPage({
     : undefined;
 
   const isCurrentYear = selectedYear === currentYear;
+  const partialPeriod = getPartialYearPeriod();
 
-  const caprem = await getHistoriaCaprem(selectedYear, entidadesIds);
+  const caprem = await getHistoriaCaprem(portalSlug, selectedYear, entidadesIds);
 
   const entidadesCols = [
     { header: "Entidade / Órgão", accessorKey: "entidade" as const },
@@ -48,6 +52,29 @@ export default async function CapremPage({
       format: "currency" as const,
     },
     {
+      header: "Pago / Repassado (R$)",
+      accessorKey: "pago" as const,
+      align: "right" as const,
+      format: "currency" as const,
+    },
+    {
+      header: "Adimplência",
+      accessorKey: "taxaExecucao" as const,
+      align: "right" as const,
+      cell: (info: any) => fmtPercent(Number(info.getValue() ?? 0) * 100),
+    },
+  ];
+
+  const naturezaCols = [
+    { header: "Elemento", accessorKey: "elemento" as const },
+    { header: "Descrição da Natureza", accessorKey: "descricao" as const },
+    {
+      header: "Empenhado (R$)",
+      accessorKey: "empenhado" as const,
+      align: "right" as const,
+      format: "currency" as const,
+    },
+    {
       header: "Pago (R$)",
       accessorKey: "pago" as const,
       align: "right" as const,
@@ -56,19 +83,22 @@ export default async function CapremPage({
   ];
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-bold font-serif text-3xl text-ink">
-          Painel CAPREM
-        </h1>
-        <p className="mt-1 text-sm text-subtleText">
-          Acompanhamento dos repasses previdenciários e obrigações com a Caixa
-          de Aposentadoria e Pensões ({selectedYear}
-          {isCurrentYear ? " · parcial" : ""})
-        </p>
-      </div>
+    <div className="space-y-12 pb-12">
+      {/* Seção 1: Hero Especializado do Tema */}
+      <CapremHeroSection
+        ano={selectedYear}
+        isCurrentYear={isCurrentYear}
+        partialPeriod={partialPeriod}
+        totalEmpenhado={caprem.totalEmpenhado}
+        totalLiquidado={caprem.totalLiquidado}
+        totalPago={caprem.totalPago}
+        taxaExecucao={caprem.taxaExecucao}
+        totalAporteAtuarial={caprem.totalAporteAtuarial}
+        totalDividaResgatada={caprem.totalDividaResgatada}
+      />
 
-      <KPIGrid columns={3}>
+      {/* Seção 2: KPIs de Alto Nível */}
+      <KPIGrid columns={4}>
         <KPICard
           title="Total Empenhado"
           value={fmtCompact(caprem.totalEmpenhado)}
@@ -76,28 +106,49 @@ export default async function CapremPage({
           accent
         />
         <KPICard
-          title="Total Liquidado"
-          value={fmtCompact(caprem.totalLiquidado)}
-          subtext="Atestado pelos órgãos"
-        />
-        <KPICard
-          title="Total Repassado/Pago"
+          title="Total Repassado / Pago"
           value={fmtCompact(caprem.totalPago)}
           subtext="Efetivamente transferido"
         />
+        <KPICard
+          title="Índice de Adimplência"
+          value={fmtPercent(caprem.taxaExecucao * 100)}
+          subtext="% Quitado do Empenhado"
+        />
+        <KPICard
+          title="Aporte Déficit Atuarial"
+          value={fmtCompact(caprem.totalAporteAtuarial)}
+          subtext="Elemento 97 (Equilíbrio RPPS)"
+        />
       </KPIGrid>
 
-      <div>
+      {/* Seção 3: Repasses por Entidade / Órgão */}
+      <section className="space-y-4 border-[#1a1d21] border-t-2 pt-8">
         <SectionHeader
           title="Repasses por Entidade ao CAPREM"
-          description="Valores empenhados e repassados por órgão da administração municipal ao regime de previdência"
+          description="Valores empenhados, liquidados e pagos por cada órgão da administração municipal ao regime previdenciário"
         />
         <DenseTable
           data={caprem.entidades}
           columns={entidadesCols}
           searchableKeys={["entidade"]}
         />
-      </div>
+      </section>
+
+      {/* Seção 4: Decomposição Contábil dos Repasses */}
+      {caprem.natureza.length > 0 && (
+        <section className="space-y-4 border-[#e7e9ee] border-t pt-8">
+          <SectionHeader
+            title="Composição Contábil dos Repasses"
+            description="Detalhamento das obrigações por elemento de despesa (Contribuições patronais ordinárias, aportes de equilíbrio atuarial e amortização de dívidas)"
+          />
+          <DenseTable
+            data={caprem.natureza}
+            columns={naturezaCols}
+            searchableKeys={["descricao", "elemento"]}
+          />
+        </section>
+      )}
     </div>
   );
 }
