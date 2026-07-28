@@ -61,7 +61,7 @@ export default async function CapremPage({
       header: "Adimplência",
       accessorKey: "taxaExecucao" as const,
       align: "right" as const,
-      cell: (info: any) => fmtPercent(Number(info.getValue() ?? 0) * 100),
+      format: "percent" as const,
     },
   ];
 
