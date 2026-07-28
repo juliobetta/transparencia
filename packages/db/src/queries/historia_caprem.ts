@@ -23,6 +23,7 @@ export interface NaturezaCaprem {
   natureza: string;
   descricao: string;
   elemento: string;
+  dataEmpenho?: string;
   empenhado: number;
   liquidado: number;
   pago: number;
@@ -112,6 +113,7 @@ export async function getHistoriaCaprem(
     let qN = sql`
       SELECT elemento,
              natureza_despesa AS natureza,
+             MAX(data_empenho::text) AS data_empenho,
              SUM(CAST(empenhado AS numeric)) AS empenhado,
              SUM(CAST(liquidado AS numeric)) AS liquidado,
              SUM(CAST(pago AS numeric)) AS pago
@@ -135,6 +137,7 @@ export async function getHistoriaCaprem(
       const emp = parseFloat(String(r.empenhado ?? "0")) || 0;
       const liq = parseFloat(String(r.liquidado ?? "0")) || 0;
       const pag = parseFloat(String(r.pago ?? "0")) || 0;
+      const dtEmp = String(r.data_empenho ?? "");
       const natStr =
         ELEMENTO_LABELS[el] || String(r.natureza ?? "") || `Elemento ${el}`;
 
@@ -142,6 +145,7 @@ export async function getHistoriaCaprem(
         natureza: natStr,
         descricao: natStr,
         elemento: el,
+        dataEmpenho: dtEmp,
         empenhado: emp,
         liquidado: liq,
         pago: pag,

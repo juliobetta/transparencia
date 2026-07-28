@@ -71,6 +71,11 @@ export default async function CapremPage({
   ];
 
   const naturezaCols = [
+    {
+      header: "Data do Lançamento",
+      accessorKey: "dataEmpenho" as const,
+      format: "date" as const,
+    },
     { header: "Elemento", accessorKey: "elemento" as const },
     { header: "Descrição da Natureza", accessorKey: "descricao" as const },
     {
