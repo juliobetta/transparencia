@@ -47,6 +47,12 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     if (fontes.length > 0) {
       expect(typeof fontes[0].totalPrevisto).toBe("number");
       expect(typeof fontes[0].totalArrecadado).toBe("number");
+      expect(typeof fontes[0].emendasTotalArrecadado).toBe("number");
+      expect(typeof fontes[0].emendasPixArrecadado).toBe("number");
+      expect(typeof fontes[0].emendasIndividuaisArrecadado).toBe("number");
+      expect(typeof fontes[0].fpmArrecadado).toBe("number");
+      expect(typeof fontes[0].icmsArrecadado).toBe("number");
+      expect(typeof fontes[0].issIptuArrecadado).toBe("number");
     }
   });
 

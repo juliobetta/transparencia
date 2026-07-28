@@ -20,6 +20,12 @@ export interface FontesReceitaRecord {
   totalArrecadado: number;
   pctArrecadado: number;
   totalPctChange?: number | null;
+  emendasTotalArrecadado: number;
+  emendasPixArrecadado: number;
+  emendasIndividuaisArrecadado: number;
+  fpmArrecadado: number;
+  icmsArrecadado: number;
+  issIptuArrecadado: number;
 }
 
 const INTRA_PREFIXES = ["17", "27"];
@@ -82,6 +88,41 @@ async function sumColumn({
   }
 }
 
+async function sumFilteredColumn({
+  year,
+  empresaIds,
+  whereSql,
+}: {
+  year: number;
+  empresaIds?: string[] | null;
+  whereSql: ReturnType<typeof sql>;
+}): Promise<number> {
+  let query = sql`
+    SELECT t.arrecadado AS val
+    FROM fct_receitas t
+    WHERE t.ano = ${year}
+      AND (${whereSql})
+  `;
+
+  if (empresaIds && empresaIds.length > 0) {
+    query = sql`${query} AND t.empresa_id = ANY(${empresaIds})`;
+  }
+
+  try {
+    const res = await query.execute(db);
+    if (!res.rows || res.rows.length === 0) return 0;
+    let sum = 0;
+    for (const row of res.rows as any[]) {
+      const valStr = String(row.val ?? "0").replace(",", ".");
+      const num = parseFloat(valStr);
+      if (!Number.isNaN(num)) sum += num;
+    }
+    return sum;
+  } catch {
+    return 0;
+  }
+}
+
 export async function getFontesReceita(
   years: number[],
   empresaIds?: string[] | null,
@@ -89,50 +130,90 @@ export async function getFontesReceita(
   const records: FontesReceitaRecord[] = [];
 
   for (const year of years) {
-    const totalPrevisto = await sumColumn({
-      tipoReceita: "orcamentaria",
-      col: "previsao_atualizada",
-      year,
-      rootOnly: true,
-      empresaIds,
-    });
-    const totalArrecadado = await sumColumn({
-      tipoReceita: "orcamentaria",
-      col: "arrecadado",
-      year,
-      rootOnly: true,
-      empresaIds,
-    });
+    const [
+      totalPrevisto,
+      totalArrecadado,
+      uniaoPrevisto,
+      uniaoArrecadado,
+      estadoPrevisto,
+      estadoArrecadado,
+      emendasPixArrecadado,
+      emendasIndividuaisArrecadado,
+      fpmArrecadado,
+      icmsArrecadado,
+      issIptuArrecadado,
+    ] = await Promise.all([
+      sumColumn({
+        tipoReceita: "orcamentaria",
+        col: "previsao_atualizada",
+        year,
+        rootOnly: true,
+        empresaIds,
+      }),
+      sumColumn({
+        tipoReceita: "orcamentaria",
+        col: "arrecadado",
+        year,
+        rootOnly: true,
+        empresaIds,
+      }),
+      sumColumn({
+        tipoReceita: "uniao",
+        col: "previsao_atualizada",
+        year,
+        rootOnly: true,
+        empresaIds,
+      }),
+      sumColumn({
+        tipoReceita: "uniao",
+        col: "arrecadado",
+        year,
+        rootOnly: true,
+        empresaIds,
+      }),
+      sumColumn({
+        tipoReceita: "estado",
+        col: "previsao_atualizada",
+        year,
+        rootOnly: true,
+        empresaIds,
+      }),
+      sumColumn({
+        tipoReceita: "estado",
+        col: "arrecadado",
+        year,
+        rootOnly: true,
+        empresaIds,
+      }),
+      sumFilteredColumn({
+        year,
+        empresaIds,
+        whereSql: sql`t.tipo_receita IN ('uniao', 'estado', 'orcamentaria') AND (t.descricao ILIKE '%TRANSFERENCIA ESPECIAL%' OR t.codigo LIKE '1.7.1.5%')`,
+      }),
+      sumFilteredColumn({
+        year,
+        empresaIds,
+        whereSql: sql`t.tipo_receita IN ('uniao', 'estado', 'orcamentaria') AND (t.descricao ILIKE '%EMENDA%' OR t.descricao ILIKE '%PARLAMENTAR%') AND NOT (t.descricao ILIKE '%TRANSFERENCIA ESPECIAL%' OR t.codigo LIKE '1.7.1.5%')`,
+      }),
+      sumFilteredColumn({
+        year,
+        empresaIds,
+        whereSql: sql`t.codigo LIKE '1.7.1.8.01.2%' OR t.descricao ILIKE '%FUNDO DE PARTICIPACAO%'`,
+      }),
+      sumFilteredColumn({
+        year,
+        empresaIds,
+        whereSql: sql`t.codigo LIKE '1.7.2.8.01.1%' OR t.descricao ILIKE '%ICMS%'`,
+      }),
+      sumFilteredColumn({
+        year,
+        empresaIds,
+        whereSql: sql`t.codigo LIKE '1.1.1.8.01%' OR t.codigo LIKE '1.1.1.8.02%' OR t.descricao ILIKE '%IPTU%' OR t.descricao ILIKE '%ISS%'`,
+      }),
+    ]);
 
-    const uniaoPrevisto = await sumColumn({
-      tipoReceita: "uniao",
-      col: "previsao_atualizada",
-      year,
-      rootOnly: true,
-      empresaIds,
-    });
-    const uniaoArrecadado = await sumColumn({
-      tipoReceita: "uniao",
-      col: "arrecadado",
-      year,
-      rootOnly: true,
-      empresaIds,
-    });
-
-    const estadoPrevisto = await sumColumn({
-      tipoReceita: "estado",
-      col: "previsao_atualizada",
-      year,
-      rootOnly: true,
-      empresaIds,
-    });
-    const estadoArrecadado = await sumColumn({
-      tipoReceita: "estado",
-      col: "arrecadado",
-      year,
-      rootOnly: true,
-      empresaIds,
-    });
+    const emendasTotalArrecadado =
+      emendasPixArrecadado + emendasIndividuaisArrecadado;
 
     const propriaPrevisto = Math.max(
       0,
@@ -168,6 +249,12 @@ export async function getFontesReceita(
       totalPrevisto,
       totalArrecadado,
       pctArrecadado: totalPrevisto > 0 ? totalArrecadado / totalPrevisto : 0,
+      emendasTotalArrecadado,
+      emendasPixArrecadado,
+      emendasIndividuaisArrecadado,
+      fpmArrecadado,
+      icmsArrecadado,
+      issIptuArrecadado,
     });
   }
 
