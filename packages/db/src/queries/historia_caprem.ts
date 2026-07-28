@@ -21,6 +21,7 @@ export interface EntityCaprem {
 
 export interface NaturezaCaprem {
   natureza: string;
+  descricao: string;
   elemento: string;
   empenhado: number;
   liquidado: number;
@@ -139,6 +140,7 @@ export async function getHistoriaCaprem(
 
       natureza.push({
         natureza: natStr,
+        descricao: natStr,
         elemento: el,
         empenhado: emp,
         liquidado: liq,
@@ -217,7 +219,7 @@ export async function getHistoriaCaprem(
   }
 
   const taxaExecucao =
-    totalEmpenhado > 0 ? (totalPago / totalEmpenhado) * 100 : 0;
+    totalEmpenhado > 0 ? totalPago / totalEmpenhado : 0;
 
   return {
     entidades,

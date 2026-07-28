@@ -123,7 +123,7 @@ export default async function CapremPage({
       </KPIGrid>
 
       {/* Seção 3: Repasses por Entidade / Órgão */}
-      <section className="space-y-4 border-[#1a1d21] border-t-2 pt-8">
+      <section className="space-y-4 border-t border-[#e7e9ee] pt-8">
         <SectionHeader
           title="Repasses por Entidade ao CAPREM"
           description="Valores empenhados, liquidados e pagos por cada órgão da administração municipal ao regime previdenciário"
