@@ -125,16 +125,6 @@ export default async function ReceitasPage({
           : 0,
     },
     {
-      fonte: "↳ dos quais, emendas parlamentares",
-      previsto: null as number | null,
-      arrecadado: rec.emendasTotalArrecadado,
-      pct:
-        rec.transferenciasUniaoArrecadado > 0
-          ? (rec.emendasTotalArrecadado / rec.transferenciasUniaoArrecadado) *
-            100
-          : 0,
-    },
-    {
       fonte: "Transferências do Estado",
       previsto: rec.transferenciasEstadoPrevisto,
       arrecadado: rec.transferenciasEstadoArrecadado,
@@ -143,6 +133,21 @@ export default async function ReceitasPage({
           ? (rec.transferenciasEstadoArrecadado /
               rec.transferenciasEstadoPrevisto) *
             100
+          : 0,
+    },
+    {
+      fonte: "↳ dos quais, emendas parlamentares",
+      previsto: null as number | null,
+      arrecadado: rec.emendasTotalArrecadado,
+      pct: null as number | null,
+    },
+    {
+      fonte: "Total Orçamentário",
+      previsto: rec.totalPrevisto,
+      arrecadado: rec.totalArrecadado,
+      pct:
+        rec.totalPrevisto > 0
+          ? (rec.totalArrecadado / rec.totalPrevisto) * 100
           : 0,
     },
   ];
@@ -238,16 +243,6 @@ export default async function ReceitasPage({
         </div>
       </div>
 
-      {/* Destaque de Emendas Parlamentares */}
-      <EmendasCard
-        totalEmendas={rec.emendasTotalArrecadado || 0}
-        pctDoArrecadado={
-          totalArr > 0 ? (rec.emendasTotalArrecadado / totalArr) * 100 : 0
-        }
-        emendasPix={rec.emendasPixArrecadado || 0}
-        emendasIndividuais={rec.emendasIndividuaisArrecadado || 0}
-      />
-
       {/* Card de Progresso de Arrecadação Anual */}
       <div className="space-y-2 rounded-[14px] border border-[#e7e9ee] bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between font-semibold text-ink text-sm">
@@ -264,8 +259,18 @@ export default async function ReceitasPage({
         </div>
       </div>
 
+      {/* Destaque de Emendas Parlamentares */}
+      <EmendasCard
+        totalEmendas={rec.emendasTotalArrecadado || 0}
+        pctDoArrecadado={
+          totalArr > 0 ? (rec.emendasTotalArrecadado / totalArr) * 100 : 0
+        }
+        emendasPix={rec.emendasPixArrecadado || 0}
+        emendasIndividuais={rec.emendasIndividuaisArrecadado || 0}
+      />
+
       {/* Previsto vs. Arrecadado por Origem */}
-      <div className="space-y-3">
+      <div className="space-y-3 border-[#1a1d21] border-t-2 pt-3">
         <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
           <h2 className="font-bold font-serif text-ink text-xl">
             Previsto vs. arrecadado por origem

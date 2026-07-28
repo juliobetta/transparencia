@@ -195,8 +195,8 @@ export async function getFontesReceita(
       uniaoArrecadado,
       estadoPrevisto,
       estadoArrecadado,
-      propriaDirectPrevisto,
-      propriaDirectArrecadado,
+      _propriaDirectPrevisto,
+      _propriaDirectArrecadado,
       emendasPixArrecadado,
       emendasIndividuaisArrecadado,
       fpmArrecadado,
@@ -294,15 +294,15 @@ export async function getFontesReceita(
     const emendasTotalArrecadado =
       emendasFct?.total ?? emendasPixArrecadado + emendasIndividuaisArrecadado;
 
-    const propriaPrevisto =
-      propriaDirectPrevisto > 0
-        ? propriaDirectPrevisto
-        : Math.max(0, totalPrevisto - uniaoPrevisto - estadoPrevisto);
+    const propriaPrevisto = Math.max(
+      0,
+      totalPrevisto - uniaoPrevisto - estadoPrevisto,
+    );
 
-    const propriaArrecadado =
-      propriaDirectArrecadado > 0
-        ? propriaDirectArrecadado
-        : Math.max(0, totalArrecadado - uniaoArrecadado - estadoArrecadado);
+    const propriaArrecadado = Math.max(
+      0,
+      totalArrecadado - uniaoArrecadado - estadoArrecadado,
+    );
 
     const pctPrevisto =
       totalPrevisto > 0 ? (propriaPrevisto / totalPrevisto) * 100 : 0;
