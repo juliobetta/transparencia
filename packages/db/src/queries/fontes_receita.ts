@@ -129,6 +129,57 @@ async function sumFilteredColumn({
   }
 }
 
+async function getEmendasFromFctEmendas(
+  year: number,
+  empresaIds?: string[] | null,
+): Promise<{ pix: number; individuais: number; total: number } | null> {
+  let query = sql`
+    SELECT 
+      tipo_emenda,
+      valor_total,
+      empenhado
+    FROM fct_emendas
+    WHERE ano = ${year}
+  `;
+
+  if (empresaIds && empresaIds.length > 0) {
+    query = sql`${query} AND empresa_id = ANY(${empresaIds})`;
+  }
+
+  try {
+    const res = await query.execute(db);
+    if (!res.rows || res.rows.length === 0) return null;
+
+    let pix = 0;
+    let individuais = 0;
+
+    for (const row of res.rows as {
+      tipo_emenda?: string;
+      valor_total?: unknown;
+      empenhado?: unknown;
+    }[]) {
+      const valStr = String(row.valor_total ?? row.empenhado ?? "0").replace(
+        ",",
+        ".",
+      );
+      const num = parseFloat(valStr);
+      if (Number.isNaN(num) || num <= 0) continue;
+
+      const tipo = (row.tipo_emenda || "").toLowerCase();
+      if (tipo.includes("especial") || tipo.includes("pix")) {
+        pix += num;
+      } else {
+        individuais += num;
+      }
+    }
+
+    const total = pix + individuais;
+    return total > 0 ? { pix, individuais, total } : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getFontesReceita(
   years: number[],
   empresaIds?: string[] | null,
@@ -136,6 +187,7 @@ export async function getFontesReceita(
   const records: FontesReceitaRecord[] = [];
 
   for (const year of years) {
+    const emendasFct = await getEmendasFromFctEmendas(year, empresaIds);
     const [
       totalPrevisto,
       totalArrecadado,
@@ -236,8 +288,11 @@ export async function getFontesReceita(
       }),
     ]);
 
+    const emendasPixFinal = emendasFct?.pix ?? emendasPixArrecadado;
+    const emendasIndividuaisFinal =
+      emendasFct?.individuais ?? emendasIndividuaisArrecadado;
     const emendasTotalArrecadado =
-      emendasPixArrecadado + emendasIndividuaisArrecadado;
+      emendasFct?.total ?? emendasPixArrecadado + emendasIndividuaisArrecadado;
 
     const propriaPrevisto =
       propriaDirectPrevisto > 0
@@ -275,8 +330,8 @@ export async function getFontesReceita(
       totalArrecadado,
       pctArrecadado: totalPrevisto > 0 ? totalArrecadado / totalPrevisto : 0,
       emendasTotalArrecadado,
-      emendasPixArrecadado,
-      emendasIndividuaisArrecadado,
+      emendasPixArrecadado: emendasPixFinal,
+      emendasIndividuaisArrecadado: emendasIndividuaisFinal,
       fpmArrecadado,
       icmsArrecadado,
       issIptuArrecadado,
