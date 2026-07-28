@@ -16,11 +16,9 @@ export function EmendasCard({
   emendasIndividuais,
   className,
 }: EmendasCardProps) {
-  const pctValue =
-    pctDoArrecadado > 1 ? pctDoArrecadado : pctDoArrecadado * 100;
-  const formattedPct = `${pctValue.toLocaleString("pt-BR", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
+  const formattedPct = `${pctDoArrecadado.toLocaleString("pt-BR", {
+    minimumFractionDigits: pctDoArrecadado > 0 && pctDoArrecadado < 1 ? 2 : 1,
+    maximumFractionDigits: pctDoArrecadado > 0 && pctDoArrecadado < 1 ? 2 : 1,
   })}% do arrecadado`;
 
   const pixPct = totalEmendas > 0 ? (emendasPix / totalEmendas) * 100 : 0;
