@@ -35,12 +35,14 @@ async function sumColumn({
   col,
   year,
   rootOnly = false,
+  notTransfer = false,
   empresaIds,
 }: {
   tipoReceita: string;
   col: "previsao_atualizada" | "arrecadado";
   year: number;
   rootOnly?: boolean;
+  notTransfer?: boolean;
   empresaIds?: string[] | null;
 }): Promise<number> {
   let query = sql`
@@ -49,6 +51,10 @@ async function sumColumn({
     WHERE t.tipo_receita = ${tipoReceita}
       AND t.ano = ${year}
   `;
+
+  if (notTransfer) {
+    query = sql`${query} AND NOT (t.codigo LIKE '1.7%' OR t.codigo LIKE '2.4%')`;
+  }
 
   if (empresaIds && empresaIds.length > 0) {
     query = sql`${query} AND t.empresa_id = ANY(${empresaIds})`;
@@ -77,7 +83,7 @@ async function sumColumn({
     const res = await query.execute(db);
     if (!res.rows || res.rows.length === 0) return 0;
     let sum = 0;
-    for (const row of res.rows as any[]) {
+    for (const row of res.rows as { val?: unknown }[]) {
       const valStr = String(row.val ?? "0").replace(",", ".");
       const num = parseFloat(valStr);
       if (!Number.isNaN(num)) sum += num;
@@ -112,7 +118,7 @@ async function sumFilteredColumn({
     const res = await query.execute(db);
     if (!res.rows || res.rows.length === 0) return 0;
     let sum = 0;
-    for (const row of res.rows as any[]) {
+    for (const row of res.rows as { val?: unknown }[]) {
       const valStr = String(row.val ?? "0").replace(",", ".");
       const num = parseFloat(valStr);
       if (!Number.isNaN(num)) sum += num;
@@ -137,6 +143,8 @@ export async function getFontesReceita(
       uniaoArrecadado,
       estadoPrevisto,
       estadoArrecadado,
+      propriaDirectPrevisto,
+      propriaDirectArrecadado,
       emendasPixArrecadado,
       emendasIndividuaisArrecadado,
       fpmArrecadado,
@@ -185,6 +193,22 @@ export async function getFontesReceita(
         rootOnly: true,
         empresaIds,
       }),
+      sumColumn({
+        tipoReceita: "orcamentaria",
+        col: "previsao_atualizada",
+        year,
+        rootOnly: true,
+        notTransfer: true,
+        empresaIds,
+      }),
+      sumColumn({
+        tipoReceita: "orcamentaria",
+        col: "arrecadado",
+        year,
+        rootOnly: true,
+        notTransfer: true,
+        empresaIds,
+      }),
       sumFilteredColumn({
         year,
         empresaIds,
@@ -215,14 +239,15 @@ export async function getFontesReceita(
     const emendasTotalArrecadado =
       emendasPixArrecadado + emendasIndividuaisArrecadado;
 
-    const propriaPrevisto = Math.max(
-      0,
-      totalPrevisto - uniaoPrevisto - estadoPrevisto,
-    );
-    const propriaArrecadado = Math.max(
-      0,
-      totalArrecadado - uniaoArrecadado - estadoArrecadado,
-    );
+    const propriaPrevisto =
+      propriaDirectPrevisto > 0
+        ? propriaDirectPrevisto
+        : Math.max(0, totalPrevisto - uniaoPrevisto - estadoPrevisto);
+
+    const propriaArrecadado =
+      propriaDirectArrecadado > 0
+        ? propriaDirectArrecadado
+        : Math.max(0, totalArrecadado - uniaoArrecadado - estadoArrecadado);
 
     const pctPrevisto =
       totalPrevisto > 0 ? (propriaPrevisto / totalPrevisto) * 100 : 0;

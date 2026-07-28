@@ -18,20 +18,22 @@ export function PrevistoVsArrecadadoOrigem({
   items,
   maxVal,
 }: PrevistoVsArrecadadoProps) {
-  // A régua de R$ é definida pelo maior previsto entre todas as origens (ou maxVal se informado)
-  const maxPrevisto =
-    maxVal || Math.max(...items.map((item) => item.previsto), 1);
+  // A régua de R$ é definida pelo maior valor (previsto ou arrecadado) entre todas as origens
+  const maxScale =
+    maxVal ||
+    Math.max(...items.flatMap((item) => [item.previsto, item.arrecadado]), 1);
 
   return (
     <div className="space-y-6 rounded-[14px] border border-[#e7e9ee] bg-white p-6 shadow-sm">
       {items.map((item, idx) => {
-        // Comprimento da trilha de fundo = proporção do previsto em relação ao maior previsto
+        // O comprimento da trilha representa o previsto (ou arrecadado se superado), com piso mínimo de 18% para manter legibilidade visual
+        const baseVal = Math.max(item.previsto, item.arrecadado);
         const trackWidthPct = Math.min(
           100,
-          Math.max(5, (item.previsto / maxPrevisto) * 100),
+          Math.max(18, (baseVal / maxScale) * 100),
         );
 
-        // Preenchimento interno = arrecadado em relação ao previsto desta própria fonte
+        // Preenchimento interno = proporção arrecadada em relação ao previsto
         const fillPct =
           item.previsto > 0
             ? Math.min(
@@ -54,15 +56,15 @@ export function PrevistoVsArrecadadoOrigem({
             key={`previsto-vs-arrecadado-${item.fonte}`}
             className={idx > 0 ? "pt-2" : ""}
           >
-            {/* Linha de Cabeçalho: Nome da Fonte vs R$ Arrecadado / Previsto */}
+            {/* Linha de Cabeçalho: Nome da Fonte vs Arrecadado / Previsto (fmtCompact já inclui R$) */}
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="font-bold text-ink">{item.fonte}</span>
               <span className="font-medium text-subtleText text-xs">
-                R$ {fmtCompact(item.arrecadado)} / {fmtCompact(item.previsto)}
+                {fmtCompact(item.arrecadado)} / {fmtCompact(item.previsto)}
               </span>
             </div>
 
-            {/* Trilha de fundo (previsto) com largura proporcional à régua de R$ */}
+            {/* Trilha de fundo (previsto/meta) com largura proporcional à régua de R$ */}
             <div className="w-full">
               <div
                 className="h-5 overflow-hidden rounded-md bg-[#eef0f4]"
