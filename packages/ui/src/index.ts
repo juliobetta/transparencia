@@ -28,6 +28,7 @@ export * from "./components/pipeline-execucao";
 export * from "./components/ribbon";
 export * from "./components/saude-contratacao-section";
 export * from "./components/saude-emendas-section";
+export * from "./components/caprem-hero-section";
 export * from "./components/saude-hero-section";
 export * from "./components/section-header";
 export * from "./components/sidebar";
