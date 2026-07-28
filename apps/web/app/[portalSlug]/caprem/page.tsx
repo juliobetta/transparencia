@@ -1,6 +1,7 @@
 import { getHistoriaCaprem } from "@transparencia/db";
 import {
   CapremHeroSection,
+  CaspInfoCard,
   DenseTable,
   fmtCompact,
   fmtPercent,
@@ -35,7 +36,11 @@ export default async function CapremPage({
   const isCurrentYear = selectedYear === currentYear;
   const partialPeriod = getPartialYearPeriod();
 
-  const caprem = await getHistoriaCaprem(portalSlug, selectedYear, entidadesIds);
+  const caprem = await getHistoriaCaprem(
+    portalSlug,
+    selectedYear,
+    entidadesIds,
+  );
 
   const entidadesCols = [
     { header: "Entidade / Órgão", accessorKey: "entidade" as const },
@@ -123,7 +128,7 @@ export default async function CapremPage({
       </KPIGrid>
 
       {/* Seção 3: Repasses por Entidade / Órgão */}
-      <section className="space-y-4 border-t border-[#e7e9ee] pt-8">
+      <section className="space-y-4">
         <SectionHeader
           title="Repasses por Entidade ao CAPREM"
           description="Valores empenhados, liquidados e pagos por cada órgão da administração municipal ao regime previdenciário"
@@ -137,11 +142,12 @@ export default async function CapremPage({
 
       {/* Seção 4: Decomposição Contábil dos Repasses */}
       {caprem.natureza.length > 0 && (
-        <section className="space-y-4 border-[#e7e9ee] border-t pt-8">
+        <section className="space-y-6 border-t border-[#e7e9ee] pt-8">
           <SectionHeader
             title="Composição Contábil dos Repasses"
             description="Detalhamento das obrigações por elemento de despesa (Contribuições patronais ordinárias, aportes de equilíbrio atuarial e amortização de dívidas)"
           />
+          <CaspInfoCard />
           <DenseTable
             data={caprem.natureza}
             columns={naturezaCols}
