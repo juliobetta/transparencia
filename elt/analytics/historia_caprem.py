@@ -135,17 +135,32 @@ def run(conn: Any, year: int) -> dict:
         count_operacoes = 0
 
     taxa_execucao = total_pago / total_transferencias if total_transferencias > 0 else 0.0
+    natureza_df = _nature_breakdown(conn, year)
+
+    total_aporte_atuarial = (
+        float(natureza_df[natureza_df["elemento"] == "97"]["empenhado"].sum())
+        if not natureza_df.empty and "elemento" in natureza_df.columns
+        else 0.0
+    )
+    total_divida_resgatada = (
+        float(natureza_df[natureza_df["elemento"] == "71"]["empenhado"].sum())
+        if not natureza_df.empty and "elemento" in natureza_df.columns
+        else 0.0
+    )
 
     return {
         "total_transferencias": total_transferencias,
         "total_liquidado": total_liquidado,
         "total_pago": total_pago,
         "taxa_execucao": taxa_execucao,
+        "total_aporte_atuarial": total_aporte_atuarial,
+        "total_divida_resgatada": total_divida_resgatada,
         "count_operacoes": count_operacoes,
         "despesas": df,
         "entidades": _entity_breakdown(conn, year),
         "tendencia_anual": _annual_trend(conn),
         "funcoes": _function_breakdown(conn, year),
         "mensal": _monthly_trend(conn, year),
-        "natureza": _nature_breakdown(conn, year),
+        "natureza": natureza_df,
     }
+
