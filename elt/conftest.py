@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Iterator
 from urllib.parse import urlparse
 
 import pytest
@@ -84,7 +85,7 @@ def engine(pg):
 
 
 @pytest.fixture
-def conn(engine) -> Connection:
+def conn(engine) -> Iterator[Connection]:
     with engine.connect() as connection:
         connection.execute(text("SET search_path = raw_porciuncula_prefeitura, public"))
         yield connection

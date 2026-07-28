@@ -50,20 +50,20 @@ elt/extract:
 ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/extract PORTAL=porciuncula_prefeitura [YEARS="2024 2025"] [ONLY=DespesasGerais])
 endif
-	PYTHONPATH=elt uv run --project elt python elt/extract/run.py --portal $(PORTAL) $(if $(YEARS),--years $(YEARS)) $(if $(ONLY),--only $(ONLY))
+	PYTHONPATH=. uv run --project elt python elt/extract/run.py --portal $(PORTAL) $(if $(YEARS),--years $(YEARS)) $(if $(ONLY),--only $(ONLY))
 
 elt/load:
 ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/load PORTAL=porciuncula_prefeitura [DIR=data/raw_runs/20250101_120000])
 endif
-	PYTHONPATH=elt uv run --project elt python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
+	PYTHONPATH=. uv run --project elt python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
 
 elt/load-csv:
 ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/load-csv PORTAL=porciuncula_prefeitura)
 endif
 ifeq ($(PORTAL),porciuncula_prefeitura)
-	PYTHONPATH=elt uv run --project elt python elt/load/porciuncula_prefeitura/load_receitas_csv.py
+	PYTHONPATH=. uv run --project elt python elt/load/porciuncula_prefeitura/load_receitas_csv.py
 else
 	$(error No load-csv script available for portal '$(PORTAL)')
 endif
