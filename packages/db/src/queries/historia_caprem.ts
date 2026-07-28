@@ -6,7 +6,7 @@ export const CAPREM_CODE = "1061";
 export const ELEMENTO_LABELS: Record<string, string> = {
   "13": "Contribuições Patronais (RPPS/INSS)",
   "46": "Auxílio-Alimentação",
-  "71": "Principal da Dívida Contratual Resgatado",
+  "71": "Principal da Dívida Contratual Resgatado (Parcelamento)",
   "91": "Sentenças Judiciais",
   "97": "Aporte para Cobertura do Déficit Atuarial do RPPS",
 };
@@ -21,6 +21,7 @@ export interface EntityCaprem {
 
 export interface NaturezaCaprem {
   natureza: string;
+  elemento: string;
   empenhado: number;
   liquidado: number;
   pago: number;
@@ -71,12 +72,12 @@ export async function getHistoriaCaprem(
   try {
     let q = sql`
       SELECT o.orgao_nome AS entidade,
-             SUM(CAST(REPLACE(f.empenhado, ',', '.') AS numeric)) AS empenhado,
-             SUM(CAST(REPLACE(f.liquidado, ',', '.') AS numeric)) AS liquidado,
-             SUM(CAST(REPLACE(f.pago, ',', '.') AS numeric)) AS pago
+             SUM(CASE WHEN pg_typeof(f.empenhado)::text = 'numeric' THEN f.empenhado ELSE CAST(REPLACE(f.empenhado::text, ',', '.') AS numeric) END) AS empenhado,
+             SUM(CASE WHEN pg_typeof(f.liquidado)::text = 'numeric' THEN f.liquidado ELSE CAST(REPLACE(f.liquidado::text, ',', '.') AS numeric) END) AS liquidado,
+             SUM(CASE WHEN pg_typeof(f.pago)::text = 'numeric' THEN f.pago ELSE CAST(REPLACE(f.pago::text, ',', '.') AS numeric) END) AS pago
       FROM fct_despesas_por_fornecedor f
       JOIN dim_orgao o ON o.empresa_id = f.empresa::text AND o.portal_slug = ${portalSlug}
-      WHERE f.codigo = ${CAPREM_CODE} AND f.ano = ${year}
+      WHERE (f.codigo = ${CAPREM_CODE} OR f.descricao ILIKE '%CAPREM%') AND f.ano = ${year}
     `;
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND f.empresa = ANY(${empresaIds})`;
@@ -102,7 +103,9 @@ export async function getHistoriaCaprem(
         taxaExecucao: emp > 0 ? (pag / emp) * 100 : 0,
       });
     }
-  } catch {}
+  } catch (err) {
+    console.error("Error in getHistoriaCaprem entidades:", err);
+  }
 
   try {
     let qN = sql`
@@ -114,7 +117,7 @@ export async function getHistoriaCaprem(
       FROM fct_despesas
       WHERE portal_slug = ${portalSlug}
         AND ano = ${year}
-        AND (fornecedor_nome ILIKE '%CAPREM%' OR elemento IN ('13', '71', '97'))
+        AND (fornecedor_nome ILIKE '%CAPREM%' OR elemento IN ('97', '71'))
         AND (tipo_empenho IS NULL OR tipo_empenho != 'AN')
     `;
     if (empresaIds && empresaIds.length > 0) {
@@ -136,6 +139,7 @@ export async function getHistoriaCaprem(
 
       natureza.push({
         natureza: natStr,
+        elemento: el,
         empenhado: emp,
         liquidado: liq,
         pago: pag,
@@ -148,7 +152,9 @@ export async function getHistoriaCaprem(
         totalDividaResgatada += emp;
       }
     }
-  } catch {}
+  } catch (err) {
+    console.error("Error in getHistoriaCaprem natureza:", err);
+  }
 
   try {
     let qM = sql`
@@ -159,7 +165,7 @@ export async function getHistoriaCaprem(
       FROM fct_despesas
       WHERE portal_slug = ${portalSlug}
         AND ano = ${year}
-        AND (fornecedor_nome ILIKE '%CAPREM%' OR elemento IN ('13', '71', '97'))
+        AND (fornecedor_nome ILIKE '%CAPREM%' OR elemento IN ('97', '71'))
         AND (tipo_empenho IS NULL OR tipo_empenho != 'AN')
     `;
     if (empresaIds && empresaIds.length > 0) {
@@ -183,17 +189,19 @@ export async function getHistoriaCaprem(
         pago: pag,
       });
     }
-  } catch {}
+  } catch (err) {
+    console.error("Error in getHistoriaCaprem mensal:", err);
+  }
 
   try {
     const resA = await sql`
       SELECT f.ano,
-             SUM(CAST(REPLACE(f.empenhado, ',', '.') AS numeric)) AS empenhado,
-             SUM(CAST(REPLACE(f.liquidado, ',', '.') AS numeric)) AS liquidado,
-             SUM(CAST(REPLACE(f.pago, ',', '.') AS numeric)) AS pago
+             SUM(CASE WHEN pg_typeof(f.empenhado)::text = 'numeric' THEN f.empenhado ELSE CAST(REPLACE(f.empenhado::text, ',', '.') AS numeric) END) AS empenhado,
+             SUM(CASE WHEN pg_typeof(f.liquidado)::text = 'numeric' THEN f.liquidado ELSE CAST(REPLACE(f.liquidado::text, ',', '.') AS numeric) END) AS liquidado,
+             SUM(CASE WHEN pg_typeof(f.pago)::text = 'numeric' THEN f.pago ELSE CAST(REPLACE(f.pago::text, ',', '.') AS numeric) END) AS pago
       FROM fct_despesas_por_fornecedor f
       JOIN dim_orgao o ON o.empresa_id = f.empresa::text AND o.portal_slug = ${portalSlug}
-      WHERE f.codigo = ${CAPREM_CODE}
+      WHERE (f.codigo = ${CAPREM_CODE} OR f.descricao ILIKE '%CAPREM%')
       GROUP BY f.ano
       ORDER BY f.ano
     `.execute(db);
@@ -204,7 +212,9 @@ export async function getHistoriaCaprem(
       liquidado: parseFloat(String(r.liquidado ?? "0")) || 0,
       pago: parseFloat(String(r.pago ?? "0")) || 0,
     }));
-  } catch {}
+  } catch (err) {
+    console.error("Error in getHistoriaCaprem annualTrend:", err);
+  }
 
   const taxaExecucao =
     totalEmpenhado > 0 ? (totalPago / totalEmpenhado) * 100 : 0;
