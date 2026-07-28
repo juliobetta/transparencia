@@ -18,70 +18,66 @@ export function PrevistoVsArrecadadoOrigem({
   items,
   maxVal,
 }: PrevistoVsArrecadadoProps) {
-  const max =
-    maxVal ||
-    Math.max(...items.flatMap((item) => [item.previsto, item.arrecadado]), 1);
+  // A régua de R$ é definida pelo maior previsto entre todas as origens (ou maxVal se informado)
+  const maxPrevisto =
+    maxVal || Math.max(...items.map((item) => item.previsto), 1);
 
   return (
     <div className="space-y-6 rounded-[14px] border border-[#e7e9ee] bg-white p-6 shadow-sm">
       {items.map((item, idx) => {
-        const previstoPct = Math.min(
+        // Comprimento da trilha de fundo = proporção do previsto em relação ao maior previsto
+        const trackWidthPct = Math.min(
           100,
-          Math.max(0, (item.previsto / max) * 100),
-        );
-        const arrecadadoPct = Math.min(
-          100,
-          Math.max(0, (item.arrecadado / max) * 100),
+          Math.max(5, (item.previsto / maxPrevisto) * 100),
         );
 
-        const formattedPrevisto =
-          item.previstoFormatted || `previsto ${fmtCompact(item.previsto)}`;
-        const formattedArrecadado =
-          item.arrecadadoFormatted ||
-          `arrecadado ${fmtCompact(item.arrecadado)}`;
+        // Preenchimento interno = arrecadado em relação ao previsto desta própria fonte
+        const fillPct =
+          item.previsto > 0
+            ? Math.min(
+                100,
+                Math.max(0, (item.arrecadado / item.previsto) * 100),
+              )
+            : 0;
+
+        const falta = Math.max(0, item.previsto - item.arrecadado);
+        const faltaText = falta > 0 ? ` · faltam ${fmtCompact(falta)}` : "";
+
+        const isPropria =
+          item.fonte.toLowerCase().includes("própria") ||
+          item.fonte.toLowerCase().includes("propria");
+
+        const barColorClass = isPropria ? "bg-[#3c914e]" : "bg-[#3775b3]";
 
         return (
           <div
             key={`previsto-vs-arrecadado-${item.fonte}`}
-            className={idx > 0 ? "border-[#f0f1f4] border-t pt-6" : ""}
+            className={idx > 0 ? "pt-2" : ""}
           >
-            {/* Linha de Cabeçalho do Item */}
-            <div className="mb-3 flex items-center justify-between font-medium text-ink text-sm">
+            {/* Linha de Cabeçalho: Nome da Fonte vs R$ Arrecadado / Previsto */}
+            <div className="mb-2 flex items-center justify-between text-sm">
               <span className="font-bold text-ink">{item.fonte}</span>
               <span className="font-medium text-subtleText text-xs">
-                {Math.round(item.pctRealizado)}% realizado
+                R$ {fmtCompact(item.arrecadado)} / {fmtCompact(item.previsto)}
               </span>
             </div>
 
-            {/* Visual de Barras Duplas (Previsto vs Arrecadado) */}
-            <div className="space-y-2">
-              {/* Barra de Previsto */}
-              <div>
-                <div className="h-3.5 w-full overflow-hidden rounded-md bg-[#eef0f4]">
-                  <div
-                    className="h-full rounded-md bg-[#d5dbe6] transition-all duration-500"
-                    style={{ width: `${previstoPct}%` }}
-                  />
-                </div>
+            {/* Trilha de fundo (previsto) com largura proporcional à régua de R$ */}
+            <div className="w-full">
+              <div
+                className="h-5 overflow-hidden rounded-md bg-[#eef0f4]"
+                style={{ width: `${trackWidthPct}%` }}
+              >
+                <div
+                  className={`h-full rounded-md ${barColorClass} transition-all duration-500`}
+                  style={{ width: `${fillPct}%` }}
+                />
               </div>
+            </div>
 
-              {/* Barra de Arrecadado */}
-              <div>
-                <div className="h-3.5 w-full overflow-hidden rounded-md bg-[#eef0f4]">
-                  <div
-                    className="h-full rounded-md bg-accent transition-all duration-500"
-                    style={{ width: `${arrecadadoPct}%` }}
-                  />
-                </div>
-                <div className="flex justify-between">
-                  <div className="mt-1 font-medium text-subtleText text-xs">
-                    {formattedPrevisto}
-                  </div>
-                  <div className="mt-1 text-right font-medium text-subtleText text-xs">
-                    {formattedArrecadado}
-                  </div>
-                </div>
-              </div>
+            {/* Subtexto: % realizado · faltam R$ X */}
+            <div className="mt-1 font-medium text-subtleText text-xs">
+              {Math.round(item.pctRealizado)}% realizado{faltaText}
             </div>
           </div>
         );

@@ -265,20 +265,26 @@ export default async function ReceitasPage({
       </div>
 
       {/* Previsto vs. Arrecadado por Origem */}
-      <div className="space-y-4 border-ink border-t-2 pt-6">
-        <div className="flex items-baseline justify-between">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
           <h2 className="font-bold font-serif text-ink text-xl">
             Previsto vs. arrecadado por origem
           </h2>
           <div className="flex items-center gap-4 font-medium text-subtleText text-xs">
             <span className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm bg-[#d5dbe6]" /> Previsto
+              <span className="h-3 w-3 rounded-sm bg-[#3775b3]" /> Arrecadado
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-sm bg-accent" /> Arrecadado
+              <span className="h-3 w-3 rounded-sm border border-[#c4cbd8] bg-[#eef0f4]" />{" "}
+              Previsto (meta LOA)
             </span>
           </div>
         </div>
+        <p className="text-subtleText text-xs">
+          O comprimento da barra é o valor previsto — mesma régua de R$ para
+          todas as origens, então os tamanhos são comparáveis. A parte cheia é o
+          que já entrou no caixa.
+        </p>
 
         <PrevistoVsArrecadadoOrigem items={origensData} />
       </div>
