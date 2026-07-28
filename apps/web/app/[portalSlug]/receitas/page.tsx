@@ -136,12 +136,6 @@ export default async function ReceitasPage({
           : 0,
     },
     {
-      fonte: "↳ dos quais, emendas parlamentares",
-      previsto: null as number | null,
-      arrecadado: rec.emendasTotalArrecadado,
-      pct: null as number | null,
-    },
-    {
       fonte: "Total Orçamentário",
       previsto: rec.totalPrevisto,
       arrecadado: rec.totalArrecadado,
@@ -149,6 +143,7 @@ export default async function ReceitasPage({
         rec.totalPrevisto > 0
           ? (rec.totalArrecadado / rec.totalPrevisto) * 100
           : 0,
+      className: "font-semibold bg-gray-200",
     },
   ];
 
@@ -202,17 +197,6 @@ export default async function ReceitasPage({
           no caixa, por origem do recurso.
         </p>
       </div>
-
-      {/* Banner Informativo para Ano Parcial */}
-      {isCurrentYear && (
-        <div className="rounded-xl border border-[#dfe9f8] bg-[#eef4fd] p-4 text-[#3a5a86] text-xs">
-          <strong>
-            {selectedYear} exibe arrecadação real parcial ({partialPeriod}).
-          </strong>{" "}
-          Não é diretamente comparável aos anos anteriores, que mostram previsão
-          orçamentária anual.
-        </div>
-      )}
 
       {/* Grid de 2 Cards Principais (Previsão LOA vs Total Arrecadado) */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

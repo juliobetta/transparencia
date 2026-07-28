@@ -17,10 +17,7 @@ export function DecimoTerceiroCard({
     <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Card Header */}
       <div className="mb-6 flex items-center justify-between">
-        <h3 className="font-bold text-lg text-slate-900">13º salário</h3>
-        <span className="font-bold text-emerald-600 text-xs tracking-wide">
-          {pctInt}% quitado
-        </span>
+        <h4 className="font-bold text-lg text-slate-900">13º salário</h4>
       </div>
 
       {/* Metric Columns */}

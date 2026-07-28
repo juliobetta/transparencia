@@ -1,6 +1,6 @@
 "use client";
 
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 export interface FontesReceitaSaude {
   uniaoSusPct: number;
@@ -30,16 +30,19 @@ export function SaudeFontesDonut({
           name: "Transferências União (SUS)",
           pct: data.uniaoSusPct,
           color: "#2e7d32", // Green
+          fill: "#2e7d32", // Green
         },
         {
           name: "Transferências Estado",
           pct: data.estadoPct,
           color: "#b78103", // Gold/Yellow
+          fill: "#b78103", // Gold/Yellow
         },
         {
           name: "Receita própria / repasse",
           pct: data.propriaPct,
           color: "#1976d2", // Blue
+          fill: "#1976d2", // Blue
         },
       ]
     : [
@@ -47,6 +50,7 @@ export function SaudeFontesDonut({
           name: "Sem lançamentos de receita no período",
           pct: 100,
           color: "#cbd5e1", // Slate-300
+          fill: "#cbd5e1", // Slate-300
         },
       ];
 
@@ -76,11 +80,7 @@ export function SaudeFontesDonut({
                 outerRadius={72}
                 paddingAngle={3}
                 dataKey="pct"
-              >
-                {pieData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.color} />
-                ))}
-              </Pie>
+              />
               <Tooltip
                 formatter={(val: unknown) => [
                   `${Number(val ?? 0)

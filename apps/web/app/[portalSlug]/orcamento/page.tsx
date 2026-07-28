@@ -11,6 +11,7 @@ import {
   getPartialYearPeriod,
   KPICard,
   KPIGrid,
+  toTitleCase,
 } from "@transparencia/ui";
 
 export const dynamic = "force-dynamic";
@@ -90,7 +91,10 @@ export default async function OrcamentoPage({
     .sort((a, b) => b.valor - a.valor);
 
   const orgaosCols = [
-    { header: "Órgão / Unidade", accessorKey: "descricao" as const },
+    {
+      header: "Órgão / Unidade",
+      accessorKey: "descricao" as const,
+    },
     {
       header: "Dotação (R$)",
       accessorKey: "dotacaoAtualizada" as const,
@@ -190,7 +194,10 @@ export default async function OrcamentoPage({
           Execução por Órgão e Unidade Gestora
         </h2>
         <DenseTable
-          data={items}
+          data={items.map((item) => ({
+            ...item,
+            descricao: toTitleCase(item.descricao),
+          }))}
           columns={orgaosCols}
           searchableKeys={["descricao"]}
         />

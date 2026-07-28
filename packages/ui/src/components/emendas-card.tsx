@@ -16,11 +16,6 @@ export function EmendasCard({
   emendasIndividuais,
   className,
 }: EmendasCardProps) {
-  const formattedPct = `${pctDoArrecadado.toLocaleString("pt-BR", {
-    minimumFractionDigits: pctDoArrecadado > 0 && pctDoArrecadado < 1 ? 2 : 1,
-    maximumFractionDigits: pctDoArrecadado > 0 && pctDoArrecadado < 1 ? 2 : 1,
-  })}% do arrecadado`;
-
   const pixPct = totalEmendas > 0 ? (emendasPix / totalEmendas) * 100 : 0;
   const indPct =
     totalEmendas > 0 ? (emendasIndividuais / totalEmendas) * 100 : 0;
@@ -39,9 +34,6 @@ export function EmendasCard({
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-semibold text-indigo-900 text-xs uppercase tracking-tight">
                 Recebido por emendas parlamentares
-              </span>
-              <span className="inline-flex items-center rounded-full border border-indigo-300/70 bg-indigo-100/80 px-2.5 py-0.5 font-semibold text-[11px] text-indigo-800 shadow-2xs">
-                {formattedPct}
               </span>
             </div>
 

@@ -18,7 +18,6 @@ export function CarrosChefeArrecadacao({
 }: CarrosChefeArrecadacaoProps) {
   const items = [
     {
-      rank: 1,
       label: "FPM · Fundo de Participação dos Municípios",
       shortLabel: "FPM",
       value: fpm,
@@ -26,7 +25,6 @@ export function CarrosChefeArrecadacao({
       badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
     },
     {
-      rank: 2,
       label: "ICMS · cota-parte estadual",
       shortLabel: "ICMS",
       value: icms,
@@ -34,7 +32,6 @@ export function CarrosChefeArrecadacao({
       badgeColor: "bg-sky-100 text-sky-800 border-sky-200",
     },
     {
-      rank: 3,
       label: "ISS + IPTU · tributos municipais",
       shortLabel: "ISS + IPTU",
       value: issIptu,
@@ -72,14 +69,6 @@ export function CarrosChefeArrecadacao({
             <div key={item.label} className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2.5">
-                  <span
-                    className={cn(
-                      "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border font-bold text-[11px]",
-                      item.badgeColor,
-                    )}
-                  >
-                    #{item.rank}
-                  </span>
                   <span className="font-semibold text-slate-800">
                     {item.label}
                   </span>

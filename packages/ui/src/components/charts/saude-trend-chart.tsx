@@ -79,9 +79,9 @@ export function SaudeTrendChart({
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-base text-slate-900">
+          <h4 className="font-bold text-base text-slate-900">
             Evolução Orçamentária
-          </h3>
+          </h4>
           <p className="font-medium text-slate-500 text-xs">
             Total empenhado na Saúde por ano (R$ milhões)
           </p>

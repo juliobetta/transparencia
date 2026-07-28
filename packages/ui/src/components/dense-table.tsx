@@ -191,6 +191,7 @@ export function DenseTable<T extends Record<string, any>>({
                             col.format === "currency" ||
                             col.format === "compact") &&
                             "font-semibold font-serif",
+                          row.className,
                         )}
                       >
                         {renderCellValue(col, row)}
