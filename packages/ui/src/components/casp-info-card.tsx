@@ -1,5 +1,4 @@
 import { BookOpen, ShieldCheck } from "lucide-react";
-import { Badge } from "./badge";
 
 export function CaspInfoCard() {
   return (
@@ -11,13 +10,13 @@ export function CaspInfoCard() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold font-serif text-slate-900 text-base">
-                Enquadramento Contábil (CASP & MCASP)
+              <h3 className="font-bold font-serif text-base text-slate-900">
+                Enquadramento contábil (PCASP/MCASP)
               </h3>
-              <Badge variant="accent">Normas STN</Badge>
             </div>
             <p className="text-slate-600 text-xs">
-              Classificação das contribuições segundo a Contabilidade Aplicada ao Setor Público (NBC TSP)
+              Classificação das contribuições segundo a Contabilidade Aplicada
+              ao Setor Público (NBC TSP)
             </p>
           </div>
         </div>
@@ -28,7 +27,7 @@ export function CaspInfoCard() {
             MCASP / STN
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 font-medium text-slate-700">
-            PCASP Variações Patrimoniais
+            PCASP — classe 3 (VPD)
           </span>
         </div>
       </div>
@@ -36,28 +35,31 @@ export function CaspInfoCard() {
       <div className="mt-5 grid grid-cols-1 gap-4 border-blue-100/80 border-t pt-4 sm:grid-cols-3">
         <div className="space-y-1 text-xs">
           <span className="font-semibold text-blue-900">
-            1. Contribuição Patronal (Elem. 13)
+            1. Orbrigações Patronais (elem. 13)
           </span>
           <p className="text-slate-600 leading-relaxed">
-            Encargo social ordinário pago mensalmente pelos órgãos municipais sobre a folha de pagamento dos servidores ativos.
+            Encargo social ordinário pago mensalmente pelos órgãos municipais
+            sobre a folha de pagamento dos servidores ativos.
           </p>
         </div>
 
         <div className="space-y-1 text-xs">
           <span className="font-semibold text-amber-900">
-            2. Aporte Déficit Atuarial (Elem. 97)
+            2. Aporte para déficit atuarial (elem. 97)
           </span>
           <p className="text-slate-600 leading-relaxed">
-            Recursos suplementares transferidos especificamente para a cobertura do déficit atuarial (reequilíbrio financeiro do RPPS).
+            Recursos suplementares transferidos para a cobertura do déficit
+            atuarial, visando o reequilíbrio financeiro do RPPS.
           </p>
         </div>
 
         <div className="space-y-1 text-xs">
           <span className="font-semibold text-slate-900">
-            3. Amortização de Dívida (Elem. 71)
+            3. Amortização da dívida (elem. 71)
           </span>
           <p className="text-slate-600 leading-relaxed">
-            Pagamentos referentes a termos de acordo e parcelamentos de débitos previdenciários repactuados de exercícios anteriores.
+            Pagamentos referentes a termos de acordo e parcelamentos de débitos
+            previdenciários repactuados em exercícios anteriores.
           </p>
         </div>
       </div>
