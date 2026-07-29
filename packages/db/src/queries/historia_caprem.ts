@@ -3,8 +3,11 @@ import { db } from "../client";
 
 export const CAPREM_CODE = "1061";
 
+// TODO: criar seed e um tabela de dimensao
 export const ELEMENTO_LABELS: Record<string, string> = {
-  "13": "Contribuições Patronais (RPPS/INSS)",
+  "01": "Aposentadorias e reformas",
+  "03": "Pensões",
+  "13": "Contribuições Patronais (RPPS/INSS/CASP)",
   "46": "Auxílio-Alimentação",
   "71": "Principal da Dívida Contratual Resgatado (Parcelamento)",
   "91": "Sentenças Judiciais",
@@ -24,6 +27,7 @@ export interface NaturezaCaprem {
   descricao: string;
   elemento: string;
   dataEmpenho?: string;
+  destino: string;
   empenhado: number;
   liquidado: number;
   pago: number;
@@ -54,12 +58,13 @@ export interface HistoriaCapremResult {
   taxaExecucao: number;
   totalAporteAtuarial: number;
   totalDividaResgatada: number;
+  totalCaspPlanoSaude: number;
 }
 
 export async function getHistoriaCaprem(
   portalSlug: string,
   year: number,
-  empresaIds?: string[] | null,
+  _empresaIds?: string[] | null,
 ): Promise<HistoriaCapremResult> {
   const entidades: EntityCaprem[] = [];
   const natureza: NaturezaCaprem[] = [];
@@ -70,21 +75,17 @@ export async function getHistoriaCaprem(
   let totalPago = 0;
   let totalAporteAtuarial = 0;
   let totalDividaResgatada = 0;
+  let totalCaspPlanoSaude = 0;
 
   try {
-    let q = sql`
+    const q = sql`
       SELECT o.orgao_nome AS entidade,
              SUM(CASE WHEN pg_typeof(f.empenhado)::text = 'numeric' THEN f.empenhado ELSE CAST(REPLACE(f.empenhado::text, ',', '.') AS numeric) END) AS empenhado,
              SUM(CASE WHEN pg_typeof(f.liquidado)::text = 'numeric' THEN f.liquidado ELSE CAST(REPLACE(f.liquidado::text, ',', '.') AS numeric) END) AS liquidado,
              SUM(CASE WHEN pg_typeof(f.pago)::text = 'numeric' THEN f.pago ELSE CAST(REPLACE(f.pago::text, ',', '.') AS numeric) END) AS pago
       FROM fct_despesas_por_fornecedor f
       JOIN dim_orgao o ON o.empresa_id = f.empresa::text AND o.portal_slug = ${portalSlug}
-      WHERE (f.codigo = ${CAPREM_CODE} OR f.descricao ILIKE '%CAPREM%') AND f.ano = ${year}
-    `;
-    if (empresaIds && empresaIds.length > 0) {
-      q = sql`${q} AND f.empresa = ANY(${empresaIds})`;
-    }
-    q = sql`${q}
+      WHERE (f.codigo = ${CAPREM_CODE} OR f.descricao ILIKE '%CAPREM%' OR f.descricao ILIKE '%CASP%') AND f.ano = ${year}
       GROUP BY o.orgao_nome
       ORDER BY empenhado DESC NULLS LAST
     `;
@@ -105,28 +106,24 @@ export async function getHistoriaCaprem(
         taxaExecucao: emp > 0 ? (pag / emp) * 100 : 0,
       });
     }
-  } catch (err) {
-    console.error("Error in getHistoriaCaprem entidades:", err);
-  }
+  } catch (_err) {}
 
   try {
-    let qN = sql`
+    const qN = sql`
       SELECT elemento,
              natureza_despesa AS natureza,
              MAX(data_empenho::text) AS data_empenho,
+             MAX(fornecedor_nome) AS fornecedor_nome,
+             MAX(descricao) AS descricao,
              SUM(CAST(empenhado AS numeric)) AS empenhado,
              SUM(CAST(liquidado AS numeric)) AS liquidado,
              SUM(CAST(pago AS numeric)) AS pago
       FROM fct_despesas
       WHERE portal_slug = ${portalSlug}
         AND ano = ${year}
-        AND (fornecedor_nome ILIKE '%CAPREM%' OR elemento IN ('97', '71'))
+        AND (fornecedor_nome ILIKE '%CAPREM%' OR fornecedor_nome ILIKE '%CASP%' OR descricao ILIKE '%CASP%' OR elemento IN ('97', '71'))
         AND (tipo_empenho IS NULL OR tipo_empenho != 'AN')
-    `;
-    if (empresaIds && empresaIds.length > 0) {
-      qN = sql`${qN} AND empresa_id = ANY(${empresaIds})`;
-    }
-    qN = sql`${qN}
+        AND elemento IS NOT NULL AND elemento != ''
       GROUP BY elemento, natureza_despesa
       ORDER BY empenhado DESC
     `;
@@ -138,14 +135,39 @@ export async function getHistoriaCaprem(
       const liq = parseFloat(String(r.liquidado ?? "0")) || 0;
       const pag = parseFloat(String(r.pago ?? "0")) || 0;
       const dtEmp = String(r.data_empenho ?? "");
+      const fornStr = String(r.fornecedor_nome ?? "").toUpperCase();
+      const descStr = String(r.descricao ?? "").toUpperCase();
       const natStr =
         ELEMENTO_LABELS[el] || String(r.natureza ?? "") || `Elemento ${el}`;
+      const natUpper = `${String(r.natureza ?? "")} ${natStr}`.toUpperCase();
+
+      let destino = "Encargo Patronal Geral";
+      if (el === "97") {
+        destino = "Aporte Atuarial (CAPREM)";
+      } else if (el === "71") {
+        destino = "Amortização Dívida (CAPREM)";
+      } else if (
+        fornStr.includes("CASP") ||
+        descStr.includes("CASP") ||
+        natUpper.includes("CASP")
+      ) {
+        destino = "Plano de Saúde (CASP)";
+      } else if (natUpper.includes("INSS")) {
+        destino = "INSS (RGPS)";
+      } else if (
+        natUpper.includes("RPPS") ||
+        fornStr.includes("CAPREM") ||
+        descStr.includes("CAPREM")
+      ) {
+        destino = "RPPS (CAPREM)";
+      }
 
       natureza.push({
         natureza: natStr,
         descricao: natStr,
         elemento: el,
         dataEmpenho: dtEmp,
+        destino,
         empenhado: emp,
         liquidado: liq,
         pago: pag,
@@ -157,13 +179,14 @@ export async function getHistoriaCaprem(
       if (el === "71") {
         totalDividaResgatada += emp;
       }
+      if (destino === "Plano de Saúde (CASP)") {
+        totalCaspPlanoSaude += emp;
+      }
     }
-  } catch (err) {
-    console.error("Error in getHistoriaCaprem natureza:", err);
-  }
+  } catch (_err) {}
 
   try {
-    let qM = sql`
+    const qM = sql`
       SELECT mes,
              SUM(CAST(empenhado AS numeric)) AS empenhado,
              SUM(CAST(liquidado AS numeric)) AS liquidado,
@@ -171,13 +194,8 @@ export async function getHistoriaCaprem(
       FROM fct_despesas
       WHERE portal_slug = ${portalSlug}
         AND ano = ${year}
-        AND (fornecedor_nome ILIKE '%CAPREM%' OR elemento IN ('97', '71'))
+        AND (fornecedor_nome ILIKE '%CAPREM%' OR fornecedor_nome ILIKE '%CASP%' OR elemento IN ('97', '71'))
         AND (tipo_empenho IS NULL OR tipo_empenho != 'AN')
-    `;
-    if (empresaIds && empresaIds.length > 0) {
-      qM = sql`${qM} AND empresa_id = ANY(${empresaIds})`;
-    }
-    qM = sql`${qM}
       GROUP BY mes
       ORDER BY mes
     `;
@@ -195,9 +213,7 @@ export async function getHistoriaCaprem(
         pago: pag,
       });
     }
-  } catch (err) {
-    console.error("Error in getHistoriaCaprem mensal:", err);
-  }
+  } catch (_err) {}
 
   try {
     const resA = await sql`
@@ -207,7 +223,7 @@ export async function getHistoriaCaprem(
              SUM(CASE WHEN pg_typeof(f.pago)::text = 'numeric' THEN f.pago ELSE CAST(REPLACE(f.pago::text, ',', '.') AS numeric) END) AS pago
       FROM fct_despesas_por_fornecedor f
       JOIN dim_orgao o ON o.empresa_id = f.empresa::text AND o.portal_slug = ${portalSlug}
-      WHERE (f.codigo = ${CAPREM_CODE} OR f.descricao ILIKE '%CAPREM%')
+      WHERE (f.codigo = ${CAPREM_CODE} OR f.descricao ILIKE '%CAPREM%' OR f.descricao ILIKE '%CASP%')
       GROUP BY f.ano
       ORDER BY f.ano
     `.execute(db);
@@ -218,12 +234,9 @@ export async function getHistoriaCaprem(
       liquidado: parseFloat(String(r.liquidado ?? "0")) || 0,
       pago: parseFloat(String(r.pago ?? "0")) || 0,
     }));
-  } catch (err) {
-    console.error("Error in getHistoriaCaprem annualTrend:", err);
-  }
+  } catch (_err) {}
 
-  const taxaExecucao =
-    totalEmpenhado > 0 ? totalPago / totalEmpenhado : 0;
+  const taxaExecucao = totalEmpenhado > 0 ? totalPago / totalEmpenhado : 0;
 
   return {
     entidades,
@@ -236,5 +249,6 @@ export async function getHistoriaCaprem(
     taxaExecucao,
     totalAporteAtuarial,
     totalDividaResgatada,
+    totalCaspPlanoSaude,
   };
 }
