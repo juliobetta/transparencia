@@ -147,7 +147,7 @@ export default async function CapremPage({
 
       {/* Seção 4: Decomposição Contábil dos Repasses */}
       {caprem.natureza.length > 0 && (
-        <section className="space-y-6 border-t border-[#e7e9ee] pt-8">
+        <section className="space-y-6 border-t">
           <SectionHeader
             title="Composição Contábil dos Repasses"
             description="Detalhamento das obrigações por elemento de despesa (Contribuições patronais ordinárias, aportes de equilíbrio atuarial e amortização de dívidas)"

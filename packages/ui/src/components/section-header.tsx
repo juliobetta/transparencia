@@ -17,12 +17,12 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "mb-4 flex flex-wrap items-baseline justify-between gap-2 border-ink border-t-2 pt-3",
+        "mb-4 flex flex-wrap items-baseline justify-between gap-2 border-ink border-t-2 pt-8",
         className,
       )}
     >
       <div>
-        <h2 className="font-bold font-serif text-ink text-xl tracking-tight">
+        <h2 className="font-bold font-serif text-2xl text-slate-900">
           {title}
         </h2>
         {description && (
