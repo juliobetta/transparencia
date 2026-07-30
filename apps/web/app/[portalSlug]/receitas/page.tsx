@@ -150,13 +150,13 @@ export default async function ReceitasPage({
   const tableCols = [
     { header: "Origem da Receita", accessorKey: "fonte" as const },
     {
-      header: "Previsto (R$)",
+      header: "Previsto",
       accessorKey: "previsto" as const,
       align: "right" as const,
       format: "currency" as const,
     },
     {
-      header: "Arrecadado (R$)",
+      header: "Arrecadado",
       accessorKey: "arrecadado" as const,
       align: "right" as const,
       format: "currency" as const,

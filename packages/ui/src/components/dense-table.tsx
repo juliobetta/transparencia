@@ -23,6 +23,7 @@ export interface Column<T> {
     | "number"
     | "compact"
     | "statusBadge"
+    | "caspBadge"
     | "date";
   className?: string;
 }
@@ -32,6 +33,7 @@ export interface DenseTableProps<T> {
   columns: Column<T>[];
   searchPlaceholder?: string;
   searchableKeys?: (keyof T)[];
+  pageSize?: number;
   emptyMessage?: string;
   className?: string;
   rowKey?: keyof T;
@@ -43,11 +45,13 @@ export function DenseTable<T extends Record<string, any>>({
   columns,
   searchPlaceholder = "Buscar...",
   searchableKeys,
+  pageSize,
   emptyMessage = "Nenhum registro encontrado.",
   className,
   rowKey,
 }: DenseTableProps<T>) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
 
   const filteredData = useMemo(() => {
     if (!query.trim()) return data;
@@ -64,6 +68,17 @@ export function DenseTable<T extends Record<string, any>>({
       });
     });
   }, [data, query, searchableKeys]);
+
+  const totalPages = pageSize
+    ? Math.max(1, Math.ceil(filteredData.length / pageSize))
+    : 1;
+  const currentPage = Math.min(page, totalPages);
+
+  const displayedData = useMemo(() => {
+    if (!pageSize) return filteredData;
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, pageSize, currentPage]);
 
   const getRowId = (row: T, idx: number): string => {
     if (rowKey && row[rowKey] !== undefined && row[rowKey] !== null) {
@@ -104,20 +119,25 @@ export function DenseTable<T extends Record<string, any>>({
       const num = typeof raw === "number" ? raw : parseFloat(String(raw)) || 0;
       return fmtNumber(num);
     }
-    if (col.format === "statusBadge") {
+    if (col.format === "statusBadge" || col.format === "caspBadge") {
       const valStr = String(raw);
-      const isDanger =
-        valStr === "true" ||
+      const variant =
+        (row.alertaBadgeVariant as
+          | "warning"
+          | "accent"
+          | "default"
+          | "success"
+          | "danger") ||
+        (valStr.includes("Atenção") ||
         valStr === "excesso" ||
-        valStr === "Acima do Limite";
-      const isWarning = valStr === "baixa" || valStr === "Subexecutado";
-      return (
-        <Badge
-          variant={isDanger ? "danger" : isWarning ? "warning" : "success"}
-        >
-          {valStr}
-        </Badge>
-      );
+        valStr === "Acima do Limite"
+          ? "warning"
+          : valStr.includes("Conformidade") || valStr.includes("Clínica")
+            ? "success"
+            : valStr.includes("Consórcio")
+              ? "accent"
+              : "default");
+      return <Badge variant={variant}>{valStr}</Badge>;
     }
 
     return String(raw);
@@ -126,7 +146,7 @@ export function DenseTable<T extends Record<string, any>>({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-borderLine bg-white",
+        "overflow-hidden rounded-xl border border-borderLine bg-white shadow-xs",
         className,
       )}
     >
@@ -136,7 +156,10 @@ export function DenseTable<T extends Record<string, any>>({
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
             placeholder={searchPlaceholder}
             className="w-full bg-transparent text-ink text-xs placeholder:text-mutedText focus:outline-none"
           />
@@ -162,7 +185,7 @@ export function DenseTable<T extends Record<string, any>>({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredData.length === 0 ? (
+            {displayedData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -172,7 +195,7 @@ export function DenseTable<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              filteredData.map((row, index) => {
+              displayedData.map((row, index) => {
                 const rKey = getRowId(row, index);
                 return (
                   <tr
@@ -204,6 +227,62 @@ export function DenseTable<T extends Record<string, any>>({
           </tbody>
         </table>
       </div>
+
+      {pageSize && (
+        <div className="flex flex-col items-center justify-between gap-3 border-slate-100 border-t bg-white px-5 py-3 text-slate-500 text-xs sm:flex-row">
+          <div>
+            Mostrando{" "}
+            <span className="font-semibold text-slate-700">
+              {displayedData.length}
+            </span>{" "}
+            de{" "}
+            <span className="font-semibold text-slate-700">
+              {filteredData.length}
+            </span>{" "}
+            registros
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                &larr;
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (pageNum) => (
+                  <button
+                    key={`page-btn-${pageNum}`}
+                    type="button"
+                    onClick={() => setPage(pageNum)}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-lg font-semibold text-xs transition-colors",
+                      pageNum === currentPage
+                        ? "bg-[#2b6cb0] text-white"
+                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                    )}
+                  >
+                    {pageNum}
+                  </button>
+                ),
+              )}
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                &rarr;
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

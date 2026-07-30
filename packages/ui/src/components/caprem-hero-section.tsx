@@ -1,9 +1,12 @@
-import { fmtCompact, fmtPercent } from "../utils/formatters";
+import {
+  fmtCompact,
+  fmtPercent,
+  getPartialYearPeriod,
+} from "../utils/formatters";
 
 export interface CapremHeroSectionProps {
   ano: number;
   isCurrentYear: boolean;
-  partialPeriod?: string;
   totalEmpenhado: number;
   totalLiquidado: number;
   totalPago: number;
@@ -15,7 +18,6 @@ export interface CapremHeroSectionProps {
 export function CapremHeroSection({
   ano,
   isCurrentYear,
-  partialPeriod,
   totalEmpenhado,
   totalLiquidado,
   totalPago,
@@ -31,6 +33,8 @@ export function CapremHeroSection({
     totalEmpenhado > 0
       ? Math.min(100, Math.max(0, (totalPago / totalEmpenhado) * 100))
       : 0;
+
+  const partialPeriod = getPartialYearPeriod();
 
   return (
     <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
@@ -54,13 +58,15 @@ export function CapremHeroSection({
               <strong className="font-bold text-slate-900">
                 {fmtCompact(totalEmpenhado)}
               </strong>{" "}
-              em obrigações previdenciárias e aportes ao CAPREM em {ano}. O cumprimento
-              rigoroso dos repasses patronais e amortizações assegura o pagamento de
-              aposentadorias e pensões aos servidores públicos.
+              em obrigações previdenciárias e aportes ao CAPREM em {ano}. O
+              cumprimento rigoroso dos repasses patronais e amortizações
+              assegura o pagamento de aposentadorias e pensões aos servidores
+              públicos.
             </>
           ) : (
             <>
-              No exercício de {ano}, a Prefeitura e os Fundos Municipais empenharam{" "}
+              No exercício de {ano}, a Prefeitura e os Fundos Municipais
+              empenharam{" "}
               <strong className="font-bold text-slate-900">
                 {fmtCompact(totalEmpenhado)}
               </strong>{" "}
@@ -72,10 +78,12 @@ export function CapremHeroSection({
 
         {totalAporteAtuarial > 0 && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 text-xs sm:text-sm">
-            <span className="font-semibold">Aporte de Equilíbrio Atuarial:</span>{" "}
-            Foram alocados {fmtCompact(totalAporteAtuarial)} especificamente para a
-            cobertura do déficit atuarial (Elemento 97) visando a sustentabilidade
-            do fundo a longo prazo.
+            <span className="font-semibold">
+              Aporte de Equilíbrio Atuarial:
+            </span>{" "}
+            Foram alocados {fmtCompact(totalAporteAtuarial)} especificamente
+            para a cobertura do déficit atuarial (Elemento 97) visando a
+            sustentabilidade do fundo a longo prazo.
           </div>
         )}
       </div>
@@ -97,9 +105,7 @@ export function CapremHeroSection({
 
         <div className="mb-6 space-y-1.5">
           <div className="flex items-center justify-between font-medium text-slate-500 text-xs">
-            <span>
-              {fmtCompact(totalPago)} repassados / pagos efetivamente
-            </span>
+            <span>{fmtCompact(totalPago)} repassados / pagos efetivamente</span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-md bg-[#f4f5f7]">
             <div
@@ -133,7 +139,9 @@ export function CapremHeroSection({
             {/* Pago */}
             <div className="space-y-1 text-xs">
               <div className="flex items-center justify-between text-slate-600">
-                <span className="font-medium text-slate-900">Pago / Transferido</span>
+                <span className="font-medium text-slate-900">
+                  Pago / Transferido
+                </span>
                 <span className="font-semibold text-slate-900">
                   {fmtCompact(totalPago)}
                 </span>
@@ -147,8 +155,9 @@ export function CapremHeroSection({
             </div>
 
             {totalDividaResgatada > 0 && (
-              <div className="pt-2 text-slate-500 text-[11px]">
-                Inclui {fmtCompact(totalDividaResgatada)} em amortização de parcelamentos (Elem. 71).
+              <div className="pt-2 text-[11px] text-slate-500">
+                Inclui {fmtCompact(totalDividaResgatada)} em amortização de
+                parcelamentos (Elem. 71).
               </div>
             )}
           </div>

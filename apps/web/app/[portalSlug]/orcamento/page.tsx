@@ -96,19 +96,19 @@ export default async function OrcamentoPage({
       accessorKey: "descricao" as const,
     },
     {
-      header: "Dotação (R$)",
+      header: "Dotação",
       accessorKey: "dotacaoAtualizada" as const,
       align: "right" as const,
       format: "currency" as const,
     },
     {
-      header: "Empenhado (R$)",
+      header: "Empenhado",
       accessorKey: "empenhado" as const,
       align: "right" as const,
       format: "currency" as const,
     },
     {
-      header: "Pago (R$)",
+      header: "Pago",
       accessorKey: "pago" as const,
       align: "right" as const,
       format: "currency" as const,
