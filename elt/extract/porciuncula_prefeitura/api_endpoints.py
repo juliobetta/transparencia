@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-from config import PortalConfig
+from elt.core.config import PortalConfig
 from elt.extract.base import EndpointConfig
 from elt.extract.porciuncula_prefeitura.extractor import PorciunculaExtractor
 

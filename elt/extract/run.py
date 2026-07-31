@@ -9,7 +9,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import cast
 
-from config import PortalConfig
+from elt.core.config import PortalConfig
 from elt.extract.base import EndpointConfig
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

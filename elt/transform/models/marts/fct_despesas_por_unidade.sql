@@ -1,4 +1,5 @@
 select
+    'porciuncula_prefeitura' as portal_slug,
     empresa,
     ano::int as ano,
     codigo,

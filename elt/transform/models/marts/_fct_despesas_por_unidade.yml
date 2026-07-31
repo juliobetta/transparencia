@@ -4,6 +4,10 @@ models:
   - name: fct_despesas_por_unidade
     description: "Despesas agregadas por unidade orçamentária, lidas da tabela raw do portal e com cast numérico nos valores financeiros"
     columns:
+      - name: portal_slug
+        data_type: text
+        tests:
+          - not_null
       - name: empresa
         data_type: text
         tests:

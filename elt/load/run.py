@@ -13,8 +13,8 @@ from dotenv import load_dotenv
 from sqlalchemy import MetaData, Table, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from config import PortalConfig
-from db import get_engine
+from elt.core.config import PortalConfig
+from elt.core.db import get_engine
 from elt.extract.base import EndpointConfig
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

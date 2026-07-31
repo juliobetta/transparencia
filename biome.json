@@ -1,0 +1,109 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!!node_modules",
+      "!!build",
+      "!!public/build",
+      "!!.next",
+      "!!prisma"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "complexity": {
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 3
+          }
+        }
+      },
+      "style": {
+        "useImportType": "warn"
+      },
+      "suspicious": {
+        "noConsole": "error"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "useHookAtTopLevel": "error",
+        "useExhaustiveDependencies": "error",
+        "noUndeclaredVariables": "error"
+      },
+      "nursery": {
+        "useSortedClasses": {
+          "level": "warn",
+          "options": {
+            "attributes": ["className", "classList"],
+            "functions": ["clsx", "cn"]
+          }
+        }
+      }
+    }
+  },
+  "javascript": {
+    "globals": ["React", "JSX", "NodeJS"]
+  },
+  "overrides": [
+    {
+      "includes": [
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/test/**/*.ts",
+        "**/test/**/*.tsx",
+        "**/__tests__/**/*.ts",
+        "**/__tests__/**/*.tsx"
+      ],
+      "javascript": {
+        "globals": [
+          "vi",
+          "vitest",
+          "describe",
+          "it",
+          "expect",
+          "beforeAll",
+          "afterAll",
+          "beforeEach",
+          "afterEach",
+          "test"
+        ]
+      }
+    },
+    {
+      "includes": ["mocks/**/*.js", "mocks/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          }
+        }
+      }
+    }
+  ]
+}

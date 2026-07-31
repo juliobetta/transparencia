@@ -14,9 +14,9 @@ Este repositório possui limites estritos de consumo de tokens (Spend Cap). Todo
 
 ## 2. ARQUITETURA BASEADA EM CAMADAS (DRY / CONTEXT CONSERVATION)
 
-- **Foco na Camada de Negócio (`analysis/`):** Toda a inteligência contábil, cálculos da LRF, queries complexas de bancos de dados, cruzamentos e filtros de licitações pertencem exclusivamente à pasta `analysis/`.
-- **A Camada de Apresentação é Burra:** Os componentes de visualização (`dashboard/pages/` e `report/`) devem apenas importar DataFrames estruturados e renderizá-los.
-- **Eficiência de Desenvolvimento:** Para alterar qualquer lógica ou corrigir anomalias fiscais, **sempre modifique apenas a camada `analysis/`**. Isso poupa a leitura e modificação de dezenas de arquivos Streamlit e templates HTML, economizando até 70% de tokens por modificação.
+- **Camada de Dados / Queries (`packages/db`):** Toda a inteligência contábil, cálculos da LRF, queries Kysely e cruzamentos pertencem exclusivamente a `@transparencia/db/src/queries/`.
+- **A Camada de Apresentação é Burra:** Os componentes de visualização (`packages/ui` e `apps/web/app/`) devem apenas importar os dados tipados do `@transparencia/db` e renderizá-los.
+- **Eficiência de Desenvolvimento:** Para alterar qualquer lógica ou corrigir anomalias fiscais nas telas web, modifique apenas a camada `@transparencia/db`. Isso evita a alteração desnecessária de componentes de página.
 
 ---
 
@@ -30,29 +30,34 @@ Este repositório possui limites estritos de consumo de tokens (Spend Cap). Todo
 ## 4. BASELINE DE QUALIDADE MANDATÓRIA
 
 Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
-1. Sempre execute a suíte de testes de integração via `make test`.
-2. Sempre rode as validações estáticas e linters via `make check`.
+1. **Backend & Modelos DBT (Python):** Sempre execute a suíte de testes de integração via `make test` e as validações estáticas/linters via `make check`.
+2. **Frontend & queries Kysely (TypeScript):** Sempre execute a suíte de testes de paridade via `make test/ts` (ou `pnpm test`) e verifique a tipagem executando `pnpm build` ou `tsc --noEmit` nos pacotes correspondentes.
 
 ---
 
-## 5. SINCRONIZAÇÃO OBRIGATÓRIA: dbt models ↔ `tests/conftest.py`
+## 5. SINCRONIZAÇÃO DE FONTES: dbt models ↔ `elt/conftest.py`
 
-**Contexto:** O banco de testes (`testing.postgresql`) é criado via `SQLModel.metadata.create_all()` e expõe as tabelas raw em `public`. A função `_create_test_views()` em `tests/conftest.py` cria views `fct_*` e o schema `raw_porciuncula_prefeitura` que espelham o que os modelos dbt materializam em produção.
+**Contexto:** O banco de testes utiliza uma instância efêmera do PostgreSQL (`testing.postgresql`). A função `_create_raw_schema(eng)` em [conftest.py](file:///Volumes/Projects/transparencia/elt/conftest.py) cria o schema `raw_porciuncula_prefeitura` e as tabelas raw lendo dinamicamente as definições do arquivo de metadados [_sources.yml](file:///Volumes/Projects/transparencia/elt/transform/models/staging/porciuncula_prefeitura/_sources.yml). Durante a inicialização dos testes, as views e tabelas de staging/marts são compiladas e criadas dinamicamente no banco de testes executando as etapas do dbt (`deps`, `seed` e `run --vars '{"test_mode": true}'`).
 
-**Regra:** Toda vez que um modelo dbt for criado ou modificado de forma que altere colunas expostas nas views de teste, é **obrigatório** atualizar `tests/conftest.py` na mesma PR/commit:
+**Regra:** Toda vez que houver alteração nas tabelas raw de entrada (como novas tabelas ou novas colunas), é **obrigatório** atualizar o arquivo de fontes [_sources.yml](file:///Volumes/Projects/transparencia/elt/transform/models/staging/porciuncula_prefeitura/_sources.yml) correspondente. Não há necessidade de atualizar views ou criar tabelas manualmente no arquivo Python `conftest.py`, pois o pipeline do dbt é executado automaticamente durante o setup de testes para construir toda a estrutura derivada.
 
-| Alteração dbt | Ação no conftest |
-|---|---|
-| Nova coluna em staging `stg_*` que aparece em um mart `fct_*` | Adicionar coluna à view correspondente no conftest |
-| Coluna renomeada em staging/mart | Renomear o alias na view do conftest |
-| Novo mart `fct_*` | Criar nova view `CREATE OR REPLACE VIEW fct_<nome>` na `_create_test_views()` |
-| Novo staging que move dado de raw para `exercicio`/`restos_a_pagar` | Atualizar o UNION ALL da `fct_despesas` view |
-| Coluna removida de um mart | Remover da view correspondente |
-
-**Verificação:** Após qualquer alteração em `elt/transform/models/`, executar `make test`. Se algum teste falhar com `UndefinedColumn` ou `UndefinedTable`, o `tests/conftest.py` está desatualizado.
+**Verificação:** Após qualquer alteração em `elt/transform/models/` ou no schema das tabelas raw, execute `make test`. Se algum teste falhar por falta de colunas ou tabelas raw, certifique-se de que elas foram devidamente declaradas em `_sources.yml`.
 
 ---
 
 ## 6. FORMATAÇÃO SQL
 
 - **Sem alinhamento por espaços:** Nunca adicione espaços extras para alinhar colunas, aliases (`AS`) ou qualquer outro elemento em queries SQL de analytics (`analysis/`, `elt/`, `tests/`). Use apenas o espaço mínimo necessário para separar tokens.
+
+---
+
+## 7. GERENCIAMENTO DE DEPENDÊNCIAS (PINNED VERSIONS)
+
+- **Versões Exatas (Pinned Versions):** Sempre instale e declare versões exatas de pacotes e dependências (npm/pnpm/pip) nos arquivos de manifesto (`package.json`, `pyproject.toml`, etc.), **sem** prefixos de variação como `^` ou `~` (ex: `"nuqs": "2.9.1"`). Ao rodar instalações via CLI, utilize flags de versão exata (ex: `pnpm add --save-exact <pacote>`).
+
+---
+
+## 8. FILTRAGEM MANDATÓRIA POR `portalSlug`
+
+- **Isolamento de Dados por Portal:** Todas as queries em `@transparencia/db` devem obrigatoriamente incluir o filtro por `portalSlug` (ex: `WHERE portal_slug = ${portalSlug}`).
+- **Modelagem DBT:** Caso a tabela consultada não possua a coluna `portal_slug`, é **obrigatório** rever a modelagem no dbt (adicionando a coluna no mart/staging correspondente) ou realizar o `JOIN` necessário com uma tabela que possua a dimensão de portal. Nenhuma consulta no repositório deve retornar dados multi-tenant não filtrados por portal.

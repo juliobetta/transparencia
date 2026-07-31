@@ -7,3 +7,13 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: biome-check
+        name: biome check
+        entry: pnpm biome check --write --unsafe --no-errors-on-unmatched
+        language: system
+        types: [text]
+        files: \.(jsx?|tsx?|json|jsonc|css)$
+
