@@ -92,24 +92,26 @@ async function sumColWhere({
   col,
   year,
   empresaIds,
+  portalSlug = "porciuncula_prefeitura",
 }: {
   table: string;
   col: string;
   year: number;
   empresaIds?: string[] | null;
+  portalSlug?: string;
 }): Promise<number> {
   try {
-    let q = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year}`;
+    let q = sql`
+      SELECT COALESCE(SUM(${sql.ref(col)}), 0) AS val
+      FROM ${sql.raw(table)}
+      WHERE ano = ${year} AND portal_slug = ${portalSlug}
+    `;
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa = ANY(${empresaIds})`;
     }
     const res = await q.execute(db);
-    let sum = 0;
-    for (const r of (res.rows as any[]) || []) {
-      const num = parseFloat(String(r.val ?? "0").replace(",", ".")) || 0;
-      sum += num;
-    }
-    return sum;
+    const row = res.rows[0] as any;
+    return Number(row?.val ?? 0);
   } catch {
     return 0;
   }
@@ -118,24 +120,28 @@ async function sumColWhere({
 export async function getMetricasGeraisDespesas(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug: string = "porciuncula_prefeitura",
 ): Promise<MetricasDespesas> {
   const empenhado = await sumColWhere({
     table: "fct_despesas_por_unidade",
     col: "empenhado",
     year,
     empresaIds,
+    portalSlug,
   });
   const liquidado = await sumColWhere({
     table: "fct_despesas_por_unidade",
     col: "liquidado",
     year,
     empresaIds,
+    portalSlug,
   });
   const pago = await sumColWhere({
     table: "fct_despesas_por_unidade",
     col: "pago",
     year,
     empresaIds,
+    portalSlug,
   });
 
   return {
@@ -150,52 +156,32 @@ export async function getMetricasGeraisDespesas(
 export async function getDespesasPorUnidade(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug: string = "porciuncula_prefeitura",
 ): Promise<DespesaUnidade[]> {
   try {
     let q = sql`
-      SELECT codigo, descricao, empenhado, liquidado, pago, dotacao_atualizada
+      SELECT
+        descricao,
+        COALESCE(SUM(empenhado), 0) AS empenhado,
+        COALESCE(SUM(liquidado), 0) AS liquidado,
+        COALESCE(SUM(pago), 0) AS pago,
+        COALESCE(SUM(dotacao_atualizada), 0) AS "dotacaoAtualizada"
       FROM fct_despesas_por_unidade
       WHERE ano = ${year}
+        AND portal_slug = ${portalSlug}
     `;
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa = ANY(${empresaIds})`;
     }
+    q = sql`${q} GROUP BY descricao ORDER BY SUM(empenhado)/SUM(pago) ASC`;
     const res = await q.execute(db);
-    const map: Record<
-      string,
-      {
-        empenhado: number;
-        liquidado: number;
-        pago: number;
-        dotacaoAtualizada: number;
-      }
-    > = {};
-
-    for (const r of (res.rows as any[]) || []) {
-      const desc = String(r.descricao ?? "");
-      const emp = parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
-      const liq = parseFloat(String(r.liquidado ?? "0").replace(",", ".")) || 0;
-      const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
-      const dot =
-        parseFloat(String(r.dotacao_atualizada ?? "0").replace(",", ".")) || 0;
-
-      if (!map[desc]) {
-        map[desc] = {
-          empenhado: 0,
-          liquidado: 0,
-          pago: 0,
-          dotacaoAtualizada: 0,
-        };
-      }
-      map[desc].empenhado += emp;
-      map[desc].liquidado += liq;
-      map[desc].pago += pag;
-      map[desc].dotacaoAtualizada += dot;
-    }
-
-    return Object.entries(map)
-      .map(([descricao, v]) => ({ descricao, ...v }))
-      .sort((a, b) => b.pago - a.pago);
+    return ((res.rows as any[]) || []).map((r) => ({
+      descricao: String(r.descricao ?? ""),
+      empenhado: Number(r.empenhado ?? 0),
+      liquidado: Number(r.liquidado ?? 0),
+      pago: Number(r.pago ?? 0),
+      dotacaoAtualizada: Number(r.dotacaoAtualizada ?? 0),
+    }));
   } catch {
     return [];
   }

@@ -2,6 +2,7 @@ import {
   getConcentracaoFornecedores,
   getDespesasPorUnidade,
   getImpactoGastosLocais,
+  getMetricasGeraisDespesas,
   getPortalConfig,
   getPrincipaisBeneficiariosDiarias,
   getRestosAPagarResumo,
@@ -17,6 +18,7 @@ import {
   KPICard,
   KPIGrid,
   RestosAPagarVendorsChart,
+  SectionHeader,
   toTitleCase,
   UnidadesGastosChart,
 } from "@transparencia/ui";
@@ -48,6 +50,11 @@ export default async function DespesasPage({
   const partialPeriod = getPartialYearPeriod();
 
   // Query DB data
+  const metricasGerais = await getMetricasGeraisDespesas(
+    selectedYear,
+    entidadesIds,
+    portalSlug,
+  );
   const impactoLocais = await getImpactoGastosLocais({
     year: selectedYear,
     empresaIds: entidadesIds,
@@ -67,6 +74,7 @@ export default async function DespesasPage({
   const despesasUnidades = await getDespesasPorUnidade(
     selectedYear,
     entidadesIds,
+    portalSlug,
   );
   const diariasResumo = await getResumoDiarias(
     selectedYear,
@@ -107,112 +115,139 @@ export default async function DespesasPage({
         </p>
       </div>
 
-      <hr className="border-borderLine" />
+      {/* Grade Hero de 4 KPIs */}
+      <KPIGrid columns={4}>
+        <KPICard
+          title="Total empenhado"
+          value={fmtCompact(metricasGerais.empenhado)}
+          subtext={`no exercício ${selectedYear}`}
+        />
+        <KPICard
+          title="Total pago"
+          value={fmtCompact(metricasGerais.pago)}
+          subtext={`no exercício ${selectedYear}`}
+        />
+        <KPICard
+          title="Taxa de quitação"
+          value={fmtPercent(metricasGerais.taxaPagamento)}
+          subtext={`${fmtCompact(metricasGerais.liquidado)} liquidados`}
+        />
+        <KPICard
+          title="Restos a pagar pendentes"
+          value={
+            <span className="font-bold text-amber-900">
+              {fmtCompact(restosResumo.totalPendente)}
+            </span>
+          }
+          subtext="compromissos de anos anteriores"
+        />
+      </KPIGrid>
 
       {/* Seção 1: Para onde vai o dinheiro */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold font-serif text-2xl text-ink">
-            Para onde vai o dinheiro
-          </h2>
-        </div>
+      <section className="space-y-8">
+        <SectionHeader
+          title="Para onde vai o dinheiro"
+          description="Distribuição das despesas por fornecedores locais e externos, além da concentração de fornecedores."
+        />
 
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold font-serif text-ink text-xl">
-            Fornecedores e gastos locais
-          </h3>
-          <span className="font-medium text-subtleText text-xs">
-            apenas compras, materiais, serviços e equipamentos
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-7">
-            <DonutGastosLocais
-              localValor={impactoLocais.localPago}
-              externoValor={impactoLocais.externoPago}
-              pctLocal={impactoLocais.pctLocal}
-              className="h-full"
-            />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold font-serif text-ink text-xl">
+              Fornecedores e gastos locais
+            </h3>
+            <span className="font-medium text-subtleText text-xs">
+              apenas compras, materiais, serviços e equipamentos
+            </span>
           </div>
 
-          <div className="flex flex-col justify-between gap-4 lg:col-span-5">
+          <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
+            <div className="lg:col-span-7">
+              <DonutGastosLocais
+                localValor={impactoLocais.localPago}
+                externoValor={impactoLocais.externoPago}
+                pctLocal={impactoLocais.pctLocal}
+                className="h-full"
+              />
+            </div>
+
+            <div className="flex flex-col justify-between gap-4 lg:col-span-5">
+              <KPICard
+                title="Índice de compras locais"
+                value={fmtPercent(impactoLocais.pctLocal)}
+                subtext={
+                  impactoLocais.historicoPctLocal
+                    ? `dos recursos em ${selectedYear} (${fmtPercent(impactoLocais.historicoPctLocal)} no acumulado histórico)`
+                    : ""
+                }
+                className="flex-1 justify-center"
+              />
+
+              <KPICard
+                title="HHI — concentração de fornecedores"
+                value={hhiVal.toLocaleString("pt-BR")}
+                subtext={hhiStatusText}
+                className="flex-1 justify-center"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold font-serif text-ink text-xl">
+              Unidades Administrativas
+            </h3>
+            <span className="font-medium text-subtleText text-xs">
+              análise de despesas por unidade do governo
+            </span>
+          </div>
+
+          {despesasUnidades.length > 0 && (
+            <UnidadesGastosChart items={despesasUnidades} />
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold font-serif text-ink text-xl">
+              Diárias e Auxílios de Viagem a Serviço
+            </h3>
+            <span className="font-medium text-subtleText text-xs">
+              gastos com reembolsos de viagem e diárias a servidores
+            </span>
+          </div>
+
+          <KPIGrid columns={3}>
             <KPICard
-              title="Índice de compras locais"
-              value={fmtPercent(impactoLocais.pctLocal)}
-              subtext={
-                impactoLocais.historicoPctLocal
-                  ? `dos recursos em ${selectedYear} (${fmtPercent(impactoLocais.historicoPctLocal)} no acumulado histórico)`
-                  : ""
-              }
-              className="flex-1 justify-center"
+              title="Total pago em diárias"
+              value={fmtCurrency(diariasResumo.totalValor)}
             />
-
             <KPICard
-              title="HHI — concentração de fornecedores"
-              value={hhiVal.toLocaleString("pt-BR")}
-              subtext={hhiStatusText}
-              className="flex-1 justify-center"
+              title="Servidores beneficiários"
+              value={diariasResumo.totalViajantes}
             />
-          </div>
-        </div>
-
-        <hr className="border-borderLine" />
-
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold font-serif text-ink text-xl">
-            Unidades Administrativas
-          </h3>
-          <span className="font-medium text-subtleText text-xs">
-            análise de despesas por unidade do governo
-          </span>
-        </div>
-
-        {despesasUnidades.length > 0 && (
-          <UnidadesGastosChart items={despesasUnidades.slice(0, 10)} />
-        )}
-
-        <hr className="border-borderLine" />
-
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold font-serif text-ink text-xl">
-            Diárias e Auxílios de Viagem a Serviço
-          </h3>
-          <span className="font-medium text-subtleText text-xs">
-            gastos com reembolsos de viagem e diárias a servidores
-          </span>
-        </div>
-
-        <KPIGrid columns={3}>
-          <KPICard
-            title="Total pago em diárias"
-            value={fmtCurrency(diariasResumo.totalValor)}
-          />
-          <KPICard
-            title="Servidores beneficiários"
-            value={diariasResumo.totalViajantes}
-          />
-          <KPICard
-            title="Média por viagem"
-            value={fmtCurrency(diariasResumo.mediaReembolso)}
-          />
-        </KPIGrid>
-
-        {diariasBeneficiarios.length > 0 && (
-          <div className="space-y-4 rounded-2xl border border-borderLine bg-white p-6">
-            <h4 className="font-bold text-ink text-sm">
-              Principais servidores beneficiários de diárias
-            </h4>
-            <BarChartH
-              data={diariasBeneficiarios.map((b) => ({
-                label: b.cargo
-                  ? `${toTitleCase(b.favorecido)} (${toTitleCase(b.cargo)})`
-                  : toTitleCase(b.favorecido),
-                value: b.valor,
-              }))}
+            <KPICard
+              title="Média por viagem"
+              value={fmtCurrency(diariasResumo.mediaReembolso)}
             />
-          </div>
-        )}
+          </KPIGrid>
+
+          {diariasBeneficiarios.length > 0 && (
+            <div className="space-y-4 rounded-2xl border border-borderLine bg-white p-6">
+              <h4 className="font-bold text-ink text-sm">
+                Principais servidores beneficiários de diárias
+              </h4>
+              <BarChartH
+                data={diariasBeneficiarios.map((b) => ({
+                  label: b.cargo
+                    ? `${toTitleCase(b.favorecido)} (${toTitleCase(b.cargo)})`
+                    : toTitleCase(b.favorecido),
+                  value: b.valor,
+                }))}
+              />
+            </div>
+          )}
+        </div>
       </section>
 
       <hr className="border-[#1a1d21] border-t-2" />
