@@ -46,7 +46,11 @@ export default async function VisaoGeralPage({
   const portalConfig = await getPortalConfig();
   const portalName = portalConfig?.displayName;
 
-  const posicao = await getPosicaoFiscal(selectedYear, entidadesIds);
+  const posicao = await getPosicaoFiscal(
+    selectedYear,
+    entidadesIds,
+    portalSlug,
+  );
   const execItems = await getExecucaoOrcamentaria(selectedYear, entidadesIds);
   const execSummary = summarizeExecucao(execItems);
   const _gaps = await getLicitacaoGaps(selectedYear, entidadesIds);

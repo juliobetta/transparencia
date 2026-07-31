@@ -19,6 +19,7 @@ export interface TendenciaAnualRecord {
 export async function getTendenciasAnuais(
   years: number[],
   empresaIds?: string[] | null,
+  portalSlug: string = "porciuncula_prefeitura",
 ): Promise<TendenciaAnualRecord[]> {
   const sortedYears = [...years].sort((a, b) => a - b);
   const revDf = await getFontesReceita(sortedYears, empresaIds);
@@ -48,7 +49,7 @@ export async function getTendenciasAnuais(
     let totalFolha = 0;
     try {
       const resF =
-        await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year}`.execute(
+        await sql`SELECT proventos FROM fct_pessoal WHERE ano = ${year} AND portal_slug = ${portalSlug}`.execute(
           db,
         );
       for (const r of (resF.rows as any[]) || []) {
@@ -62,7 +63,7 @@ export async function getTendenciasAnuais(
 
     let restos = 0;
     try {
-      let qR = sql`SELECT pago FROM fct_despesas WHERE ano = ${year} AND fonte = 'restos_a_pagar'`;
+      let qR = sql`SELECT pago FROM fct_despesas WHERE ano = ${year} AND fonte = 'restos_a_pagar' AND portal_slug = ${portalSlug}`;
       if (empresaIds && empresaIds.length > 0) {
         qR = sql`${qR} AND empresa_id = ANY(${empresaIds})`;
       }

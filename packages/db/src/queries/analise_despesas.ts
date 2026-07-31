@@ -492,7 +492,9 @@ export async function getImpactoGastosLocais({
       LEFT JOIN fct_despesas g
         ON f.ano = g.ano
         AND f.descricao = g.fornecedor_nome
-      WHERE g.elemento = ANY(${FORNECEDORES_NATUREZA_MAP}) and f.ano < ${year}
+      WHERE g.elemento = ANY(${FORNECEDORES_NATUREZA_MAP})
+        AND f.ano < ${year}
+        AND g.portal_slug = ${portalSlug}
     `;
     if (empresaIds && empresaIds.length > 0) {
       qHist = sql`${qHist} AND f.empresa = ANY(${empresaIds})`;
@@ -551,21 +553,40 @@ export async function getImpactoGastosLocais({
 export async function getRestosAPagarResumo(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug: string = "porciuncula_prefeitura",
 ): Promise<RestosAPagarResumo> {
   try {
     let q = sql`
       SELECT
-        ano,
-        descricao,
-        fornecedor_nome,
-        empenhado,
-        pago
-      FROM fct_despesas
-      WHERE fonte = 'restos_a_pagar'
-        AND ano <= ${year}
+        f.ano AS ano_exercicio,
+        COALESCE(
+          g.ano,
+          (
+            SELECT MIN(h.ano)
+            FROM fct_despesas h
+            WHERE h.empenho_id = f.empenho_id
+              AND h.empresa_id = f.empresa_id
+              AND h.fonte = 'restos_a_pagar'
+              AND h.portal_slug = ${portalSlug}
+          ),
+          f.ano
+        ) AS ano_origem,
+        f.descricao,
+        f.fornecedor_nome,
+        f.empenhado,
+        f.pago
+      FROM fct_despesas f
+      LEFT JOIN fct_despesas g
+        ON f.empenho_id = g.empenho_id
+       AND f.empresa_id = g.empresa_id
+       AND g.fonte = 'exercicio'
+       AND g.portal_slug = ${portalSlug}
+      WHERE f.fonte = 'restos_a_pagar'
+        AND f.ano = ${year}
+        AND f.portal_slug = ${portalSlug}
     `;
     if (empresaIds && empresaIds.length > 0) {
-      q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
+      q = sql`${q} AND f.empresa_id = ANY(${empresaIds})`;
     }
     const res = await q.execute(db);
     const rows = (res.rows as any[]) || [];
@@ -580,7 +601,7 @@ export async function getRestosAPagarResumo(
       const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
       const pend = emp - pag;
       if (pend > 0) {
-        const a = Number(r.ano);
+        const a = Number(r.ano_origem);
         if (a > 0 && a < dividaMaisAntigaAno) {
           dividaMaisAntigaAno = a;
         }

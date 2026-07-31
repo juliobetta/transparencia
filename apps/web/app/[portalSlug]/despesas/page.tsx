@@ -57,8 +57,13 @@ export default async function DespesasPage({
   const concentracao = await getConcentracaoFornecedores(
     selectedYear,
     entidadesIds,
+    portalSlug,
   );
-  const restosResumo = await getRestosAPagarResumo(selectedYear, entidadesIds);
+  const restosResumo = await getRestosAPagarResumo(
+    selectedYear,
+    entidadesIds,
+    portalSlug,
+  );
   const despesasUnidades = await getDespesasPorUnidade(
     selectedYear,
     entidadesIds,

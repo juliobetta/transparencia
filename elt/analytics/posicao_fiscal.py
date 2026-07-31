@@ -95,15 +95,14 @@ def run(conn: Any, year: int, empresa_ids: list[str] | None = None) -> dict:
     total_saidas = despesas_pagas + restos_pagos_no_ano
     saldo_estimado = total_arrecadado - total_saidas
     restos_pendentes_total = sum(float(r["pendente"]) for r in restos_pendentes)
-    # Apenas obrigações pré-2025 representam dívida herdada da gestão anterior
     restos_pendentes_anteriores = sum(float(r["pendente"]) for r in restos_pendentes if int(r["ano"]) < 2025)
 
-    # 5. Top 5 credores com restos pendentes da administração atual (2025+)
+    # 5. Top 5 credores com restos pendentes da administração atual
     top_credores_adm_atual = []
     try:
         df_cred = pd.read_sql_query(
             text(
-                f"SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano >= 2025 {empresa_clause}"
+                f"SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano = {year} {empresa_clause}"
             ),
             conn,
             params=empresa_params,

@@ -107,7 +107,7 @@ porciuncula_rap as (
         null as fonte_recurso_desc,
         null::date as data_empenho,
         empenhado,
-        null::numeric as liquidado,
+        liquidado,
         pago,
         null::numeric as dotacao_inicial,
         null::numeric as alteracao_dotacao,

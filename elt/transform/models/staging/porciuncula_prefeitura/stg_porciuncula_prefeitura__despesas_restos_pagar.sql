@@ -12,6 +12,7 @@ renamed as (
         numero as rap_id,
         descricao,
         nullif(replace(empenhado, ',', '.'), '')::numeric(15, 2) as empenhado,
+        nullif(replace(liquidado, ',', '.'), '')::numeric(15, 2) as liquidado,
         nullif(replace(pago, ',', '.'), '')::numeric(15, 2) as pago
     from source
 )
@@ -22,5 +23,6 @@ select
     rap_id,
     descricao,
     empenhado,
+    liquidado,
     pago
 from renamed

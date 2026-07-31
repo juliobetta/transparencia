@@ -25,6 +25,7 @@ const FORNECEDORES_NATUREZA_MAP = [
 export async function getConcentracaoFornecedores(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug: string = "porciuncula_prefeitura",
 ): Promise<ConcentracaoResult> {
   try {
     let q = sql`
@@ -35,6 +36,7 @@ export async function getConcentracaoFornecedores(
         AND f.descricao = g.fornecedor_nome
       WHERE f.ano = ${year}
         AND g.elemento = ANY(${FORNECEDORES_NATUREZA_MAP})
+        AND g.portal_slug = ${portalSlug}
     `;
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND f.empresa = ANY(${empresaIds})`;

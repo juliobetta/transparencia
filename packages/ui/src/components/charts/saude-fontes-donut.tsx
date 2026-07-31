@@ -59,9 +59,9 @@ export function SaudeFontesDonut({
       className={`rounded-xl border border-slate-200 bg-white p-6 shadow-sm ${className}`}
     >
       <div className="mb-4">
-        <h3 className="font-bold text-base text-slate-900">
+        <h4 className="font-bold text-base text-slate-900">
           Origem dos Recursos
-        </h3>
+        </h4>
         <p className="font-medium text-slate-500 text-xs">
           Fontes de receita do Fundo · {ano}
         </p>

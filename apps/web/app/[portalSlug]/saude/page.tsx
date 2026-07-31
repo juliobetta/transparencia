@@ -83,7 +83,7 @@ export default async function SaudePage({
       {/* Seção 2: O que entrou no Fundo (Existente) */}
       <section className="space-y-6 border-[#1a1d21] border-t-2 pt-8">
         <h2 className="font-bold font-serif text-2xl text-slate-900">
-          O que entrou no Fundo
+          O que entrou
         </h2>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="md:col-span-2">

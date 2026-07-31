@@ -25,6 +25,12 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               row_condition: "empenhado is not null"
+      - name: liquidado
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "liquidado is not null"
       - name: pago
         data_type: numeric
         tests:

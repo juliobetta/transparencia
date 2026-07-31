@@ -57,15 +57,19 @@ async function sumVarcharCol({
   year,
   whereExtra = "",
   empresaIds,
+  portalSlug = "porciuncula_prefeitura",
 }: {
   table: string;
   col: string;
   year: number;
   whereExtra?: string;
   empresaIds?: string[] | null;
+  portalSlug?: string;
 }): Promise<number> {
   try {
-    let query = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year} ${sql.raw(whereExtra)}`;
+    const portalFilter =
+      table === "fct_despesas" ? `AND portal_slug = '${portalSlug}'` : "";
+    let query = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year} ${sql.raw(portalFilter)} ${sql.raw(whereExtra)}`;
     if (empresaIds && empresaIds.length > 0) {
       if (table === "fct_despesas_por_orgao") {
         query = sql`${query} AND empresa = ANY(${empresaIds})`;
@@ -89,6 +93,7 @@ async function sumVarcharCol({
 export async function getPosicaoFiscal(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug: string = "porciuncula_prefeitura",
 ): Promise<PosicaoFiscalResult> {
   const revDf = await getFontesReceita([year], empresaIds);
   const totalArrecadado = revDf.length > 0 ? revDf[0].totalArrecadado : 0;
@@ -105,11 +110,12 @@ export async function getPosicaoFiscal(
     year,
     whereExtra: "AND fonte = 'restos_a_pagar'",
     empresaIds,
+    portalSlug,
   });
 
   const restosPendentes: RestoPendente[] = [];
   try {
-    let q = sql`SELECT ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano <= ${year}`;
+    let q = sql`SELECT ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano <= ${year} AND portal_slug = ${portalSlug}`;
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
     }
@@ -147,17 +153,19 @@ export async function getPosicaoFiscal(
 
   const totalSaidas = despesasPagas + restosPagosNoAno;
   const saldoEstimado = totalArrecadado - totalSaidas;
-  const restosPendentesTotal = restosPendentes.reduce(
-    (acc, r) => acc + r.pendente,
-    0,
-  );
-  const restosPendentesAnteriores = restosPendentes
-    .filter((r) => r.ano < year)
-    .reduce((acc, r) => acc + r.pendente, 0);
+  const currentYearResto = restosPendentes.find((r) => r.ano === year);
+  const restosPendentesTotal = (() => {
+    if (currentYearResto) return currentYearResto.pendente;
+    if (restosPendentes.length > 0)
+      return restosPendentes[restosPendentes.length - 1].pendente;
+    return 0;
+  })();
+  const restosPendentesAnteriores =
+    restosPendentes.find((r) => r.ano === year - 1)?.pendente ?? 0;
 
   let credoresAdmAtual: TopCredor[] = [];
   try {
-    let qCred = sql`SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano <= ${year}`;
+    let qCred = sql`SELECT descricao, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND ano = ${year} AND portal_slug = ${portalSlug}`;
     if (empresaIds && empresaIds.length > 0) {
       qCred = sql`${qCred} AND empresa_id = ANY(${empresaIds})`;
     }
@@ -198,9 +206,13 @@ export async function getPosicaoFiscal(
 export async function getFornecedoresPendentes(
   year?: number | null,
   empresaIds?: string[] | null,
+  portalSlug: string = "porciuncula_prefeitura",
 ): Promise<FornecedorPendente[]> {
   try {
-    let q = sql`SELECT descricao, ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar'`;
+    let q = sql`SELECT descricao, ano, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND portal_slug = ${portalSlug}`;
+    if (year !== undefined && year !== null) {
+      q = sql`${q} AND ano = ${year}`;
+    }
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
     }
@@ -218,8 +230,6 @@ export async function getFornecedoresPendentes(
 
     for (const r of (res.rows as any[]) || []) {
       const a = Number(r.ano);
-      if (year !== undefined && year !== null && a > year) continue;
-
       const desc = sanitizeDescricao(r.descricao);
       const emp = parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
       const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
@@ -257,13 +267,27 @@ export async function getFornecedoresPendentes(
   }
 }
 
+export interface GetRestosBaixoValorOptions {
+  year?: number | null;
+  threshold?: number;
+  empresaIds?: string[] | null;
+  portalSlug?: string;
+}
+
 export async function getRestosBaixoValor(
-  year?: number | null,
-  threshold: number = 10.0,
-  empresaIds?: string[] | null,
+  options: GetRestosBaixoValorOptions = {},
 ): Promise<RestoBaixoValor[]> {
+  const {
+    year,
+    threshold = 10.0,
+    empresaIds,
+    portalSlug = "porciuncula_prefeitura",
+  } = options;
   try {
-    let q = sql`SELECT descricao, ano, empenho_id, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar'`;
+    let q = sql`SELECT descricao, ano, empenho_id, empenhado, pago FROM fct_despesas WHERE fonte = 'restos_a_pagar' AND portal_slug = ${portalSlug}`;
+    if (year !== undefined && year !== null) {
+      q = sql`${q} AND ano = ${year}`;
+    }
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
     }
@@ -272,8 +296,6 @@ export async function getRestosBaixoValor(
 
     for (const r of (res.rows as any[]) || []) {
       const a = Number(r.ano);
-      if (year !== undefined && year !== null && a > year) continue;
-
       const emp = parseFloat(String(r.empenhado ?? "0").replace(",", ".")) || 0;
       const pag = parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0;
 
