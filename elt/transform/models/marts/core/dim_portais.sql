@@ -3,10 +3,9 @@ with portais as (
 ),
 
 max_extracao as (
-    select
-        portal_slug,
-        max(data_empenho) as ultima_transacao
-    from {{ ref('fct_despesas') }}
+    select portal_slug, max(value)::date as value
+    from {{ ref('dim_metadata') }}
+    where key = 'last_extracted_at'
     group by portal_slug
 )
 
@@ -20,6 +19,6 @@ select
     p.ano_inicial,
     p.empresa_padrao,
     p.brasao_asset,
-    coalesce(m.ultima_transacao, current_date) as data_extracao
+    coalesce(m.value, current_date) as data_extracao
 from portais p
 left join max_extracao m on p.portal_slug = m.portal_slug
