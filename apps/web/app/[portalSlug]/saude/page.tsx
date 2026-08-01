@@ -30,14 +30,11 @@ export default async function SaudePage({
   const selectedYear = resolvedSearchParams.ano
     ? Number(resolvedSearchParams.ano)
     : currentYear;
-  const entidadesIds = resolvedSearchParams.entidades
-    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
-    : undefined;
 
   const isCurrentYear = selectedYear === currentYear;
   const partialPeriod = getPartialYearPeriod();
 
-  const saude = await getHistoriaSaude(selectedYear, entidadesIds);
+  const saude = await getHistoriaSaude(selectedYear);
 
   return (
     <div className="space-y-12 pb-12">

@@ -106,15 +106,8 @@ function normalizeModalidadeName(
 
 export async function getHistoriaSaude(
   year: number,
-  empresaIds?: string[] | string | null,
 ): Promise<HistoriaSaudeResult> {
-  const targetEmpresas = Array.isArray(empresaIds)
-    ? empresaIds.length > 0
-      ? empresaIds
-      : [SAUDE_EMPRESA]
-    : typeof empresaIds === "string"
-      ? [empresaIds]
-      : [SAUDE_EMPRESA];
+  const targetEmpresas = [SAUDE_EMPRESA];
 
   const emendas: EmendaSaude[] = [];
   let emendasTotal = 0;
@@ -437,9 +430,9 @@ export async function getHistoriaSaude(
   };
 
   // Reusando as queries unificadas de licitação e adesão de ata para garantir 100% de paridade com a página de Licitações
-  const adesao = await getAdesaoDeAta(year, targetEmpresas);
-  const adesaoExterna = await getAdesaoExterna(year, targetEmpresas);
-  const distModalidades = await getDistribucaoModalidades(year, targetEmpresas);
+  const adesao = await getAdesaoDeAta(year);
+  const adesaoExterna = await getAdesaoExterna(year);
+  const distModalidades = await getDistribucaoModalidades(year);
 
   const modalityTotals: Record<string, number> = {
     "Pregão eletrônico": 0,
