@@ -2,6 +2,7 @@
 
 import { type MultiSelectOption, Sidebar } from "@transparencia/ui";
 import { parseAsString, useQueryState } from "nuqs";
+import posthog from "posthog-js";
 
 interface SidebarWrapperProps {
   portalName?: string;
@@ -41,10 +42,19 @@ export function SidebarWrapper({
     : [];
 
   const handleExerciceChange = (val: string) => {
+    posthog.capture("year_filter_changed", {
+      selected_year: val,
+      previous_year: ano,
+      portal_slug: portalSlug,
+    });
     setAno(val);
   };
 
   const handleEntidadesChange = (ids: string[]) => {
+    posthog.capture("entity_filter_changed", {
+      selected_count: ids.length,
+      portal_slug: portalSlug,
+    });
     if (ids.length === 0) {
       setEntidadesParam(null);
     } else {
