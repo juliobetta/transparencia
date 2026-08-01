@@ -46,6 +46,7 @@ export default async function RootLayout({
               lastExtractionDate={portalConfig?.dataExtracao}
               officialPortalUrl={portalConfig?.portalUrl}
               entidades={entidades}
+              portalSlug={portalConfig?.portalSlug}
             />
           </Suspense>
           <div className="flex min-w-0 flex-1 flex-col">
