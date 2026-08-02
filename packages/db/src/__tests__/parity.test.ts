@@ -15,6 +15,7 @@ import {
   getLicitacaoGaps,
   getPortalConfig,
   getPosicaoFiscal,
+  getPosicaoFiscalMetrics,
   getPrincipaisBeneficiariosDiarias,
   getResumoDiarias,
   getTendenciasAnuais,
@@ -156,5 +157,53 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     expect(typeof saude.fontesReceita.repassesPrefeitura).toBe("number");
     expect(saude.licitacoesSaude).toBeDefined();
     expect(saude.emendasStats).toBeDefined();
+  });
+  it("deve buscar posição fiscal via mart atômico com consolidação por empresas", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    const empresaIds = entidades.map((e: { id: string }) => e.id);
+
+    if (empresaIds.length === 0) return; // banco de testes sem entidades, skip
+
+    // Cenário 1: empresa única
+    const metricsSingle = await getPosicaoFiscalMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [empresaIds[0]],
+    );
+    expect(metricsSingle).not.toBeNull();
+    if (metricsSingle !== null) {
+      expect(typeof metricsSingle.portalSlug).toBe("string");
+      expect(typeof metricsSingle.ano).toBe("number");
+      expect(typeof metricsSingle.totalArrecadado).toBe("number");
+      expect(typeof metricsSingle.despesasPagas).toBe("number");
+      expect(typeof metricsSingle.restosPagosNoAno).toBe("number");
+      expect(typeof metricsSingle.restosPendentesAdmAnterior).toBe("number");
+      expect(typeof metricsSingle.restosPendentesAdmAtual).toBe("number");
+      expect(typeof metricsSingle.saldoEstimado).toBe("number");
+    }
+
+    // Cenário 2: múltiplas empresas — consolidação (SUM)
+    if (empresaIds.length > 1) {
+      const metricsMulti = await getPosicaoFiscalMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+        empresaIds,
+      );
+      expect(metricsMulti).not.toBeNull();
+      if (metricsMulti !== null && metricsSingle !== null) {
+        // consolidado >= individual para campos sempre não-negativos
+        expect(metricsMulti.totalArrecadado).toBeGreaterThanOrEqual(
+          metricsSingle.totalArrecadado,
+        );
+      }
+    }
+
+    // Cenário 3: lista vazia retorna null imediatamente
+    const metricsEmpty = await getPosicaoFiscalMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [],
+    );
+    expect(metricsEmpty).toBeNull();
   });
 });
