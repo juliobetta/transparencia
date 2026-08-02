@@ -14,4 +14,5 @@ export * from "./queries/licitacao_gaps";
 export * from "./queries/metadata";
 export * from "./queries/orcamento_funcional";
 export * from "./queries/posicao_fiscal";
+export * from "./queries/posicao-fiscal-metrics";
 export * from "./queries/tendencias_anuais";
