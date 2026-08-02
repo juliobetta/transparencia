@@ -1,0 +1,107 @@
+version: 2
+
+models:
+  - name: fct_historia_saude_metricas
+    description: "Mart de métricas agregadas de execução orçamentária e financeira da Saúde por portal e ano"
+    config:
+      contract:
+        enforced: true
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "total_empenhado >= total_liquidado AND total_liquidado >= total_pago"
+          name: historia_saude_invariante_lrf
+    columns:
+      - name: historia_saude_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Dimensão de tenant isolada por portal"
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Ano do exercício fiscal"
+        tests:
+          - not_null
+      - name: dotacao_total
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Dotação orçamentária atualizada da saúde"
+        tests:
+          - not_null
+      - name: total_empenhado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total empenhado na função saúde (Função 10)"
+        tests:
+          - not_null
+      - name: total_liquidado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total liquidado na função saúde (Função 10)"
+        tests:
+          - not_null
+      - name: total_pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total pago na função saúde (Função 10)"
+        tests:
+          - not_null
+      - name: medicamentos_insumos_pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Despesas com medicamentos e insumos farmacêuticos pagos (Subfunção 10.303)"
+        tests:
+          - not_null
+      - name: judicializacao_pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Despesas com sentenças judiciais da saúde pagas (Elemento 91)"
+        tests:
+          - not_null
+      - name: emendas_saude_arrecadado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total arrecadado em emendas parlamentares vinculadas à saúde"
+        tests:
+          - not_null
+      - name: hhi_concentracao_fornecedores
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Índice Herfindahl-Hirschman (HHI 0-10000) de concentração de fornecedores de saúde"
+        tests:
+          - not_null
+
+unit_tests:
+  - name: test_historia_saude_metricas_calculos
+    description: "Valida se orçamento da saúde, medicamentos, judicialização e HHI são calculados corretamente"
+    model: fct_historia_saude_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, funcao: "10", subfuncao: "303", elemento: "30", empresa_id: "2", fornecedor_nome: "FARMACEUTICA A", dotacao_atualizada: 200000.00, empenhado_liquido: 100000.00, liquidado: 80000.00, pago: 60000.00, subfuncao_nome: "ASSISTENCIA FARMACEUTICA" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, funcao: "10", subfuncao: "301", elemento: "91", empresa_id: "2", fornecedor_nome: "FORNECEDOR B", dotacao_atualizada: 100000.00, empenhado_liquido: 50000.00, liquidado: 40000.00, pago: 30000.00, subfuncao_nome: "ATENCAO BASICA" }
+      - input: ref('fct_emendas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "2", destinacao: "EQUIPAMENTOS SAUDE", resumo: "EMENDA SAUDE", valor_total: 50000.00, empenhado: 50000.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, dotacao_total: 300000.00, total_empenhado: 150000.00, total_liquidado: 120000.00, total_pago: 90000.00, medicamentos_insumos_pago: 60000.00, judicializacao_pago: 30000.00, emendas_saude_arrecadado: 50000.00, hhi_concentracao_fornecedores: 5556 }
