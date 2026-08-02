@@ -26,6 +26,7 @@ __pycache__
 *.dump
 .csvdocs/
 *.csv
+!elt/transform/seeds/*.csv
 .mypy_cache/
 .ruff_cache/
 .pre-commit/
@@ -57,8 +58,12 @@ next-env.d.ts
 .bmad-loop/
 .claude
 _bmad
+_bmad-output
 .agent/skills/memory
 .agent/skills/sync
 .agent/skills/bmad-*
 .agents/
 .agent/skills/wds-*/*
+.bmad-loop/runs/
+.bmad-loop/cache/
+.bmad-loop/policy.toml

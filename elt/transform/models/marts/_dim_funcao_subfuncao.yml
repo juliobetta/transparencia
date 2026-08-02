@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: dim_funcao_subfuncao
+    description: "Dimensão canônica da classificação funcional de despesas (MOG 42/1999)"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: funcao_subfuncao_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+          - type: primary_key
+        tests:
+          - not_null
+          - unique
+      - name: funcao_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: funcao_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: subfuncao_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: subfuncao_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
