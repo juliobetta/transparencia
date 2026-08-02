@@ -167,6 +167,7 @@ select
     pk_empenho,
     tipo_empenho,
     orgao_codigo,
+    coalesce(codlo, '00') as unidade_codigo,
     funcao,
     funcao_nome,
     subfuncao,
