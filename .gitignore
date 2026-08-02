@@ -54,3 +54,11 @@ out/
 .pnpm-debug.log*
 next-env.d.ts
 
+.bmad-loop/
+.claude
+_bmad
+.agent/skills/memory
+.agent/skills/sync
+.agent/skills/bmad-*
+.agents/
+.agent/skills/wds-*/*
