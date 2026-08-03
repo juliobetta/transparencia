@@ -3,6 +3,7 @@
 with receitas_base as (
     select
         portal_slug,
+        empresa_id,
         ano,
         sum(case when tipo_receita in ('orcamentaria', 'uniao', 'estado') then coalesce(previsao_atualizada, 0) else 0 end) as total_previsto,
         sum(case when tipo_receita in ('orcamentaria', 'uniao', 'estado') then coalesce(arrecadado, 0) else 0 end) as total_arrecadado,
@@ -46,12 +47,13 @@ with receitas_base as (
             end
         ) as emendas_individuais_arrecadado
     from {{ ref('fct_receitas') }}
-    group by portal_slug, ano
+    group by portal_slug, empresa_id, ano
 ),
 
 calculos as (
     select
         portal_slug,
+        empresa_id,
         ano,
         greatest(0, total_previsto - transferencias_uniao_previsto - transferencias_estado_previsto)::numeric(15, 2) as receita_propria_previsto,
         greatest(0, total_arrecadado - transferencias_uniao_arrecadado - transferencias_estado_arrecadado)::numeric(15, 2) as receita_propria_arrecadado,
@@ -71,8 +73,9 @@ calculos as (
 )
 
 select
-    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'ano']) }} as fontes_receita_id,
+    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'empresa_id', 'ano']) }} as fontes_receita_id,
     portal_slug,
+    empresa_id,
     ano,
     receita_propria_previsto,
     receita_propria_arrecadado,
