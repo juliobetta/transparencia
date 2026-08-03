@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getAdesaoDeAta,
+  getAnaliseDespesasMetrics,
   getConcentracaoFornecedores,
   getDepartmentalPayroll,
   getDistribucaoModalidades,
@@ -8,9 +9,13 @@ import {
   getEntidades,
   getExecucaoDecimoTerceiro,
   getExecucaoOrcamentaria,
+  getExecucaoOrcamentariaMetrics,
   getFolhaVsServicos,
   getFontesReceita,
+  getFontesReceitaMetrics,
+  getHistoriaCapremMetrics,
   getHistoriaSaude,
+  getHistoriaSaudeMetrics,
   getImpactoGastosLocais,
   getLicitacaoGaps,
   getPortalConfig,
@@ -205,5 +210,131 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
       [],
     );
     expect(metricsEmpty).toBeNull();
+  });
+
+  it("deve buscar analise de despesas via mart atômico (getAnaliseDespesasMetrics) com consolidação", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    const empresaIds = entidades.map((e: { id: string }) => e.id);
+
+    const metrics = await getAnaliseDespesasMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      empresaIds.length > 0 ? empresaIds : ["1"],
+    );
+    expect(Array.isArray(metrics)).toBe(true);
+    if (metrics.length > 0) {
+      expect(typeof metrics[0].portalSlug).toBe("string");
+      expect(typeof metrics[0].orgaoCodigo).toBe("string");
+      expect(typeof metrics[0].unidadeCodigo).toBe("string");
+      expect(typeof metrics[0].funcaoCodigo).toBe("string");
+      expect(typeof metrics[0].ano).toBe("number");
+      expect(typeof metrics[0].totalEmpenhado).toBe("number");
+      expect(typeof metrics[0].totalLiquidado).toBe("number");
+      expect(typeof metrics[0].totalPago).toBe("number");
+    }
+
+    const emptyFilter = await getAnaliseDespesasMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [],
+    );
+    expect(emptyFilter).toEqual([]);
+  });
+
+  it("deve buscar execução orçamentária via mart atômico (getExecucaoOrcamentariaMetrics) com consolidação", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    const empresaIds = entidades.map((e: { id: string }) => e.id);
+
+    const metrics = await getExecucaoOrcamentariaMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      empresaIds.length > 0 ? empresaIds : ["1"],
+    );
+    expect(Array.isArray(metrics)).toBe(true);
+    if (metrics.length > 0) {
+      expect(typeof metrics[0].portalSlug).toBe("string");
+      expect(typeof metrics[0].orgaoCodigo).toBe("string");
+      expect(typeof metrics[0].unidadeCodigo).toBe("string");
+      expect(typeof metrics[0].funcaoCodigo).toBe("string");
+      expect(typeof metrics[0].subfuncaoCodigo).toBe("string");
+      expect(typeof metrics[0].ano).toBe("number");
+      expect(typeof metrics[0].totalDotacaoAtualizada).toBe("number");
+      expect(typeof metrics[0].totalEmpenhado).toBe("number");
+      expect(typeof metrics[0].taxaExecucao).toBe("number");
+      expect(typeof metrics[0].alertaExecucao).toBe("string");
+    }
+
+    const emptyFilter = await getExecucaoOrcamentariaMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [],
+    );
+    expect(emptyFilter).toEqual([]);
+  });
+
+  it("deve buscar fontes de receita via mart atômico (getFontesReceitaMetrics) com consolidação", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    const empresaIds = entidades.map((e: { id: string }) => e.id);
+
+    const metrics = await getFontesReceitaMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      empresaIds.length > 0 ? empresaIds : ["1"],
+    );
+    if (metrics !== null) {
+      expect(typeof metrics.portalSlug).toBe("string");
+      expect(typeof metrics.ano).toBe("number");
+      expect(typeof metrics.receitaPropriaArrecadado).toBe("number");
+      expect(typeof metrics.totalArrecadado).toBe("number");
+      expect(typeof metrics.pctPropria).toBe("number");
+      expect(typeof metrics.alertaDependencia).toBe("boolean");
+      expect(typeof metrics.fpmArrecadado).toBe("number");
+      expect(typeof metrics.emendasTotalArrecadado).toBe("number");
+    }
+
+    const emptyFilter = await getFontesReceitaMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [],
+    );
+    expect(emptyFilter).toBeNull();
+  });
+
+  it("deve buscar história previdenciária via mart atômico (getHistoriaCapremMetrics) com restrição de portal", async () => {
+    const metrics = await getHistoriaCapremMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+    );
+    if (metrics !== null) {
+      expect(typeof metrics.historiaCapremId).toBe("string");
+      expect(typeof metrics.portalSlug).toBe("string");
+      expect(typeof metrics.ano).toBe("number");
+      expect(typeof metrics.totalAporteExigido).toBe("number");
+      expect(typeof metrics.taxaAdimplenciaAporte).toBe("number");
+      expect(typeof metrics.totalEmpenhadoPatronal).toBe("number");
+      expect(typeof metrics.romboPatronalNaoRepassado).toBe("number");
+    }
+
+    const otherPortal = await getHistoriaCapremMetrics(
+      "outra_cidade_prefeitura",
+      TEST_YEAR,
+    );
+    expect(otherPortal).toBeNull();
+  });
+
+  it("deve buscar história da saúde via mart atômico (getHistoriaSaudeMetrics)", async () => {
+    const metrics = await getHistoriaSaudeMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+    );
+    if (metrics !== null) {
+      expect(typeof metrics.historiaSaudeId).toBe("string");
+      expect(typeof metrics.portalSlug).toBe("string");
+      expect(typeof metrics.ano).toBe("number");
+      expect(typeof metrics.dotacaoTotal).toBe("number");
+      expect(typeof metrics.medicamentosInsumosPago).toBe("number");
+      expect(typeof metrics.judicializacaoPago).toBe("number");
+      expect(typeof metrics.hhiConcentracaoFornecedores).toBe("number");
+    }
   });
 });
