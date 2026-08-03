@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: dim_credor
+    description: "Credores/fornecedores únicos por portal"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: credor_id
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: fornecedor_cpf_cnpj
+        data_type: text
+      - name: fornecedor_nome
+        data_type: text
+      - name: fornecedor_cidade
+        data_type: text

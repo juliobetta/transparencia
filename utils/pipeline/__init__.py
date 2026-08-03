@@ -1,1 +1,0 @@
-# Package marking scripts directory

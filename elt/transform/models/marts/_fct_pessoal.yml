@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: fct_pessoal
+    description: "Fato de pessoal consolidado de todos os portais (sem chave única por linha)"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+      - name: proventos
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              row_condition: "proventos is not null"
+      - name: categoria_funcional
+        data_type: text
+      - name: vinculo
+        data_type: text
+      - name: cargo
+        data_type: text
+      - name: forma_provimento
+        data_type: text

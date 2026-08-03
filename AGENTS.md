@@ -14,9 +14,9 @@ Este repositório possui limites estritos de consumo de tokens (Spend Cap). Todo
 
 ## 2. ARQUITETURA BASEADA EM CAMADAS (DRY / CONTEXT CONSERVATION)
 
-- **Foco na Camada de Negócio (`analysis/`):** Toda a inteligência contábil, cálculos da LRF, queries complexas de bancos de dados, cruzamentos e filtros de licitações pertencem exclusivamente à pasta `analysis/`.
-- **A Camada de Apresentação é Burra:** Os componentes de visualização (`dashboard/pages/` e `report/`) devem apenas importar DataFrames estruturados e renderizá-los.
-- **Eficiência de Desenvolvimento:** Para alterar qualquer lógica ou corrigir anomalias fiscais, **sempre modifique apenas a camada `analysis/`**. Isso poupa a leitura e modificação de dezenas de arquivos Streamlit e templates HTML, economizando até 70% de tokens por modificação.
+- **Camada de Dados / Queries (`packages/db`):** Toda a inteligência contábil, cálculos da LRF, queries Kysely e cruzamentos pertencem exclusivamente a `@transparencia/db/src/queries/`.
+- **A Camada de Apresentação é Burra:** Os componentes de visualização (`packages/ui` e `apps/web/app/`) devem apenas importar os dados tipados do `@transparencia/db` e renderizá-los.
+- **Eficiência de Desenvolvimento:** Para alterar qualquer lógica ou corrigir anomalias fiscais nas telas web, modifique apenas a camada `@transparencia/db`. Isso evita a alteração desnecessária de componentes de página.
 
 ---
 
@@ -30,5 +30,34 @@ Este repositório possui limites estritos de consumo de tokens (Spend Cap). Todo
 ## 4. BASELINE DE QUALIDADE MANDATÓRIA
 
 Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
-1. Sempre execute a suíte de testes de integração via `make test`.
-2. Sempre rode as validações estáticas e linters via `make check`.
+1. **Backend & Modelos DBT (Python):** Sempre execute a suíte de testes de integração via `make test` e as validações estáticas/linters via `make check`.
+2. **Frontend & queries Kysely (TypeScript):** Sempre execute a suíte de testes de paridade via `make test/ts` (ou `pnpm test`) e verifique a tipagem executando `pnpm build` ou `tsc --noEmit` nos pacotes correspondentes.
+
+---
+
+## 5. SINCRONIZAÇÃO DE FONTES: dbt models ↔ `elt/conftest.py`
+
+**Contexto:** O banco de testes utiliza uma instância efêmera do PostgreSQL (`testing.postgresql`). A função `_create_raw_schema(eng)` em [conftest.py](file:///Volumes/Projects/transparencia/elt/conftest.py) cria o schema `raw_porciuncula_prefeitura` e as tabelas raw lendo dinamicamente as definições do arquivo de metadados [_sources.yml](file:///Volumes/Projects/transparencia/elt/transform/models/staging/porciuncula_prefeitura/_sources.yml). Durante a inicialização dos testes, as views e tabelas de staging/marts são compiladas e criadas dinamicamente no banco de testes executando as etapas do dbt (`deps`, `seed` e `run --vars '{"test_mode": true}'`).
+
+**Regra:** Toda vez que houver alteração nas tabelas raw de entrada (como novas tabelas ou novas colunas), é **obrigatório** atualizar o arquivo de fontes [_sources.yml](file:///Volumes/Projects/transparencia/elt/transform/models/staging/porciuncula_prefeitura/_sources.yml) correspondente. Não há necessidade de atualizar views ou criar tabelas manualmente no arquivo Python `conftest.py`, pois o pipeline do dbt é executado automaticamente durante o setup de testes para construir toda a estrutura derivada.
+
+**Verificação:** Após qualquer alteração em `elt/transform/models/` ou no schema das tabelas raw, execute `make test`. Se algum teste falhar por falta de colunas ou tabelas raw, certifique-se de que elas foram devidamente declaradas em `_sources.yml`.
+
+---
+
+## 6. FORMATAÇÃO SQL
+
+- **Sem alinhamento por espaços:** Nunca adicione espaços extras para alinhar colunas, aliases (`AS`) ou qualquer outro elemento em queries SQL de analytics (`analysis/`, `elt/`, `tests/`). Use apenas o espaço mínimo necessário para separar tokens.
+
+---
+
+## 7. GERENCIAMENTO DE DEPENDÊNCIAS (PINNED VERSIONS)
+
+- **Versões Exatas (Pinned Versions):** Sempre instale e declare versões exatas de pacotes e dependências (npm/pnpm/pip) nos arquivos de manifesto (`package.json`, `pyproject.toml`, etc.), **sem** prefixos de variação como `^` ou `~` (ex: `"nuqs": "2.9.1"`). Ao rodar instalações via CLI, utilize flags de versão exata (ex: `pnpm add --save-exact <pacote>`).
+
+---
+
+## 8. FILTRAGEM MANDATÓRIA POR `portalSlug`
+
+- **Isolamento de Dados por Portal:** Todas as queries em `@transparencia/db` devem obrigatoriamente incluir o filtro por `portalSlug` (ex: `WHERE portal_slug = ${portalSlug}`).
+- **Modelagem DBT:** Caso a tabela consultada não possua a coluna `portal_slug`, é **obrigatório** rever a modelagem no dbt (adicionando a coluna no mart/staging correspondente) ou realizar o `JOIN` necessário com uma tabela que possua a dimensão de portal. Nenhuma consulta no repositório deve retornar dados multi-tenant não filtrados por portal.
