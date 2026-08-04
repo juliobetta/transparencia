@@ -62,3 +62,5 @@ _bmad
 .agent/skills/bmad-*
 .agents/
 .agent/skills/wds-*/*
+
+*.tsbuildinfo
