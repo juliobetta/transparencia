@@ -21,9 +21,9 @@ export default async function OrcamentoPage({
   params,
   searchParams,
 }: OrcamentoPageProps) {
-  await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-  const rawData = await loadOrcamentoData(resolvedSearchParams);
+  const rawData = await loadOrcamentoData(portalSlug, resolvedSearchParams);
   const viewModel = buildOrcamentoViewModel(rawData);
 
   const {

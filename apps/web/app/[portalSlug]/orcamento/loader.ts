@@ -33,7 +33,10 @@ export function parseOrcamentoContext(
   };
 }
 
-export async function loadOrcamentoData(searchParams: OrcamentoSearchParams) {
+export async function loadOrcamentoData(
+  portalSlug: string,
+  searchParams: OrcamentoSearchParams,
+) {
   const context = parseOrcamentoContext(searchParams);
   const { selectedYear, entidadesIds } = context;
 
@@ -43,6 +46,7 @@ export async function loadOrcamentoData(searchParams: OrcamentoSearchParams) {
   ]);
 
   return {
+    portalSlug,
     context,
     items,
     funcionalData,

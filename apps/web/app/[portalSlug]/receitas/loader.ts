@@ -29,7 +29,10 @@ export function parseReceitasContext(
   };
 }
 
-export async function loadReceitasData(searchParams: ReceitasSearchParams) {
+export async function loadReceitasData(
+  portalSlug: string,
+  searchParams: ReceitasSearchParams,
+) {
   const context = parseReceitasContext(searchParams);
   const { selectedYear, entidadesIds } = context;
 
@@ -39,6 +42,7 @@ export async function loadReceitasData(searchParams: ReceitasSearchParams) {
   ]);
 
   return {
+    portalSlug,
     context,
     fonte: fontes[0],
   };

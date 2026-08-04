@@ -24,11 +24,15 @@ export function parseSaudeContext(
   };
 }
 
-export async function loadSaudeData(searchParams: SaudeSearchParams) {
+export async function loadSaudeData(
+  portalSlug: string,
+  searchParams: SaudeSearchParams,
+) {
   const context = parseSaudeContext(searchParams);
   const saude = await getHistoriaSaude(context.selectedYear);
 
   return {
+    portalSlug,
     context,
     saude,
   };

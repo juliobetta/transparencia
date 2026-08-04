@@ -21,7 +21,7 @@ export default async function SaudePage({
 }: SaudePageProps) {
   const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-  const rawData = await loadSaudeData(resolvedSearchParams);
+  const rawData = await loadSaudeData(portalSlug, resolvedSearchParams);
   const viewModel = buildSaudeViewModel(rawData);
   const { selectedYear, isCurrentYear, partialPeriod, saude } = viewModel;
 

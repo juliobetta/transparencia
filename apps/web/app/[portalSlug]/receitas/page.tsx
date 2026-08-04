@@ -21,9 +21,9 @@ export default async function ReceitasPage({
   params,
   searchParams,
 }: ReceitasPageProps) {
-  await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-  const rawData = await loadReceitasData(resolvedSearchParams);
+  const rawData = await loadReceitasData(portalSlug, resolvedSearchParams);
   const viewModel = buildReceitasViewModel(rawData);
 
   const {

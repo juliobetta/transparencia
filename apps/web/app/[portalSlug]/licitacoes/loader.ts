@@ -35,7 +35,10 @@ export function parseLicitacoesContext(
   };
 }
 
-export async function loadLicitacoesData(searchParams: LicitacoesSearchParams) {
+export async function loadLicitacoesData(
+  portalSlug: string,
+  searchParams: LicitacoesSearchParams,
+) {
   const context = parseLicitacoesContext(searchParams);
   const { selectedYear, entidadesIds } = context;
 
@@ -49,6 +52,7 @@ export async function loadLicitacoesData(searchParams: LicitacoesSearchParams) {
     ]);
 
   return {
+    portalSlug,
     context,
     gaps,
     adesao,

@@ -16,9 +16,9 @@ export default async function LicitacoesPage({
   params,
   searchParams,
 }: LicitacoesPageProps) {
-  await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-  const rawData = await loadLicitacoesData(resolvedSearchParams);
+  const rawData = await loadLicitacoesData(portalSlug, resolvedSearchParams);
   const viewModel = buildLicitacoesViewModel(rawData);
 
   const {
