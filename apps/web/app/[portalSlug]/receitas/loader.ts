@@ -1,4 +1,4 @@
-import { getFontesReceita, getPortalConfig } from "@transparencia/db";
+import { getEntidades, getFontesReceitaMetrics } from "@transparencia/db";
 
 export interface ReceitasSearchParams {
   ano?: string;
@@ -29,6 +29,65 @@ export function parseReceitasContext(
   };
 }
 
+async function resolveEmpresaIds(
+  portalSlug: string,
+  entidadesIds?: string[],
+): Promise<string[]> {
+  if (entidadesIds && entidadesIds.length > 0) {
+    return entidadesIds;
+  }
+
+  const entidades = await getEntidades(portalSlug);
+  return entidades.map((entidade) => entidade.id).filter(Boolean);
+}
+
+function mapFontesMetricToLegacy(
+  fontes: NonNullable<Awaited<ReturnType<typeof getFontesReceitaMetrics>>>,
+  totalPctChange: number | null,
+) {
+  const receitaPropria = fontes.receitaPropriaArrecadado;
+  const transferenciasUniao = fontes.transferenciasUniaoArrecadado;
+  const transferenciasEstado = fontes.transferenciasEstadoArrecadado;
+  const total = fontes.totalArrecadado;
+
+  const pctPropriaPrevisto =
+    fontes.totalPrevisto > 0
+      ? (fontes.receitaPropriaPrevisto / fontes.totalPrevisto) * 100
+      : 0;
+
+  const pctArrecadado =
+    fontes.totalPrevisto > 0
+      ? fontes.totalArrecadado / fontes.totalPrevisto
+      : 0;
+
+  return {
+    ano: fontes.ano,
+    receitaPropria,
+    transferenciasUniao,
+    transferenciasEstado,
+    total,
+    pctPropria: fontes.pctPropria,
+    pctPropriaPrevisto,
+    alertaDependencia: fontes.alertaDependencia,
+    receitaPropriaPrevisto: fontes.receitaPropriaPrevisto,
+    receitaPropriaArrecadado: fontes.receitaPropriaArrecadado,
+    transferenciasUniaoPrevisto: fontes.transferenciasUniaoPrevisto,
+    transferenciasUniaoArrecadado: fontes.transferenciasUniaoArrecadado,
+    transferenciasEstadoPrevisto: fontes.transferenciasEstadoPrevisto,
+    transferenciasEstadoArrecadado: fontes.transferenciasEstadoArrecadado,
+    totalPrevisto: fontes.totalPrevisto,
+    totalArrecadado: fontes.totalArrecadado,
+    pctArrecadado,
+    totalPctChange,
+    emendasTotalArrecadado: fontes.emendasTotalArrecadado,
+    emendasPixArrecadado: fontes.emendasPixArrecadado,
+    emendasIndividuaisArrecadado: fontes.emendasIndividuaisArrecadado,
+    fpmArrecadado: fontes.fpmArrecadado,
+    icmsArrecadado: fontes.icmsArrecadado,
+    issIptuArrecadado: fontes.issIptuArrecadado,
+  };
+}
+
 export async function loadReceitasData(
   portalSlug: string,
   searchParams: ReceitasSearchParams,
@@ -36,14 +95,25 @@ export async function loadReceitasData(
   const context = parseReceitasContext(searchParams);
   const { selectedYear, entidadesIds } = context;
 
-  const [_portalConfig, fontes] = await Promise.all([
-    getPortalConfig(),
-    getFontesReceita([selectedYear], entidadesIds),
+  const empresaIds = await resolveEmpresaIds(portalSlug, entidadesIds);
+
+  const [fonteAtual, fonteAnterior] = await Promise.all([
+    getFontesReceitaMetrics(portalSlug, selectedYear, empresaIds),
+    getFontesReceitaMetrics(portalSlug, selectedYear - 1, empresaIds),
   ]);
+
+  const totalPctChange =
+    fonteAtual && fonteAnterior && fonteAnterior.totalArrecadado > 0
+      ? ((fonteAtual.totalArrecadado - fonteAnterior.totalArrecadado) /
+          fonteAnterior.totalArrecadado) *
+        100
+      : null;
 
   return {
     portalSlug,
     context,
-    fonte: fontes[0],
+    fonte: fonteAtual
+      ? mapFontesMetricToLegacy(fonteAtual, totalPctChange)
+      : undefined,
   };
 }
