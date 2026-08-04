@@ -1,5 +1,7 @@
 import { getEntidades, getPortalConfig } from "@transparencia/db";
 import { Ribbon } from "@transparencia/ui";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
@@ -55,6 +57,8 @@ export default async function RootLayout({
             </main>
           </div>
         </NuqsAdapter>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
