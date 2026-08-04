@@ -1,18 +1,14 @@
 import {
-  getExecucaoOrcamentaria,
-  getOrcamentoFuncional,
-  summarizeExecucao,
-} from "@transparencia/db";
-import {
   DenseTable,
   fmtCompact,
-  getPartialYearPeriod,
   KPICard,
   toTitleCase,
 } from "@transparencia/ui";
 import { FunnelExecucaoHorizontal } from "@/components/funil-execucao-horizontal";
 import { GastoPorFuncaoBars } from "@/components/gasto-por-funcao-bars";
 import { KPIGrid } from "@/components/kpi-grid";
+import { loadOrcamentoData } from "./loader";
+import { buildOrcamentoViewModel } from "./view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -25,101 +21,27 @@ export default async function OrcamentoPage({
   params,
   searchParams,
 }: OrcamentoPageProps) {
-  const { portalSlug: _portalSlug } = await params;
+  await params;
   const resolvedSearchParams = await searchParams;
+  const rawData = await loadOrcamentoData(resolvedSearchParams);
+  const viewModel = buildOrcamentoViewModel(rawData);
 
-  const currentYear = new Date().getFullYear();
-  const selectedYear = resolvedSearchParams.ano
-    ? Number(resolvedSearchParams.ano)
-    : currentYear;
-  const entidadesIds = resolvedSearchParams.entidades
-    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
-    : undefined;
-
-  const isCurrentYear = selectedYear === currentYear;
-
-  const items = await getExecucaoOrcamentaria(selectedYear, entidadesIds);
-  const summary = summarizeExecucao(items);
-  const funcionalData = await getOrcamentoFuncional(selectedYear, entidadesIds);
-
-  const partialPeriod = getPartialYearPeriod();
-
-  const totalDotacao = summary.totalDotacao;
-  const totalEmpenhado = summary.totalEmpenhado;
-  const totalLiquidado = summary.totalLiquidado;
-  const totalPago = summary.totalPago;
-
-  const empPct = totalDotacao > 0 ? (totalEmpenhado / totalDotacao) * 100 : 0;
-  const liqPct = totalDotacao > 0 ? (totalLiquidado / totalDotacao) * 100 : 0;
-  const pagPct = totalDotacao > 0 ? (totalPago / totalDotacao) * 100 : 0;
-
-  const funnelStages = [
-    {
-      name: "Dotação",
-      value: totalDotacao,
-      formattedValue: fmtCompact(totalDotacao),
-      colorClass: "bg-blue-600",
-    },
-    {
-      name: "Empenhado",
-      value: totalEmpenhado,
-      formattedValue: fmtCompact(totalEmpenhado),
-      colorClass: "bg-blue-500",
-    },
-    {
-      name: "Liquidado",
-      value: totalLiquidado,
-      formattedValue: fmtCompact(totalLiquidado),
-      colorClass: "bg-sky-500",
-    },
-    {
-      name: "Pago",
-      value: totalPago,
-      formattedValue: fmtCompact(totalPago),
-      colorClass: "bg-cyan-500",
-    },
-  ];
-
-  // Agrupamento por função de governo
-  const funcMap: Record<string, number> = {};
-  for (const item of funcionalData) {
-    const fname = item.funcaoNome || "Outras funções";
-    funcMap[fname] = (funcMap[fname] || 0) + (item.pago || item.empenhado || 0);
-  }
-  const funcItems = Object.entries(funcMap)
-    .map(([funcao, valor]) => ({ funcao, valor }))
-    .sort((a, b) => b.valor - a.valor);
-
-  const orgaosCols = [
-    {
-      header: "Órgão / Unidade",
-      accessorKey: "descricao" as const,
-    },
-    {
-      header: "Dotação",
-      accessorKey: "dotacaoAtualizada" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-    {
-      header: "Empenhado",
-      accessorKey: "empenhado" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-    {
-      header: "Pago",
-      accessorKey: "pago" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-    {
-      header: "Execução",
-      accessorKey: "alerta" as const,
-      align: "center" as const,
-      format: "statusBadge" as const,
-    },
-  ];
+  const {
+    selectedYear,
+    isCurrentYear,
+    partialPeriod,
+    items,
+    totalDotacao,
+    totalEmpenhado,
+    totalLiquidado,
+    totalPago,
+    empPct,
+    liqPct,
+    pagPct,
+    funnelStages,
+    funcItems,
+    orgaosCols,
+  } = viewModel;
 
   return (
     <div className="space-y-6">

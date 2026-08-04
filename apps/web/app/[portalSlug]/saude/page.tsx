@@ -1,16 +1,12 @@
-import { getHistoriaSaude } from "@transparencia/db";
-import {
-  AlertBox,
-  fmtCompact,
-  getPartialYearPeriod,
-  KPICard,
-} from "@transparencia/ui";
+import { AlertBox, fmtCompact, KPICard } from "@transparencia/ui";
 import { KPIGrid } from "@/components/kpi-grid";
 import { SaudeContratacaoSection } from "@/components/saude-contratacao-section";
 import { SaudeEmendasSection } from "@/components/saude-emendas-section";
 import { SaudeFontesDonut } from "@/components/saude-fontes-donut";
 import { SaudeHeroSection } from "@/components/saude-hero-section";
 import { SaudeTrendChart } from "@/components/saude-trend-chart";
+import { loadSaudeData } from "./loader";
+import { buildSaudeViewModel } from "./view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -25,16 +21,9 @@ export default async function SaudePage({
 }: SaudePageProps) {
   const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-
-  const currentYear = new Date().getFullYear();
-  const selectedYear = resolvedSearchParams.ano
-    ? Number(resolvedSearchParams.ano)
-    : currentYear;
-
-  const isCurrentYear = selectedYear === currentYear;
-  const partialPeriod = getPartialYearPeriod();
-
-  const saude = await getHistoriaSaude(selectedYear);
+  const rawData = await loadSaudeData(resolvedSearchParams);
+  const viewModel = buildSaudeViewModel(rawData);
+  const { selectedYear, isCurrentYear, partialPeriod, saude } = viewModel;
 
   return (
     <div className="space-y-12 pb-12">
