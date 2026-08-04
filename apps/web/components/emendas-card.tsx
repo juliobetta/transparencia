@@ -10,7 +10,6 @@ export interface EmendasCardProps {
 
 export function EmendasCard({
   totalEmendas,
-  pctDoArrecadado,
   emendasPix,
   emendasIndividuais,
   className,

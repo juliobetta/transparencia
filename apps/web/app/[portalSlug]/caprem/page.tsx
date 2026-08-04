@@ -1,4 +1,3 @@
-import { getHistoriaCaprem } from "@transparencia/db";
 import {
   DenseTable,
   fmtCompact,
@@ -12,6 +11,8 @@ import { CapremEntidadesDonut } from "@/components/caprem-entidades-donut";
 import { CapremHeroSection } from "@/components/caprem-hero-section";
 import { KPIGrid } from "@/components/kpi-grid";
 import { SectionHeader } from "@/components/section-header";
+import { loadCapremData } from "./loader";
+import { buildCapremViewModel } from "./view-model";
 
 interface CapremPageProps {
   params: Promise<{ portalSlug: string }>;
@@ -24,66 +25,15 @@ export default async function CapremPage({
 }: CapremPageProps) {
   const { portalSlug } = await params;
   const sParams = await searchParams;
-
-  const currentYear = new Date().getFullYear();
-  const selectedYear = sParams.ano ? Number(sParams.ano) : currentYear;
-  const isCurrentYear = selectedYear === currentYear;
-  const _partialPeriod = isCurrentYear
-    ? `Janeiro a ${new Date().toLocaleDateString("pt-BR", { month: "long" })} de ${currentYear}`
-    : undefined;
-
-  // Consolidado municipal de 100% dos dados previdenciários e assistenciais
-  const caprem = await getHistoriaCaprem(portalSlug, selectedYear, null);
-
-  const naturezaCols = [
-    {
-      header: "Data do Lançamento",
-      accessorKey: "dataEmpenho" as const,
-      format: "date" as const,
-    },
-    { header: "Regime / Destino", accessorKey: "destino" as const },
-    {
-      header: "Elemento / Descrição da Natureza",
-      accessorKey: "descricao" as const,
-      className: "max-w-sm",
-    },
-    {
-      header: "Empenhado",
-      accessorKey: "empenhado" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-    {
-      header: "Pago",
-      accessorKey: "pago" as const,
-      align: "right" as const,
-      format: "currency" as const,
-    },
-  ];
-
-  // Agregação dos dados contábeis por destino para o gráfico
-  const destinoMap = new Map<string, number>();
-  for (const n of caprem.natureza) {
-    const key = n.destino;
-    destinoMap.set(key, (destinoMap.get(key) || 0) + n.pago);
-  }
-
-  const destinoColors: Record<string, string> = {
-    "RPPS (CAPREM)": "oklch(0.55 0.14 250)",
-    "Aporte Atuarial (CAPREM)": "oklch(0.60 0.18 30)",
-    "Amortização Dívida (CAPREM)": "oklch(0.55 0.15 45)",
-    "INSS (RGPS)": "oklch(0.65 0.12 180)",
-    "Plano de Saúde (CASP)": "oklch(0.60 0.12 210)",
-    "Encargo Patronal Geral": "oklch(0.50 0.05 240)",
-  };
-
-  const naturezaChartData = Array.from(destinoMap.entries())
-    .map(([dest, val]) => ({
-      label: dest,
-      value: val,
-      barColor: destinoColors[dest] || "oklch(0.55 0.11 250)",
-    }))
-    .sort((a, b) => b.value - a.value);
+  const rawData = await loadCapremData(portalSlug, sParams);
+  const viewModel = buildCapremViewModel(rawData);
+  const {
+    selectedYear,
+    isCurrentYear,
+    caprem,
+    naturezaCols,
+    naturezaChartData,
+  } = viewModel;
 
   return (
     <div className="space-y-12 pb-12">
