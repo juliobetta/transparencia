@@ -1,6 +1,6 @@
+import { cn } from "@transparencia/ui";
 import Link from "next/link";
 import React from "react";
-import { cn } from "../utils/cn";
 
 export interface ExecutionStage {
   name: string;

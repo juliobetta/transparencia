@@ -1,11 +1,9 @@
 "use client";
 
+import { Badge, DenseTable, fmtCurrency, fmtPercent } from "@transparencia/ui";
 import { AlertTriangle, CheckCircle2, TrendingUp, Users } from "lucide-react";
-import { fmtCurrency, fmtPercent } from "../utils/formatters";
-import { Badge } from "./badge";
-import { DenseTable } from "./dense-table";
-import { KPIGrid } from "./kpi-grid";
-import { SectionHeader } from "./section-header";
+import { KPIGrid } from "@/components/kpi-grid";
+import { SectionHeader } from "@/components/section-header";
 
 export interface ActuarialRiskSummary {
   totalAporteExigido: number;

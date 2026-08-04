@@ -1,5 +1,4 @@
-import { fmtCompact } from "../../utils/formatters";
-import { toTitleCase } from "../../utils/text";
+import { fmtCompact, toTitleCase } from "@transparencia/ui";
 
 export interface UnidadeGastoItem {
   descricao: string;

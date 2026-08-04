@@ -4,13 +4,13 @@ import {
   fmtCompact,
   getPartialYearPeriod,
   KPICard,
-  KPIGrid,
-  SaudeContratacaoSection,
-  SaudeEmendasSection,
-  SaudeFontesDonut,
-  SaudeHeroSection,
-  SaudeTrendChart,
 } from "@transparencia/ui";
+import { KPIGrid } from "@/components/kpi-grid";
+import { SaudeContratacaoSection } from "@/components/saude-contratacao-section";
+import { SaudeEmendasSection } from "@/components/saude-emendas-section";
+import { SaudeFontesDonut } from "@/components/saude-fontes-donut";
+import { SaudeHeroSection } from "@/components/saude-hero-section";
+import { SaudeTrendChart } from "@/components/saude-trend-chart";
 
 export const dynamic = "force-dynamic";
 

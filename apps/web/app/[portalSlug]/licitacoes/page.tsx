@@ -5,14 +5,10 @@ import {
   getDistribucaoModalidades,
   getLicitacaoGaps,
 } from "@transparencia/db";
-import {
-  cn,
-  DistribucaoModalidadesChart,
-  getPartialYearPeriod,
-  KPICard,
-  KPIGrid,
-  LicitacoesTable,
-} from "@transparencia/ui";
+import { cn, getPartialYearPeriod, KPICard } from "@transparencia/ui";
+import { DistribucaoModalidadesChart } from "@/components/distribuicao-modalidades-chart";
+import { KPIGrid } from "@/components/kpi-grid";
+import { LicitacoesTable } from "@/components/licitacoes-table";
 
 export const dynamic = "force-dynamic";
 

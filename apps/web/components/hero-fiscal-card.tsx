@@ -1,6 +1,5 @@
+import { cn, fmtCompact } from "@transparencia/ui";
 import type React from "react";
-import { cn } from "../utils/cn";
-import { fmtCompact } from "../utils/formatters";
 
 export interface OriginBreakdownItem {
   label: string;

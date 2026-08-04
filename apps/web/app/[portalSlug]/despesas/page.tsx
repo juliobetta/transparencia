@@ -9,19 +9,19 @@ import {
   getResumoDiarias,
 } from "@transparencia/db";
 import {
-  BarChartH,
-  DonutGastosLocais,
   fmtCompact,
   fmtCurrency,
   fmtPercent,
   getPartialYearPeriod,
   KPICard,
-  KPIGrid,
-  RestosAPagarVendorsChart,
-  SectionHeader,
   toTitleCase,
-  UnidadesGastosChart,
 } from "@transparencia/ui";
+import { BarChartH } from "@/components/bar-chart-h";
+import { DonutGastosLocais } from "@/components/donut-gastos-locais";
+import { KPIGrid } from "@/components/kpi-grid";
+import { RestosAPagarVendorsChart } from "@/components/restos-a-pagar-vendors-chart";
+import { SectionHeader } from "@/components/section-header";
+import { UnidadesGastosChart } from "@/components/unidades-gastos-chart";
 
 export const dynamic = "force-dynamic";
 

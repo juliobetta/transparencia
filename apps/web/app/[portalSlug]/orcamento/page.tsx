@@ -5,14 +5,14 @@ import {
 } from "@transparencia/db";
 import {
   DenseTable,
-  FunnelExecucaoHorizontal,
   fmtCompact,
-  GastoPorFuncaoBars,
   getPartialYearPeriod,
   KPICard,
-  KPIGrid,
   toTitleCase,
 } from "@transparencia/ui";
+import { FunnelExecucaoHorizontal } from "@/components/funil-execucao-horizontal";
+import { GastoPorFuncaoBars } from "@/components/gasto-por-funcao-bars";
+import { KPIGrid } from "@/components/kpi-grid";
 
 export const dynamic = "force-dynamic";
 

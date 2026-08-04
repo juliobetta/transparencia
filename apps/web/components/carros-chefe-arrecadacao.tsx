@@ -1,5 +1,4 @@
-import { cn } from "../utils/cn";
-import { fmtCompact } from "../utils/formatters";
+import { cn, fmtCompact } from "@transparencia/ui";
 
 export interface CarrosChefeArrecadacaoProps {
   fpm: number;

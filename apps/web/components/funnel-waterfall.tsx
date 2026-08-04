@@ -1,7 +1,7 @@
 "use client";
 
+import { fmtCurrency } from "@transparencia/ui";
 import ReactECharts from "echarts-for-react";
-import { fmtCurrency } from "../../utils/formatters";
 
 export interface FunnelItem {
   name: string;

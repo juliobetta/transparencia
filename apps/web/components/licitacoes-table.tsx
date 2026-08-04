@@ -1,9 +1,8 @@
 "use client";
 
+import { cn, fmtCurrency } from "@transparencia/ui";
 import { ChevronDown, Download, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { cn } from "../utils/cn";
-import { fmtCurrency } from "../utils/formatters";
 
 export interface ContratoSemLicitacaoItem {
   ano: number;

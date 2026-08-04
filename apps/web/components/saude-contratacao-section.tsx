@@ -1,7 +1,6 @@
+import { fmtCompact, fmtPercent, KPICard } from "@transparencia/ui";
 import Link from "next/link";
-import { fmtCompact, fmtPercent } from "../utils/formatters";
-import { KPICard } from "./kpi-card";
-import { KPIGrid } from "./kpi-grid";
+import { KPIGrid } from "@/components/kpi-grid";
 
 export interface SaudeContratacaoModalidadeItem {
   nome: string;

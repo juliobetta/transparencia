@@ -1,8 +1,12 @@
-import { fmtCompact, fmtCurrency, fmtPercent } from "../utils/formatters";
-import { toTitleCase } from "../utils/text";
-import { DenseTable } from "./dense-table";
-import { KPICard } from "./kpi-card";
-import { KPIGrid } from "./kpi-grid";
+import {
+  DenseTable,
+  fmtCompact,
+  fmtCurrency,
+  fmtPercent,
+  KPICard,
+  toTitleCase,
+} from "@transparencia/ui";
+import { KPIGrid } from "@/components/kpi-grid";
 
 export interface SaudeEmendaItem {
   id: string;

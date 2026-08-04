@@ -1,5 +1,5 @@
+import { cn } from "@transparencia/ui";
 import Link from "next/link";
-import { cn } from "../utils/cn";
 
 export interface AntiguidadeBarItem {
   year: string;

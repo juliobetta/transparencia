@@ -1,17 +1,17 @@
 import { getHistoriaCaprem } from "@transparencia/db";
 import {
-  BarChartH,
-  CapremActuarialRiskSection,
-  CapremEntidadesDonut,
-  CapremHeroSection,
   DenseTable,
   fmtCompact,
   fmtCurrency,
   fmtPercent,
   KPICard,
-  KPIGrid,
-  SectionHeader,
 } from "@transparencia/ui";
+import { BarChartH } from "@/components/bar-chart-h";
+import { CapremActuarialRiskSection } from "@/components/caprem-actuarial-risk-section";
+import { CapremEntidadesDonut } from "@/components/caprem-entidades-donut";
+import { CapremHeroSection } from "@/components/caprem-hero-section";
+import { KPIGrid } from "@/components/kpi-grid";
+import { SectionHeader } from "@/components/section-header";
 
 interface CapremPageProps {
   params: Promise<{ portalSlug: string }>;
