@@ -9,15 +9,15 @@ import {
   summarizeExecucao,
 } from "@transparencia/db";
 import {
-  CardsSecundariosVisaoGeral,
   DenseTable,
   fmtCompact,
   fmtPercent,
   getPartialYearPeriod,
-  HeroFiscalCard,
-  PipelineExecucao,
   toTitleCase,
 } from "@transparencia/ui";
+import { CardsSecundariosVisaoGeral } from "@/components/cards-secundarios-visao-geral";
+import { HeroFiscalCard } from "@/components/hero-fiscal-card";
+import { PipelineExecucao } from "@/components/pipeline-execucao";
 
 export const dynamic = "force-dynamic";
 

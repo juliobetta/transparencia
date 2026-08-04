@@ -1,4 +1,4 @@
-import { fmtCompact } from "../../utils/formatters";
+import { fmtCompact } from "@transparencia/ui";
 
 export interface FunnelStage {
   name: string;

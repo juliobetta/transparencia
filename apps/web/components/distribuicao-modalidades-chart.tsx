@@ -1,7 +1,6 @@
 "use client";
 
-import { cn } from "../../utils/cn";
-import { toTitleCase } from "../../utils/text";
+import { cn, toTitleCase } from "@transparencia/ui";
 
 export interface ItemDistribucaoModalidadeUI {
   modalidade: string;

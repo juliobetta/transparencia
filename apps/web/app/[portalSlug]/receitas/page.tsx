@@ -1,14 +1,14 @@
 import { getFontesReceita, getPortalConfig } from "@transparencia/db";
 import {
   AlertBox,
-  CarrosChefeArrecadacao,
   DenseTable,
-  EmendasCard,
   fmtCompact,
   fmtPercent,
   getPartialYearPeriod,
-  PrevistoVsArrecadadoOrigem,
 } from "@transparencia/ui";
+import { CarrosChefeArrecadacao } from "@/components/carros-chefe-arrecadacao";
+import { EmendasCard } from "@/components/emendas-card";
+import { PrevistoVsArrecadadoOrigem } from "@/components/previsto-vs-arrecadado";
 
 export const dynamic = "force-dynamic";
 

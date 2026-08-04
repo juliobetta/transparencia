@@ -1,5 +1,4 @@
-import { cn } from "../../utils/cn";
-import { fmtCurrency } from "../../utils/formatters";
+import { cn, fmtCurrency } from "@transparencia/ui";
 
 export interface BarChartHItem {
   label: string;

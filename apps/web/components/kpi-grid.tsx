@@ -1,5 +1,5 @@
+import { cn } from "@transparencia/ui";
 import type React from "react";
-import { cn } from "../utils/cn";
 
 export interface KPIGridProps {
   children: React.ReactNode;

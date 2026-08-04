@@ -1,4 +1,4 @@
-import { fmtCompact, fmtPercent } from "../utils/formatters";
+import { fmtCompact, fmtPercent } from "@transparencia/ui";
 
 export interface SaudeHeroOrcamentoProps {
   dotacao: number;

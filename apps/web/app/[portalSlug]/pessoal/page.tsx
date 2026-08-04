@@ -7,15 +7,15 @@ import {
   getPortalConfig,
 } from "@transparencia/db";
 import {
-  DecimoTerceiroCard,
-  DepartmentalPayrollChart,
   fmtCompact,
   fmtPercent,
   getPartialYearPeriod,
   KPICard,
-  KPIGrid,
-  ProventosDistributionChart,
 } from "@transparencia/ui";
+import { DecimoTerceiroCard } from "@/components/decimo-terceiro-card";
+import { DepartmentalPayrollChart } from "@/components/departmental-payroll-chart";
+import { KPIGrid } from "@/components/kpi-grid";
+import { ProventosDistributionChart } from "@/components/proventos-distribution-chart";
 
 export const dynamic = "force-dynamic";
 

@@ -1,4 +1,4 @@
-import { fmtCompact } from "../utils/formatters";
+import { fmtCompact } from "@transparencia/ui";
 
 interface DecimoTerceiroCardProps {
   empenhado: number;

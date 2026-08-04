@@ -1,8 +1,7 @@
 "use client";
 
+import { fmtCurrency, toTitleCase } from "@transparencia/ui";
 import { Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
-import { fmtCurrency } from "../../utils/formatters";
-import { toTitleCase } from "../../utils/text";
 
 export interface EntityCapremItem {
   entidade: string;

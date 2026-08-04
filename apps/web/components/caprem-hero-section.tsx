@@ -2,7 +2,7 @@ import {
   fmtCompact,
   fmtPercent,
   getPartialYearPeriod,
-} from "../utils/formatters";
+} from "@transparencia/ui";
 
 export interface CapremHeroSectionProps {
   ano: number;
