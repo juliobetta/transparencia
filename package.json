@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "biome check .",
+    "lint": "biome check --diagnostic-level=error .",
     "lint:fix": "biome check --write --unsafe .",
     "test": "turbo test"
   },
