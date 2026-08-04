@@ -163,4 +163,3 @@ def run(conn: Any, year: int) -> dict:
         "mensal": _monthly_trend(conn, year),
         "natureza": natureza_df,
     }
-

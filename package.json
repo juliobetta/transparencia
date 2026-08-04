@@ -1,11 +1,11 @@
 {
   "name": "transparencia-monorepo",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "build": "turbo build",
     "dev": "turbo dev",
-    "lint": "biome check .",
+    "lint": "biome check --diagnostic-level=error .",
     "lint:fix": "biome check --write --unsafe .",
     "test": "turbo test"
   },
