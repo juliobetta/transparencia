@@ -28,15 +28,37 @@ jobs:
         run: sudo apt-get install -y postgresql postgresql-client
 
       - name: Install dependencies
-        run: pip install uv && uv sync --all-groups
+        run: pip install uv && uv sync --project elt --all-groups
 
       - name: Run linting
-        run: uv run make check
+        run: make check
 
       - name: Run tests
-        run: uv run make test
+        run: make test
         env:
           FLARESOLVERR_URL: http://localhost:8191/v1
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run linting
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test
 
   migrate:
     needs: ci
@@ -50,9 +72,9 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install uv && uv sync
+        run: pip install uv && uv sync --project elt
 
       - name: Run migrations
-        run: make migrate
+        run: make migrate/grant
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
