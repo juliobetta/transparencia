@@ -24,6 +24,14 @@ export function parseSaudeContext(
   };
 }
 
+function requirePortalSlug(portalSlug: string): string {
+  const normalized = portalSlug.trim();
+  if (!normalized) {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
+  return normalized;
+}
+
 function classifyHhi(hhi: number): string {
   if (hhi >= 2500) return "alta";
   if (hhi >= 1500) return "moderada a alta";
@@ -34,10 +42,11 @@ export async function loadSaudeData(
   portalSlug: string,
   searchParams: SaudeSearchParams,
 ) {
+  const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseSaudeContext(searchParams);
   const [saudeLegacy, saudeMetrics] = await Promise.all([
     getHistoriaSaude(context.selectedYear),
-    getHistoriaSaudeMetrics(portalSlug, context.selectedYear),
+    getHistoriaSaudeMetrics(tenantSlug, context.selectedYear),
   ]);
 
   // Fallback legado controlado: mantém os blocos narrativos/detalhados que ainda
@@ -88,7 +97,7 @@ export async function loadSaudeData(
     : saudeLegacy;
 
   return {
-    portalSlug,
+    portalSlug: tenantSlug,
     context,
     saude,
   };

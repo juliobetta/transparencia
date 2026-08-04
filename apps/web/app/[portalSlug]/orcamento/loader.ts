@@ -34,6 +34,14 @@ export function parseOrcamentoContext(
   };
 }
 
+function requirePortalSlug(portalSlug: string): string {
+  const normalized = portalSlug.trim();
+  if (!normalized) {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
+  return normalized;
+}
+
 async function resolveEmpresaIds(
   portalSlug: string,
   entidadesIds?: string[],
@@ -44,6 +52,18 @@ async function resolveEmpresaIds(
 
   const entidades = await getEntidades(portalSlug);
   return entidades.map((entidade) => entidade.id).filter(Boolean);
+}
+
+function requireEmpresaIdsForMetrics(
+  portalSlug: string,
+  empresaIds: string[],
+): string[] {
+  if (empresaIds.length === 0) {
+    throw new Error(
+      `Nenhuma entidade encontrada para o portal ${portalSlug}; chamada de métricas abortada.`,
+    );
+  }
+  return empresaIds;
 }
 
 function mapExecucaoMetricsToLegacyItems(
@@ -67,20 +87,24 @@ export async function loadOrcamentoData(
   portalSlug: string,
   searchParams: OrcamentoSearchParams,
 ) {
+  const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseOrcamentoContext(searchParams);
   const { selectedYear, entidadesIds } = context;
 
-  const empresaIds = await resolveEmpresaIds(portalSlug, entidadesIds);
+  const empresaIds = requireEmpresaIdsForMetrics(
+    tenantSlug,
+    await resolveEmpresaIds(tenantSlug, entidadesIds),
+  );
 
   const [execucaoMetrics, funcionalData] = await Promise.all([
-    getExecucaoOrcamentariaMetrics(portalSlug, selectedYear, empresaIds),
+    getExecucaoOrcamentariaMetrics(tenantSlug, selectedYear, empresaIds),
     getOrcamentoFuncional(selectedYear, entidadesIds),
   ]);
 
   const items = mapExecucaoMetricsToLegacyItems(execucaoMetrics);
 
   return {
-    portalSlug,
+    portalSlug: tenantSlug,
     context,
     items,
     funcionalData,

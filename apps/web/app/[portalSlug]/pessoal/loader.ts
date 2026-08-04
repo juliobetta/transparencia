@@ -1,6 +1,7 @@
 import {
   getDepartmentalPayroll,
   getDistribuicaoProventos,
+  getEntidades,
   getExecucaoDecimoTerceiro,
   getFolhaVsServicos,
   getPercentualChefiasEfetivas,
@@ -35,12 +36,34 @@ export function parsePessoalContext(
   };
 }
 
+function requirePortalSlug(portalSlug: string): string {
+  const normalized = portalSlug.trim();
+  if (!normalized) {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
+  return normalized;
+}
+
+async function resolveEmpresaIds(
+  portalSlug: string,
+  entidadesIds?: string[],
+): Promise<string[]> {
+  if (entidadesIds && entidadesIds.length > 0) {
+    return entidadesIds;
+  }
+
+  const entidades = await getEntidades(portalSlug);
+  return entidades.map((entidade) => entidade.id).filter(Boolean);
+}
+
 export async function loadPessoalData(
   portalSlug: string,
   searchParams: PessoalSearchParams,
 ) {
+  const tenantSlug = requirePortalSlug(portalSlug);
   const context = parsePessoalContext(searchParams);
   const { selectedYear, entidadesIds } = context;
+  const empresaIds = await resolveEmpresaIds(tenantSlug, entidadesIds);
 
   const [
     folhaData,
@@ -51,13 +74,13 @@ export async function loadPessoalData(
   ] = await Promise.all([
     getFolhaVsServicos({
       years: [selectedYear],
-      empresaIds: entidadesIds,
-      portalSlug,
+      empresaIds,
+      portalSlug: tenantSlug,
     }),
-    getPercentualChefiasEfetivas(selectedYear, entidadesIds),
-    getExecucaoDecimoTerceiro(selectedYear, entidadesIds),
+    getPercentualChefiasEfetivas(selectedYear, empresaIds),
+    getExecucaoDecimoTerceiro(selectedYear, empresaIds),
     getDistribuicaoProventos(selectedYear),
-    getDepartmentalPayroll(selectedYear, entidadesIds),
+    getDepartmentalPayroll(selectedYear, empresaIds),
   ]);
 
   return {

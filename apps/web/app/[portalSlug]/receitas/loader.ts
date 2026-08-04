@@ -29,6 +29,14 @@ export function parseReceitasContext(
   };
 }
 
+function requirePortalSlug(portalSlug: string): string {
+  const normalized = portalSlug.trim();
+  if (!normalized) {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
+  return normalized;
+}
+
 async function resolveEmpresaIds(
   portalSlug: string,
   entidadesIds?: string[],
@@ -39,6 +47,18 @@ async function resolveEmpresaIds(
 
   const entidades = await getEntidades(portalSlug);
   return entidades.map((entidade) => entidade.id).filter(Boolean);
+}
+
+function requireEmpresaIdsForMetrics(
+  portalSlug: string,
+  empresaIds: string[],
+): string[] {
+  if (empresaIds.length === 0) {
+    throw new Error(
+      `Nenhuma entidade encontrada para o portal ${portalSlug}; chamada de métricas abortada.`,
+    );
+  }
+  return empresaIds;
 }
 
 function mapFontesMetricToLegacy(
@@ -92,14 +112,18 @@ export async function loadReceitasData(
   portalSlug: string,
   searchParams: ReceitasSearchParams,
 ) {
+  const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseReceitasContext(searchParams);
   const { selectedYear, entidadesIds } = context;
 
-  const empresaIds = await resolveEmpresaIds(portalSlug, entidadesIds);
+  const empresaIds = requireEmpresaIdsForMetrics(
+    tenantSlug,
+    await resolveEmpresaIds(tenantSlug, entidadesIds),
+  );
 
   const [fonteAtual, fonteAnterior] = await Promise.all([
-    getFontesReceitaMetrics(portalSlug, selectedYear, empresaIds),
-    getFontesReceitaMetrics(portalSlug, selectedYear - 1, empresaIds),
+    getFontesReceitaMetrics(tenantSlug, selectedYear, empresaIds),
+    getFontesReceitaMetrics(tenantSlug, selectedYear - 1, empresaIds),
   ]);
 
   const totalPctChange =
@@ -110,7 +134,7 @@ export async function loadReceitasData(
       : null;
 
   return {
-    portalSlug,
+    portalSlug: tenantSlug,
     context,
     fonte: fonteAtual
       ? mapFontesMetricToLegacy(fonteAtual, totalPctChange)

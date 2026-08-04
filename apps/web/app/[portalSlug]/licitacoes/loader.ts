@@ -35,10 +35,19 @@ export function parseLicitacoesContext(
   };
 }
 
+function requirePortalSlug(portalSlug: string): string {
+  const normalized = portalSlug.trim();
+  if (!normalized) {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
+  return normalized;
+}
+
 export async function loadLicitacoesData(
   portalSlug: string,
   searchParams: LicitacoesSearchParams,
 ) {
+  const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseLicitacoesContext(searchParams);
   const { selectedYear, entidadesIds } = context;
 
@@ -52,7 +61,7 @@ export async function loadLicitacoesData(
     ]);
 
   return {
-    portalSlug,
+    portalSlug: tenantSlug,
     context,
     gaps,
     adesao,

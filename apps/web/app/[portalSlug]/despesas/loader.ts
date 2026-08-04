@@ -41,6 +41,14 @@ export function parseDespesasContext(
   };
 }
 
+function requirePortalSlug(portalSlug: string): string {
+  const normalized = portalSlug.trim();
+  if (!normalized) {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
+  return normalized;
+}
+
 async function resolveEmpresaIds(
   portalSlug: string,
   entidadesIds?: string[],
@@ -77,15 +85,31 @@ function summarizeAnaliseDespesasMetrics(
   };
 }
 
+function requireEmpresaIdsForMetrics(
+  portalSlug: string,
+  empresaIds: string[],
+): string[] {
+  if (empresaIds.length === 0) {
+    throw new Error(
+      `Nenhuma entidade encontrada para o portal ${portalSlug}; chamada de métricas abortada.`,
+    );
+  }
+  return empresaIds;
+}
+
 export async function loadDespesasData(
   portalSlug: string,
   searchParams: DespesasSearchParams,
 ) {
+  const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseDespesasContext(searchParams);
   const { selectedYear, entidadesIds } = context;
-  const empresaIds = await resolveEmpresaIds(portalSlug, entidadesIds);
+  const empresaIds = requireEmpresaIdsForMetrics(
+    tenantSlug,
+    await resolveEmpresaIds(tenantSlug, entidadesIds),
+  );
 
-  const portalConfig = await getPortalConfig();
+  const portalConfig = await getPortalConfig(tenantSlug);
 
   const [
     analiseDespesasMetrics,
@@ -97,23 +121,23 @@ export async function loadDespesasData(
     diariasResumo,
     diariasBeneficiarios,
   ] = await Promise.all([
-    getAnaliseDespesasMetrics(portalSlug, selectedYear, empresaIds),
-    getMetricasGeraisDespesas(selectedYear, entidadesIds, portalSlug),
+    getAnaliseDespesasMetrics(tenantSlug, selectedYear, empresaIds),
+    getMetricasGeraisDespesas(selectedYear, empresaIds, tenantSlug),
     getImpactoGastosLocais({
       year: selectedYear,
-      empresaIds: entidadesIds,
+      empresaIds,
       cidadeClean: portalConfig?.cidadeClean || "",
-      portalSlug,
+      portalSlug: tenantSlug,
     }),
-    getConcentracaoFornecedores(selectedYear, entidadesIds, portalSlug),
-    getRestosAPagarResumo(selectedYear, entidadesIds, portalSlug),
-    getDespesasPorUnidade(selectedYear, entidadesIds, portalSlug),
-    getResumoDiarias(selectedYear, entidadesIds, portalSlug),
+    getConcentracaoFornecedores(selectedYear, empresaIds, tenantSlug),
+    getRestosAPagarResumo(selectedYear, empresaIds, tenantSlug),
+    getDespesasPorUnidade(selectedYear, empresaIds, tenantSlug),
+    getResumoDiarias(selectedYear, empresaIds, tenantSlug),
     getPrincipaisBeneficiariosDiarias({
       year: selectedYear,
       limit: 10,
-      empresaIds: entidadesIds,
-      portalSlug,
+      empresaIds,
+      portalSlug: tenantSlug,
     }),
   ]);
 

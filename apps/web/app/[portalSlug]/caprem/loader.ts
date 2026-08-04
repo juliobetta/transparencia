@@ -24,14 +24,23 @@ export function parseCapremContext(
   };
 }
 
+function requirePortalSlug(portalSlug: string): string {
+  const normalized = portalSlug.trim();
+  if (!normalized) {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
+  return normalized;
+}
+
 export async function loadCapremData(
   portalSlug: string,
   searchParams: CapremSearchParams,
 ) {
+  const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseCapremContext(searchParams);
   const [capremLegacy, capremMetrics] = await Promise.all([
-    getHistoriaCaprem(portalSlug, context.selectedYear, null),
-    getHistoriaCapremMetrics(portalSlug, context.selectedYear),
+    getHistoriaCaprem(tenantSlug, context.selectedYear, null),
+    getHistoriaCapremMetrics(tenantSlug, context.selectedYear),
   ]);
 
   // Fallback legado controlado: preserva séries/detalhes CAPREM ainda não
