@@ -1,7 +1,7 @@
 import {
   getEntidades,
   getExecucaoOrcamentariaMetrics,
-  getOrcamentoFuncional,
+  getOrcamentoFuncionalMetrics,
   summarizeExecucao,
 } from "@transparencia/db";
 
@@ -98,7 +98,7 @@ export async function loadOrcamentoData(
 
   const [execucaoMetrics, funcionalData] = await Promise.all([
     getExecucaoOrcamentariaMetrics(tenantSlug, selectedYear, empresaIds),
-    getOrcamentoFuncional(selectedYear, entidadesIds),
+    getOrcamentoFuncionalMetrics(tenantSlug, selectedYear, empresaIds),
   ]);
 
   const items = mapExecucaoMetricsToLegacyItems(execucaoMetrics);

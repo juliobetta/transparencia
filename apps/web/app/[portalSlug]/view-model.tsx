@@ -164,10 +164,10 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
   };
 
   const credoresCols = [
-    { header: "Fornecedor", accessorKey: "Fornecedor" as const },
+    { header: "Fornecedor", accessorKey: "fornecedor" as const },
     {
       header: "Pendente",
-      accessorKey: "Pendente" as const,
+      accessorKey: "pendente" as const,
       align: "right" as const,
       format: "currency" as const,
     },
@@ -175,7 +175,7 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
 
   const sanitizedCredores = posicao.topCredoresAdmAtual.map((credor) => ({
     ...credor,
-    Fornecedor: toTitleCase(credor.Fornecedor),
+    fornecedor: toTitleCase(credor.fornecedor),
   }));
 
   const partialPeriod = getPartialYearPeriod();
