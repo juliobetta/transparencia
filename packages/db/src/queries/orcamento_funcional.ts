@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import { db } from "../client";
+import { logQueryError } from "./_log";
 
 export interface ItemOrcamentoFuncional {
   funcaoNome: string;
@@ -66,7 +67,8 @@ export async function getOrcamentoFuncional(
     }
 
     return Object.values(map);
-  } catch {
+  } catch (error) {
+    logQueryError("getOrcamentoFuncional", error);
     return [];
   }
 }

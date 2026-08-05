@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import { db } from "../client";
+import { logQueryError } from "./_log";
 
 export interface MetricasDespesas {
   empenhado: number;
@@ -112,7 +113,8 @@ async function sumColWhere({
     const res = await q.execute(db);
     const row = res.rows[0] as any;
     return Number(row?.val ?? 0);
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return 0;
   }
 }
@@ -182,7 +184,8 @@ export async function getDespesasPorUnidade(
       pago: Number(r.pago ?? 0),
       dotacaoAtualizada: Number(r.dotacaoAtualizada ?? 0),
     }));
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return [];
   }
 }
@@ -220,7 +223,8 @@ export async function getResumoDiarias(
       totalViajantes,
       mediaReembolso: rows.length > 0 ? totalValor / rows.length : 0,
     };
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return { totalValor: 0, totalViajantes: 0, mediaReembolso: 0 };
   }
 }
@@ -283,7 +287,8 @@ export async function getPrincipaisBeneficiariosDiarias({
     return Array.from(map.values())
       .sort((a, b) => b.valor - a.valor)
       .slice(0, limit);
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return [];
   }
 }
@@ -339,7 +344,8 @@ export async function getTransacoesPesquisaveis({
       unidade: String(r.unidade ?? ""),
       descricao: String(r.descricao ?? ""),
     }));
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return [];
   }
 }
@@ -386,7 +392,8 @@ export async function getComposicaoDespesa(
         pago: parseFloat(String(r.pago ?? "0").replace(",", ".")) || 0,
       }))
       .filter((i) => i.pago > 0);
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return [];
   }
 }
@@ -522,7 +529,8 @@ export async function getImpactoGastosLocais({
       historicoTotalPago,
       historicoPctLocal,
     };
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return {
       localPago: 0,
       externoPago: 0,
@@ -611,7 +619,8 @@ export async function getRestosAPagarResumo(
       dividaMaisAntigaAno,
       topFornecedores,
     };
-  } catch {
+  } catch (error) {
+    logQueryError("analise_despesas", error);
     return {
       totalPendente: 0,
       fornecedoresAguardando: 0,

@@ -26,6 +26,9 @@ __pycache__
 *.dump
 .csvdocs/
 *.csv
+# dbt seeds são fonte de verdade versionada — precisam existir num checkout limpo
+# para que `dbt seed`/`dbt build` reconstrua os marts (ex.: dim_orgao).
+!elt/transform/seeds/*.csv
 .mypy_cache/
 .ruff_cache/
 .pre-commit/

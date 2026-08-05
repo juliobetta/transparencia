@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import { db } from "../client";
+import { logQueryError } from "./_log";
 
 export const CAPREM_CODE = "1061";
 export const CASP_CNPJ = "07.573.075/0001-00";
@@ -155,7 +156,9 @@ export async function getHistoriaCaprem(
         taxaExecucao: emp > 0 ? (pag / emp) * 100 : 0,
       });
     }
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   let totalEmpenhadoPatronal = 0;
   let totalPagoPatronal = 0;
@@ -252,7 +255,9 @@ export async function getHistoriaCaprem(
         totalPagoPatronal += pag;
       }
     }
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   // Busca de Acordos de Parcelamento CADPREV
   try {
@@ -301,7 +306,9 @@ export async function getHistoriaCaprem(
         dataEmpenho: dt,
       });
     }
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   // Busca Estrutural Contábil da CASP (Subfunções da Saúde 301, 302, 303, 304, 305 ou CNPJ CASP)
   try {
@@ -386,7 +393,9 @@ export async function getHistoriaCaprem(
         alertaBadgeVariant,
       });
     }
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   // Série Histórica Atuarial (2021-2026) para o Elemento 97 (Aporte) e Elemento 71 (Dívida Resgatada)
   try {
@@ -419,7 +428,9 @@ export async function getHistoriaCaprem(
         amortizacaoDivida: amort,
       });
     }
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   // Contagem de Servidores Efetivos x Temporários/Comissionados
   let servidoresEfetivos = 0;
@@ -438,7 +449,9 @@ export async function getHistoriaCaprem(
       servidoresEfetivos = Number(rowP.efetivos ?? 0);
       servidoresTemporariosComissionados = Number(rowP.temporarios ?? 0);
     }
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   try {
     const qM = sql`
@@ -468,7 +481,9 @@ export async function getHistoriaCaprem(
         pago: pag,
       });
     }
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   try {
     const resA = await sql`
@@ -489,7 +504,9 @@ export async function getHistoriaCaprem(
       liquidado: parseFloat(String(r.liquidado ?? "0")) || 0,
       pago: parseFloat(String(r.pago ?? "0")) || 0,
     }));
-  } catch (_err) {}
+  } catch (error) {
+    logQueryError("getHistoriaCaprem", error);
+  }
 
   const taxaExecucao = totalEmpenhado > 0 ? totalPago / totalEmpenhado : 0;
 

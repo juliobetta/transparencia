@@ -1,5 +1,6 @@
 import { sql } from "kysely";
 import { db } from "../client";
+import { logQueryError } from "./_log";
 
 export interface ItemExecucaoOrcamentaria {
   ano: number;
@@ -68,7 +69,8 @@ export async function getExecucaoOrcamentaria(
         alerta,
       };
     });
-  } catch {
+  } catch (error) {
+    logQueryError("getExecucaoOrcamentaria", error);
     return [];
   }
 }
