@@ -305,3 +305,22 @@ make dbt/debug    # testa conexão
 ```
 
 O wrapper `scripts/run_dbt.py` parseia `DATABASE_URL` automaticamente — não é necessário configurar variáveis individuais.
+
+---
+
+## Auditoria e Paridade Fiscal (Lições Práticas & Invariantes)
+
+### 1. Invariantes Contábeis Rígidos (LRF e MCASP)
+- **Hierarquia Orçamentária**: Sempre validar a regra `Empenhado >= Liquidado >= Pago`. Testes no dbt devem incluir `expression_is_true` para impedir inversões contábeis nos marts.
+- **Exercício Parcial vs Encerrado**: Alertas de sub-execução orçamentária (ex: meta de 70% de execução anual da Saúde) só fazem sentido para **exercícios encerrados** (`!isCurrentYear`). Em anos parciais (ex: Jan-Jul de 2026), a dotação de 12 meses não deve disparar alertas prematuros de gestão irregular.
+
+### 2. Cuidados com Filtros e Isolamento nos Marts
+- **Fonte de Recursos (`fonte = 'exercicio'`)**: Para métricas do ano corrente (HHI de concentração de fornecedores, repasses do exercício), sempre filtrar `fonte = 'exercicio'`. Misturar linhas de Restos a Pagar (`fonte = 'restos_a_pagar'`) distorce índices de concentração e inflaciona valores.
+- **Dotação Atualizada de Fundos Especiais**: O total da dotação aprovada para fundos municipais (ex: Fundo de Saúde `empresa = '2'`) deve ser extraído de `fct_despesas_por_orgao`. Consultar apenas `fct_despesas` omite linhas orçamentárias abertas que ainda não possuem empenhos emitidos no ano.
+- **Cláusulas `WHERE` com `OR` em Elementos de Despesa**: Nunca adicionar `OR elemento IN ('13', '91', '46')` em marts específicos sem restringir o fornecedor/credor (ex: CAPREM/CASP). O elemento 13 (Contribuições Patronais) engloba o INSS da folha de pagamento do município inteiro e causará inflação de milhões de reais nos valores.
+- **Escopo Temático Consolidador (CAPREM)**: Temas como previdência prevêem consolidação municipal (RPPS). Os marts e leitores correspondentes devem ignorar filtros por entidade individual (`empresa`), mantendo a visão consolidada de todos os órgãos.
+
+### 3. Protocolo de Auditoria e Paridade
+- **Verificação ao Centavo**: Antes de aprovar refatorações de marts, extrair o HTML de Produção via `read_url_content` e comparar cada indicador com o banco local ao centavo.
+- **Validação Dupla de Testes**: Após qualquer alteração no dbt, executar `make test` (pytest no backend efêmero) e `pnpm test` (vitest e tipagem no TypeScript) sem exceções.
+

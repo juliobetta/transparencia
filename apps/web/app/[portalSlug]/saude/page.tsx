@@ -58,11 +58,11 @@ export default async function SaudePage({
         </KPIGrid>
       </div>
 
-      {/* Alerta de Subexecução se aplicável */}
+      {/* Alerta de Subexecução se aplicável (apenas exercícios encerrados) */}
       {saude.orcamento.alertaSubExecucao && (
         <AlertBox type="warning" title="Alerta de Subexecução Orçamentária">
-          A execução da Saúde está abaixo de 70% da dotação aprovada para o
-          exercício.
+          A execução da Saúde encerrou o exercício abaixo de 70% da dotação
+          aprovada.
         </AlertBox>
       )}
 

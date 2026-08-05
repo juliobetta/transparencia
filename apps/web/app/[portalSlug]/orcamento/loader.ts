@@ -69,18 +69,28 @@ function requireEmpresaIdsForMetrics(
 function mapExecucaoMetricsToLegacyItems(
   metrics: Awaited<ReturnType<typeof getExecucaoOrcamentariaMetrics>>,
 ) {
-  return metrics.map((item) => ({
-    ano: item.ano,
-    empresa: item.unidadeCodigo || item.orgaoCodigo,
-    codigo: item.orgaoCodigo,
-    descricao: `Órgão ${item.orgaoCodigo} · Unidade ${item.unidadeCodigo}`,
-    empenhado: item.totalEmpenhado,
-    liquidado: item.totalLiquidado,
-    pago: item.totalPago,
-    dotacaoAtualizada: item.totalDotacaoAtualizada,
-    taxaExecucao: item.taxaExecucao,
-    alerta: item.alertaExecucao,
-  }));
+  return metrics
+    .map((item) => ({
+      ano: item.ano,
+      empresa: item.unidadeCodigo || item.orgaoCodigo,
+      codigo: item.orgaoCodigo,
+      descricao:
+        item.orgaoNome ||
+        `Órgão ${item.orgaoCodigo} · Unidade ${item.unidadeCodigo}`,
+      empenhado: item.totalEmpenhado,
+      liquidado: item.totalLiquidado,
+      pago: item.totalPago,
+      dotacaoAtualizada: item.totalDotacaoAtualizada,
+      taxaExecucao: item.taxaExecucao,
+      alerta: item.alertaExecucao,
+    }))
+    .sort((a, b) => {
+      // sort by dotacaoAtualizada descending, then by descricao ascending
+      if (b.dotacaoAtualizada !== a.dotacaoAtualizada) {
+        return b.dotacaoAtualizada - a.dotacaoAtualizada;
+      }
+      return a.descricao.localeCompare(b.descricao);
+    });
 }
 
 export async function loadOrcamentoData(

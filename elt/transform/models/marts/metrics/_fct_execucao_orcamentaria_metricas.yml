@@ -47,6 +47,9 @@ models:
         description: "Código do órgão orçamentário"
         tests:
           - not_null
+      - name: orgao_nome
+        data_type: text
+        description: "Nome do órgão contábil/unidade gestora"
       - name: unidade_codigo
         data_type: text
         constraints:
@@ -120,15 +123,15 @@ models:
 
 unit_tests:
   - name: test_execucao_orcamentaria_metricas_calculos
-    description: "Valida se saldo_orcamentario, taxa_execucao e alerta_execucao são calculados corretamente"
+    description: "Valida se saldo_orcamentario, taxa_execucao, alerta_execucao e orgao_nome são calculados corretamente a partir de fct_despesas_por_orgao"
     model: fct_execucao_orcamentaria_metricas
     given:
-      - input: ref('fct_despesas')
+      - input: ref('fct_despesas_por_orgao')
         rows:
-          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, orgao_codigo: "02", unidade_codigo: "01", funcao: "04", subfuncao: "122", dotacao_atualizada: 100000.00, empenhado_liquido: 60000.00, liquidado: 50000.00, pago: 40000.00 }
-          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, orgao_codigo: "02", unidade_codigo: "01", funcao: "04", subfuncao: "122", dotacao_atualizada: 50000.00, empenhado_liquido: 0.00, liquidado: 0.00, pago: 0.00 }
-          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, orgao_codigo: "03", unidade_codigo: "01", funcao: "10", subfuncao: "301", dotacao_atualizada: 100000.00, empenhado_liquido: 20000.00, liquidado: 15000.00, pago: 10000.00 }
+          - { empresa: "1", ano: 2025, codigo: "02", descricao: "SECRETARIA MUNICIPAL DE ADMINISTRACAO", dotacao_atualizada: 100000.00, empenhado: 60000.00, liquidado: 50000.00, pago: 40000.00 }
+          - { empresa: "1", ano: 2025, codigo: "02", descricao: "SECRETARIA MUNICIPAL DE ADMINISTRACAO", dotacao_atualizada: 50000.00, empenhado: 0.00, liquidado: 0.00, pago: 0.00 }
+          - { empresa: "1", ano: 2025, codigo: "03", descricao: "FUNDO MUNICIPAL DE SAUDE", dotacao_atualizada: 100000.00, empenhado: 20000.00, liquidado: 15000.00, pago: 10000.00 }
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, orgao_codigo: "02", unidade_codigo: "01", funcao_codigo: "04", subfuncao_codigo: "122", total_dotacao_atualizada: 150000.00, total_empenhado: 60000.00, total_liquidado: 50000.00, total_pago: 40000.00, saldo_orcamentario: 90000.00, taxa_execucao: 0.4000, alerta_execucao: "normal" }
-        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, orgao_codigo: "03", unidade_codigo: "01", funcao_codigo: "10", subfuncao_codigo: "301", total_dotacao_atualizada: 100000.00, total_empenhado: 20000.00, total_liquidado: 15000.00, total_pago: 10000.00, saldo_orcamentario: 80000.00, taxa_execucao: 0.2000, alerta_execucao: "baixa" }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, orgao_codigo: "02", orgao_nome: "SECRETARIA MUNICIPAL DE ADMINISTRACAO", unidade_codigo: "00", funcao_codigo: "00", subfuncao_codigo: "00", total_dotacao_atualizada: 150000.00, total_empenhado: 60000.00, total_liquidado: 50000.00, total_pago: 40000.00, saldo_orcamentario: 90000.00, taxa_execucao: 0.4000, alerta_execucao: "normal" }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, orgao_codigo: "03", orgao_nome: "FUNDO MUNICIPAL DE SAUDE", unidade_codigo: "00", funcao_codigo: "00", subfuncao_codigo: "00", total_dotacao_atualizada: 100000.00, total_empenhado: 20000.00, total_liquidado: 15000.00, total_pago: 10000.00, saldo_orcamentario: 80000.00, taxa_execucao: 0.2000, alerta_execucao: "baixa" }

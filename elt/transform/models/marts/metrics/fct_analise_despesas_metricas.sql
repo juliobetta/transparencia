@@ -12,6 +12,7 @@ with despesas_agregadas as (
         sum(coalesce(liquidado, 0)) as total_liquidado,
         sum(coalesce(pago, 0)) as total_pago
     from {{ ref('fct_despesas') }}
+    where fonte = 'exercicio'
     group by
         portal_slug,
         empresa_id,

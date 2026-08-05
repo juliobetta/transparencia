@@ -12,6 +12,7 @@ export interface ExecucaoOrcamentariaMetricsDTO {
   portalSlug: string;
   ano: number;
   orgaoCodigo: string;
+  orgaoNome?: string;
   unidadeCodigo: string;
   funcaoCodigo: string;
   subfuncaoCodigo: string;
@@ -45,6 +46,7 @@ export async function getExecucaoOrcamentariaMetrics(
       "portal_slug",
       "ano",
       "orgao_codigo",
+      eb.fn.max("orgao_nome").as("orgao_nome"),
       "unidade_codigo",
       "funcao_codigo",
       "subfuncao_codigo",
@@ -92,6 +94,7 @@ export async function getExecucaoOrcamentariaMetrics(
       portalSlug: r.portal_slug,
       ano: Number(r.ano),
       orgaoCodigo: r.orgao_codigo,
+      orgaoNome: r.orgao_nome ?? undefined,
       unidadeCodigo: r.unidade_codigo,
       funcaoCodigo: r.funcao_codigo,
       subfuncaoCodigo: r.subfuncao_codigo,

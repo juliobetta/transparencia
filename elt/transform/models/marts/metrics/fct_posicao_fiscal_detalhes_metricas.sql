@@ -5,7 +5,7 @@ with restos as (
         portal_slug,
         empresa_id,
         ano,
-        coalesce(descricao, 'Sem identificação') as fornecedor_nome,
+        trim(regexp_replace(coalesce(descricao, 'Sem identificação'), '^\d{2}\.\d{3}\.\d{3}\s+', '')) as fornecedor_nome,
         coalesce(empenhado, 0) - coalesce(pago, 0) as valor_pendente
     from {{ ref('fct_despesas') }}
     where fonte = 'restos_a_pagar'

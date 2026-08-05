@@ -112,12 +112,21 @@ export function buildReceitasViewModel(raw: ReceitasRawData) {
     },
   ];
 
-  const variationText =
-    rec.totalPctChange != null
-      ? rec.totalPctChange >= 0
-        ? `▲ ${rec.totalPctChange.toFixed(1).replace(".", ",")}% vs. ${raw.context.selectedYear - 1}`
-        : `▼ ${Math.abs(rec.totalPctChange).toFixed(1).replace(".", ",")}% vs. ${raw.context.selectedYear - 1}`
-      : "Orçamento aprovado";
+  const variationText = (() => {
+    if (rec.totalPctChange === null) {
+      return "Orçamento aprovado";
+    }
+
+    if (rec.totalPctChange >= 0) {
+      return `▲ ${rec.totalPctChange.toFixed(1).replace(".", ",")}% vs. ${raw.context.selectedYear - 1}`;
+    }
+
+    if (rec.totalPctChange < 0) {
+      return `▼ ${Math.abs(rec.totalPctChange).toFixed(1).replace(".", ",")}% vs. ${raw.context.selectedYear - 1}`;
+    }
+
+    return "Orçamento aprovado";
+  })();
 
   return {
     selectedYear: raw.context.selectedYear,

@@ -65,9 +65,9 @@ export async function loadSaudeData(
               ? saudeMetrics.totalEmpenhado / saudeMetrics.dotacaoTotal
               : 0,
           alertaSubExecucao:
-            saudeMetrics.dotacaoTotal > 0
-              ? saudeMetrics.totalEmpenhado / saudeMetrics.dotacaoTotal < 0.7
-              : false,
+            !context.isCurrentYear &&
+            saudeMetrics.dotacaoTotal > 0 &&
+            saudeMetrics.totalEmpenhado / saudeMetrics.dotacaoTotal < 0.7,
           medicamentosInsumos: saudeMetrics.medicamentosInsumosPago,
         },
         farmaceutica: {

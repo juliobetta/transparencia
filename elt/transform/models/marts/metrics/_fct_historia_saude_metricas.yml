@@ -65,14 +65,14 @@ models:
         data_type: numeric
         constraints:
           - type: not_null
-        description: "Despesas com medicamentos e insumos farmacêuticos pagos (Subfunção 10.303)"
+        description: "Despesas com medicamentos e insumos farmacêuticos empenhados (Subfunção 10.303)"
         tests:
           - not_null
       - name: judicializacao_pago
         data_type: numeric
         constraints:
           - type: not_null
-        description: "Despesas com sentenças judiciais da saúde pagas (Elemento 91)"
+        description: "Despesas com sentenças judiciais da saúde empenhadas (Elemento 91)"
         tests:
           - not_null
       - name: emendas_saude_arrecadado
@@ -97,11 +97,14 @@ unit_tests:
     given:
       - input: ref('fct_despesas')
         rows:
-          - { portal_slug: "porciuncula_prefeitura", ano: 2025, funcao: "10", subfuncao: "303", elemento: "30", empresa_id: "2", fornecedor_nome: "FARMACEUTICA A", dotacao_atualizada: 200000.00, empenhado_liquido: 100000.00, liquidado: 80000.00, pago: 60000.00, subfuncao_nome: "ASSISTENCIA FARMACEUTICA" }
-          - { portal_slug: "porciuncula_prefeitura", ano: 2025, funcao: "10", subfuncao: "301", elemento: "91", empresa_id: "2", fornecedor_nome: "FORNECEDOR B", dotacao_atualizada: 100000.00, empenhado_liquido: 50000.00, liquidado: 40000.00, pago: 30000.00, subfuncao_nome: "ATENCAO BASICA" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, funcao: "10", subfuncao: "303", elemento: "30", empresa_id: "2", fornecedor_nome: "FARMACEUTICA A", dotacao_atualizada: 200000.00, empenhado_liquido: 100000.00, liquidado: 80000.00, pago: 60000.00, subfuncao_nome: "ASSISTENCIA FARMACEUTICA", fonte: "exercicio" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, funcao: "10", subfuncao: "301", elemento: "91", empresa_id: "2", fornecedor_nome: "FORNECEDOR B", dotacao_atualizada: 100000.00, empenhado_liquido: 50000.00, liquidado: 40000.00, pago: 30000.00, subfuncao_nome: "ATENCAO BASICA", fonte: "exercicio" }
+      - input: ref('fct_despesas_por_orgao')
+        rows:
+          - { ano: 2025, empresa: "2", dotacao_atualizada: 300000.00, empenhado: 150000.00, liquidado: 120000.00, pago: 90000.00 }
       - input: ref('fct_emendas')
         rows:
           - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "2", destinacao: "EQUIPAMENTOS SAUDE", resumo: "EMENDA SAUDE", valor_total: 50000.00, empenhado: 50000.00 }
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", ano: 2025, dotacao_total: 300000.00, total_empenhado: 150000.00, total_liquidado: 120000.00, total_pago: 90000.00, medicamentos_insumos_pago: 60000.00, judicializacao_pago: 30000.00, emendas_saude_arrecadado: 50000.00, hhi_concentracao_fornecedores: 5556 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, dotacao_total: 300000.00, total_empenhado: 150000.00, total_liquidado: 120000.00, total_pago: 90000.00, medicamentos_insumos_pago: 100000.00, judicializacao_pago: 50000.00, emendas_saude_arrecadado: 50000.00, hhi_concentracao_fornecedores: 5556 }

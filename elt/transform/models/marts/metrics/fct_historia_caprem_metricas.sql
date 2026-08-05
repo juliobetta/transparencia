@@ -33,13 +33,15 @@ with despesas_caprem as (
         sum(coalesce(d.pago, 0)) as total_pago
     from {{ ref('fct_despesas') }} d
     where
-        (
+        d.fonte = 'exercicio'
+        and (
             d.orgao_codigo = '1061'
+            or d.credor_id = '1061'
             or d.fornecedor_nome ilike '%CAPREM%'
             or d.fornecedor_nome ilike '%CASP%'
             or d.fornecedor_cpf_cnpj = '07.573.075/0001-00'
+            or d.descricao ilike '%CAPREM%'
             or d.descricao ilike '%CASP%'
-            or d.elemento in ('97', '71', '13', '46', '91')
         )
         and (d.tipo_empenho is null or d.tipo_empenho != 'AN')
     group by d.portal_slug, d.ano

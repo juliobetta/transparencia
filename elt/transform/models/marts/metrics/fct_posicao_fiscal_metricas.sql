@@ -8,13 +8,32 @@ with metadata_gestao as (
     group by portal_slug
 ),
 
+receitas_root as (
+    select
+        t.portal_slug,
+        t.empresa_id,
+        t.ano,
+        t.arrecadado
+    from {{ ref('fct_receitas') }} t
+    where t.tipo_receita = 'orcamentaria'
+      and not exists (
+        select 1 from {{ ref('fct_receitas') }} t2
+        where t2.tipo_receita = t.tipo_receita
+          and t2.ano = t.ano
+          and t2.empresa_id = t.empresa_id
+          and t2.codigo != t.codigo
+          and t.codigo like rtrim(t2.codigo, '0.') || '%'
+          and length(rtrim(t2.codigo, '0.')) < length(rtrim(t.codigo, '0.'))
+      )
+),
+
 receitas_agregadas as (
     select
         portal_slug,
         empresa_id,
         ano,
         sum(coalesce(arrecadado, 0)) as total_arrecadado
-    from {{ ref('fct_receitas') }}
+    from receitas_root
     group by portal_slug, empresa_id, ano
 ),
 

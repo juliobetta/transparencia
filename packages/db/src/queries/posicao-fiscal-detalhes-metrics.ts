@@ -75,10 +75,10 @@ export async function getPosicaoFiscalDetalhesMetrics(
     currentYearEntry.pendente += pendente;
     byYear.set(rowAno, currentYearEntry);
 
-    if (administracao === "Adm. Atual") {
-      const supplier = String(
-        row.fornecedor_nome ?? "Sem identificação",
-      ).trim();
+    if (rowAno === ano) {
+      const supplier = String(row.fornecedor_nome ?? "Sem identificação")
+        .trim()
+        .replace(/^\d{2}\.\d{3}\.\d{3}\s+/, "");
       creditorMap.set(supplier, (creditorMap.get(supplier) ?? 0) + pendente);
     }
   }
@@ -106,9 +106,8 @@ export async function getPosicaoFiscalDetalhesMetrics(
 
   const restosPendentesTotal =
     restosPendentes.find((item) => item.ano === ano)?.pendente ?? 0;
-  const restosPendentesAnteriores = restosPendentes
-    .filter((item) => item.ano < ano)
-    .reduce((acc, item) => acc + item.pendente, 0);
+  const restosPendentesAnteriores =
+    restosPendentes.find((item) => item.ano === ano - 1)?.pendente ?? 0;
 
   return {
     portalSlug,

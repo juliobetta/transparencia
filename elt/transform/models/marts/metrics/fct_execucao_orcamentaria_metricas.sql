@@ -2,26 +2,23 @@
 
 with despesas_agregadas as (
     select
-        portal_slug,
-        empresa_id,
+        'porciuncula_prefeitura' as portal_slug,
+        empresa as empresa_id,
         ano,
-        coalesce(orgao_codigo, '00') as orgao_codigo,
-        coalesce(unidade_codigo, '00') as unidade_codigo,
-        coalesce(funcao, '00') as funcao_codigo,
-        coalesce(subfuncao, '00') as subfuncao_codigo,
+        coalesce(codigo, '00') as orgao_codigo,
+        coalesce(max(descricao), 'Sem identificação') as orgao_nome,
+        '00' as unidade_codigo,
+        '00' as funcao_codigo,
+        '00' as subfuncao_codigo,
         sum(coalesce(dotacao_atualizada, 0)) as total_dotacao_atualizada,
-        sum(coalesce(empenhado_liquido, 0)) as total_empenhado,
+        sum(coalesce(empenhado, 0)) as total_empenhado,
         sum(coalesce(liquidado, 0)) as total_liquidado,
         sum(coalesce(pago, 0)) as total_pago
-    from {{ ref('fct_despesas') }}
+    from {{ ref('fct_despesas_por_orgao') }}
     group by
-        portal_slug,
-        empresa_id,
+        empresa,
         ano,
-        coalesce(orgao_codigo, '00'),
-        coalesce(unidade_codigo, '00'),
-        coalesce(funcao, '00'),
-        coalesce(subfuncao, '00')
+        codigo
 ),
 
 metricas_calculadas as (
@@ -30,6 +27,7 @@ metricas_calculadas as (
         empresa_id,
         ano,
         orgao_codigo,
+        orgao_nome,
         unidade_codigo,
         funcao_codigo,
         subfuncao_codigo,
@@ -52,6 +50,7 @@ select
     empresa_id,
     ano,
     orgao_codigo,
+    orgao_nome,
     unidade_codigo,
     funcao_codigo,
     subfuncao_codigo,
