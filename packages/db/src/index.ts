@@ -18,6 +18,8 @@ export * from "./queries/historia-saude-metrics";
 export * from "./queries/licitacao_gaps";
 export * from "./queries/metadata";
 export * from "./queries/orcamento_funcional";
+export * from "./queries/orcamento-funcional-metrics";
 export * from "./queries/posicao_fiscal";
+export * from "./queries/posicao-fiscal-detalhes-metrics";
 export * from "./queries/posicao-fiscal-metrics";
 export * from "./queries/tendencias_anuais";

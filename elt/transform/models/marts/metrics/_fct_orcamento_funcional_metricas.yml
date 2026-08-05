@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: fct_orcamento_funcional_metricas
+    description: "Mart funcional consolidado para orçamento por função/subfunção, portal e exercício"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: orcamento_funcional_id
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: funcao_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: subfuncao_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: dotacao_atualizada
+        data_type: numeric
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: empenhado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: liquidado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+
+unit_tests:
+  - name: test_orcamento_funcional_metricas_agregacao
+    description: "Valida a agregação por função e subfunção para o mart funcional de orçamento"
+    model: fct_orcamento_funcional_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, funcao_nome: "Educação", subfuncao_nome: "Ensino Fundamental", dotacao_atualizada: 100000.00, empenhado: 60000.00, liquidado: 50000.00, pago: 40000.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, funcao_nome: "Educação", subfuncao_nome: "Ensino Fundamental", dotacao_atualizada: 50000.00, empenhado: 10000.00, liquidado: 10000.00, pago: 5000.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, funcao_nome: "Saúde", subfuncao_nome: "Atendimento Básico", dotacao_atualizada: 70000.00, empenhado: 20000.00, liquidado: 15000.00, pago: 10000.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, funcao_nome: "Educação", subfuncao_nome: "Ensino Fundamental", dotacao_atualizada: 150000.00, empenhado: 70000.00, liquidado: 60000.00, pago: 45000.00 }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, funcao_nome: "Saúde", subfuncao_nome: "Atendimento Básico", dotacao_atualizada: 70000.00, empenhado: 20000.00, liquidado: 15000.00, pago: 10000.00 }

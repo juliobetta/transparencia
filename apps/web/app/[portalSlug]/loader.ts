@@ -6,7 +6,7 @@ import {
   getLicitacaoGaps,
   getPercentualChefiasEfetivas,
   getPortalConfig,
-  getPosicaoFiscal,
+  getPosicaoFiscalDetalhesMetrics,
   getPosicaoFiscalMetrics,
 } from "@transparencia/db";
 
@@ -173,8 +173,7 @@ export async function loadVisaoGeralData(
     getExecucaoOrcamentariaMetrics(tenantSlug, selectedYear, empresaIds),
     getLicitacaoGaps(selectedYear, entidadesIds),
     getFontesReceitaMetrics(tenantSlug, selectedYear, empresaIds),
-    // Gap temporario: detalhes de restos/credores ainda nao cobertos pelo DTO metrico.
-    getPosicaoFiscal(selectedYear, entidadesIds, tenantSlug),
+    getPosicaoFiscalDetalhesMetrics(tenantSlug, selectedYear, empresaIds),
     getFolhaVsServicos({
       years: [selectedYear],
       empresaIds: entidadesIds,
@@ -184,25 +183,27 @@ export async function loadVisaoGeralData(
   ]);
 
   const execSummary = summarizeExecucaoMetrics(execMetricas);
+  const totalArrecadado =
+    posicaoMetricas?.totalArrecadado ?? fontesMetricas?.totalArrecadado ?? 0;
+  const despesasPagas = posicaoMetricas?.despesasPagas ?? execSummary.totalPago;
+  const restosPagosNoAno = posicaoMetricas?.restosPagosNoAno ?? 0;
 
-  const totalSaidasMetricas = posicaoMetricas
-    ? posicaoMetricas.despesasPagas + posicaoMetricas.restosPagosNoAno
-    : posicaoDetalhada.totalSaidas;
+  const totalSaidasMetricas = despesasPagas + restosPagosNoAno;
+  const saldoEstimado =
+    posicaoMetricas?.saldoEstimado ?? totalArrecadado - totalSaidasMetricas;
 
   const posicao = {
-    ...posicaoDetalhada,
-    totalArrecadado:
-      posicaoMetricas?.totalArrecadado ?? posicaoDetalhada.totalArrecadado,
-    despesasPagas:
-      posicaoMetricas?.despesasPagas ?? posicaoDetalhada.despesasPagas,
-    restosPagosNoAno:
-      posicaoMetricas?.restosPagosNoAno ?? posicaoDetalhada.restosPagosNoAno,
+    totalArrecadado,
+    despesasPagas,
+    restosPagosNoAno,
     totalSaidas: totalSaidasMetricas,
-    saldoEstimado:
-      posicaoMetricas?.saldoEstimado ?? posicaoDetalhada.saldoEstimado,
-    saldoAposRestos:
-      (posicaoMetricas?.saldoEstimado ?? posicaoDetalhada.saldoEstimado) -
-      posicaoDetalhada.restosPendentesTotal,
+    saldoEstimado,
+    saldoAposRestos: saldoEstimado - posicaoDetalhada.restosPendentesTotal,
+    restosPendentes: posicaoDetalhada.restosPendentes,
+    restosPendentesTotal: posicaoDetalhada.restosPendentesTotal,
+    restosPendentesAnteriores: posicaoDetalhada.restosPendentesAnteriores,
+    topCredoresAdmAtual: posicaoDetalhada.topCredoresAdmAtual,
+    totalCredoresAdmAtual: posicaoDetalhada.totalCredoresAdmAtual,
   };
 
   return {

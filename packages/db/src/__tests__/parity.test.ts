@@ -18,8 +18,10 @@ import {
   getHistoriaSaudeMetrics,
   getImpactoGastosLocais,
   getLicitacaoGaps,
+  getOrcamentoFuncionalMetrics,
   getPortalConfig,
   getPosicaoFiscal,
+  getPosicaoFiscalDetalhesMetrics,
   getPosicaoFiscalMetrics,
   getPrincipaisBeneficiariosDiarias,
   getResumoDiarias,
@@ -234,6 +236,67 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
     }
 
     const emptyFilter = await getAnaliseDespesasMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [],
+    );
+    expect(emptyFilter).toEqual([]);
+  });
+
+  it("deve buscar detalhes de posição fiscal via mart atômico (getPosicaoFiscalDetalhesMetrics)", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    const empresaIds = entidades.map((e: { id: string }) => e.id);
+
+    const details = await getPosicaoFiscalDetalhesMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      empresaIds.length > 0 ? empresaIds : ["1"],
+    );
+
+    expect(details).toBeDefined();
+    expect(details.restosPendentesTotal).toBeGreaterThanOrEqual(0);
+    expect(details.restosPendentesAnteriores).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(details.restosPendentes)).toBe(true);
+    expect(Array.isArray(details.topCredoresAdmAtual)).toBe(true);
+    expect(typeof details.totalCredoresAdmAtual).toBe("number");
+
+    const emptyFilter = await getPosicaoFiscalDetalhesMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [],
+    );
+    expect(emptyFilter).toEqual({
+      portalSlug: "porciuncula_prefeitura",
+      ano: TEST_YEAR,
+      restosPendentesTotal: 0,
+      restosPendentesAnteriores: 0,
+      restosPendentes: [],
+      topCredoresAdmAtual: [],
+      totalCredoresAdmAtual: 0,
+    });
+  });
+
+  it("deve buscar orçamento funcional via mart atômico (getOrcamentoFuncionalMetrics)", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    const empresaIds = entidades.map((e: { id: string }) => e.id);
+
+    const funcional = await getOrcamentoFuncionalMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      empresaIds.length > 0 ? empresaIds : ["1"],
+    );
+
+    expect(Array.isArray(funcional)).toBe(true);
+    if (funcional.length > 0) {
+      expect(typeof funcional[0].funcaoNome).toBe("string");
+      expect(typeof funcional[0].subfuncaoNome).toBe("string");
+      expect(typeof funcional[0].dotacaoAtualizada).toBe("number");
+      expect(typeof funcional[0].empenhado).toBe("number");
+      expect(typeof funcional[0].liquidado).toBe("number");
+      expect(typeof funcional[0].pago).toBe("number");
+    }
+
+    const emptyFilter = await getOrcamentoFuncionalMetrics(
       "porciuncula_prefeitura",
       TEST_YEAR,
       [],
