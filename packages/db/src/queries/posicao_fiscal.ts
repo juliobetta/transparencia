@@ -67,9 +67,12 @@ async function sumVarcharCol({
   portalSlug?: string;
 }): Promise<number> {
   try {
-    const portalFilter =
-      table === "fct_despesas" ? `AND portal_slug = '${portalSlug}'` : "";
-    let query = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year} ${sql.raw(portalFilter)} ${sql.raw(whereExtra)}`;
+    let query = sql`SELECT ${sql.ref(col)} AS val FROM ${sql.raw(table)} WHERE ano = ${year} ${sql.raw(whereExtra)}`;
+    // `portalSlug` vem da URL; passamos como parâmetro (nunca interpolado no SQL)
+    // para evitar injeção. Ver AGENTS.md §8 (filtragem por portal_slug).
+    if (table === "fct_despesas") {
+      query = sql`${query} AND portal_slug = ${portalSlug}`;
+    }
     if (empresaIds && empresaIds.length > 0) {
       if (table === "fct_despesas_por_orgao") {
         query = sql`${query} AND empresa = ANY(${empresaIds})`;
