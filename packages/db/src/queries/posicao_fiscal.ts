@@ -11,8 +11,8 @@ export interface RestoPendente {
 }
 
 export interface TopCredor {
-  Fornecedor: string;
-  Pendente: number;
+  fornecedor: string;
+  pendente: number;
 }
 
 export interface PosicaoFiscalResult {
@@ -184,8 +184,8 @@ export async function getPosicaoFiscal(
     }
 
     credoresAdmAtual = Object.entries(byDesc)
-      .map(([Fornecedor, Pendente]) => ({ Fornecedor, Pendente }))
-      .sort((a, b) => b.Pendente - a.Pendente);
+      .map(([fornecedor, pendente]) => ({ fornecedor, pendente }))
+      .sort((a, b) => b.pendente - a.pendente);
   } catch {}
 
   return {
