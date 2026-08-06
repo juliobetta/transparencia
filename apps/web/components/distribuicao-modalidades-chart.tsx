@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, toTitleCase } from "@transparencia/ui";
+import { cn, fmtLicitacaoModalidade } from "@transparencia/ui";
 
 export interface ItemDistribucaoModalidadeUI {
   modalidade: string;
@@ -22,9 +22,13 @@ const MODALITY_COLORS: Record<string, string> = {
   concorrência: "bg-[#4299e1]",
   concorrencia: "bg-[#4299e1]",
   dispensa: "bg-[#319795]",
+  adesao_ata_interna: "bg-[#38b2ac]",
+  adesao_ata_externa: "bg-[#38b2ac]",
   "adesão a ata": "bg-[#38b2ac]",
   "adesao a ata": "bg-[#38b2ac]",
   inexigibilidade: "bg-[#4fd1c5]",
+  gap_licitacao: "bg-[#e53e3e]",
+  sem_licitacao: "bg-[#e53e3e]",
 };
 
 const DEFAULT_COLOR_PALETTE = [
@@ -83,7 +87,7 @@ export function DistribucaoModalidadesChart({
           >
             {/* Left label */}
             <span className="w-36 shrink-0 truncate font-medium text-slate-700">
-              {toTitleCase(item.modalidade)}
+              {fmtLicitacaoModalidade(item.modalidade)}
             </span>
 
             {/* Bar track & fill */}

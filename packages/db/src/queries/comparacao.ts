@@ -1,12 +1,11 @@
-import { getAdesaoDeAta } from "./adesao_de_ata";
-import { getConcentracaoFornecedores } from "./concentracao_fornecedores";
+import { getConcentracaoFornecedoresMetrics } from "./despesas-metrics";
+import { getExecucaoOrcamentariaMetrics } from "./execucao-orcamentaria-metrics";
+import { getFontesReceitaMetrics } from "./fontes-receita-metrics";
 import {
-  getExecucaoOrcamentaria,
-  summarizeExecucao,
-} from "./execucao_orcamentaria";
-import { getFolhaVsServicos } from "./folha_vs_servicos";
-import { getFontesReceita } from "./fontes_receita";
-import { getLicitacaoGaps } from "./licitacao_gaps";
+  getAdesaoDeAtaMetrics,
+  getLicitacaoGapsMetrics,
+} from "./licitacoes-metrics";
+import { getFolhaVsServicosMetrics } from "./pessoal-metrics";
 
 export interface PeriodSpec {
   year: number;
@@ -30,15 +29,32 @@ function calculateDelta(a: number, b: number): DeltaValue {
   };
 }
 
+// biome-ignore lint/complexity/useMaxParams: signature requires specA, specB, portalSlug, empresaIds for compatibility
 export async function runComparacao(
   specA: PeriodSpec,
   specB: PeriodSpec,
+  portalSlug: string = "porciuncula_prefeitura",
+  empresaIds: string[] = [],
 ): Promise<Record<string, Record<string, DeltaValue>>> {
   // Despesas
-  const itemsA = await getExecucaoOrcamentaria(specA.year);
-  const itemsB = await getExecucaoOrcamentaria(specB.year);
-  const sumA = summarizeExecucao(itemsA);
-  const sumB = summarizeExecucao(itemsB);
+  const itemsA = await getExecucaoOrcamentariaMetrics(
+    portalSlug,
+    specA.year,
+    empresaIds,
+  );
+  const itemsB = await getExecucaoOrcamentariaMetrics(
+    portalSlug,
+    specB.year,
+    empresaIds,
+  );
+  const sumA = {
+    totalEmpenhado: itemsA.reduce((acc, i) => acc + i.totalEmpenhado, 0),
+    totalDotacao: itemsA.reduce((acc, i) => acc + i.totalDotacaoAtualizada, 0),
+  };
+  const sumB = {
+    totalEmpenhado: itemsB.reduce((acc, i) => acc + i.totalEmpenhado, 0),
+    totalDotacao: itemsB.reduce((acc, i) => acc + i.totalDotacaoAtualizada, 0),
+  };
 
   const despesasDelta = {
     empenhado: calculateDelta(sumA.totalEmpenhado, sumB.totalEmpenhado),
@@ -46,13 +62,15 @@ export async function runComparacao(
   };
 
   // Pessoal
-  const folhaA = await getFolhaVsServicos({
+  const folhaA = await getFolhaVsServicosMetrics({
     years: [specA.year],
-    portalSlug: "",
+    portalSlug,
+    empresaIds,
   });
-  const folhaB = await getFolhaVsServicos({
+  const folhaB = await getFolhaVsServicosMetrics({
     years: [specB.year],
-    portalSlug: "",
+    portalSlug,
+    empresaIds,
   });
   const folhaRowA = folhaA[0] || { totalFolha: 0, percentualFolha: 0 };
   const folhaRowB = folhaB[0] || { totalFolha: 0, percentualFolha: 0 };
@@ -66,40 +84,59 @@ export async function runComparacao(
   };
 
   // Receitas
-  const recA = await getFontesReceita([specA.year]);
-  const recB = await getFontesReceita([specB.year]);
-  const rRowA = recA[0] || {
-    receitaPropria: 0,
-    transferenciasUniao: 0,
-    transferenciasEstado: 0,
-    total: 0,
+  const recA = await getFontesReceitaMetrics(
+    portalSlug,
+    specA.year,
+    empresaIds,
+  );
+  const recB = await getFontesReceitaMetrics(
+    portalSlug,
+    specB.year,
+    empresaIds,
+  );
+  const rRowA = recA || {
+    receitaPropriaArrecadado: 0,
+    transferenciasUniaoArrecadado: 0,
+    transferenciasEstadoArrecadado: 0,
+    totalArrecadado: 0,
     pctPropria: 0,
   };
-  const rRowB = recB[0] || {
-    receitaPropria: 0,
-    transferenciasUniao: 0,
-    transferenciasEstado: 0,
-    total: 0,
+  const rRowB = recB || {
+    receitaPropriaArrecadado: 0,
+    transferenciasUniaoArrecadado: 0,
+    transferenciasEstadoArrecadado: 0,
+    totalArrecadado: 0,
     pctPropria: 0,
   };
 
   const receitasDelta = {
-    receitaPropria: calculateDelta(rRowA.receitaPropria, rRowB.receitaPropria),
+    receitaPropria: calculateDelta(
+      rRowA.receitaPropriaArrecadado,
+      rRowB.receitaPropriaArrecadado,
+    ),
     transferenciasUniao: calculateDelta(
-      rRowA.transferenciasUniao,
-      rRowB.transferenciasUniao,
+      rRowA.transferenciasUniaoArrecadado,
+      rRowB.transferenciasUniaoArrecadado,
     ),
     transferenciasEstado: calculateDelta(
-      rRowA.transferenciasEstado,
-      rRowB.transferenciasEstado,
+      rRowA.transferenciasEstadoArrecadado,
+      rRowB.transferenciasEstadoArrecadado,
     ),
-    total: calculateDelta(rRowA.total, rRowB.total),
+    total: calculateDelta(rRowA.totalArrecadado, rRowB.totalArrecadado),
     pctPropria: calculateDelta(rRowA.pctPropria, rRowB.pctPropria),
   };
 
   // Licitações
-  const gapsA = await getLicitacaoGaps(specA.year);
-  const gapsB = await getLicitacaoGaps(specB.year);
+  const gapsA = await getLicitacaoGapsMetrics(
+    portalSlug,
+    specA.year,
+    empresaIds,
+  );
+  const gapsB = await getLicitacaoGapsMetrics(
+    portalSlug,
+    specB.year,
+    empresaIds,
+  );
 
   const licitacoesDelta = {
     semLicitacao: calculateDelta(gapsA.length, gapsB.length),
@@ -114,16 +151,32 @@ export async function runComparacao(
   };
 
   // Fornecedores
-  const fornA = await getConcentracaoFornecedores(specA.year);
-  const fornB = await getConcentracaoFornecedores(specB.year);
+  const fornA = await getConcentracaoFornecedoresMetrics(
+    portalSlug,
+    specA.year,
+    empresaIds,
+  );
+  const fornB = await getConcentracaoFornecedoresMetrics(
+    portalSlug,
+    specB.year,
+    empresaIds,
+  );
 
   const fornecedoresDelta = {
     hhi: calculateDelta(fornA.hhi, fornB.hhi),
   };
 
   // Adesão
-  const adesaoA = await getAdesaoDeAta(specA.year, ["2"]);
-  const adesaoB = await getAdesaoDeAta(specB.year, ["2"]);
+  const adesaoA = await getAdesaoDeAtaMetrics(
+    portalSlug,
+    specA.year,
+    empresaIds,
+  );
+  const adesaoB = await getAdesaoDeAtaMetrics(
+    portalSlug,
+    specB.year,
+    empresaIds,
+  );
 
   const adesaoDelta = {
     quantidade: calculateDelta(adesaoA.quantidade, adesaoB.quantidade),

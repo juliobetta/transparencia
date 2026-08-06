@@ -15,8 +15,10 @@ Este repositório possui limites estritos de consumo de tokens (Spend Cap). Todo
 ## 2. ARQUITETURA BASEADA EM CAMADAS (DRY / CONTEXT CONSERVATION)
 
 - **Camada de Dados / Queries (`packages/db`):** Toda a inteligência contábil, cálculos da LRF, queries Kysely e cruzamentos pertencem exclusivamente a `@transparencia/db/src/queries/`.
+- **Programação Funcional e Imutabilidade (`packages/db`):** De preferência estrita para estilo funcional e transformações imutáveis (`.map`, `.reduce`, `.filter`, `Promise.all`) em vez de loops imperativos (`for..of`, `for`) com objetos/variáveis mutáveis.
 - **A Camada de Apresentação é Burra:** Os componentes de visualização (`packages/ui` e `apps/web/app/`) devem apenas importar os dados tipados do `@transparencia/db` e renderizá-los.
 - **Eficiência de Desenvolvimento:** Para alterar qualquer lógica ou corrigir anomalias fiscais nas telas web, modifique apenas a camada `@transparencia/db`. Isso evita a alteração desnecessária de componentes de página.
+
 
 ---
 
@@ -57,7 +59,18 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 
 ---
 
-## 8. FILTRAGEM MANDATÓRIA POR `portalSlug`
+---
 
-- **Isolamento de Dados por Portal:** Todas as queries em `@transparencia/db` devem obrigatoriamente incluir o filtro por `portalSlug` (ex: `WHERE portal_slug = ${portalSlug}`).
-- **Modelagem DBT:** Caso a tabela consultada não possua a coluna `portal_slug`, é **obrigatório** rever a modelagem no dbt (adicionando a coluna no mart/staging correspondente) ou realizar o `JOIN` necessário com uma tabela que possua a dimensão de portal. Nenhuma consulta no repositório deve retornar dados multi-tenant não filtrados por portal.
+## 9. NOMEAÇÃO CLARA DE MÉTRICAS (PROIBIDO NOME ABREVIADO)
+
+- **Clareza Semântica:** É estritamente proibido criar colunas, DTOs ou variáveis com nomes de métricas abreviados ou opacos (ex: `c_valor`, `c_empenhado`, `df`, `do`, `pct`).
+- **Nomes Explícitos:** Toda métrica deve ser nomeada de forma 100% clara e autoexplicativa em SQL e TypeScript (ex: `valor_contrato`, `empenhado_contrato`, `total_folha`, `total_pago`, `percentual_folha`).
+
+---
+
+## 10. PADRÃO DE VALORES FIXOS/CÓDIGOS EM LOWERCASE SNAKE_CASE
+
+- **Códigos/Slugs em SQL:** É estritamente proibido utilizar strings fixas com formatação de exibição (ex: `'Adesão a ata (externa)'`, `'Sem licitação'`) em colunas de tabelas/marts SQL (como `modalidade`, `tipo_contratacao`, `status`).
+- **Padrão Obrigatório:** Todos os valores fixos de códigos, categorias ou discriminadores devem ser armazenados em **lowercase snake_case** (ex: `'adesao_ata_externa'`, `'sem_licitacao'`, `'gap_licitacao'`, `'licitacao_propria'`).
+- **Avanço da UI:** A camada de apresentação (`packages/ui` ou componentes web) é a única responsável por formatar e traduzir esses códigos em labels amigáveis para o usuário.
+

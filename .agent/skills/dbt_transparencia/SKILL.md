@@ -24,6 +24,9 @@ raw_<portal_slug>.*        ← carregado por elt/load/run.py
 - **Sem alinhamento de colunas**: não use espaços para alinhar `as`; deixa cada coluna na mesma indentação
 - **Tipos**: sempre `text`, nunca `varchar`. Numéricos: `numeric(15, 2)`. Inteiros: `int`
 - **Nunca use `select *`**: sempre liste as colunas explicitamente em todos os models (staging, intermediate e marts)
+- **Nomes de colunas e métricas explícitos**: **Evite estritamente abreviações opacas em colunas de métricas** (ex: `c_valor`, `c_empenhado`, `df`, `do`, `pct`). Use sempre nomes 100% claros e descritivos: `valor_contrato`, `empenhado_contrato`, `percentual_folha`, `total_folha`, `total_pago`, etc.
+- **Valores fixos/códigos em lowercase snake_case**: É estritamente proibido gravar strings formatadas para exibição em colunas de código/categoria/modalidade (ex: `'Adesão a ata (externa)'`, `'Sem licitação'`). Use sempre **lowercase snake_case** (ex: `'adesao_ata_externa'`, `'sem_licitacao'`, `'gap_licitacao'`, `'licitacao_propria'`). A formatação amigável é responsabilidade exclusiva da UI.
+
 
 ```sql
 -- ✅ correto
@@ -225,9 +228,10 @@ models:
           min_value: 1000
 ```
 
-### Unit tests (quando necessário)
+### Unit tests (OBRIGATÓRIO para todos os models e marts)
 
-Use `unit_tests:` no mesmo `_<model>.yml` para testar lógica de transformação não-trivial (cálculos, deduplicações, unions com casos especiais). Não escreva unit tests para modelos que apenas renomeiam colunas.
+Todo model em `marts/` ou `marts/metrics/` **deve obrigatoriamente incluir ao menos um `unit_test`** no seu respectivo `_<model>.yml`.
+O `unit_test` valida a lógica de agregação, filtros, categorizações e invariantes fiscais injetando dados sintéticos controlados.
 
 ```yaml
 unit_tests:

@@ -9,7 +9,10 @@ with source as (
 renamed as (
     select
         ano::int as ano,
-        empresa as empresa_id,
+        case
+            when coalesce(nullif(ltrim(empresa, '0'), ''), '0') in ('1', '0') then '7'
+            else coalesce(nullif(ltrim(empresa, '0'), ''), '0')
+        end as empresa_id,
         nullif(replace(replace(proventos, '.', ''), ',', '.'), '')::numeric(15, 2) as proventos,
         nullif(trim(categoriafuncional), '') as categoria_funcional,
         nullif(trim(vinculo), '') as vinculo,

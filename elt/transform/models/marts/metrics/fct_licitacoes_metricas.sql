@@ -1,0 +1,162 @@
+{{ config(materialized='table') }}
+
+with licitacoes_proprias as (
+    select
+        portal_slug,
+        ano,
+        empresa_id,
+        'licitacao_propria' as tipo_contratacao,
+        licitacao_numero as numero,
+        licitacao_numero,
+        null::text as contrato_numero,
+        null::text as fornecedor_nome,
+        coalesce(discriminacao, licitacao_numero) as objeto,
+        coalesce(nullif(trim(modalidade), ''), 'outros') as modalidade,
+        null::text as fundlegal,
+        carona,
+        null::integer as mes,
+        null::text as numero_obra,
+        null::text as tipo_obra,
+        1::integer as quantidade,
+        coalesce(valor, 0)::numeric(15, 2) as licitacao_valor,
+        0::numeric(15, 2) as valor_contrato,
+        0::numeric(15, 2) as empenhado_contrato,
+        0::numeric(15, 2) as pago_contrato,
+        null::date as data_referencia
+    from {{ ref('fct_licitacoes') }}
+),
+
+adesoes_internas as (
+    select
+        l.portal_slug,
+        l.ano,
+        l.empresa_id,
+        'adesao_ata_interna' as tipo_contratacao,
+        l.licitacao_numero as numero,
+        l.licitacao_numero,
+        c.contrato_numero,
+        c.fornecedor_nome,
+        coalesce(l.discriminacao, l.licitacao_numero) as objeto,
+        'adesao_ata_interna' as modalidade,
+        null::text as fundlegal,
+        l.carona,
+        nullif(c.mes, '')::integer as mes,
+        null::text as numero_obra,
+        null::text as tipo_obra,
+        1::integer as quantidade,
+        coalesce(l.valor, 0)::numeric(15, 2) as licitacao_valor,
+        coalesce(c.valor_contrato, 0)::numeric(15, 2) as valor_contrato,
+        coalesce(c.empenhado, 0)::numeric(15, 2) as empenhado_contrato,
+        0::numeric(15, 2) as pago_contrato,
+        null::date as data_referencia
+    from {{ ref('fct_licitacoes') }} l
+    left join {{ ref('fct_contratos') }} c
+        on c.licitacao_numero = l.licitacao_numero
+        and c.empresa_id = l.empresa_id
+        and c.portal_slug = l.portal_slug
+
+    where l.carona = 'S'
+),
+
+adesoes_externas as (
+    select
+        dg.portal_slug,
+        dg.ano,
+        dg.empresa_id,
+        'adesao_ata_externa' as tipo_contratacao,
+        coalesce(dg.licitacao_numero, dg.despesa_id) as numero,
+        coalesce(dg.licitacao_numero, '') as licitacao_numero,
+        null::text as contrato_numero,
+        dg.fornecedor_nome,
+        dg.descricao as objeto,
+        'adesao_ata_externa' as modalidade,
+        null::text as fundlegal,
+        'S' as carona,
+        nullif(dg.mes, '')::integer as mes,
+        null::text as numero_obra,
+        null::text as tipo_obra,
+        1::integer as quantidade,
+        0::numeric(15, 2) as licitacao_valor,
+        coalesce(dg.empenhado, 0)::numeric(15, 2) as valor_contrato,
+        coalesce(dg.empenhado, 0)::numeric(15, 2) as empenhado_contrato,
+        coalesce(dg.pago, 0)::numeric(15, 2) as pago_contrato,
+        dg.data_empenho as data_referencia
+    from {{ ref('fct_despesas') }} dg
+    where upper(dg.descricao) like '%ATA DE REGISTRO DE PRE%'
+       or upper(dg.descricao) like '%ADESAO%ATA%'
+       or upper(dg.descricao) like '%ADESÃO%ATA%'
+       or upper(dg.descricao) like '%TERMO DE ADESÃO%'
+       or upper(dg.descricao) like '%TERMO DE ADESAO%'
+),
+
+licitacoes_gaps as (
+    select
+        portal_slug,
+        ano,
+        empresa_id,
+        'gap_licitacao' as tipo_contratacao,
+        contrato_numero as numero,
+        coalesce(trim(licitacao_numero), '') as licitacao_numero,
+        contrato_numero,
+        fornecedor_nome,
+        objeto,
+        coalesce(nullif(trim(modalidade), ''), 'sem_licitacao') as modalidade,
+        fundlegal,
+        'N' as carona,
+        nullif(mes, '')::integer as mes,
+        numero_obra,
+        tipo_obra,
+        1::integer as quantidade,
+        0::numeric(15, 2) as licitacao_valor,
+        coalesce(valor_contrato, 0)::numeric(15, 2) as valor_contrato,
+        coalesce(empenhado, 0)::numeric(15, 2) as empenhado_contrato,
+        0::numeric(15, 2) as pago_contrato,
+        null::date as data_referencia
+    from {{ ref('fct_contratos') }}
+    where licitacao_numero is null or trim(licitacao_numero) = ''
+),
+
+unificado as (
+    select * from licitacoes_proprias
+    union all
+    select * from adesoes_internas
+    union all
+    select * from adesoes_externas
+    union all
+    select * from licitacoes_gaps
+),
+
+com_row_num as (
+    select
+        *,
+        row_number() over (
+            partition by portal_slug, ano, empresa_id, tipo_contratacao, numero, coalesce(contrato_numero, ''), coalesce(fornecedor_nome, '')
+            order by objeto
+        ) as rn
+    from unificado
+)
+
+select
+    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'ano', 'empresa_id', 'tipo_contratacao', 'numero', "coalesce(contrato_numero, '')", "coalesce(fornecedor_nome, '')", "rn::text"]) }} as licitacao_metricas_id,
+    portal_slug,
+    ano,
+    empresa_id,
+    tipo_contratacao,
+    numero,
+    licitacao_numero,
+    contrato_numero,
+    fornecedor_nome,
+    objeto,
+    modalidade,
+    fundlegal,
+    carona,
+    mes,
+    numero_obra,
+    tipo_obra,
+    quantidade,
+    licitacao_valor,
+    valor_contrato,
+    empenhado_contrato,
+    pago_contrato,
+    data_referencia
+from com_row_num
