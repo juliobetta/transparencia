@@ -6,6 +6,7 @@ export * from "./queries/analise-despesas-metrics";
 export * from "./queries/anomalias_contratuais";
 export * from "./queries/comparacao";
 export * from "./queries/concentracao_fornecedores";
+export * from "./queries/despesas-metrics";
 export * from "./queries/execucao_orcamentaria";
 export * from "./queries/execucao-orcamentaria-metrics";
 export * from "./queries/folha_vs_servicos";

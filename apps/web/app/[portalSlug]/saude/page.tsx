@@ -115,7 +115,7 @@ export default async function SaudePage({
           <KPICard
             title="Medicamentos e insumos"
             value={fmtCompact(saude.farmaceutica.medicamentosInsumos)}
-            subtext="Subfunção 10.303"
+            subtext={`${fmtCompact(saude.farmaceutica.medicamentosInsumosPago)} pagos (Subfunção 10.303)`}
           />
           <KPICard
             title="Judicialização da saúde"
@@ -124,7 +124,7 @@ export default async function SaudePage({
                 {fmtCompact(saude.farmaceutica.judicializacao)}
               </span>
             }
-            subtext="sentenças judiciais"
+            subtext={`${fmtCompact(saude.farmaceutica.judicializacaoPago)} pagos (sentenças judiciais)`}
           />
           <KPICard
             title="Concentração (HHI)"

@@ -152,6 +152,7 @@ export interface ItemDistribucaoModalidade {
 export async function getDistribucaoModalidades(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug?: string | null,
 ): Promise<ItemDistribucaoModalidade[]> {
   try {
     let q = sql`
@@ -162,6 +163,9 @@ export async function getDistribucaoModalidades(
       FROM fct_contratos
       WHERE ano = ${year}
     `;
+    if (portalSlug) {
+      q = sql`${q} AND portal_slug = ${portalSlug}`;
+    }
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND empresa_id = ANY(${empresaIds})`;
     }

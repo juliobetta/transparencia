@@ -61,18 +61,32 @@ models:
         description: "Total pago na função saúde (Função 10)"
         tests:
           - not_null
-      - name: medicamentos_insumos_pago
+      - name: medicamentos_insumos_empenhado
         data_type: numeric
         constraints:
           - type: not_null
         description: "Despesas com medicamentos e insumos farmacêuticos empenhados (Subfunção 10.303)"
         tests:
           - not_null
-      - name: judicializacao_pago
+      - name: medicamentos_insumos_pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Despesas com medicamentos e insumos farmacêuticos pagos (Subfunção 10.303)"
+        tests:
+          - not_null
+      - name: judicializacao_empenhado
         data_type: numeric
         constraints:
           - type: not_null
         description: "Despesas com sentenças judiciais da saúde empenhadas (Elemento 91)"
+        tests:
+          - not_null
+      - name: judicializacao_pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Despesas com sentenças judiciais da saúde pagas (Elemento 91)"
         tests:
           - not_null
       - name: emendas_saude_arrecadado
@@ -107,4 +121,4 @@ unit_tests:
           - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "2", destinacao: "EQUIPAMENTOS SAUDE", resumo: "EMENDA SAUDE", valor_total: 50000.00, empenhado: 50000.00 }
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", ano: 2025, dotacao_total: 300000.00, total_empenhado: 150000.00, total_liquidado: 120000.00, total_pago: 90000.00, medicamentos_insumos_pago: 100000.00, judicializacao_pago: 50000.00, emendas_saude_arrecadado: 50000.00, hhi_concentracao_fornecedores: 5556 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, dotacao_total: 300000.00, total_empenhado: 150000.00, total_liquidado: 120000.00, total_pago: 90000.00, medicamentos_insumos_empenhado: 100000.00, medicamentos_insumos_pago: 60000.00, judicializacao_empenhado: 50000.00, judicializacao_pago: 30000.00, emendas_saude_arrecadado: 50000.00, hhi_concentracao_fornecedores: 5556 }

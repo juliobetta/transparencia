@@ -15,6 +15,8 @@ export interface HistoriaCapremMetricsDTO {
   totalEmpenhado: number;
   totalLiquidado: number;
   totalPago: number;
+  servidoresEfetivos: number;
+  servidoresTemporarios: number;
 }
 
 /**
@@ -28,8 +30,6 @@ export async function getHistoriaCapremMetrics(
   portalSlug: string,
   ano: number,
 ): Promise<HistoriaCapremMetricsDTO | null> {
-  if (portalSlug !== "porciuncula_prefeitura") return null;
-
   const result = await db
     .selectFrom("fct_historia_caprem_metricas")
     .selectAll()
@@ -54,5 +54,40 @@ export async function getHistoriaCapremMetrics(
     totalEmpenhado: Number(result.total_empenhado ?? 0),
     totalLiquidado: Number(result.total_liquidado ?? 0),
     totalPago: Number(result.total_pago ?? 0),
+    servidoresEfetivos: Number(result.servidores_efetivos ?? 0),
+    servidoresTemporarios: Number(result.servidores_temporarios ?? 0),
   } satisfies HistoriaCapremMetricsDTO;
+}
+
+export interface EntityCapremDTO {
+  entidade: string;
+  empenhado: number;
+  liquidado: number;
+  pago: number;
+  taxaExecucao: number;
+}
+
+export async function getCapremEntidadesMetrics(
+  portalSlug: string,
+  ano: number,
+): Promise<EntityCapremDTO[]> {
+  try {
+    const rows = await db
+      .selectFrom("fct_caprem_entidades_metricas")
+      .select(["entidade", "empenhado", "liquidado", "pago", "taxa_execucao"])
+      .where("portal_slug", "=", portalSlug)
+      .where("ano", "=", ano)
+      .orderBy("empenhado", "desc")
+      .execute();
+
+    return rows.map((r) => ({
+      entidade: r.entidade ?? "",
+      empenhado: Number(r.empenhado ?? 0),
+      liquidado: Number(r.liquidado ?? 0),
+      pago: Number(r.pago ?? 0),
+      taxaExecucao: Number(r.taxa_execucao ?? 0),
+    }));
+  } catch {
+    return [];
+  }
 }

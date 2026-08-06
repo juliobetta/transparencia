@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   getAdesaoDeAta,
   getAnaliseDespesasMetrics,
+  getCapremEntidadesMetrics,
   getConcentracaoFornecedores,
+  getConcentracaoFornecedoresMetrics,
   getDepartmentalPayroll,
+  getDespesasPorUnidadeMetrics,
   getDistribucaoModalidades,
   getDistribuicaoProventos,
   getEntidades,
@@ -17,6 +20,7 @@ import {
   getHistoriaSaude,
   getHistoriaSaudeMetrics,
   getImpactoGastosLocais,
+  getImpactoGastosLocaisMetrics,
   getLicitacaoGaps,
   getOrcamentoFuncionalMetrics,
   getPortalConfig,
@@ -24,7 +28,11 @@ import {
   getPosicaoFiscalDetalhesMetrics,
   getPosicaoFiscalMetrics,
   getPrincipaisBeneficiariosDiarias,
+  getPrincipaisBeneficiariosDiariasMetrics,
+  getRestosAPagarResumoMetrics,
   getResumoDiarias,
+  getResumoDiariasMetrics,
+  getSaudeFornecedoresCountMetrics,
   getTendenciasAnuais,
 } from "../index";
 
@@ -395,9 +403,141 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
       expect(typeof metrics.portalSlug).toBe("string");
       expect(typeof metrics.ano).toBe("number");
       expect(typeof metrics.dotacaoTotal).toBe("number");
+      expect(typeof metrics.medicamentosInsumosEmpenhado).toBe("number");
       expect(typeof metrics.medicamentosInsumosPago).toBe("number");
+      expect(typeof metrics.judicializacaoEmpenhado).toBe("number");
       expect(typeof metrics.judicializacaoPago).toBe("number");
       expect(typeof metrics.hhiConcentracaoFornecedores).toBe("number");
     }
+  });
+
+  it("deve buscar métricas de despesas diárias, fornecedores, restos e unidades via leitores atômicos", async () => {
+    const resumoDiarias = await getResumoDiariasMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      ["1"],
+    );
+    expect(resumoDiarias).toBeDefined();
+    expect(typeof resumoDiarias.totalValor).toBe("number");
+
+    const beneficiarios = await getPrincipaisBeneficiariosDiariasMetrics({
+      portalSlug: "porciuncula_prefeitura",
+      year: TEST_YEAR,
+      limit: 5,
+      empresaIds: ["1"],
+    });
+    expect(Array.isArray(beneficiarios)).toBe(true);
+
+    const impacto = await getImpactoGastosLocaisMetrics({
+      portalSlug: "porciuncula_prefeitura",
+      year: TEST_YEAR,
+      empresaIds: ["1"],
+      cidadeClean: "PORCIUNCULA",
+    });
+    expect(impacto).toBeDefined();
+
+    const conc = await getConcentracaoFornecedoresMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      ["1"],
+    );
+    expect(conc).toBeDefined();
+
+    const restos = await getRestosAPagarResumoMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      ["1"],
+    );
+    expect(restos).toBeDefined();
+    expect(typeof restos.dividaMaisAntigaAno).toBe("number");
+    expect(restos.dividaMaisAntigaAno).toBeGreaterThanOrEqual(2000);
+
+    const unidades = await getDespesasPorUnidadeMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      ["1"],
+    );
+    expect(Array.isArray(unidades)).toBe(true);
+
+    const capremEntidades = await getCapremEntidadesMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+    );
+    expect(Array.isArray(capremEntidades)).toBe(true);
+
+    const saudeFornecedoresCount = await getSaudeFornecedoresCountMetrics(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      ["2"],
+    );
+    expect(typeof saudeFornecedoresCount).toBe("number");
+    expect(saudeFornecedoresCount).toBeGreaterThanOrEqual(0);
+  });
+
+  describe("Regressão e Integridade Fiscais (Despesas, Saúde, CAPREM)", () => {
+    it("deve garantir integridade contábil de restos a pagar e dívida mais antiga", async () => {
+      const restos = await getRestosAPagarResumoMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+        ["1", "2", "3", "02.01", "02.04"],
+      );
+      expect(restos).toBeDefined();
+      expect(restos.totalPendente).toBeGreaterThan(0);
+      expect(restos.fornecedoresAguardando).toBeGreaterThan(0);
+      expect(restos.dividaMaisAntigaAno).toBeLessThanOrEqual(2022);
+      expect(restos.topFornecedores.length).toBeGreaterThan(0);
+    });
+
+    it("deve calcular o impacto de compras locais e concentração HHI sem inflação de folha", async () => {
+      const impacto = await getImpactoGastosLocaisMetrics({
+        portalSlug: "porciuncula_prefeitura",
+        year: TEST_YEAR,
+        empresaIds: ["1", "2", "3", "02.01", "02.04"],
+        cidadeClean: "PORCIUNCULA",
+      });
+      expect(impacto).toBeDefined();
+      expect(impacto.pctLocal).toBeGreaterThan(10);
+      expect(impacto.pctLocal).toBeLessThan(50);
+
+      const conc = await getConcentracaoFornecedoresMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+        ["1", "2", "3", "02.01", "02.04"],
+      );
+      expect(conc).toBeDefined();
+      expect(conc.hhi).toBeGreaterThan(500);
+      expect(conc.hhi).toBeLessThan(1200);
+    });
+
+    it("deve calcular fornecedores ativos da Saúde sem omitir credores", async () => {
+      const count = await getSaudeFornecedoresCountMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+        ["2", "02.04"],
+      );
+      expect(count).toBeGreaterThan(100);
+    });
+
+    it("deve calcular amortização de dívidas e déficit patronal do CAPREM sem distorção", async () => {
+      const caprem = await getHistoriaCapremMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(caprem).not.toBeNull();
+      if (caprem) {
+        expect(caprem.totalAmortizacaoDivida).toBeGreaterThan(100000);
+        expect(caprem.totalEmpenhadoPatronal).toBeGreaterThan(
+          caprem.totalPagoPatronal,
+        );
+        expect(caprem.romboPatronalNaoRepassado).toBeGreaterThan(500000);
+      }
+
+      const entidadesCaprem = await getCapremEntidadesMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(Array.isArray(entidadesCaprem)).toBe(true);
+      expect(entidadesCaprem.length).toBeGreaterThan(0);
+    });
   });
 });

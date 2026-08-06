@@ -308,19 +308,22 @@ O wrapper `scripts/run_dbt.py` parseia `DATABASE_URL` automaticamente — não �
 
 ---
 
-## Auditoria e Paridade Fiscal (Lições Práticas & Invariantes)
+## Auditoria e Paridade Fiscal (Lições Práticas & Invariantes Contábeis)
 
 ### 1. Invariantes Contábeis Rígidos (LRF e MCASP)
 - **Hierarquia Orçamentária**: Sempre validar a regra `Empenhado >= Liquidado >= Pago`. Testes no dbt devem incluir `expression_is_true` para impedir inversões contábeis nos marts.
 - **Exercício Parcial vs Encerrado**: Alertas de sub-execução orçamentária (ex: meta de 70% de execução anual da Saúde) só fazem sentido para **exercícios encerrados** (`!isCurrentYear`). Em anos parciais (ex: Jan-Jul de 2026), a dotação de 12 meses não deve disparar alertas prematuros de gestão irregular.
+- **Restos a Pagar Pendentes (MCASP)**: Saldo pendente (`saldo_restos`) **deve** abater anulações e cancelamentos (`empenhado - pago - valor_anulacoes`). Ignorar anulações inflaciona indevidamente o passivo fiscal pendente.
 
-### 2. Cuidados com Filtros e Isolamento nos Marts
-- **Fonte de Recursos (`fonte = 'exercicio'`)**: Para métricas do ano corrente (HHI de concentração de fornecedores, repasses do exercício), sempre filtrar `fonte = 'exercicio'`. Misturar linhas de Restos a Pagar (`fonte = 'restos_a_pagar'`) distorce índices de concentração e inflaciona valores.
-- **Dotação Atualizada de Fundos Especiais**: O total da dotação aprovada para fundos municipais (ex: Fundo de Saúde `empresa = '2'`) deve ser extraído de `fct_despesas_por_orgao`. Consultar apenas `fct_despesas` omite linhas orçamentárias abertas que ainda não possuem empenhos emitidos no ano.
-- **Cláusulas `WHERE` com `OR` em Elementos de Despesa**: Nunca adicionar `OR elemento IN ('13', '91', '46')` em marts específicos sem restringir o fornecedor/credor (ex: CAPREM/CASP). O elemento 13 (Contribuições Patronais) engloba o INSS da folha de pagamento do município inteiro e causará inflação de milhões de reais nos valores.
-- **Escopo Temático Consolidador (CAPREM)**: Temas como previdência prevêem consolidação municipal (RPPS). Os marts e leitores correspondentes devem ignorar filtros por entidade individual (`empresa`), mantendo a visão consolidada de todos os órgãos.
+### 2. Separação Estrita Previdenciária (RPPS vs RGPS / Elemento 13)
+- **Elemento 13 (Obrigações Patronais)**: É um elemento genérico que engloba contribuições para o **RPPS** (Previdência Municipal - CAPREM), para o **RGPS** (Previdência Federal - INSS / Receita Federal para comissionados/temporários) e para planos de saúde (CASP).
+- **Déficit de Repasse do RPPS (CAPREM)**: É **obrigatório** restringir os cálculos do rombo patronal do CAPREM às obrigações previdenciárias próprias do RPPS (`fornecedor_nome ILIKE '%CAPREM%' OR natureza_despesa ILIKE '%RPPS%'`). Lançamentos devidos ao INSS/Receita Federal constituem dívida com a União (RGPS) e **jamais devem ser somados ao déficit do CAPREM**, sob pena de inflacionar o déficit previdenciário municipal por contaminação de impostos federais.
+- **Trava por dbt Unit Tests**: Todos os marts de métricas previdenciárias **devem** conter testes de unidade em seus arquivos `_<model>.yml` injetando linhas sintéticas de INSS para garantir que o pipeline `dbt test` falhe caso ocorra contaminação do RGPS no RPPS.
 
-### 3. Protocolo de Auditoria e Paridade
+### 3. Gastos Locais e Concentração de Fornecedores (HHI)
+- **Filtro Comercial Estrito**: Cálculo de índice de compras locais e concentração HHI deve filtrar apenas transações comerciais de produtos e serviços (`elemento IN ('30', '36', '39', '52')`).
+- **Proibição de Agrupamentos Anuais por `SELECT DISTINCT`**: Nunca agrupar fornecedores via `SELECT DISTINCT` em visões anuais pré-agregadas (`fct_despesas_por_fornecedor`). Isso atrai transações não-comerciais (folha/encargos previdenciários) de credores locais, distorcendo o percentual de gastos locais.
+
+### 4. Protocolo de Auditoria e Paridade
 - **Verificação ao Centavo**: Antes de aprovar refatorações de marts, extrair o HTML de Produção via `read_url_content` e comparar cada indicador com o banco local ao centavo.
 - **Validação Dupla de Testes**: Após qualquer alteração no dbt, executar `make test` (pytest no backend efêmero) e `pnpm test` (vitest e tipagem no TypeScript) sem exceções.
-

@@ -23,11 +23,25 @@ linhas_saude as (
                 then coalesce(empenhado_liquido, 0)
                 else 0
             end
+        ) as medicamentos_insumos_empenhado,
+        sum(
+            case
+                when subfuncao = '303' or subfuncao_nome ilike '%farmac%' or subfuncao_nome ilike '%medicam%'
+                then coalesce(pago, 0)
+                else 0
+            end
         ) as medicamentos_insumos_pago,
         sum(
             case
                 when elemento = '91' or elemento ilike '%senten%' or elemento ilike '%judici%'
                 then coalesce(empenhado_liquido, 0)
+                else 0
+            end
+        ) as judicializacao_empenhado,
+        sum(
+            case
+                when elemento = '91' or elemento ilike '%senten%' or elemento ilike '%judici%'
+                then coalesce(pago, 0)
                 else 0
             end
         ) as judicializacao_pago
@@ -96,7 +110,9 @@ select
     coalesce(ls.total_empenhado, 0)::numeric(15, 2) as total_empenhado,
     coalesce(ls.total_liquidado, 0)::numeric(15, 2) as total_liquidado,
     coalesce(ls.total_pago, 0)::numeric(15, 2) as total_pago,
+    coalesce(ls.medicamentos_insumos_empenhado, 0)::numeric(15, 2) as medicamentos_insumos_empenhado,
     coalesce(ls.medicamentos_insumos_pago, 0)::numeric(15, 2) as medicamentos_insumos_pago,
+    coalesce(ls.judicializacao_empenhado, 0)::numeric(15, 2) as judicializacao_empenhado,
     coalesce(ls.judicializacao_pago, 0)::numeric(15, 2) as judicializacao_pago,
     coalesce(es.emendas_saude_arrecadado, 0)::numeric(15, 2) as emendas_saude_arrecadado,
     coalesce(h.hhi_concentracao_fornecedores, 0) as hhi_concentracao_fornecedores

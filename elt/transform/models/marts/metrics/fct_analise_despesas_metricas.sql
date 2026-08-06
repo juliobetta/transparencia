@@ -8,6 +8,7 @@ with despesas_agregadas as (
         coalesce(orgao_codigo, '00') as orgao_codigo,
         coalesce(unidade_codigo, '00') as unidade_codigo,
         coalesce(funcao, '00') as funcao_codigo,
+        sum(coalesce(dotacao_atualizada, 0)) as total_dotacao_atualizada,
         sum(coalesce(empenhado_liquido, 0)) as total_empenhado,
         sum(coalesce(liquidado, 0)) as total_liquidado,
         sum(coalesce(pago, 0)) as total_pago
@@ -30,6 +31,7 @@ select
     orgao_codigo,
     unidade_codigo,
     funcao_codigo,
+    total_dotacao_atualizada::numeric(15, 2) as total_dotacao_atualizada,
     total_empenhado::numeric(15, 2) as total_empenhado,
     total_liquidado::numeric(15, 2) as total_liquidado,
     total_pago::numeric(15, 2) as total_pago

@@ -1,15 +1,14 @@
 import type { MetricasDespesas } from "@transparencia/db";
 import {
   getAnaliseDespesasMetrics,
-  getConcentracaoFornecedores,
-  getDespesasPorUnidade,
+  getConcentracaoFornecedoresMetrics,
+  getDespesasPorUnidadeMetrics,
   getEntidades,
-  getImpactoGastosLocais,
-  getMetricasGeraisDespesas,
+  getImpactoGastosLocaisMetrics,
   getPortalConfig,
-  getPrincipaisBeneficiariosDiarias,
-  getRestosAPagarResumo,
-  getResumoDiarias,
+  getPrincipaisBeneficiariosDiariasMetrics,
+  getRestosAPagarResumoMetrics,
+  getResumoDiariasMetrics,
 } from "@transparencia/db";
 
 export interface DespesasSearchParams {
@@ -113,7 +112,6 @@ export async function loadDespesasData(
 
   const [
     analiseDespesasMetrics,
-    metricasGerais,
     impactoLocais,
     concentracao,
     restosResumo,
@@ -122,35 +120,31 @@ export async function loadDespesasData(
     diariasBeneficiarios,
   ] = await Promise.all([
     getAnaliseDespesasMetrics(tenantSlug, selectedYear, empresaIds),
-    getMetricasGeraisDespesas(selectedYear, empresaIds, tenantSlug),
-    getImpactoGastosLocais({
+    getImpactoGastosLocaisMetrics({
+      portalSlug: tenantSlug,
       year: selectedYear,
       empresaIds,
       cidadeClean: portalConfig?.cidadeClean || "",
-      portalSlug: tenantSlug,
     }),
-    getConcentracaoFornecedores(selectedYear, empresaIds, tenantSlug),
-    getRestosAPagarResumo(selectedYear, empresaIds, tenantSlug),
-    getDespesasPorUnidade(selectedYear, empresaIds, tenantSlug),
-    getResumoDiarias(selectedYear, empresaIds, tenantSlug),
-    getPrincipaisBeneficiariosDiarias({
+    getConcentracaoFornecedoresMetrics(tenantSlug, selectedYear, empresaIds),
+    getRestosAPagarResumoMetrics(tenantSlug, selectedYear, empresaIds),
+    getDespesasPorUnidadeMetrics(tenantSlug, selectedYear, empresaIds),
+    getResumoDiariasMetrics(tenantSlug, selectedYear, empresaIds),
+    getPrincipaisBeneficiariosDiariasMetrics({
+      portalSlug: tenantSlug,
       year: selectedYear,
       limit: 10,
       empresaIds,
-      portalSlug: tenantSlug,
     }),
   ]);
 
-  // Fallback legado controlado: mantém paridade enquanto alguns blocos de Despesas
-  // (HHI, diárias, restos e concentração detalhada) ainda dependem de readers não métricos.
-  const metricasGeraisCompostas =
-    analiseDespesasMetrics.length > 0
-      ? summarizeAnaliseDespesasMetrics(analiseDespesasMetrics)
-      : metricasGerais;
+  const metricasGerais = summarizeAnaliseDespesasMetrics(
+    analiseDespesasMetrics,
+  );
 
   return {
     context,
-    metricasGerais: metricasGeraisCompostas,
+    metricasGerais,
     impactoLocais,
     concentracao,
     restosResumo,

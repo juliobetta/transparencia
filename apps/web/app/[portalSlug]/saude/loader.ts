@@ -1,4 +1,13 @@
-import { getHistoriaSaude, getHistoriaSaudeMetrics } from "@transparencia/db";
+import {
+  getHistoriaSaudeMetrics,
+  getSaudeContratosCountMetrics,
+  getSaudeEmendasMetrics,
+  getSaudeExecutionTrendMetrics,
+  getSaudeFontesReceitaMetrics,
+  getSaudeFornecedoresCountMetrics,
+  getSaudeLicitacoesMetrics,
+  SAUDE_EMPRESA,
+} from "@transparencia/db";
 
 export interface SaudeSearchParams {
   ano?: string;
@@ -14,9 +23,9 @@ export function parseSaudeContext(
   searchParams: SaudeSearchParams,
 ): SaudeContext {
   const currentYear = new Date().getFullYear();
-  const selectedYear = searchParams.ano
-    ? Number(searchParams.ano)
-    : currentYear;
+  const parsed = searchParams.ano ? Number(searchParams.ano) : currentYear;
+  const selectedYear =
+    Number.isInteger(parsed) && parsed > 1900 ? parsed : currentYear;
 
   return {
     selectedYear,
@@ -44,57 +53,83 @@ export async function loadSaudeData(
 ) {
   const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseSaudeContext(searchParams);
-  const [saudeLegacy, saudeMetrics] = await Promise.all([
-    getHistoriaSaude(context.selectedYear),
+  const empresaIds = searchParams.entidades
+    ? searchParams.entidades.split(",").filter(Boolean)
+    : [SAUDE_EMPRESA];
+
+  const [
+    saudeMetrics,
+    executionTrend,
+    emendasStats,
+    contratosCount,
+    fornecedoresCount,
+    licitacoesSaude,
+  ] = await Promise.all([
     getHistoriaSaudeMetrics(tenantSlug, context.selectedYear),
+    getSaudeExecutionTrendMetrics(tenantSlug),
+    getSaudeEmendasMetrics(tenantSlug, context.selectedYear, empresaIds),
+    getSaudeContratosCountMetrics(tenantSlug, context.selectedYear, empresaIds),
+    getSaudeFornecedoresCountMetrics(
+      tenantSlug,
+      context.selectedYear,
+      empresaIds,
+    ),
+    getSaudeLicitacoesMetrics(tenantSlug, context.selectedYear, empresaIds),
   ]);
 
-  // Fallback legado controlado: mantém os blocos narrativos/detalhados que ainda
-  // não estão materializados no DTO métrico e sobrepõe apenas campos já cobertos.
-  const saude = saudeMetrics
-    ? {
-        ...saudeLegacy,
-        orcamento: {
-          ...saudeLegacy.orcamento,
-          dotacao: saudeMetrics.dotacaoTotal,
-          empenhado: saudeMetrics.totalEmpenhado,
-          liquidado: saudeMetrics.totalLiquidado,
-          pago: saudeMetrics.totalPago,
-          taxaExecucao:
-            saudeMetrics.dotacaoTotal > 0
-              ? saudeMetrics.totalEmpenhado / saudeMetrics.dotacaoTotal
-              : 0,
-          alertaSubExecucao:
-            !context.isCurrentYear &&
-            saudeMetrics.dotacaoTotal > 0 &&
-            saudeMetrics.totalEmpenhado / saudeMetrics.dotacaoTotal < 0.7,
-          medicamentosInsumos: saudeMetrics.medicamentosInsumosPago,
-        },
-        farmaceutica: {
-          ...saudeLegacy.farmaceutica,
-          medicamentosInsumos: saudeMetrics.medicamentosInsumosPago,
-          judicializacao: saudeMetrics.judicializacaoPago,
-          hhi: Math.round(saudeMetrics.hhiConcentracaoFornecedores),
-          hhiClassificacao: classifyHhi(
-            Math.round(saudeMetrics.hhiConcentracaoFornecedores),
-          ),
-        },
-        fontesReceita: {
-          ...saudeLegacy.fontesReceita,
-          emendasParlamentares: saudeMetrics.emendasSaudeArrecadado,
-        },
-        emendasStats: {
-          ...saudeLegacy.emendasStats,
-          totalAutorizado: saudeMetrics.emendasSaudeArrecadado,
-          taxaEmpenho:
-            saudeMetrics.emendasSaudeArrecadado > 0
-              ? saudeLegacy.emendasStats.totalEmpenhado /
-                saudeMetrics.emendasSaudeArrecadado
-              : 0,
-        },
-        emendasTotal: saudeMetrics.emendasSaudeArrecadado,
-      }
-    : saudeLegacy;
+  const dotacao = saudeMetrics?.dotacaoTotal ?? 0;
+  const empenhado = saudeMetrics?.totalEmpenhado ?? 0;
+  const liquidado = saudeMetrics?.totalLiquidado ?? 0;
+  const pago = saudeMetrics?.totalPago ?? 0;
+  const medicamentosInsumosEmpenhado =
+    saudeMetrics?.medicamentosInsumosEmpenhado ?? 0;
+  const medicamentosInsumosPago = saudeMetrics?.medicamentosInsumosPago ?? 0;
+  const judicializacaoEmpenhado = saudeMetrics?.judicializacaoEmpenhado ?? 0;
+  const judicializacaoPago = saudeMetrics?.judicializacaoPago ?? 0;
+  const emendasArrecadado = saudeMetrics?.emendasSaudeArrecadado ?? 0;
+  const hhiVal = Math.round(saudeMetrics?.hhiConcentracaoFornecedores ?? 0);
+
+  const fontesReceitaMetrics = await getSaudeFontesReceitaMetrics({
+    portalSlug: tenantSlug,
+    ano: context.selectedYear,
+    empresaIds,
+    empenhadoTotal: empenhado,
+  });
+
+  const saude = {
+    orcamento: {
+      dotacao,
+      empenhado,
+      liquidado,
+      pago,
+      taxaExecucao: dotacao > 0 ? empenhado / dotacao : 0,
+      alertaSubExecucao:
+        !context.isCurrentYear && dotacao > 0 && empenhado / dotacao < 0.7,
+      medicamentosInsumos: medicamentosInsumosEmpenhado,
+      medicamentosInsumosPago: medicamentosInsumosPago,
+      judicializacao: judicializacaoEmpenhado,
+      judicializacaoPago: judicializacaoPago,
+      contratosVinculadosCount: contratosCount,
+      fornecedoresAtivosCount: fornecedoresCount,
+    },
+    farmaceutica: {
+      medicamentosInsumos: medicamentosInsumosEmpenhado,
+      medicamentosInsumosPago: medicamentosInsumosPago,
+      judicializacao: judicializacaoEmpenhado,
+      judicializacaoPago: judicializacaoPago,
+      hhi: hhiVal,
+      hhiClassificacao: classifyHhi(hhiVal),
+    },
+    fontesReceita: {
+      ...fontesReceitaMetrics,
+      emendasParlamentares: emendasStats.totalAutorizado || emendasArrecadado,
+    },
+    executionTrend,
+    licitacoesSaude,
+    emendasStats,
+    emendas: emendasStats.lista,
+    emendasTotal: emendasStats.totalAutorizado || emendasArrecadado,
+  };
 
   return {
     portalSlug: tenantSlug,

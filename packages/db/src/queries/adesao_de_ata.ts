@@ -40,6 +40,7 @@ export interface AdesaoExternaResult {
 export async function getAdesaoDeAta(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug?: string | null,
 ): Promise<AdesaoAtaResult> {
   try {
     let q = sql`
@@ -57,6 +58,9 @@ export async function getAdesaoDeAta(
         AND c.empresa_id = l.empresa_id
       WHERE l.ano = ${year} AND l.carona = 'S'
     `;
+    if (portalSlug) {
+      q = sql`${q} AND l.portal_slug = ${portalSlug}`;
+    }
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND l.empresa_id = ANY(${empresaIds})`;
     }
@@ -146,6 +150,7 @@ export async function getAdesaoDeAta(
 export async function getAdesaoExterna(
   year: number,
   empresaIds?: string[] | null,
+  portalSlug?: string | null,
 ): Promise<AdesaoExternaResult> {
   try {
     let q = sql`
@@ -167,6 +172,9 @@ export async function getAdesaoExterna(
           OR UPPER(dg.descricao) LIKE '%TERMO DE ADESAO%'
         )
     `;
+    if (portalSlug) {
+      q = sql`${q} AND dg.portal_slug = ${portalSlug}`;
+    }
     if (empresaIds && empresaIds.length > 0) {
       q = sql`${q} AND dg.empresa_id = ANY(${empresaIds})`;
     }

@@ -110,6 +110,20 @@ models:
         description: "Total pago consolidado do domínio CAPREM/CASP"
         tests:
           - not_null
+      - name: servidores_efetivos
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Quantidade de servidores estatutários efetivos ativos"
+        tests:
+          - not_null
+      - name: servidores_temporarios
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Quantidade de servidores temporários ou comissionados"
+        tests:
+          - not_null
 
 unit_tests:
   - name: test_historia_caprem_metricas_calculos
@@ -125,6 +139,10 @@ unit_tests:
           - { portal_slug: "porciuncula_prefeitura", ano: 2025, elemento: "13", fornecedor_nome: "CAPREM", natureza_despesa: "RESTOS RPPS", descricao: "RESTOS RPPS", fornecedor_cpf_cnpj: "07.573.075/0001-00", empenhado_liquido: 99999.00, liquidado: 99999.00, pago: 99999.00, tipo_empenho: "OR", fonte: "restos_a_pagar" }
           # Linha de INSS geral que DEVE ser ignorada por não pertencer ao CAPREM/CASP
           - { portal_slug: "porciuncula_prefeitura", ano: 2025, elemento: "13", fornecedor_nome: "INSS RECEITA FEDERAL", natureza_despesa: "INSS GERAL", descricao: "INSS FOLHA DIVERSA", fornecedor_cpf_cnpj: "00.000.000/0001-00", empenhado_liquido: 500000.00, liquidado: 500000.00, pago: 500000.00, tipo_empenho: "OR", fonte: "exercicio" }
+      - input: ref('fct_pessoal')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, categoria_funcional: "Efetivo Estatutario" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, categoria_funcional: "Comissionado" }
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", ano: 2025, total_aporte_exigido: 100000.00, total_aporte_quitado: 80000.00, taxa_adimplencia_aporte: 80.0000, total_empenhado_patronal: 50000.00, total_pago_patronal: 30000.00, rombo_patronal_nao_repassado: 20000.00, total_amortizacao_divida: 20000.00, total_casp_plano_saude: 0.00, total_empenhado: 170000.00, total_liquidado: 170000.00, total_pago: 130000.00 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, total_aporte_exigido: 100000.00, total_aporte_quitado: 80000.00, taxa_adimplencia_aporte: 80.0000, total_empenhado_patronal: 50000.00, total_pago_patronal: 30000.00, rombo_patronal_nao_repassado: 20000.00, total_amortizacao_divida: 20000.00, total_casp_plano_saude: 0.00, total_empenhado: 170000.00, total_liquidado: 170000.00, total_pago: 130000.00, servidores_efetivos: 1, servidores_temporarios: 1 }

@@ -61,6 +61,13 @@ models:
         description: "Código da função orçamentária"
         tests:
           - not_null
+      - name: total_dotacao_atualizada
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Dotação orçamentária atualizada da unidade/função"
+        tests:
+          - not_null
       - name: total_empenhado
         data_type: numeric
         constraints:
