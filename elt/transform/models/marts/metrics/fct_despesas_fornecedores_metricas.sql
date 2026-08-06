@@ -39,7 +39,7 @@ fornecedores_agregados as (
 )
 
 select
-    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'empresa_id', 'ano', 'fornecedor_codigo', 'fornecedor_nome']) }} as fornecedores_metricas_id,
+    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'empresa_id', 'ano', 'fornecedor_codigo', 'fornecedor_nome', 'fornecedor_cidade_clean']) }} as fornecedores_metricas_id,
     portal_slug,
     empresa_id,
     ano,
