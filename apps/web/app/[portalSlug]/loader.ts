@@ -1,10 +1,10 @@
 import {
   getEntidades,
   getExecucaoOrcamentariaMetrics,
-  getFolhaVsServicos,
+  getFolhaVsServicosMetrics,
   getFontesReceitaMetrics,
-  getLicitacaoGaps,
-  getPercentualChefiasEfetivas,
+  getLicitacaoGapsMetrics,
+  getPercentualChefiasEfetivasMetrics,
   getPortalConfig,
   getPosicaoFiscalDetalhesMetrics,
   getPosicaoFiscalMetrics,
@@ -171,15 +171,15 @@ export async function loadVisaoGeralData(
     getPortalConfig(tenantSlug),
     getPosicaoFiscalMetrics(tenantSlug, selectedYear, empresaIds),
     getExecucaoOrcamentariaMetrics(tenantSlug, selectedYear, empresaIds),
-    getLicitacaoGaps(selectedYear, entidadesIds),
+    getLicitacaoGapsMetrics(tenantSlug, selectedYear, empresaIds),
     getFontesReceitaMetrics(tenantSlug, selectedYear, empresaIds),
     getPosicaoFiscalDetalhesMetrics(tenantSlug, selectedYear, empresaIds),
-    getFolhaVsServicos({
+    getFolhaVsServicosMetrics({
       years: [selectedYear],
-      empresaIds: entidadesIds,
+      empresaIds,
       portalSlug: tenantSlug,
     }),
-    getPercentualChefiasEfetivas(selectedYear, entidadesIds),
+    getPercentualChefiasEfetivasMetrics(tenantSlug, selectedYear, empresaIds),
   ]);
 
   const execSummary = summarizeExecucaoMetrics(execMetricas);

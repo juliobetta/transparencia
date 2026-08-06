@@ -1,9 +1,10 @@
 import {
-  getAdesaoDeAta,
-  getAdesaoExterna,
-  getAnomaliasContratuais,
-  getDistribucaoModalidades,
-  getLicitacaoGaps,
+  getAdesaoDeAtaMetrics,
+  getAdesaoExternaMetrics,
+  getAnomaliasContratuaisMetrics,
+  getDistribucaoModalidadesMetrics,
+  getEntidades,
+  getLicitacaoGapsMetrics,
 } from "@transparencia/db";
 
 export interface LicitacoesSearchParams {
@@ -21,10 +22,10 @@ export function parseLicitacoesContext(
   searchParams: LicitacoesSearchParams,
 ): LicitacoesContext {
   const currentYear = new Date().getFullYear();
-  const selectedYear = searchParams.ano
-    ? Number(searchParams.ano)
-    : currentYear;
-  const entidadesIds = searchParams.entidades
+  const parsedYear = searchParams?.ano ? Number(searchParams.ano) : NaN;
+  const selectedYear =
+    !Number.isNaN(parsedYear) && parsedYear > 1900 ? parsedYear : currentYear;
+  const entidadesIds = searchParams?.entidades
     ? searchParams.entidades.split(",").filter(Boolean)
     : undefined;
 
@@ -36,11 +37,26 @@ export function parseLicitacoesContext(
 }
 
 function requirePortalSlug(portalSlug: string): string {
+  if (!portalSlug || typeof portalSlug !== "string") {
+    throw new Error("portalSlug vazio: o tenant deve ser informado.");
+  }
   const normalized = portalSlug.trim();
   if (!normalized) {
     throw new Error("portalSlug vazio: o tenant deve ser informado.");
   }
   return normalized;
+}
+
+async function resolveEmpresaIds(
+  portalSlug: string,
+  entidadesIds?: string[],
+): Promise<string[]> {
+  if (entidadesIds && entidadesIds.length > 0) {
+    return entidadesIds;
+  }
+
+  const entidades = await getEntidades(portalSlug);
+  return entidades.map((entidade) => entidade.id).filter(Boolean);
 }
 
 export async function loadLicitacoesData(
@@ -50,14 +66,15 @@ export async function loadLicitacoesData(
   const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseLicitacoesContext(searchParams);
   const { selectedYear, entidadesIds } = context;
+  const empresaIds = await resolveEmpresaIds(tenantSlug, entidadesIds);
 
   const [gaps, adesao, adesaoExterna, anomalias, modalidades] =
     await Promise.all([
-      getLicitacaoGaps(selectedYear, entidadesIds),
-      getAdesaoDeAta(selectedYear, entidadesIds),
-      getAdesaoExterna(selectedYear, entidadesIds),
-      getAnomaliasContratuais(selectedYear, entidadesIds),
-      getDistribucaoModalidades(selectedYear, entidadesIds),
+      getLicitacaoGapsMetrics(tenantSlug, selectedYear, empresaIds),
+      getAdesaoDeAtaMetrics(tenantSlug, selectedYear, empresaIds),
+      getAdesaoExternaMetrics(tenantSlug, selectedYear, empresaIds),
+      getAnomaliasContratuaisMetrics(tenantSlug, selectedYear, empresaIds),
+      getDistribucaoModalidadesMetrics(tenantSlug, selectedYear, empresaIds),
     ]);
 
   return {
