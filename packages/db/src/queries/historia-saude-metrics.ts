@@ -1,7 +1,10 @@
 import { sql } from "kysely";
 import { db } from "../client";
-import { getAdesaoDeAta, getAdesaoExterna } from "./adesao_de_ata";
-import { getDistribucaoModalidades } from "./licitacao_gaps";
+import {
+  getAdesaoDeAtaMetrics,
+  getAdesaoExternaMetrics,
+  getDistribucaoModalidadesMetrics,
+} from "./licitacoes-metrics";
 
 export interface HistoriaSaudeMetricsDTO {
   historiaSaudeId: string;
@@ -386,12 +389,16 @@ export async function getSaudeLicitacoesMetrics(
   if (empresaIds.length === 0) return empty;
 
   try {
-    const adesao = await getAdesaoDeAta(ano, null, portalSlug);
-    const adesaoExterna = await getAdesaoExterna(ano, null, portalSlug);
-    const distModalidades = await getDistribucaoModalidades(
-      ano,
-      null,
+    const adesao = await getAdesaoDeAtaMetrics(portalSlug, ano, empresaIds);
+    const adesaoExterna = await getAdesaoExternaMetrics(
       portalSlug,
+      ano,
+      empresaIds,
+    );
+    const distModalidades = await getDistribucaoModalidadesMetrics(
+      portalSlug,
+      ano,
+      empresaIds,
     );
 
     const modalityTotals: Record<string, number> = {

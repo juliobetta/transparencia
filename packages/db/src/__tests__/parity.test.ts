@@ -1,19 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
   getAdesaoDeAta,
+  getAdesaoDeAtaMetrics,
+  getAdesaoExternaMetrics,
   getAnaliseDespesasMetrics,
+  getAnomaliasContratuaisMetrics,
   getCapremEntidadesMetrics,
   getConcentracaoFornecedores,
   getConcentracaoFornecedoresMetrics,
   getDepartmentalPayroll,
+  getDepartmentalPayrollMetrics,
   getDespesasPorUnidadeMetrics,
   getDistribucaoModalidades,
+  getDistribucaoModalidadesMetrics,
   getDistribuicaoProventos,
+  getDistribuicaoProventosMetrics,
   getEntidades,
   getExecucaoDecimoTerceiro,
+  getExecucaoDecimoTerceiroMetrics,
   getExecucaoOrcamentaria,
   getExecucaoOrcamentariaMetrics,
   getFolhaVsServicos,
+  getFolhaVsServicosMetrics,
   getFontesReceita,
   getFontesReceitaMetrics,
   getHistoriaCapremMetrics,
@@ -22,7 +30,9 @@ import {
   getImpactoGastosLocais,
   getImpactoGastosLocaisMetrics,
   getLicitacaoGaps,
+  getLicitacaoGapsMetrics,
   getOrcamentoFuncionalMetrics,
+  getPercentualChefiasEfetivasMetrics,
   getPortalConfig,
   getPosicaoFiscal,
   getPosicaoFiscalDetalhesMetrics,
@@ -538,6 +548,75 @@ describe("queries Kysely (paridade e integridade contábil)", () => {
       );
       expect(Array.isArray(entidadesCaprem)).toBe(true);
       expect(entidadesCaprem.length).toBeGreaterThan(0);
+    });
+
+    it("deve buscar métricas de Pessoal e Licitações via leitores atômicos *-metrics", async () => {
+      const folha = await getFolhaVsServicosMetrics({
+        years: [TEST_YEAR],
+        portalSlug: "porciuncula_prefeitura",
+      });
+      expect(Array.isArray(folha)).toBe(true);
+
+      const decimo13 = await getExecucaoDecimoTerceiroMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      if (decimo13) {
+        expect(typeof decimo13.pago).toBe("number");
+      }
+
+      const chefias = await getPercentualChefiasEfetivasMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      if (chefias !== null) {
+        expect(typeof chefias).toBe("number");
+      }
+
+      const proventos = await getDistribuicaoProventosMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(Array.isArray(proventos)).toBe(true);
+      expect(proventos.length).toBe(9);
+
+      const dept = await getDepartmentalPayrollMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(Array.isArray(dept)).toBe(true);
+
+      const gaps = await getLicitacaoGapsMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(Array.isArray(gaps)).toBe(true);
+
+      const modalidades = await getDistribucaoModalidadesMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(Array.isArray(modalidades)).toBe(true);
+
+      const adesao = await getAdesaoDeAtaMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(adesao).toBeDefined();
+      expect(typeof adesao.quantidade).toBe("number");
+
+      const adesaoExt = await getAdesaoExternaMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(adesaoExt).toBeDefined();
+
+      const anomalias = await getAnomaliasContratuaisMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(anomalias).toBeDefined();
+      expect(Array.isArray(anomalias.fracionamento)).toBe(true);
     });
   });
 });
