@@ -12,7 +12,19 @@ with caprem_entidades as (
     left join {{ ref('dim_orgao') }} o
         on o.empresa_id = f.empresa_id
         and o.portal_slug = f.portal_slug
-    where (f.orgao_codigo = '1061' or f.fornecedor_nome ilike '%CAPREM%' or f.fornecedor_nome ilike '%CASP%' or f.fornecedor_cpf_cnpj = '07.573.075/0001-00')
+    where
+        f.fonte = 'exercicio'
+        and (
+            f.elemento in ('13', '71', '97')
+            or f.orgao_codigo = '1061'
+            or f.credor_id = '1061'
+            or f.fornecedor_nome ilike '%CAPREM%'
+            or f.fornecedor_nome ilike '%CASP%'
+            or f.fornecedor_cpf_cnpj = '07.573.075/0001-00'
+            or f.descricao ilike '%CAPREM%'
+            or f.descricao ilike '%CASP%'
+        )
+        and (f.tipo_empenho is null or f.tipo_empenho != 'AN')
     group by
         f.portal_slug,
         f.ano,

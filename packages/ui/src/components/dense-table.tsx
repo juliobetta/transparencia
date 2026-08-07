@@ -1,6 +1,12 @@
 "use client";
 
-import { Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  Download,
+  Search,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "../utils/cn";
 import {
@@ -26,6 +32,7 @@ export interface Column<T> {
     | "caspBadge"
     | "date";
   className?: string;
+  sortable?: boolean;
 }
 
 export interface DenseTableProps<T> {
@@ -37,6 +44,9 @@ export interface DenseTableProps<T> {
   emptyMessage?: string;
   className?: string;
   rowKey?: keyof T;
+  sortable?: boolean;
+  enableExportCsv?: boolean;
+  exportFilename?: string;
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: T accepts any typed object model
@@ -49,9 +59,14 @@ export function DenseTable<T extends Record<string, any>>({
   emptyMessage = "Nenhum registro encontrado.",
   className,
   rowKey,
+  sortable = false,
+  enableExportCsv = true,
+  exportFilename = "lancamentos.csv",
 }: DenseTableProps<T>) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<keyof T | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const filteredData = useMemo(() => {
     if (!query.trim()) return data;
@@ -69,16 +84,78 @@ export function DenseTable<T extends Record<string, any>>({
     });
   }, [data, query, searchableKeys]);
 
+  const handleSort = (key?: keyof T) => {
+    if (!key) return;
+    if (sortKey === key) {
+      if (sortDir === "asc") {
+        setSortDir("desc");
+      } else {
+        setSortKey(null);
+        setSortDir("asc");
+      }
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedData = useMemo(() => {
+    if (!sortKey) return filteredData;
+    return [...filteredData].sort((a, b) => {
+      const valA = a[sortKey];
+      const valB = b[sortKey];
+      if (valA === valB) return 0;
+      if (valA === null || valA === undefined) return 1;
+      if (valB === null || valB === undefined) return -1;
+
+      let cmp = 0;
+      if (typeof valA === "number" && typeof valB === "number") {
+        cmp = valA - valB;
+      } else {
+        cmp = String(valA).localeCompare(String(valB), "pt-BR", {
+          numeric: true,
+        });
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [filteredData, sortKey, sortDir]);
+
   const totalPages = pageSize
-    ? Math.max(1, Math.ceil(filteredData.length / pageSize))
+    ? Math.max(1, Math.ceil(sortedData.length / pageSize))
     : 1;
   const currentPage = Math.min(page, totalPages);
 
   const displayedData = useMemo(() => {
-    if (!pageSize) return filteredData;
+    if (!pageSize) return sortedData;
     const start = (currentPage - 1) * pageSize;
-    return filteredData.slice(start, start + pageSize);
-  }, [filteredData, pageSize, currentPage]);
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, pageSize, currentPage]);
+
+  const handleExportCsv = () => {
+    if (!sortedData.length) return;
+    const headerRow = columns
+      .map((c) => `"${c.header.replace(/"/g, '""')}"`)
+      .join(",");
+    const bodyRows = sortedData.map((row) =>
+      columns
+        .map((col) => {
+          const val = col.accessorKey ? row[col.accessorKey] : "";
+          const strVal = val === null || val === undefined ? "" : String(val);
+          return `"${strVal.replace(/"/g, '""')}"`;
+        })
+        .join(","),
+    );
+    const csvContent = `\uFEFF${[headerRow, ...bodyRows].join("\r\n")}`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", exportFilename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const getRowId = (row: T, idx: number): string => {
     if (rowKey && row[rowKey] !== undefined && row[rowKey] !== null) {
@@ -143,6 +220,27 @@ export function DenseTable<T extends Record<string, any>>({
     return String(raw);
   };
 
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    pages.push(1);
+    if (currentPage > 3) {
+      pages.push("ellipsis-start");
+    }
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    if (currentPage < totalPages - 2) {
+      pages.push("ellipsis-end");
+    }
+    pages.push(totalPages);
+    return pages;
+  }, [totalPages, currentPage]);
+
   return (
     <div
       className={cn(
@@ -150,38 +248,85 @@ export function DenseTable<T extends Record<string, any>>({
         className,
       )}
     >
-      {searchableKeys !== undefined && (
-        <div className="flex items-center gap-2 border-borderLine border-b bg-gray-50/50 p-3">
-          <Search className="h-4 w-4 shrink-0 text-mutedText" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(1);
-            }}
-            placeholder={searchPlaceholder}
-            className="w-full bg-transparent text-ink text-xs placeholder:text-mutedText focus:outline-none"
-          />
+      {(searchableKeys !== undefined || enableExportCsv) && (
+        <div className="flex flex-col gap-2 border-borderLine border-b bg-gray-50/50 p-3 sm:flex-row sm:items-center sm:justify-between">
+          {searchableKeys !== undefined ? (
+            <div className="flex flex-1 items-center gap-2">
+              <Search className="h-4 w-4 shrink-0 text-mutedText" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder={searchPlaceholder}
+                className="w-full bg-transparent text-ink text-xs placeholder:text-mutedText focus:outline-none"
+              />
+            </div>
+          ) : (
+            <div />
+          )}
+
+          {enableExportCsv && (
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={sortedData.length === 0}
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 text-xs transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40"
+            >
+              <Download className="h-3.5 w-3.5 text-slate-500" />
+              Baixar CSV
+            </button>
+          )}
         </div>
       )}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-xs">
           <thead>
             <tr className="border-borderLine border-b bg-gray-100/70 font-semibold text-subtleText uppercase tracking-wider">
-              {columns.map((col, _idx) => (
-                <th
-                  key={col.header}
-                  className={cn(
-                    "px-4 py-2.5",
-                    col.align === "right" && "text-right",
-                    col.align === "center" && "text-center",
-                    col.className,
-                  )}
-                >
-                  {col.header}
-                </th>
-              ))}
+              {columns.map((col, _idx) => {
+                const isSortable =
+                  (col.sortable ?? sortable) && col.accessorKey !== undefined;
+                const isSorted = sortKey === col.accessorKey;
+                return (
+                  <th
+                    key={col.header}
+                    onClick={() => isSortable && handleSort(col.accessorKey)}
+                    className={cn(
+                      "select-none px-4 py-2.5",
+                      isSortable &&
+                        "cursor-pointer transition-colors hover:bg-gray-200/60",
+                      col.align === "right" && "text-right",
+                      col.align === "center" && "text-center",
+                      col.className,
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "inline-flex items-center gap-1.5",
+                        col.align === "right" && "justify-end",
+                        col.align === "center" && "justify-center",
+                      )}
+                    >
+                      <span>{col.header}</span>
+                      {isSortable && (
+                        <span className="inline-flex shrink-0 items-center text-slate-400">
+                          {isSorted ? (
+                            sortDir === "asc" ? (
+                              <ChevronUp className="h-3.5 w-3.5 text-[#2b6cb0]" />
+                            ) : (
+                              <ChevronDown className="h-3.5 w-3.5 text-[#2b6cb0]" />
+                            )
+                          ) : (
+                            <ChevronsUpDown className="h-3.5 w-3.5 opacity-35 hover:opacity-100" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -253,8 +398,15 @@ export function DenseTable<T extends Record<string, any>>({
                 &larr;
               </button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (pageNum) => (
+              {pageNumbers.map((pageNum) =>
+                typeof pageNum === "string" ? (
+                  <span
+                    key={pageNum}
+                    className="px-1 font-semibold text-slate-400"
+                  >
+                    ...
+                  </span>
+                ) : (
                   <button
                     key={`page-btn-${pageNum}`}
                     type="button"

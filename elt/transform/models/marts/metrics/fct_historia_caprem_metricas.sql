@@ -28,27 +28,9 @@ with despesas_caprem as (
                 else 0
             end
         ) as total_casp_plano_saude,
-        sum(
-            case
-                when d.orgao_codigo = '1061' or d.credor_id = '1061' or d.fornecedor_nome ilike '%CAPREM%' or d.fornecedor_nome ilike '%CASP%' or d.fornecedor_cpf_cnpj = '07.573.075/0001-00' or d.descricao ilike '%CAPREM%' or d.descricao ilike '%CASP%'
-                then coalesce(d.empenhado_liquido, 0)
-                else 0
-            end
-        ) as total_empenhado,
-        sum(
-            case
-                when d.orgao_codigo = '1061' or d.credor_id = '1061' or d.fornecedor_nome ilike '%CAPREM%' or d.fornecedor_nome ilike '%CASP%' or d.fornecedor_cpf_cnpj = '07.573.075/0001-00' or d.descricao ilike '%CAPREM%' or d.descricao ilike '%CASP%'
-                then coalesce(d.liquidado, 0)
-                else 0
-            end
-        ) as total_liquidado,
-        sum(
-            case
-                when d.orgao_codigo = '1061' or d.credor_id = '1061' or d.fornecedor_nome ilike '%CAPREM%' or d.fornecedor_nome ilike '%CASP%' or d.fornecedor_cpf_cnpj = '07.573.075/0001-00' or d.descricao ilike '%CAPREM%' or d.descricao ilike '%CASP%'
-                then coalesce(d.pago, 0)
-                else 0
-            end
-        ) as total_pago
+        sum(coalesce(d.empenhado_liquido, 0)) as total_empenhado,
+        sum(coalesce(d.liquidado, 0)) as total_liquidado,
+        sum(coalesce(d.pago, 0)) as total_pago
     from {{ ref('fct_despesas') }} d
     where
         d.fonte = 'exercicio'
