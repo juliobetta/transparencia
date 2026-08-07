@@ -26,6 +26,7 @@ raw_<portal_slug>.*        ← carregado por elt/load/run.py
 - **Nunca use `select *`**: sempre liste as colunas explicitamente em todos os models (staging, intermediate e marts)
 - **Nomes de colunas e métricas explícitos**: **Evite estritamente abreviações opacas em colunas de métricas** (ex: `c_valor`, `c_empenhado`, `df`, `do`, `pct`). Use sempre nomes 100% claros e descritivos: `valor_contrato`, `empenhado_contrato`, `percentual_folha`, `total_folha`, `total_pago`, etc.
 - **Valores fixos/códigos em lowercase snake_case**: É estritamente proibido gravar strings formatadas para exibição em colunas de código/categoria/modalidade (ex: `'Adesão a ata (externa)'`, `'Sem licitação'`). Use sempre **lowercase snake_case** (ex: `'adesao_ata_externa'`, `'sem_licitacao'`, `'gap_licitacao'`, `'licitacao_propria'`). A formatação amigável é responsabilidade exclusiva da UI.
+- **Insensibilidade a Acentuação e Caixa em Filtros de Texto (`unaccent`)**: Ao realizar comparações ou buscas por padrões de texto (`like`, `ilike` ou `case when`) em colunas de descrição, modalidade ou resumo (ex: `descricao`, `resumo`, `tipo_emenda`, `destinacao`), **é obrigatório** aplicar `{{ target.schema }}.unaccent(lower(...))` (ou `unaccent`) para evitar falhas de categorização por variações de acentuação ou caixa na fonte de dados (ex: `'TRANSFERÊNCIA ESPECIAL'` vs `'transferencia especial'`).
 
 
 ```sql

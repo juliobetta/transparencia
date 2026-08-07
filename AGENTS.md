@@ -74,3 +74,10 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 - **Padrão Obrigatório:** Todos os valores fixos de códigos, categorias ou discriminadores devem ser armazenados em **lowercase snake_case** (ex: `'adesao_ata_externa'`, `'sem_licitacao'`, `'gap_licitacao'`, `'licitacao_propria'`).
 - **Avanço da UI:** A camada de apresentação (`packages/ui` ou componentes web) é a única responsável por formatar e traduzir esses códigos em labels amigáveis para o usuário.
 
+---
+
+## 11. BUSCAS E FILTROS DE TEXTO COM `unaccent`
+
+- **Tratamento de Acentuação e Caixa:** Em queries SQL de analytics e modelos dbt, ao filtrar ou categorizar colunas de texto/descrição (ex: `descricao`, `resumo`, `tipo_emenda`, `destinacao`), é **obrigatório** utilizar a função `{{ target.schema }}.unaccent(lower(...))` (ou `unaccent`). Isso previne falhas de categorização causadas por variações de caixa e acentuação nos dados brutos de origem.
+
+
