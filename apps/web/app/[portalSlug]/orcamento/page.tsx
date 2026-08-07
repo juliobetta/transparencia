@@ -4,9 +4,11 @@ import {
   KPICard,
   toTitleCase,
 } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { FunnelExecucaoHorizontal } from "@/components/funil-execucao-horizontal";
 import { GastoPorFuncaoBars } from "@/components/gasto-por-funcao-bars";
 import { KPIGrid } from "@/components/kpi-grid";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadOrcamentoData } from "./loader";
 import { buildOrcamentoViewModel } from "./view-model";
 
@@ -15,6 +17,13 @@ export const dynamic = "force-dynamic";
 interface OrcamentoPageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: OrcamentoPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Orçamento", portalSlug);
 }
 
 export default async function OrcamentoPage({

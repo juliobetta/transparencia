@@ -5,12 +5,14 @@ import {
   KPICard,
   toTitleCase,
 } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { BarChartH } from "@/components/bar-chart-h";
 import { DonutGastosLocais } from "@/components/donut-gastos-locais";
 import { KPIGrid } from "@/components/kpi-grid";
 import { RestosAPagarVendorsChart } from "@/components/restos-a-pagar-vendors-chart";
 import { SectionHeader } from "@/components/section-header";
 import { UnidadesGastosChart } from "@/components/unidades-gastos-chart";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadDespesasData } from "./loader";
 import { buildDespesasViewModel } from "./view-model";
 
@@ -19,6 +21,13 @@ export const dynamic = "force-dynamic";
 interface DespesasPageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: DespesasPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Despesas", portalSlug);
 }
 
 export default async function DespesasPage({
