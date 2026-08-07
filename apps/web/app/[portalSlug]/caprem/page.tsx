@@ -122,6 +122,8 @@ export default async function CapremPage({
               columns={naturezaCols}
               searchableKeys={["descricao", "elemento", "destino"]}
               pageSize={10}
+              sortable
+              exportFilename={`lancamentos_contabeis_caprem_${selectedYear}.csv`}
             />
           </div>
         </section>

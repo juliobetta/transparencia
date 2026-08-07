@@ -1,0 +1,72 @@
+version: 2
+
+models:
+  - name: fct_caprem_tendencia_atuarial_metricas
+    description: "Mart de série histórica atuarial e amortização de dívida previdenciária (Elementos 97 e 71)"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: caprem_tendencia_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Dimensão de tenant isolada por portal"
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Ano do exercício fiscal"
+        tests:
+          - not_null
+      - name: aporte_exigido
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total do aporte atuarial exigido/empenhado (Elemento 97)"
+        tests:
+          - not_null
+      - name: aporte_quitado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total do aporte atuarial quitado/pago (Elemento 97)"
+        tests:
+          - not_null
+      - name: taxa_adimplencia
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Taxa de adimplência do aporte atuarial (%)"
+        tests:
+          - not_null
+      - name: amortizacao_divida
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total de amortização de dívidas e parcelamentos pagos (Elemento 71)"
+        tests:
+          - not_null
+
+unit_tests:
+  - name: test_caprem_tendencia_atuarial_metricas_adimplencia
+    description: "Valida calculo da taxa de adimplencia do aporte atuarial no dbt"
+    model: fct_caprem_tendencia_atuarial_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, elemento: "97", empenhado_liquido: 100000.00, pago: 80000.00, fonte: "exercicio" }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, elemento: "71", empenhado_liquido: 50000.00, pago: 50000.00, fonte: "exercicio" }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, aporte_exigido: 100000.00, aporte_quitado: 80000.00, taxa_adimplencia: 80.00, amortizacao_divida: 50000.00 }

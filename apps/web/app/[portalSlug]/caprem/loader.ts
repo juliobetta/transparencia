@@ -1,11 +1,10 @@
 import {
+  getCapremActuarialTrendMetrics,
+  getCapremCadprevMetrics,
   getCapremEntidadesMetrics,
+  getCapremNaturezaMetrics,
   getHistoriaCapremMetrics,
 } from "@transparencia/db";
-import type {
-  AnnualActuarialTrend,
-  CadprevParcelamentoItem,
-} from "@/components/caprem-actuarial-risk-section";
 
 export interface CapremSearchParams {
   ano?: string;
@@ -36,6 +35,9 @@ function requirePortalSlug(portalSlug: string): string {
   if (!normalized) {
     throw new Error("portalSlug vazio: o tenant deve ser informado.");
   }
+  if (normalized === "porciuncula") {
+    return "porciuncula_prefeitura";
+  }
   return normalized;
 }
 
@@ -46,9 +48,18 @@ export async function loadCapremData(
   const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseCapremContext(searchParams);
 
-  const [capremMetrics, entidadesMetrics] = await Promise.all([
+  const [
+    capremMetrics,
+    entidadesMetrics,
+    naturezaMetrics,
+    actuarialTrend,
+    cadprevParcelamentos,
+  ] = await Promise.all([
     getHistoriaCapremMetrics(tenantSlug, context.selectedYear),
     getCapremEntidadesMetrics(tenantSlug, context.selectedYear),
+    getCapremNaturezaMetrics(tenantSlug, context.selectedYear),
+    getCapremActuarialTrendMetrics(tenantSlug),
+    getCapremCadprevMetrics(tenantSlug, context.selectedYear),
   ]);
 
   const totalEmpenhado = capremMetrics?.totalEmpenhado ?? 0;
@@ -85,26 +96,24 @@ export async function loadCapremData(
       ? romboPatronalNaoRepassado / mesesDecorridos
       : 0;
 
+  const currTrend = actuarialTrend.find((t) => t.ano === context.selectedYear);
+  const prevTrend = actuarialTrend.find(
+    (t) => t.ano === context.selectedYear - 1,
+  );
+  const prevAmort = prevTrend?.amortizacaoDivida ?? 0;
+  const currAmort = currTrend?.amortizacaoDivida ?? totalAmortizacaoDivida;
+  const variacaoAmortizacaoPct =
+    prevAmort > 0
+      ? ((currAmort - prevAmort) / prevAmort) * 100
+      : currAmort > 0
+        ? 100
+        : 0;
+
   const caprem = {
     entidades: entidadesMetrics,
-    natureza: [] as Array<{
-      elemento: string;
-      descricao: string;
-      destino: string;
-      empenhado: number;
-      liquidado: number;
-      pago: number;
-      dataEmpenho?: string;
-    }>,
-    caspCredores: [] as Array<{
-      credor: string;
-      totalEmpenhado: number;
-      totalPago: number;
-    }>,
-    cadprevParcelamentos: [] as CadprevParcelamentoItem[],
-    mensal: [] as Array<{ mes: number; total: number }>,
-    annualTrend: [] as Array<{ ano: number; total: number }>,
-    actuarialTrend: [] as AnnualActuarialTrend[],
+    natureza: naturezaMetrics,
+    cadprevParcelamentos,
+    actuarialTrend,
     totalEmpenhado,
     totalLiquidado,
     totalPago,
@@ -122,7 +131,7 @@ export async function loadCapremData(
       romboPatronalNaoRepassado,
       deficitMedioMensal,
       totalAmortizacaoDivida,
-      variacaoAmortizacaoPct: 0,
+      variacaoAmortizacaoPct,
       servidoresEfetivos,
       servidoresTemporariosComissionados: servidoresTemporarios,
       razaoTemporariosEfetivosPct:

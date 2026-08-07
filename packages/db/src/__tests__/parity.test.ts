@@ -4,7 +4,10 @@ import {
   getAdesaoExternaMetrics,
   getAnaliseDespesasMetrics,
   getAnomaliasContratuaisMetrics,
+  getCapremActuarialTrendMetrics,
+  getCapremCadprevMetrics,
   getCapremEntidadesMetrics,
+  getCapremNaturezaMetrics,
   getConcentracaoFornecedoresMetrics,
   getDepartmentalPayrollMetrics,
   getDespesasPorUnidadeMetrics,
@@ -414,6 +417,23 @@ describe("queries Kysely (paridade e integridade contábil via leitores de métr
       );
       expect(Array.isArray(entidadesCaprem)).toBe(true);
       expect(entidadesCaprem.length).toBeGreaterThan(0);
+
+      const capremNatureza = await getCapremNaturezaMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(Array.isArray(capremNatureza)).toBe(true);
+
+      const capremTrend = await getCapremActuarialTrendMetrics(
+        "porciuncula_prefeitura",
+      );
+      expect(Array.isArray(capremTrend)).toBe(true);
+
+      const capremCadprev = await getCapremCadprevMetrics(
+        "porciuncula_prefeitura",
+        TEST_YEAR,
+      );
+      expect(Array.isArray(capremCadprev)).toBe(true);
     });
 
     it("deve buscar métricas de Pessoal e Licitações via leitores atômicos *-metrics", async () => {
