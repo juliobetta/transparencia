@@ -124,14 +124,18 @@ emendas_fct as (
         ano,
         sum(
             case
-                when lower(tipo_emenda) like '%especial%' or lower(tipo_emenda) like '%pix%'
+                when {{ target.schema }}.unaccent(lower(coalesce(tipo_emenda, '') || ' ' || coalesce(resumo, '') || ' ' || coalesce(destinacao, ''))) like '%especial%'
+                  or {{ target.schema }}.unaccent(lower(coalesce(tipo_emenda, '') || ' ' || coalesce(resumo, '') || ' ' || coalesce(destinacao, ''))) like '%pix%'
                 then coalesce(valor_total, empenhado, 0)
                 else 0
             end
         ) as emendas_pix_fct,
         sum(
             case
-                when not (lower(tipo_emenda) like '%especial%' or lower(tipo_emenda) like '%pix%')
+                when not (
+                    {{ target.schema }}.unaccent(lower(coalesce(tipo_emenda, '') || ' ' || coalesce(resumo, '') || ' ' || coalesce(destinacao, ''))) like '%especial%'
+                    or {{ target.schema }}.unaccent(lower(coalesce(tipo_emenda, '') || ' ' || coalesce(resumo, '') || ' ' || coalesce(destinacao, ''))) like '%pix%'
+                )
                 then coalesce(valor_total, empenhado, 0)
                 else 0
             end
@@ -154,16 +158,8 @@ receitas_base as (
         coalesce(c.fpm_arrecadado, 0) as fpm_arrecadado,
         coalesce(c.icms_arrecadado, 0) as icms_arrecadado,
         coalesce(c.iss_iptu_arrecadado, 0) as iss_iptu_arrecadado,
-        case
-            when ef.portal_slug is not null and (ef.emendas_pix_fct > 0 or ef.emendas_individuais_fct > 0)
-            then ef.emendas_pix_fct
-            else coalesce(b.emendas_pix_arrecadado, 0)
-        end as emendas_pix_arrecadado,
-        case
-            when ef.portal_slug is not null and (ef.emendas_pix_fct > 0 or ef.emendas_individuais_fct > 0)
-            then ef.emendas_individuais_fct
-            else coalesce(b.emendas_individuais_arrecadado, 0)
-        end as emendas_individuais_arrecadado
+        greatest(coalesce(ef.emendas_pix_fct, 0), coalesce(b.emendas_pix_arrecadado, 0)) as emendas_pix_arrecadado,
+        greatest(coalesce(ef.emendas_individuais_fct, 0), coalesce(b.emendas_individuais_arrecadado, 0)) as emendas_individuais_arrecadado
     from totais_orcamentarios t
     left join receitas_breakdown b
         on t.portal_slug = b.portal_slug
