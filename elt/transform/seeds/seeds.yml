@@ -55,4 +55,18 @@ seeds:
         subfuncao_codigo: text
         subfuncao_nome: text
 
+  - name: seed_constantes_fiscais
+    description: "Tabela SSOT de constantes fiscais e limites regulatórios por ano (Lei 14.133/2021, LRF, STN)"
+    config:
+      column_types:
+        dominio: text
+        chave: text
+        ano_inicio: integer
+        ano_fim: integer
+        valor_num: numeric
+        valor_txt: text
+        descricao: text
+        base_legal: text
+
+
 

@@ -1,6 +1,5 @@
 import { db } from "../client";
-import { dispensationThreshold, NEAR_THRESHOLD_PCT } from "../constants";
-import { SAUDE_EMPRESA } from "./licitacao_gaps";
+import { NEAR_THRESHOLD_PCT } from "../constants";
 
 export interface ContratoSemLicitacaoMetricsDTO {
   ano: number;
@@ -17,7 +16,6 @@ export interface ContratoSemLicitacaoMetricsDTO {
   fundlegal: string | null;
   limiteDispensa: number;
   acimaLimite: boolean;
-  orgaoSaude: boolean;
   periodo: string;
   isentoLegalmente?: boolean;
 }
@@ -111,20 +109,7 @@ export async function getLicitacaoGapsMetrics(
 
   let query = db
     .selectFrom("fct_licitacoes_metricas")
-    .select([
-      "ano",
-      "empresa_id as empresa",
-      "contrato_numero as numero",
-      "fornecedor_nome as fornecedor",
-      "objeto",
-      "valor_contrato",
-      "licitacao_numero",
-      "mes",
-      "numero_obra",
-      "tipo_obra",
-      "modalidade",
-      "fundlegal",
-    ])
+    .selectAll()
     .where("portal_slug", "=", portalSlug)
     .where("ano", "=", year)
     .where("tipo_contratacao", "=", "gap_licitacao");
@@ -136,13 +121,13 @@ export async function getLicitacaoGapsMetrics(
   const rows = await query.execute();
 
   return rows.map((r) => {
-    const empresa = String(r.empresa ?? "");
-    const valor_contrato = parseFloat(String(r.valor_contrato ?? "0")) || 0;
-    const limite_dispensa = dispensationThreshold(
-      r.numero_obra,
-      r.tipo_obra,
-      r.objeto,
-    );
+    const empresa = String(r.empresa_id ?? "");
+    const numero = String(r.contrato_numero ?? r.numero ?? "");
+    const fornecedor = String(r.fornecedor_nome ?? "");
+    const _valor_contrato = parseFloat(String(r.valor_contrato ?? "0")) || 0;
+    const limite_dispensa = parseFloat(String(r.limite_dispensa ?? "0")) || 0;
+    const acima_limite = Boolean(r.acima_limite);
+
     const mes_num =
       r.mes !== null && r.mes !== undefined && !Number.isNaN(Number(r.mes))
         ? Number(r.mes)
@@ -152,8 +137,8 @@ export async function getLicitacaoGapsMetrics(
     return {
       ano: Number(r.ano),
       empresa,
-      numero: String(r.numero ?? ""),
-      fornecedor: String(r.fornecedor ?? ""),
+      numero,
+      fornecedor,
       objeto: String(r.objeto ?? ""),
       valorContrato: String(r.valor_contrato ?? "0"),
       licitacaoNumero: String(r.licitacao_numero ?? ""),
@@ -163,8 +148,8 @@ export async function getLicitacaoGapsMetrics(
       modalidade: r.modalidade ?? null,
       fundlegal: r.fundlegal ?? null,
       limiteDispensa: limite_dispensa,
-      acimaLimite: valor_contrato > limite_dispensa,
-      orgaoSaude: empresa === SAUDE_EMPRESA,
+      acimaLimite: acima_limite,
+      isentoLegalmente: Boolean(r.isento_legalmente),
       periodo: `${mes_str}/${r.ano}`,
     };
   });
@@ -402,20 +387,7 @@ export async function getAnomaliasContratuaisMetrics(
 
   let gapQuery = db
     .selectFrom("fct_licitacoes_metricas")
-    .select([
-      "ano",
-      "empresa_id as empresa",
-      "contrato_numero as numero",
-      "fornecedor_nome as fornecedor",
-      "objeto",
-      "valor_contrato",
-      "licitacao_numero",
-      "mes",
-      "numero_obra",
-      "tipo_obra",
-      "modalidade",
-      "fundlegal",
-    ])
+    .selectAll()
     .where("portal_slug", "=", portalSlug)
     .where("ano", "=", year)
     .where("tipo_contratacao", "=", "gap_licitacao");
@@ -450,14 +422,17 @@ export async function getAnomaliasContratuaisMetrics(
   const proximo = contratos
     .map((c) => {
       const valor = parseFloat(String(c.valor_contrato ?? "0")) || 0;
-      const limite = dispensationThreshold(
-        c.numero_obra,
-        c.tipo_obra,
-        c.objeto,
-      );
+      const limite = parseFloat(String(c.limite_dispensa ?? "0")) || 0;
       const limite_inferior = limite * (1 - NEAR_THRESHOLD_PCT);
       return {
         ...c,
+        ano: c.ano,
+        mes: c.mes,
+        objeto: c.objeto,
+        licitacao_numero: c.licitacao_numero,
+        empresa: String(c.empresa_id ?? ""),
+        numero: String(c.contrato_numero ?? c.numero ?? ""),
+        fornecedor: String(c.fornecedor_nome ?? ""),
         valorNum: valor,
         isProximo: valor >= limite_inferior && valor < limite,
       };

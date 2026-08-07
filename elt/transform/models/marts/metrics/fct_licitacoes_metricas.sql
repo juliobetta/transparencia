@@ -54,7 +54,6 @@ adesoes_internas as (
         on c.licitacao_numero = l.licitacao_numero
         and c.empresa_id = l.empresa_id
         and c.portal_slug = l.portal_slug
-
     where l.carona = 'S'
 ),
 
@@ -126,6 +125,60 @@ unificado as (
     select * from licitacoes_gaps
 ),
 
+com_limites as (
+    select
+        u.*,
+        coalesce(c.valor_num, 50000.00)::numeric(15, 2) as limite_dispensa,
+        (
+            lower(coalesce(u.modalidade, '')) like '%inexig%'
+            or lower(coalesce(u.fundlegal, '')) like '%inexig%'
+            or lower(coalesce(u.fornecedor_nome, '')) like '%consorcio%'
+            or lower(coalesce(u.fornecedor_nome, '')) like '%consórcio%'
+            or lower(coalesce(u.objeto, '')) like '%rateio%'
+            or lower(coalesce(u.objeto, '')) like '%contrato de programa%'
+            or lower(coalesce(u.objeto, '')) like '%cont. programa%'
+        ) as isento_legalmente,
+        (
+            u.tipo_contratacao = 'gap_licitacao'
+            and u.valor_contrato > coalesce(c.valor_num, 50000.00)
+            and not (
+                lower(coalesce(u.modalidade, '')) like '%inexig%'
+                or lower(coalesce(u.fundlegal, '')) like '%inexig%'
+                or lower(coalesce(u.fornecedor_nome, '')) like '%consorcio%'
+                or lower(coalesce(u.fornecedor_nome, '')) like '%consórcio%'
+                or lower(coalesce(u.objeto, '')) like '%rateio%'
+                or lower(coalesce(u.objeto, '')) like '%contrato de programa%'
+                or lower(coalesce(u.objeto, '')) like '%cont. programa%'
+            )
+        ) as acima_limite
+    from unificado u
+    left join {{ ref('seed_constantes_fiscais') }} c
+        on c.dominio = 'licitacoes'
+       and c.ano_inicio <= u.ano
+       and c.ano_fim >= u.ano
+       and c.chave = case
+           when (u.numero_obra is not null and trim(u.numero_obra) != '')
+             or (u.tipo_obra is not null and trim(u.tipo_obra) != '')
+             or lower(coalesce(u.objeto, '')) like '%obra%'
+             or lower(coalesce(u.objeto, '')) like '%engenharia%'
+             or lower(coalesce(u.objeto, '')) like '%reforma%'
+             or lower(coalesce(u.objeto, '')) like '%construcao%'
+           then 'limite_dispensa_obras_engenharia'
+           when lower(coalesce(u.objeto, '')) like '%veículo%'
+             or lower(coalesce(u.objeto, '')) like '%veiculo%'
+             or lower(coalesce(u.objeto, '')) like '%automóvel%'
+             or lower(coalesce(u.objeto, '')) like '%automovel%'
+             or lower(coalesce(u.objeto, '')) like '%motocicleta%'
+             or lower(coalesce(u.objeto, '')) like '%caminhão%'
+             or lower(coalesce(u.objeto, '')) like '%caminhao%'
+             or lower(coalesce(u.objeto, '')) like '%ônibus%'
+             or lower(coalesce(u.objeto, '')) like '%onibus%'
+             or lower(coalesce(u.objeto, '')) like '%frota%'
+           then 'limite_dispensa_veiculos'
+           else 'limite_dispensa_compras_servicos'
+       end
+),
+
 com_row_num as (
     select
         *,
@@ -133,7 +186,7 @@ com_row_num as (
             partition by portal_slug, ano, empresa_id, tipo_contratacao, numero, coalesce(contrato_numero, ''), coalesce(fornecedor_nome, '')
             order by objeto
         ) as rn
-    from unificado
+    from com_limites
 )
 
 select
@@ -158,5 +211,8 @@ select
     valor_contrato,
     empenhado_contrato,
     pago_contrato,
-    data_referencia
+    data_referencia,
+    limite_dispensa,
+    isento_legalmente,
+    acima_limite
 from com_row_num

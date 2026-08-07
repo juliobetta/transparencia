@@ -1,4 +1,11 @@
-import type { MetricasDespesas } from "@transparencia/db";
+interface MetricasDespesas {
+  empenhado: number;
+  liquidado: number;
+  pago: number;
+  taxaLiquidacao: number;
+  taxaPagamento: number;
+}
+
 import {
   getAnaliseDespesasMetrics,
   getConcentracaoFornecedoresMetrics,

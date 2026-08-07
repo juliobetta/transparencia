@@ -1,4 +1,5 @@
 import {
+  getEntidades,
   getHistoriaSaudeMetrics,
   getSaudeContratosCountMetrics,
   getSaudeEmendasMetrics,
@@ -6,7 +7,6 @@ import {
   getSaudeFontesReceitaMetrics,
   getSaudeFornecedoresCountMetrics,
   getSaudeLicitacoesMetrics,
-  SAUDE_EMPRESA,
 } from "@transparencia/db";
 
 export interface SaudeSearchParams {
@@ -55,7 +55,7 @@ export async function loadSaudeData(
   const context = parseSaudeContext(searchParams);
   const empresaIds = searchParams.entidades
     ? searchParams.entidades.split(",").filter(Boolean)
-    : [SAUDE_EMPRESA];
+    : (await getEntidades(tenantSlug)).map((e) => e.id).filter(Boolean);
 
   const [
     saudeMetrics,

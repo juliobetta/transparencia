@@ -1,8 +1,11 @@
 import {
   getCapremEntidadesMetrics,
-  getHistoriaCaprem,
   getHistoriaCapremMetrics,
 } from "@transparencia/db";
+import type {
+  AnnualActuarialTrend,
+  CadprevParcelamentoItem,
+} from "@/components/caprem-actuarial-risk-section";
 
 export interface CapremSearchParams {
   ano?: string;
@@ -43,49 +46,22 @@ export async function loadCapremData(
   const tenantSlug = requirePortalSlug(portalSlug);
   const context = parseCapremContext(searchParams);
 
-  const [historiaCaprem, capremMetrics, entidadesMetrics] = await Promise.all([
-    getHistoriaCaprem(tenantSlug, context.selectedYear),
+  const [capremMetrics, entidadesMetrics] = await Promise.all([
     getHistoriaCapremMetrics(tenantSlug, context.selectedYear),
     getCapremEntidadesMetrics(tenantSlug, context.selectedYear),
   ]);
 
-  const totalEmpenhado =
-    capremMetrics?.totalEmpenhado ?? historiaCaprem?.totalEmpenhado ?? 0;
-  const totalLiquidado =
-    capremMetrics?.totalLiquidado ?? historiaCaprem?.totalLiquidado ?? 0;
-  const totalPago = capremMetrics?.totalPago ?? historiaCaprem?.totalPago ?? 0;
-  const totalAporteExigido =
-    capremMetrics?.totalAporteExigido ??
-    historiaCaprem?.actuarialRisk?.totalAporteExigido ??
-    0;
-  const totalAporteQuitado =
-    capremMetrics?.totalAporteQuitado ??
-    historiaCaprem?.actuarialRisk?.totalAporteQuitado ??
-    0;
-  const totalEmpenhadoPatronal =
-    capremMetrics?.totalEmpenhadoPatronal ??
-    historiaCaprem?.actuarialRisk?.totalEmpenhadoPatronal ??
-    0;
-  const totalPagoPatronal =
-    capremMetrics?.totalPagoPatronal ??
-    historiaCaprem?.actuarialRisk?.totalPagoPatronal ??
-    0;
-  const totalAmortizacaoDivida =
-    capremMetrics?.totalAmortizacaoDivida ??
-    historiaCaprem?.actuarialRisk?.totalAmortizacaoDivida ??
-    0;
-  const totalCaspPlanoSaude =
-    capremMetrics?.totalCaspPlanoSaude ??
-    historiaCaprem?.totalCaspPlanoSaude ??
-    0;
-  const servidoresEfetivos =
-    capremMetrics?.servidoresEfetivos ??
-    historiaCaprem?.actuarialRisk?.servidoresEfetivos ??
-    0;
-  const servidoresTemporarios =
-    capremMetrics?.servidoresTemporarios ??
-    historiaCaprem?.actuarialRisk?.servidoresTemporariosComissionados ??
-    0;
+  const totalEmpenhado = capremMetrics?.totalEmpenhado ?? 0;
+  const totalLiquidado = capremMetrics?.totalLiquidado ?? 0;
+  const totalPago = capremMetrics?.totalPago ?? 0;
+  const totalAporteExigido = capremMetrics?.totalAporteExigido ?? 0;
+  const totalAporteQuitado = capremMetrics?.totalAporteQuitado ?? 0;
+  const totalEmpenhadoPatronal = capremMetrics?.totalEmpenhadoPatronal ?? 0;
+  const totalPagoPatronal = capremMetrics?.totalPagoPatronal ?? 0;
+  const totalAmortizacaoDivida = capremMetrics?.totalAmortizacaoDivida ?? 0;
+  const totalCaspPlanoSaude = capremMetrics?.totalCaspPlanoSaude ?? 0;
+  const servidoresEfetivos = capremMetrics?.servidoresEfetivos ?? 0;
+  const servidoresTemporarios = capremMetrics?.servidoresTemporarios ?? 0;
 
   const romboAporteNaoRepassado = Math.max(
     0,
@@ -110,15 +86,25 @@ export async function loadCapremData(
       : 0;
 
   const caprem = {
-    entidades: entidadesMetrics.length
-      ? entidadesMetrics
-      : (historiaCaprem?.entidades ?? []),
-    natureza: historiaCaprem?.natureza ?? [],
-    caspCredores: historiaCaprem?.caspCredores ?? [],
-    cadprevParcelamentos: historiaCaprem?.cadprevParcelamentos ?? [],
-    mensal: historiaCaprem?.mensal ?? [],
-    annualTrend: historiaCaprem?.annualTrend ?? [],
-    actuarialTrend: historiaCaprem?.actuarialTrend ?? [],
+    entidades: entidadesMetrics,
+    natureza: [] as Array<{
+      elemento: string;
+      descricao: string;
+      destino: string;
+      empenhado: number;
+      liquidado: number;
+      pago: number;
+      dataEmpenho?: string;
+    }>,
+    caspCredores: [] as Array<{
+      credor: string;
+      totalEmpenhado: number;
+      totalPago: number;
+    }>,
+    cadprevParcelamentos: [] as CadprevParcelamentoItem[],
+    mensal: [] as Array<{ mes: number; total: number }>,
+    annualTrend: [] as Array<{ ano: number; total: number }>,
+    actuarialTrend: [] as AnnualActuarialTrend[],
     totalEmpenhado,
     totalLiquidado,
     totalPago,
@@ -136,8 +122,7 @@ export async function loadCapremData(
       romboPatronalNaoRepassado,
       deficitMedioMensal,
       totalAmortizacaoDivida,
-      variacaoAmortizacaoPct:
-        historiaCaprem?.actuarialRisk?.variacaoAmortizacaoPct ?? 0,
+      variacaoAmortizacaoPct: 0,
       servidoresEfetivos,
       servidoresTemporariosComissionados: servidoresTemporarios,
       razaoTemporariosEfetivosPct:

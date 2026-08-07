@@ -2,8 +2,31 @@ import {
   getEntidades,
   getExecucaoOrcamentariaMetrics,
   getOrcamentoFuncionalMetrics,
-  summarizeExecucao,
 } from "@transparencia/db";
+
+function summarizeExecucao(
+  items: Array<{
+    dotacaoAtualizada: number;
+    empenhado: number;
+    liquidado: number;
+    pago: number;
+  }>,
+) {
+  const totals = items.reduce(
+    (acc, item) => ({
+      totalDotacao: acc.totalDotacao + item.dotacaoAtualizada,
+      totalEmpenhado: acc.totalEmpenhado + item.empenhado,
+      totalLiquidado: acc.totalLiquidado + item.liquidado,
+      totalPago: acc.totalPago + item.pago,
+    }),
+    { totalDotacao: 0, totalEmpenhado: 0, totalLiquidado: 0, totalPago: 0 },
+  );
+  const taxaExecucao =
+    totals.totalDotacao > 0
+      ? (totals.totalEmpenhado / totals.totalDotacao) * 100
+      : 0;
+  return { ...totals, taxaExecucao };
+}
 
 export interface OrcamentoSearchParams {
   ano?: string;

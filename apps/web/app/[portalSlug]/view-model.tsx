@@ -103,7 +103,6 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
   ];
 
   const acimaLimiteCount = gaps.filter((g) => g.acimaLimite).length;
-  const saudeGapsCount = gaps.filter((g) => g.orgaoSaude).length;
 
   const maxPendente = Math.max(
     ...posicao.restosPendentes.map((r) => r.pendente),
@@ -140,10 +139,6 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
       {
         count: gaps.length,
         label: "Contratos sem licitação registrados",
-      },
-      {
-        count: saudeGapsCount,
-        label: "Contratos no órgão de Saúde",
       },
     ],
   };
