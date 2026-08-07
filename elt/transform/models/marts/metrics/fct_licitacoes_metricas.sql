@@ -1,4 +1,7 @@
-{{ config(materialized='table') }}
+{{ config(
+    materialized='table',
+    pre_hook="CREATE EXTENSION IF NOT EXISTS unaccent;"
+) }}
 
 with licitacoes_proprias as (
     select
@@ -24,6 +27,9 @@ with licitacoes_proprias as (
         0::numeric(15, 2) as pago_contrato,
         null::date as data_referencia
     from {{ ref('fct_licitacoes') }}
+    where coalesce(carona, 'N') != 'S'
+      and lower(unaccent(coalesce(modalidade, ''))) not like '%adesa%'
+      and lower(unaccent(coalesce(modalidade, ''))) not like '%carona%'
 ),
 
 adesoes_internas as (
@@ -39,7 +45,7 @@ adesoes_internas as (
         coalesce(l.discriminacao, l.licitacao_numero) as objeto,
         'adesao_ata_interna' as modalidade,
         null::text as fundlegal,
-        l.carona,
+        'S' as carona,
         nullif(c.mes, '')::integer as mes,
         null::text as numero_obra,
         null::text as tipo_obra,
@@ -55,6 +61,8 @@ adesoes_internas as (
         and c.empresa_id = l.empresa_id
         and c.portal_slug = l.portal_slug
     where l.carona = 'S'
+       or lower(unaccent(coalesce(l.modalidade, ''))) like '%adesa%'
+       or lower(unaccent(coalesce(l.modalidade, ''))) like '%carona%'
 ),
 
 adesoes_externas as (
@@ -81,11 +89,9 @@ adesoes_externas as (
         coalesce(dg.pago, 0)::numeric(15, 2) as pago_contrato,
         dg.data_empenho as data_referencia
     from {{ ref('fct_despesas') }} dg
-    where upper(dg.descricao) like '%ATA DE REGISTRO DE PRE%'
-       or upper(dg.descricao) like '%ADESAO%ATA%'
-       or upper(dg.descricao) like '%ADESÃO%ATA%'
-       or upper(dg.descricao) like '%TERMO DE ADESÃO%'
-       or upper(dg.descricao) like '%TERMO DE ADESAO%'
+    where lower(unaccent(coalesce(dg.descricao, ''))) like '%ata de registro de pre%'
+       or lower(unaccent(coalesce(dg.descricao, ''))) like '%adesao%ata%'
+       or lower(unaccent(coalesce(dg.descricao, ''))) like '%termo de adesao%'
 ),
 
 licitacoes_gaps as (
@@ -130,25 +136,23 @@ com_limites as (
         u.*,
         coalesce(c.valor_num, 50000.00)::numeric(15, 2) as limite_dispensa,
         (
-            lower(coalesce(u.modalidade, '')) like '%inexig%'
-            or lower(coalesce(u.fundlegal, '')) like '%inexig%'
-            or lower(coalesce(u.fornecedor_nome, '')) like '%consorcio%'
-            or lower(coalesce(u.fornecedor_nome, '')) like '%consórcio%'
-            or lower(coalesce(u.objeto, '')) like '%rateio%'
-            or lower(coalesce(u.objeto, '')) like '%contrato de programa%'
-            or lower(coalesce(u.objeto, '')) like '%cont. programa%'
+            lower(unaccent(coalesce(u.modalidade, ''))) like '%inexig%'
+            or lower(unaccent(coalesce(u.fundlegal, ''))) like '%inexig%'
+            or lower(unaccent(coalesce(u.fornecedor_nome, ''))) like '%consorcio%'
+            or lower(unaccent(coalesce(u.objeto, ''))) like '%rateio%'
+            or lower(unaccent(coalesce(u.objeto, ''))) like '%contrato de programa%'
+            or lower(unaccent(coalesce(u.objeto, ''))) like '%cont. programa%'
         ) as isento_legalmente,
         (
             u.tipo_contratacao = 'gap_licitacao'
             and u.valor_contrato > coalesce(c.valor_num, 50000.00)
             and not (
-                lower(coalesce(u.modalidade, '')) like '%inexig%'
-                or lower(coalesce(u.fundlegal, '')) like '%inexig%'
-                or lower(coalesce(u.fornecedor_nome, '')) like '%consorcio%'
-                or lower(coalesce(u.fornecedor_nome, '')) like '%consórcio%'
-                or lower(coalesce(u.objeto, '')) like '%rateio%'
-                or lower(coalesce(u.objeto, '')) like '%contrato de programa%'
-                or lower(coalesce(u.objeto, '')) like '%cont. programa%'
+                lower(unaccent(coalesce(u.modalidade, ''))) like '%inexig%'
+                or lower(unaccent(coalesce(u.fundlegal, ''))) like '%inexig%'
+                or lower(unaccent(coalesce(u.fornecedor_nome, ''))) like '%consorcio%'
+                or lower(unaccent(coalesce(u.objeto, ''))) like '%rateio%'
+                or lower(unaccent(coalesce(u.objeto, ''))) like '%contrato de programa%'
+                or lower(unaccent(coalesce(u.objeto, ''))) like '%cont. programa%'
             )
         ) as acima_limite
     from unificado u
@@ -159,21 +163,17 @@ com_limites as (
        and c.chave = case
            when (u.numero_obra is not null and trim(u.numero_obra) != '')
              or (u.tipo_obra is not null and trim(u.tipo_obra) != '')
-             or lower(coalesce(u.objeto, '')) like '%obra%'
-             or lower(coalesce(u.objeto, '')) like '%engenharia%'
-             or lower(coalesce(u.objeto, '')) like '%reforma%'
-             or lower(coalesce(u.objeto, '')) like '%construcao%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%obra%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%engenharia%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%reforma%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%construcao%'
            then 'limite_dispensa_obras_engenharia'
-           when lower(coalesce(u.objeto, '')) like '%veículo%'
-             or lower(coalesce(u.objeto, '')) like '%veiculo%'
-             or lower(coalesce(u.objeto, '')) like '%automóvel%'
-             or lower(coalesce(u.objeto, '')) like '%automovel%'
-             or lower(coalesce(u.objeto, '')) like '%motocicleta%'
-             or lower(coalesce(u.objeto, '')) like '%caminhão%'
-             or lower(coalesce(u.objeto, '')) like '%caminhao%'
-             or lower(coalesce(u.objeto, '')) like '%ônibus%'
-             or lower(coalesce(u.objeto, '')) like '%onibus%'
-             or lower(coalesce(u.objeto, '')) like '%frota%'
+           when lower(unaccent(coalesce(u.objeto, ''))) like '%veiculo%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%automovel%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%motocicleta%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%caminhao%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%onibus%'
+             or lower(unaccent(coalesce(u.objeto, ''))) like '%frota%'
            then 'limite_dispensa_veiculos'
            else 'limite_dispensa_compras_servicos'
        end

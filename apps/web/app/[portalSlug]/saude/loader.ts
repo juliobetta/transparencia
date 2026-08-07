@@ -52,10 +52,16 @@ export async function loadSaudeData(
   searchParams: SaudeSearchParams,
 ) {
   const tenantSlug = requirePortalSlug(portalSlug);
+  const entities = await getEntidades(tenantSlug);
+
   const context = parseSaudeContext(searchParams);
-  const empresaIds = searchParams.entidades
-    ? searchParams.entidades.split(",").filter(Boolean)
-    : (await getEntidades(tenantSlug)).map((e) => e.id).filter(Boolean);
+  const empresaIds = entities
+    .filter(
+      ({ nome }) =>
+        nome.toLowerCase().includes("saúde") ||
+        nome.toLowerCase().includes("saude"),
+    )
+    .map((e) => e.id);
 
   const [
     saudeMetrics,

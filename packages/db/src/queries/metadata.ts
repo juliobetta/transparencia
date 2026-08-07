@@ -67,7 +67,7 @@ export async function getEntidades(
 ): Promise<EntidadeItem[]> {
   try {
     const result = await sql<{ id: string; nome: string }>`
-      select empresa_id as id, nome from seed_porciuncula_prefeitura_orgaos where portal_slug = ${portalSlug}
+      select empresa_id as id, orgao_nome as nome from dim_orgao where portal_slug = ${portalSlug}
     `.execute(db);
 
     if (result.rows.length > 0) {

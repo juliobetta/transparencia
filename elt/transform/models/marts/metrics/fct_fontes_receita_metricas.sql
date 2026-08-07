@@ -1,4 +1,11 @@
-{{ config(materialized='table') }}
+{{
+    config(
+        materialized='table',
+        pre_hook=[
+            "create extension if not exists unaccent;"
+        ]
+    )
+}}
 
 with receitas_root as (
     select
@@ -64,14 +71,14 @@ receitas_breakdown as (
         sum(case when tipo_receita = 'estado' then coalesce(arrecadado, 0) else 0 end) as transferencias_estado_arrecadado,
         sum(
             case
-                when tipo_receita in ('uniao', 'estado', 'orcamentaria') and (descricao ilike '%TRANSFERENCIA ESPECIAL%' or codigo like '1.7.1.5%')
+                when tipo_receita in ('uniao', 'estado', 'orcamentaria') and ({{ target.schema }}.unaccent(descricao) ilike '%TRANSFERENCIA ESPECIAL%' or codigo like '1.7.1.5%')
                 then coalesce(arrecadado, 0)
                 else 0
             end
         ) as emendas_pix_arrecadado,
         sum(
             case
-                when tipo_receita in ('uniao', 'estado', 'orcamentaria') and (descricao ilike '%EMENDA%' or descricao ilike '%PARLAMENTAR%') and not (descricao ilike '%TRANSFERENCIA ESPECIAL%' or codigo like '1.7.1.5%')
+                when tipo_receita in ('uniao', 'estado', 'orcamentaria') and (descricao ilike '%EMENDA%' or descricao ilike '%PARLAMENTAR%') and not ({{ target.schema }}.unaccent(descricao) ilike '%TRANSFERENCIA ESPECIAL%' or codigo like '1.7.1.5%')
                 then coalesce(arrecadado, 0)
                 else 0
             end
@@ -87,7 +94,7 @@ carros_chefe as (
         ano,
         sum(
             case
-                when codigo ilike '%FPM%' or codigo like '1.7.1.8.01.2%' or codigo like '1718012%' or descricao ilike '%FPM%' or descricao ilike '%FUNDO DE PARTICIPA%' or descricao ilike '%PARTICIPACAO DOS MUNICIPIOS%'
+                when codigo ilike '%FPM%' or codigo like '1.7.1.8.01.2%' or codigo like '1718012%' or descricao ilike '%FPM%' or descricao ilike '%FUNDO DE PARTICIPA%' or {{ target.schema }}.unaccent(descricao) ilike '%PARTICIPACAO DOS MUNICIPIOS%'
                 then coalesce(arrecadado, 0)
                 else 0
             end
@@ -101,7 +108,7 @@ carros_chefe as (
         ) as icms_arrecadado,
         sum(
             case
-                when codigo ilike '%ISS%' or codigo ilike '%IPTU%' or codigo like '1.1.1.8.01%' or codigo like '1.1.1.8.02%' or descricao ilike '%IPTU%' or descricao ilike '%ISS%' or descricao ilike '%PROPRIEDADE PREDIA%' or descricao ilike '%SERVICOS DE QUALQUER NATUREZA%'
+                when codigo ilike '%ISS%' or codigo ilike '%IPTU%' or codigo like '1.1.1.8.01%' or codigo like '1.1.1.8.02%' or descricao ilike '%IPTU%' or descricao ilike '%ISS%' or descricao ilike '%PROPRIEDADE PREDIA%' or {{ target.schema }}.unaccent(descricao) ilike '%SERVICOS DE QUALQUER NATUREZA%'
                 then coalesce(arrecadado, 0)
                 else 0
             end

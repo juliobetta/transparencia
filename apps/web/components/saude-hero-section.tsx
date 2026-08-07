@@ -34,7 +34,7 @@ export function SaudeHeroSection({
   orcamento,
   fontesReceita,
 }: SaudeHeroSectionProps) {
-  const susPct = fontesReceita.uniaoSusPct > 0 ? fontesReceita.uniaoSusPct : 68;
+  const susPct = fontesReceita.uniaoSusPct ?? 0;
 
   const empenhadoRatio =
     orcamento.dotacao > 0
