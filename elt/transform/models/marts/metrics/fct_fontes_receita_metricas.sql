@@ -78,7 +78,7 @@ receitas_breakdown as (
         ) as emendas_pix_arrecadado,
         sum(
             case
-                when tipo_receita in ('uniao', 'estado', 'orcamentaria') and (descricao ilike '%EMENDA%' or descricao ilike '%PARLAMENTAR%') and not ({{ target.schema }}.unaccent(descricao) ilike '%TRANSFERENCIA ESPECIAL%' or codigo like '1.7.1.5%')
+                when tipo_receita in ('uniao', 'estado', 'orcamentaria') and ({{ target.schema }}.unaccent(descricao) ilike '%EMENDA%' or {{ target.schema }}.unaccent(descricao) ilike '%PARLAMENTAR%') and not ({{ target.schema }}.unaccent(descricao) ilike '%TRANSFERENCIA ESPECIAL%' or codigo like '1.7.1.5%')
                 then coalesce(arrecadado, 0)
                 else 0
             end
