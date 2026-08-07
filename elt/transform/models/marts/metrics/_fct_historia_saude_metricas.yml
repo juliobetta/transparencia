@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: fct_historia_saude_metricas
-    description: "Mart de métricas agregadas de execução orçamentária e financeira da Saúde por portal e ano"
+    description: "Mart de métricas agregadas de execução orçamentária, financeira e fontes de receita da Saúde por portal e ano"
     config:
       contract:
         enforced: true
@@ -103,12 +103,57 @@ models:
         description: "Índice Herfindahl-Hirschman (HHI 0-10000) de concentração de fornecedores de saúde"
         tests:
           - not_null
+      - name: receita_uniao_saude
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total arrecadado em transferências da União para a Saúde (SUS)"
+        tests:
+          - not_null
+      - name: receita_estado_saude
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total arrecadado em transferências do Estado para a Saúde"
+        tests:
+          - not_null
+      - name: repasses_prefeitura_saude
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total de repasses e recursos próprios municipais para a Saúde"
+        tests:
+          - not_null
+      - name: uniao_sus_pct
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Participação percentual de receitas da União (SUS) na Saúde (0-100)"
+        tests:
+          - not_null
+      - name: estado_pct
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Participação percentual de receitas do Estado na Saúde (0-100)"
+        tests:
+          - not_null
+      - name: propria_pct
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Participação percentual de recursos próprios/municipais na Saúde (0-100)"
+        tests:
+          - not_null
 
 unit_tests:
   - name: test_historia_saude_metricas_calculos
-    description: "Valida se orçamento da saúde, medicamentos, judicialização e HHI são calculados corretamente"
+    description: "Valida se orçamento da saúde, medicamentos, judicialização, fontes de receita e HHI são calculados corretamente"
     model: fct_historia_saude_metricas
     given:
+      - input: ref('dim_orgao')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", orgao_nome: "FUNDO MUNICIPAL DE SAUDE" }
       - input: ref('fct_despesas')
         rows:
           - { portal_slug: "porciuncula_prefeitura", ano: 2025, funcao: "10", subfuncao: "303", elemento: "30", empresa_id: "2", fornecedor_nome: "FARMACEUTICA A", dotacao_atualizada: 200000.00, empenhado_liquido: 100000.00, liquidado: 80000.00, pago: 60000.00, subfuncao_nome: "ASSISTENCIA FARMACEUTICA", fonte: "exercicio" }
@@ -119,6 +164,10 @@ unit_tests:
       - input: ref('fct_emendas')
         rows:
           - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "2", destinacao: "EQUIPAMENTOS SAUDE", resumo: "EMENDA SAUDE", valor_total: 50000.00, empenhado: 50000.00 }
+      - input: ref('fct_receitas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "2", tipo_receita: "uniao", codigo: "1713.00.0.0.00.00", descricao: "SUS UNIAO", previsao_atualizada: 60000.00, arrecadado: 60000.00 }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "2", tipo_receita: "estado", codigo: "1720.00.0.0.00.00", descricao: "SUS ESTADO", previsao_atualizada: 30000.00, arrecadado: 30000.00 }
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", ano: 2025, dotacao_total: 300000.00, total_empenhado: 150000.00, total_liquidado: 120000.00, total_pago: 90000.00, medicamentos_insumos_empenhado: 100000.00, medicamentos_insumos_pago: 60000.00, judicializacao_empenhado: 50000.00, judicializacao_pago: 30000.00, emendas_saude_arrecadado: 50000.00, hhi_concentracao_fornecedores: 5556 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, dotacao_total: 300000.00, total_empenhado: 150000.00, total_liquidado: 120000.00, total_pago: 90000.00, medicamentos_insumos_empenhado: 100000.00, medicamentos_insumos_pago: 60000.00, judicializacao_empenhado: 50000.00, judicializacao_pago: 30000.00, emendas_saude_arrecadado: 50000.00, hhi_concentracao_fornecedores: 5556, receita_uniao_saude: 60000.00, receita_estado_saude: 30000.00, repasses_prefeitura_saude: 60000.00, uniao_sus_pct: 40, estado_pct: 20, propria_pct: 40 }

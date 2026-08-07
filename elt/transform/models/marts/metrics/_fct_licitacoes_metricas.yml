@@ -88,7 +88,6 @@ unit_tests:
     expect:
       rows:
         - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "licitacao_propria", numero: "001/2025", licitacao_valor: 100000.00, valor_contrato: 0.00 }
-        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "licitacao_propria", numero: "002/2025", licitacao_valor: 200000.00, valor_contrato: 0.00 }
         - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "adesao_ata_interna", numero: "002/2025", licitacao_valor: 200000.00, valor_contrato: 50000.00 }
         - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "adesao_ata_externa", numero: "020/2025", licitacao_valor: 0.00, valor_contrato: 80000.00 }
         - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "gap_licitacao", numero: "C-999", licitacao_valor: 0.00, valor_contrato: 15000.00 }

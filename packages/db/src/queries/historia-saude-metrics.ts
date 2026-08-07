@@ -246,10 +246,9 @@ export async function getSaudeFornecedoresCountMetrics(
 export async function getSaudeFontesReceitaMetrics(params: {
   portalSlug: string;
   ano: number;
-  empresaIds: string[];
-  empenhadoTotal: number;
+  empresaIds?: string[];
+  empenhadoTotal?: number;
 }): Promise<FontesReceitaSaudeDTO> {
-  const { portalSlug, ano, empresaIds, empenhadoTotal } = params;
   const empty: FontesReceitaSaudeDTO = {
     uniaoSusPct: 0,
     estadoPct: 0,
@@ -258,92 +257,28 @@ export async function getSaudeFontesReceitaMetrics(params: {
     emendasParlamentares: 0,
   };
 
-  if (empresaIds.length === 0) return empty;
-
   try {
-    const resR = await db
-      .selectFrom("fct_receitas")
-      .select(["tipo_receita", "codigo", "descricao", "arrecadado"])
-      .where("portal_slug", "=", portalSlug)
-      .where("ano", "=", ano)
-      .where("empresa_id", "in", empresaIds)
-      .execute();
+    const row = await db
+      .selectFrom("fct_historia_saude_metricas")
+      .select([
+        "uniao_sus_pct",
+        "estado_pct",
+        "propria_pct",
+        "repasses_prefeitura_saude",
+        "emendas_saude_arrecadado",
+      ])
+      .where("portal_slug", "=", params.portalSlug)
+      .where("ano", "=", params.ano)
+      .executeTakeFirst();
 
-    let uniaoR = 0;
-    let estadoR = 0;
-    let intraR = 0;
-
-    for (const r of resR) {
-      const val = Number(r.arrecadado ?? 0);
-      if (val <= 0) continue;
-
-      const tipo = (r.tipo_receita ?? "").toLowerCase();
-      const rawCod = r.codigo ?? "";
-      const codClean = rawCod.replace(/\./g, "");
-      const desc = (r.descricao ?? "").toLowerCase();
-
-      if (
-        tipo === "uniao" ||
-        codClean.startsWith("171") ||
-        codClean.startsWith("241") ||
-        desc.includes("sus") ||
-        desc.includes("união") ||
-        desc.includes("uniao")
-      ) {
-        if (
-          codClean === "171300000000" ||
-          (!rawCod.endsWith(".00.00") && codClean.startsWith("171"))
-        ) {
-          if (codClean === "171300000000") {
-            uniaoR = Math.max(uniaoR, val);
-          } else {
-            uniaoR += val;
-          }
-        }
-      } else if (
-        tipo === "estado" ||
-        codClean.startsWith("172") ||
-        codClean.startsWith("242") ||
-        desc.includes("estado")
-      ) {
-        if (codClean === "172000000000") {
-          estadoR = Math.max(estadoR, val);
-        } else {
-          estadoR += val;
-        }
-      } else if (
-        tipo === "intra" ||
-        codClean.startsWith("175") ||
-        codClean.startsWith("275") ||
-        desc.includes("intra") ||
-        desc.includes("repasse")
-      ) {
-        intraR += val;
-      }
-    }
-
-    const repassesPref =
-      intraR > 0 ? intraR : Math.max(0, empenhadoTotal - uniaoR - estadoR);
-    const baseCalculo = Math.max(
-      empenhadoTotal,
-      uniaoR + estadoR + repassesPref,
-    );
-    let uniaoSusPct = 0;
-    let estadoPct = 0;
-    let propriaPct = 0;
-
-    if (baseCalculo > 0) {
-      uniaoSusPct = Math.round((uniaoR / baseCalculo) * 100);
-      estadoPct = Math.round((estadoR / baseCalculo) * 100);
-      propriaPct = Math.max(0, 100 - uniaoSusPct - estadoPct);
-    }
+    if (!row) return empty;
 
     return {
-      uniaoSusPct,
-      estadoPct,
-      propriaPct,
-      repassesPrefeitura: repassesPref,
-      emendasParlamentares: 0,
+      uniaoSusPct: Number(row.uniao_sus_pct ?? 0),
+      estadoPct: Number(row.estado_pct ?? 0),
+      propriaPct: Number(row.propria_pct ?? 0),
+      repassesPrefeitura: Number(row.repasses_prefeitura_saude ?? 0),
+      emendasParlamentares: Number(row.emendas_saude_arrecadado ?? 0),
     };
   } catch {
     return empty;
