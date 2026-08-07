@@ -273,7 +273,7 @@ export function DenseTable<T extends Record<string, any>>({
               type="button"
               onClick={handleExportCsv}
               disabled={sortedData.length === 0}
-              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 text-xs transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40"
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-medium text-slate-700 text-xs transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40 sm:min-h-0 sm:py-1.5"
             >
               <Download className="h-3.5 w-3.5 text-slate-500" />
               Baixar CSV
@@ -294,7 +294,7 @@ export function DenseTable<T extends Record<string, any>>({
                     key={col.header}
                     onClick={() => isSortable && handleSort(col.accessorKey)}
                     className={cn(
-                      "select-none px-4 py-2.5",
+                      "select-none px-3 py-2.5 sm:px-4",
                       isSortable &&
                         "cursor-pointer transition-colors hover:bg-gray-200/60",
                       col.align === "right" && "text-right",
@@ -352,7 +352,7 @@ export function DenseTable<T extends Record<string, any>>({
                         key={`td-${rKey}-${String(col.accessorKey || col.header)}`}
                         className={cn(
                           col.className ? col.className : "whitespace-nowrap",
-                          "px-4 py-2 text-ink",
+                          "px-3 py-2 text-ink sm:px-4",
                           col.align === "right" && "text-right",
                           col.align === "center" && "text-center",
                           (col.isSerifNumeric ||
@@ -374,7 +374,7 @@ export function DenseTable<T extends Record<string, any>>({
       </div>
 
       {pageSize && (
-        <div className="flex flex-col items-center justify-between gap-3 border-slate-100 border-t bg-white px-5 py-3 text-slate-500 text-xs sm:flex-row">
+        <div className="flex flex-col items-center justify-between gap-3 border-slate-100 border-t bg-white px-4 py-3 text-slate-500 text-xs sm:flex-row sm:px-5">
           <div>
             Mostrando{" "}
             <span className="font-semibold text-slate-700">
@@ -388,12 +388,12 @@ export function DenseTable<T extends Record<string, any>>({
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:h-7 sm:w-7"
               >
                 &larr;
               </button>
@@ -412,7 +412,7 @@ export function DenseTable<T extends Record<string, any>>({
                     type="button"
                     onClick={() => setPage(pageNum)}
                     className={cn(
-                      "flex h-7 w-7 items-center justify-center rounded-lg font-semibold text-xs transition-colors",
+                      "flex h-9 w-9 items-center justify-center rounded-lg font-semibold text-xs transition-colors sm:h-7 sm:w-7",
                       pageNum === currentPage
                         ? "bg-[#2b6cb0] text-white"
                         : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
@@ -427,7 +427,7 @@ export function DenseTable<T extends Record<string, any>>({
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:h-7 sm:w-7"
               >
                 &rarr;
               </button>

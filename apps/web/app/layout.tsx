@@ -48,7 +48,7 @@ export default async function RootLayout({
       lang="pt-BR"
       className={`${ibmPlexSans.variable} ${sourceSerif4.variable}`}
     >
-      <body className="flex min-h-screen bg-canvas font-sans text-ink antialiased">
+      <body className="flex min-h-screen flex-col bg-canvas font-sans text-ink antialiased md:flex-row">
         <NuqsAdapter>
           <Suspense fallback={null}>
             <SidebarWrapper
@@ -67,7 +67,7 @@ export default async function RootLayout({
           </Suspense>
           <div className="flex min-w-0 flex-1 flex-col">
             <Ribbon portalName={portalConfig?.displayName} />
-            <main className="mx-auto w-full max-w-[1000px] flex-1 overflow-x-hidden px-10 py-8">
+            <main className="mx-auto w-full max-w-[1000px] flex-1 overflow-x-hidden px-4 py-4 sm:px-6 md:px-10 md:py-8">
               {children}
             </main>
           </div>

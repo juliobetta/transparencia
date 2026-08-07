@@ -99,7 +99,7 @@ export function MultiSelect({
         disabled={isBtnDisabled}
         onClick={() => !isBtnDisabled && setIsOpen(!isOpen)}
         className={cn(
-          "flex w-full items-center justify-between rounded-md border border-borderLine bg-white px-2.5 py-1.5 text-ink text-xs shadow-sm transition-colors",
+          "flex min-h-[44px] w-full items-center justify-between rounded-md border border-borderLine bg-white px-2.5 py-2 text-ink text-xs shadow-sm transition-colors sm:min-h-0",
           isBtnDisabled
             ? "cursor-not-allowed bg-gray-50 text-mutedText opacity-60"
             : "hover:border-gray-400 focus:border-[#1d64d8] focus:outline-none",
@@ -120,7 +120,7 @@ export function MultiSelect({
           <button
             type="button"
             onClick={handleToggleAll}
-            className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left font-medium text-ink hover:bg-gray-100/80"
+            className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 px-2.5 py-2.5 text-left font-medium text-ink hover:bg-gray-100/80 sm:min-h-0 sm:py-1.5"
           >
             <div
               className={cn(
@@ -146,7 +146,7 @@ export function MultiSelect({
                 type="button"
                 key={opt.id}
                 onClick={() => handleToggleOption(opt.id)}
-                className="flex w-full cursor-pointer items-center gap-2 px-2.5 py-1.5 text-left text-ink hover:bg-gray-100/80"
+                className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 px-2.5 py-2.5 text-left text-ink hover:bg-gray-100/80 sm:min-h-0 sm:py-1.5"
               >
                 <div
                   className={cn(
