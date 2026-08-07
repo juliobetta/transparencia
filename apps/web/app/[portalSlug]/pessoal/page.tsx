@@ -1,8 +1,10 @@
 import { fmtCompact, fmtPercent, KPICard } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { DecimoTerceiroCard } from "@/components/decimo-terceiro-card";
 import { DepartmentalPayrollChart } from "@/components/departmental-payroll-chart";
 import { KPIGrid } from "@/components/kpi-grid";
 import { ProventosDistributionChart } from "@/components/proventos-distribution-chart";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadPessoalData } from "./loader";
 import { buildPessoalViewModel } from "./view-model";
 
@@ -11,6 +13,13 @@ export const dynamic = "force-dynamic";
 interface PessoalPageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PessoalPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Pessoal", portalSlug);
 }
 
 export default async function PessoalPage({

@@ -4,9 +4,11 @@ import {
   fmtCompact,
   fmtPercent,
 } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { CarrosChefeArrecadacao } from "@/components/carros-chefe-arrecadacao";
 import { EmendasCard } from "@/components/emendas-card";
 import { PrevistoVsArrecadadoOrigem } from "@/components/previsto-vs-arrecadado";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadReceitasData } from "./loader";
 import { buildReceitasViewModel } from "./view-model";
 
@@ -15,6 +17,13 @@ export const dynamic = "force-dynamic";
 interface ReceitasPageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ReceitasPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Receitas", portalSlug);
 }
 
 export default async function ReceitasPage({

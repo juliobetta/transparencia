@@ -5,18 +5,29 @@ import {
   fmtPercent,
   KPICard,
 } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { BarChartH } from "@/components/bar-chart-h";
 import { CapremActuarialRiskSection } from "@/components/caprem-actuarial-risk-section";
 import { CapremEntidadesDonut } from "@/components/caprem-entidades-donut";
 import { CapremHeroSection } from "@/components/caprem-hero-section";
 import { KPIGrid } from "@/components/kpi-grid";
 import { SectionHeader } from "@/components/section-header";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadCapremData } from "./loader";
 import { buildCapremViewModel } from "./view-model";
+
+export const dynamic = "force-dynamic";
 
 interface CapremPageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; empresa?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: CapremPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("CAPREM", portalSlug);
 }
 
 export default async function CapremPage({

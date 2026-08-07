@@ -10,6 +10,10 @@ import { SidebarWrapper } from "./components/sidebar-wrapper";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  title: {
+    default: "TransparenciaWeb",
+    template: "TransparenciaWeb - %s",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

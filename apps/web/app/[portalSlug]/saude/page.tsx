@@ -1,10 +1,12 @@
 import { AlertBox, fmtCompact, KPICard } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { KPIGrid } from "@/components/kpi-grid";
 import { SaudeContratacaoSection } from "@/components/saude-contratacao-section";
 import { SaudeEmendasSection } from "@/components/saude-emendas-section";
 import { SaudeFontesDonut } from "@/components/saude-fontes-donut";
 import { SaudeHeroSection } from "@/components/saude-hero-section";
 import { SaudeTrendChart } from "@/components/saude-trend-chart";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadSaudeData } from "./loader";
 import { buildSaudeViewModel } from "./view-model";
 
@@ -13,6 +15,13 @@ export const dynamic = "force-dynamic";
 interface SaudePageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: SaudePageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Saúde", portalSlug);
 }
 
 export default async function SaudePage({

@@ -1,7 +1,9 @@
 import { cn, KPICard } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { DistribucaoModalidadesChart } from "@/components/distribuicao-modalidades-chart";
 import { KPIGrid } from "@/components/kpi-grid";
 import { LicitacoesTable } from "@/components/licitacoes-table";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadLicitacoesData } from "./loader";
 import { buildLicitacoesViewModel } from "./view-model";
 
@@ -10,6 +12,13 @@ export const dynamic = "force-dynamic";
 interface LicitacoesPageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: LicitacoesPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Licitações", portalSlug);
 }
 
 export default async function LicitacoesPage({

@@ -1,7 +1,9 @@
 import { DenseTable } from "@transparencia/ui";
+import type { Metadata } from "next";
 import { CardsSecundariosVisaoGeral } from "@/components/cards-secundarios-visao-geral";
 import { HeroFiscalCard } from "@/components/hero-fiscal-card";
 import { PipelineExecucao } from "@/components/pipeline-execucao";
+import { createPortalMetadata } from "@/lib/metadata";
 import { loadVisaoGeralData } from "./loader";
 import { buildVisaoGeralViewModel } from "./view-model";
 
@@ -10,6 +12,13 @@ export const dynamic = "force-dynamic";
 interface VisaoGeralPageProps {
   params: Promise<{ portalSlug: string }>;
   searchParams: Promise<{ ano?: string; entidades?: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: VisaoGeralPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Visão Geral", portalSlug);
 }
 
 export default async function VisaoGeralPage({
