@@ -1,16 +1,14 @@
-import { getHistoriaSaude } from "@transparencia/db";
-import {
-  AlertBox,
-  fmtCompact,
-  getPartialYearPeriod,
-  KPICard,
-  KPIGrid,
-  SaudeContratacaoSection,
-  SaudeEmendasSection,
-  SaudeFontesDonut,
-  SaudeHeroSection,
-  SaudeTrendChart,
-} from "@transparencia/ui";
+import { AlertBox, fmtCompact, KPICard } from "@transparencia/ui";
+import type { Metadata } from "next";
+import { KPIGrid } from "@/components/kpi-grid";
+import { SaudeContratacaoSection } from "@/components/saude-contratacao-section";
+import { SaudeEmendasSection } from "@/components/saude-emendas-section";
+import { SaudeFontesDonut } from "@/components/saude-fontes-donut";
+import { SaudeHeroSection } from "@/components/saude-hero-section";
+import { SaudeTrendChart } from "@/components/saude-trend-chart";
+import { createPortalMetadata } from "@/lib/metadata";
+import { loadSaudeData } from "./loader";
+import { buildSaudeViewModel } from "./view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -19,22 +17,33 @@ interface SaudePageProps {
   searchParams: Promise<{ ano?: string; entidades?: string }>;
 }
 
+export async function generateMetadata({
+  params,
+}: SaudePageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Saúde", portalSlug, {
+    description:
+      "Transparência da aplicação de recursos na saúde pública municipal, repasses SUS, emendas parlamentares e gastos com saúde.",
+    path: "/saude",
+    keywords: [
+      "saúde pública",
+      "recursos da saúde",
+      "SUS municipal",
+      "gastos com saúde",
+      "emendas da saúde",
+    ],
+  });
+}
+
 export default async function SaudePage({
   params,
   searchParams,
 }: SaudePageProps) {
   const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-
-  const currentYear = new Date().getFullYear();
-  const selectedYear = resolvedSearchParams.ano
-    ? Number(resolvedSearchParams.ano)
-    : currentYear;
-
-  const isCurrentYear = selectedYear === currentYear;
-  const partialPeriod = getPartialYearPeriod();
-
-  const saude = await getHistoriaSaude(selectedYear);
+  const rawData = await loadSaudeData(portalSlug, resolvedSearchParams);
+  const viewModel = buildSaudeViewModel(rawData);
+  const { selectedYear, isCurrentYear, partialPeriod, saude } = viewModel;
 
   return (
     <div className="space-y-12 pb-12">
@@ -69,11 +78,11 @@ export default async function SaudePage({
         </KPIGrid>
       </div>
 
-      {/* Alerta de Subexecução se aplicável */}
+      {/* Alerta de Subexecução se aplicável (apenas exercícios encerrados) */}
       {saude.orcamento.alertaSubExecucao && (
         <AlertBox type="warning" title="Alerta de Subexecução Orçamentária">
-          A execução da Saúde está abaixo de 70% da dotação aprovada para o
-          exercício.
+          A execução da Saúde encerrou o exercício abaixo de 70% da dotação
+          aprovada.
         </AlertBox>
       )}
 
@@ -126,7 +135,7 @@ export default async function SaudePage({
           <KPICard
             title="Medicamentos e insumos"
             value={fmtCompact(saude.farmaceutica.medicamentosInsumos)}
-            subtext="Subfunção 10.303"
+            subtext={`${fmtCompact(saude.farmaceutica.medicamentosInsumosPago)} pagos (Subfunção 10.303)`}
           />
           <KPICard
             title="Judicialização da saúde"
@@ -135,7 +144,7 @@ export default async function SaudePage({
                 {fmtCompact(saude.farmaceutica.judicializacao)}
               </span>
             }
-            subtext="sentenças judiciais"
+            subtext={`${fmtCompact(saude.farmaceutica.judicializacaoPago)} pagos (sentenças judiciais)`}
           />
           <KPICard
             title="Concentração (HHI)"

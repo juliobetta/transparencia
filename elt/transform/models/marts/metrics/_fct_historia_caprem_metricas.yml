@@ -1,0 +1,148 @@
+version: 2
+
+models:
+  - name: fct_historia_caprem_metricas
+    description: "Mart de métricas agregadas atuariais do RPPS e CAPREM por portal e ano"
+    config:
+      contract:
+        enforced: true
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "total_empenhado >= total_liquidado AND total_liquidado >= total_pago"
+          name: historia_caprem_invariante_lrf
+    columns:
+      - name: historia_caprem_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Dimensão de tenant isolada por portal"
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Ano do exercício fiscal"
+        tests:
+          - not_null
+      - name: total_aporte_exigido
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total exigido de aporte atuarial ao RPPS (Elemento 97)"
+        tests:
+          - not_null
+      - name: total_aporte_quitado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total quitado/pago de aporte atuarial ao RPPS (Elemento 97)"
+        tests:
+          - not_null
+      - name: taxa_adimplencia_aporte
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Taxa de adimplência do aporte atuarial (quitado / exigido * 100)"
+        tests:
+          - not_null
+      - name: total_empenhado_patronal
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total de contribuição patronal empenhada (Elemento 13)"
+        tests:
+          - not_null
+      - name: total_pago_patronal
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total de contribuição patronal paga (Elemento 13)"
+        tests:
+          - not_null
+      - name: rombo_patronal_nao_repassado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Rombo patronal não repassado (empenhado patronal - pago patronal)"
+        tests:
+          - not_null
+      - name: total_amortizacao_divida
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total amortizado da dívida previdenciária contratual (Elemento 71)"
+        tests:
+          - not_null
+      - name: total_casp_plano_saude
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total despendido com plano de saúde da caixa de assistência CASP"
+        tests:
+          - not_null
+      - name: total_empenhado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total empenhado consolidado do domínio CAPREM/CASP"
+        tests:
+          - not_null
+      - name: total_liquidado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total liquidado consolidado do domínio CAPREM/CASP"
+        tests:
+          - not_null
+      - name: total_pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Total pago consolidado do domínio CAPREM/CASP"
+        tests:
+          - not_null
+      - name: servidores_efetivos
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Quantidade de servidores estatutários efetivos ativos"
+        tests:
+          - not_null
+      - name: servidores_temporarios
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Quantidade de servidores temporários ou comissionados"
+        tests:
+          - not_null
+
+unit_tests:
+  - name: test_historia_caprem_metricas_calculos
+    description: "Valida se aportes atuariais, adimplência e rombo patronal são calculados corretamente para fonte exercicio e fornecedores CAPREM"
+    model: fct_historia_caprem_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, elemento: "97", fornecedor_nome: "CAPREM", natureza_despesa: "APORTE ATUARIAL", descricao: "COBERTURA DEFICIT ATUARIAL", fornecedor_cpf_cnpj: "07.573.075/0001-00", empenhado_liquido: 100000.00, liquidado: 100000.00, pago: 80000.00, tipo_empenho: "OR", fonte: "exercicio" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, elemento: "13", fornecedor_nome: "CAPREM", natureza_despesa: "CONTRIBUICAO PATRONAL RPPS", descricao: "CONTRIBUICAO PATRONAL", fornecedor_cpf_cnpj: "07.573.075/0001-00", empenhado_liquido: 50000.00, liquidado: 50000.00, pago: 30000.00, tipo_empenho: "OR", fonte: "exercicio" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, elemento: "71", fornecedor_nome: "CAPREM", natureza_despesa: "AMORTIZACAO DIVIDA", descricao: "AMORTIZACAO CADPREV", fornecedor_cpf_cnpj: "07.573.075/0001-00", empenhado_liquido: 20000.00, liquidado: 20000.00, pago: 20000.00, tipo_empenho: "OR", fonte: "exercicio" }
+          # Linha de restos a pagar que DEVE ser ignorada pelo filtro fonte = 'exercicio'
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, elemento: "13", fornecedor_nome: "CAPREM", natureza_despesa: "RESTOS RPPS", descricao: "RESTOS RPPS", fornecedor_cpf_cnpj: "07.573.075/0001-00", empenhado_liquido: 99999.00, liquidado: 99999.00, pago: 99999.00, tipo_empenho: "OR", fonte: "restos_a_pagar" }
+          # Linha de INSS geral que DEVE ser ignorada por não pertencer ao CAPREM/CASP
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, elemento: "13", fornecedor_nome: "INSS RECEITA FEDERAL", natureza_despesa: "INSS GERAL", descricao: "INSS FOLHA DIVERSA", fornecedor_cpf_cnpj: "00.000.000/0001-00", empenhado_liquido: 500000.00, liquidado: 500000.00, pago: 500000.00, tipo_empenho: "OR", fonte: "exercicio" }
+      - input: ref('fct_pessoal')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, categoria_funcional: "Efetivo Estatutario" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, categoria_funcional: "Comissionado" }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, total_aporte_exigido: 100000.00, total_aporte_quitado: 80000.00, taxa_adimplencia_aporte: 80.0000, total_empenhado_patronal: 50000.00, total_pago_patronal: 30000.00, rombo_patronal_nao_repassado: 20000.00, total_amortizacao_divida: 20000.00, total_casp_plano_saude: 0.00, total_empenhado: 170000.00, total_liquidado: 170000.00, total_pago: 130000.00, servidores_efetivos: 1, servidores_temporarios: 1 }

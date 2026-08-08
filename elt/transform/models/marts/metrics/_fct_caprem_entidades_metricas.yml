@@ -1,0 +1,84 @@
+version: 2
+
+models:
+  - name: fct_caprem_entidades_metricas
+    description: "Mart de repasses e contribuições ao CAPREM por entidade municipal"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: caprem_entidade_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | entidade)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Dimensão de tenant isolada por portal"
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Ano do exercício fiscal"
+        tests:
+          - not_null
+      - name: entidade
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Nome ou código da entidade municipal"
+        tests:
+          - not_null
+      - name: empenhado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total empenhado à entidade CAPREM/CASP"
+        tests:
+          - not_null
+      - name: liquidado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total liquidado à entidade CAPREM/CASP"
+        tests:
+          - not_null
+      - name: pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total pago à entidade CAPREM/CASP"
+        tests:
+          - not_null
+      - name: taxa_execucao
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Taxa de execução dos repasses (pago / empenhado * 100)"
+        tests:
+          - not_null
+
+unit_tests:
+  - name: test_caprem_entidades_metricas_taxa_execucao
+    description: "Valida agregação por entidade e cálculo da taxa de execução de repasses"
+    model: fct_caprem_entidades_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, fornecedor_nome: "CAPREM", empenhado_liquido: 100000.00, liquidado: 100000.00, pago: 75000.00, fonte: "exercicio" }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2025, fornecedor_nome: "CAPREM", empenhado_liquido: 50000.00, liquidado: 50000.00, pago: 50000.00, fonte: "exercicio" }
+      - input: ref('dim_orgao')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", orgao_nome: "PREFEITURA" }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", orgao_nome: "FUNDO DE SAUDE" }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, entidade: "PREFEITURA", empenhado: 100000.00, liquidado: 100000.00, pago: 75000.00, taxa_execucao: 75.00 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, entidade: "FUNDO DE SAUDE", empenhado: 50000.00, liquidado: 50000.00, pago: 50000.00, taxa_execucao: 100.00 }

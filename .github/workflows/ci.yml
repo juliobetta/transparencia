@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 jobs:
   ci:
@@ -58,7 +58,10 @@ jobs:
         run: pnpm lint
 
       - name: Run tests
-        run: pnpm test
+        run: make test/ts
+
+      - name: Run build
+        run: pnpm build
 
   migrate:
     needs: ci
