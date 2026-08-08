@@ -86,7 +86,7 @@ export function DistribucaoModalidadesChart({
             className="flex items-center gap-4 font-medium text-slate-700 text-xs"
           >
             {/* Left label */}
-            <span className="w-36 shrink-0 truncate font-medium text-slate-700">
+            <span className="w-24 shrink-0 truncate font-medium text-slate-700 md:w-36">
               {fmtLicitacaoModalidade(item.modalidade)}
             </span>
 
@@ -102,7 +102,7 @@ export function DistribucaoModalidadesChart({
             </div>
 
             {/* Right value */}
-            <div className="w-36 shrink-0 text-right font-normal text-slate-500">
+            <div className="w-24 shrink-0 text-right font-normal text-slate-500 md:w-36">
               <span>{fmtCompactMi(item.valorTotal)}</span>
               <span className="mx-1 text-slate-300">·</span>
               <span className="font-bold text-slate-900">
