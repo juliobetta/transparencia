@@ -67,7 +67,7 @@ export async function createPortalMetadata(
       title: fullTitle,
       description: finalDescription,
       url: canonicalUrl,
-      siteName: "TransparenciaWeb",
+      siteName: "MaisTransparencia",
       locale: "pt_BR",
       type: "website",
       images: [

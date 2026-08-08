@@ -1,4 +1,4 @@
-# TransparenciaWeb - Detalhamento Completo do Conteúdo Público para Inteligência Artificial
+# MaisTransparencia - Detalhamento Completo do Conteúdo Público para Inteligência Artificial
 
 > Este documento fornece a especificação detalhada de todo o conteúdo público, indicadores fiscais, dados de prestação de contas e diretrizes de consulta para modelos de linguagem e assistentes virtuais de IA.
 

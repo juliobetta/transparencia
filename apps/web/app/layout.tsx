@@ -20,8 +20,8 @@ const defaultBaseUrl = formatBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
 export const metadata: Metadata = {
   metadataBase: new URL(defaultBaseUrl),
   title: {
-    default: "TransparenciaWeb",
-    template: "TransparenciaWeb - %s",
+    default: "MaisTransparencia",
+    template: "MaisTransparencia - %s",
   },
   description:
     "Portal de Transparência Pública Municipal - Consulta de despesas, receitas, orçamentos, licitações, pessoal e previdência pública.",
@@ -33,9 +33,9 @@ export const metadata: Metadata = {
     "município",
     "porciúncula",
   ],
-  authors: [{ name: "TransparenciaWeb" }],
-  creator: "TransparenciaWeb",
-  publisher: "TransparenciaWeb",
+  authors: [{ name: "MaisTransparencia" }],
+  creator: "MaisTransparencia",
+  publisher: "MaisTransparencia",
   robots: {
     index: true,
     follow: true,
@@ -48,11 +48,11 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "TransparenciaWeb",
+    title: "MaisTransparencia",
     description:
       "Portal de Transparência Pública Municipal - Consulta de despesas, receitas, orçamentos, licitações, pessoal e previdência pública.",
     url: defaultBaseUrl,
-    siteName: "TransparenciaWeb",
+    siteName: "MaisTransparencia",
     locale: "pt_BR",
     type: "website",
     images: [
@@ -60,13 +60,13 @@ export const metadata: Metadata = {
         url: `${defaultBaseUrl}/favicon.svg`,
         width: 1200,
         height: 630,
-        alt: "TransparenciaWeb",
+        alt: "MaisTransparencia",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TransparenciaWeb",
+    title: "MaisTransparencia",
     description:
       "Portal de Transparência Pública Municipal - Consulta de despesas, receitas, orçamentos, licitações, pessoal e previdência pública.",
     images: [`${defaultBaseUrl}/favicon.svg`],
