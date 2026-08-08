@@ -21,7 +21,18 @@ export async function generateMetadata({
   params,
 }: SaudePageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("Saúde", portalSlug);
+  return createPortalMetadata("Saúde", portalSlug, {
+    description:
+      "Transparência da aplicação de recursos na saúde pública municipal, repasses SUS, emendas parlamentares e gastos com saúde.",
+    path: "/saude",
+    keywords: [
+      "saúde pública",
+      "recursos da saúde",
+      "SUS municipal",
+      "gastos com saúde",
+      "emendas da saúde",
+    ],
+  });
 }
 
 export default async function SaudePage({

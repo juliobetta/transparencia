@@ -7,21 +7,21 @@
 O TransparenciaWeb é o portal de transparência e prestação de contas públicas do município (Prefeitura Municipal de Porciúncula / RJ e entidades municipais associadas). Ele disponibiliza dados consolidados sobre orçamento público, receitas, despesas, contratos, folha de pessoal, previdência (CAPREM) e investimentos na saúde pública.
 
 - **Entidade Municipal Principal:** Prefeitura Municipal de Porciúncula (RJ)
-- **Identificador de Entidade (Slug):** `porciuncula-prefeitura`
+- **Identificador de Entidade (Slug):** `porciuncula_prefeitura`
 - **Endereço Base:** `https://transparencia.porciuncula.rj.gov.br`
 
 ## Navegação e Rotas Públicas
 
 Para orientar usuários ou buscar informações específicas no portal, utilize os caminhos das rotas públicas por entidade:
 
-- `/porciuncula-prefeitura`: **Visão Geral e Posição Fiscal** — Balanço financeiro da arrecadação, despesas pagas, dívida de restos a pagar e saldo estimado.
-- `/porciuncula-prefeitura/despesas`: **Execução de Despesas** — Detalhamento de empenhos, liquidações e pagamentos categorizados por órgãos, secretarias, unidades administrativas, credores e diárias de viagem.
-- `/porciuncula-prefeitura/receitas`: **Receitas e Transferências** — Arrecadação de tributos próprios (IPTU, ISS, ITBI), repasses constitucionais (FPM, ICMS, Fundeb) e emendas parlamentares (incluindo transferências especiais via PIX).
-- `/porciuncula-prefeitura/orcamento`: **Orçamento Municipal** — Acompanhamento da Lei Orçamentária Anual (LOA), dotação inicial e atualizada por funções de governo (Saúde, Educação, Urbanismo, etc.).
-- `/porciuncula-prefeitura/licitacoes`: **Licitações e Contratos** — Processos licitatórios, dispensas, inexigibilidades, adesões a atas de registro de preços e vigência de contratos.
-- `/porciuncula-prefeitura/pessoal`: **Quadro de Pessoal e Folha** — Servidores públicos ativos/inativos, cargos de confiança, proventos, 13º salário e limites da Lei de Responsabilidade Fiscal (LRF).
-- `/porciuncula-prefeitura/caprem`: **Previdência Municipal (CAPREM)** — Saúde financeira e atuarial do Regime Próprio de Previdência Social (RPPS), aportes municipais e cobertura do déficit atuarial.
-- `/porciuncula-prefeitura/saude`: **Saúde Pública** — Percentual de aplicação de impostos na saúde (mínimo constitucional de 15%), convênios e indicadores de investimento.
+- `/porciuncula_prefeitura`: **Visão Geral e Posição Fiscal** — Balanço financeiro da arrecadação, despesas pagas, dívida de restos a pagar e saldo estimado.
+- `/porciuncula_prefeitura/despesas`: **Execução de Despesas** — Detalhamento de empenhos, liquidações e pagamentos categorizados por órgãos, secretarias, unidades administrativas, credores e diárias de viagem.
+- `/porciuncula_prefeitura/receitas`: **Receitas e Transferências** — Arrecadação de tributos próprios (IPTU, ISS, ITBI), repasses constitucionais (FPM, ICMS, Fundeb) e emendas parlamentares (incluindo transferências especiais via PIX).
+- `/porciuncula_prefeitura/orcamento`: **Orçamento Municipal** — Acompanhamento da Lei Orçamentária Anual (LOA), dotação inicial e atualizada por funções de governo (Saúde, Educação, Urbanismo, etc.).
+- `/porciuncula_prefeitura/licitacoes`: **Licitações e Contratos** — Processos licitatórios, dispensas, inexigibilidades, adesões a atas de registro de preços e vigência de contratos.
+- `/porciuncula_prefeitura/pessoal`: **Quadro de Pessoal e Folha** — Servidores públicos ativos/inativos, cargos de confiança, proventos, 13º salário e limites da Lei de Responsabilidade Fiscal (LRF).
+- `/porciuncula_prefeitura/caprem`: **Previdência Municipal (CAPREM)** — Saúde financeira e atuarial do Regime Próprio de Previdência Social (RPPS), aportes municipais e cobertura do déficit atuarial.
+- `/porciuncula_prefeitura/saude`: **Saúde Pública** — Percentual de aplicação de impostos na saúde (mínimo constitucional de 15%), convênios e indicadores de investimento.
 
 ## Diretrizes de Interpretação Contábil para IAs
 

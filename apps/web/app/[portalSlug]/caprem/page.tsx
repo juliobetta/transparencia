@@ -27,7 +27,18 @@ export async function generateMetadata({
   params,
 }: CapremPageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("CAPREM", portalSlug);
+  return createPortalMetadata("CAPREM", portalSlug, {
+    description:
+      "Prestação de contas e saúde atuarial do fundo previdenciário municipal (CAPREM), contribuições patronais e dos servidores.",
+    path: "/caprem",
+    keywords: [
+      "CAPREM",
+      "previdência municipal",
+      "fundo previdenciário",
+      "contribuição previdenciária",
+      "saúde atuarial",
+    ],
+  });
 }
 
 export default async function CapremPage({

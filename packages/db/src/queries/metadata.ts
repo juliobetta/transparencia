@@ -23,7 +23,7 @@ export async function getPortalConfig(
   portalSlug = "porciuncula_prefeitura",
 ): Promise<PortalConfig | null> {
   try {
-    const result = await sql<any>`
+    const result = await sql<Record<string, unknown>>`
       select * from dim_portais where portal_slug = ${portalSlug} limit 1
     `.execute(db);
 
@@ -79,4 +79,18 @@ export async function getEntidades(
   } catch (_error) {}
 
   return [];
+}
+
+export async function getPortalSlugs(): Promise<string[]> {
+  try {
+    const result = await sql<{ portal_slug: string }>`
+      select distinct portal_slug from dim_portais where portal_slug is not null
+    `.execute(db);
+
+    if (result.rows.length > 0) {
+      return result.rows.map((row) => String(row.portal_slug)).filter(Boolean);
+    }
+  } catch (_error) {}
+
+  return ["porciuncula_prefeitura"];
 }

@@ -27,7 +27,19 @@ export async function generateMetadata({
   params,
 }: DespesasPageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("Despesas", portalSlug);
+  return createPortalMetadata("Despesas", portalSlug, {
+    description:
+      "Análise detalhada das despesas municipais empenhadas, liquidadas e pagas por órgãos, unidades e funções contábeis.",
+    path: "/despesas",
+    keywords: [
+      "despesas municipais",
+      "empenhado",
+      "liquidado",
+      "pago",
+      "órgãos públicos",
+      "funções contábeis",
+    ],
+  });
 }
 
 export default async function DespesasPage({

@@ -18,7 +18,17 @@ export async function generateMetadata({
   params,
 }: VisaoGeralPageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("Visão Geral", portalSlug);
+  return createPortalMetadata("Visão Geral", portalSlug, {
+    description:
+      "Visão geral da posição fiscal e financeira do município, incluindo arrecadação, despesas e saldo orçamentário.",
+    path: "",
+    keywords: [
+      "posição fiscal",
+      "visão geral",
+      "contas públicas",
+      "execução orçamentária",
+    ],
+  });
 }
 
 export default async function VisaoGeralPage({

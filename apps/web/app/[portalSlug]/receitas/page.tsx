@@ -23,7 +23,18 @@ export async function generateMetadata({
   params,
 }: ReceitasPageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("Receitas", portalSlug);
+  return createPortalMetadata("Receitas", portalSlug, {
+    description:
+      "Consulta detalhada das fontes de receita municipal, arrecadação prevista vs. realizada e repasses de emendas.",
+    path: "/receitas",
+    keywords: [
+      "receitas municipais",
+      "arrecadação",
+      "fontes de receita",
+      "emendas parlamentares",
+      "impostos municipais",
+    ],
+  });
 }
 
 export default async function ReceitasPage({

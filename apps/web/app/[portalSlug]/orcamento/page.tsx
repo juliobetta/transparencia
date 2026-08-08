@@ -23,7 +23,18 @@ export async function generateMetadata({
   params,
 }: OrcamentoPageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("Orçamento", portalSlug);
+  return createPortalMetadata("Orçamento", portalSlug, {
+    description:
+      "Acompanhamento da execução orçamentária municipal, dotação atualizada, empenho, liquidação e pagamento.",
+    path: "/orcamento",
+    keywords: [
+      "execução orçamentária",
+      "orçamento municipal",
+      "dotação orçamentária",
+      "empenhos",
+      "contas públicas",
+    ],
+  });
 }
 
 export default async function OrcamentoPage({
