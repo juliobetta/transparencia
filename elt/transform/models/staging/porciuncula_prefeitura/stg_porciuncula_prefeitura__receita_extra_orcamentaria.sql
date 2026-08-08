@@ -17,8 +17,7 @@ renamed as (
             when valor ~ '^[0-9]+(\.[0-9]+)?$' then valor::numeric(15, 2)
             else nullif(replace(replace(valor, '.', ''), ',', '.'), '')::numeric(15, 2)
         end as valor_arrecadado,
-        nullif(trim(dtlan), '') as data_lancamento,
-        nullif(trim(empresanome), '') as empresa_nome
+        nullif(trim(dtlan), '') as data_lancamento
     from source
 )
 
@@ -29,6 +28,5 @@ select
     codigo,
     descricao,
     valor_arrecadado,
-    data_lancamento,
-    empresa_nome
+    data_lancamento
 from renamed

@@ -133,9 +133,19 @@ def main() -> None:
         df["ano"] = year
         df["empresa"] = empresa_id
 
-        if "codigo" not in df.columns:
+        if "descricao" not in df.columns and "especificacao" in df.columns:
+            df["descricao"] = df["especificacao"]
+        if "dtlan" not in df.columns and "data" in df.columns:
+            df["dtlan"] = df["data"]
+
+        if "codigo" not in df.columns and "extra" in df.columns:
+            df["codigo"] = df["extra"]
+        elif "codigo" not in df.columns:
             print(f"Skipping {file_path.name}: no 'codigo' column (incompatible with API table structure)")
             continue
+
+        if "valor" not in df.columns and "arrec_total" in df.columns:
+            df["valor"] = df["arrec_total"]
 
         config = config_by_table.get(table_name)
         pk_cols = list(config.key_cols) if config else ["ano", "empresa", "codigo"]
