@@ -40,6 +40,12 @@ models:
         description: "Ano do exercício fiscal"
         tests:
           - not_null
+      - name: codigo
+        data_type: text
+        description: "Código de identificação da receita extra-orçamentária"
+      - name: descricao
+        data_type: text
+        description: "Descrição da receita extra-orçamentária"
       - name: valor_arrecadado
         data_type: numeric
         constraints:
@@ -60,4 +66,5 @@ unit_tests:
           - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, codigo: "9118", descricao: "CAPREM", valor_arrecadado: 2782.31 }
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, valor_arrecadado: 24257.19 }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, codigo: "9114", descricao: "I.N.S.S.", valor_arrecadado: 21474.88 }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, codigo: "9118", descricao: "CAPREM", valor_arrecadado: 2782.31 }
