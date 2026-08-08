@@ -1,27 +1,20 @@
 import {
-  getConcentracaoFornecedores,
-  getDespesasPorUnidade,
-  getImpactoGastosLocais,
-  getMetricasGeraisDespesas,
-  getPortalConfig,
-  getPrincipaisBeneficiariosDiarias,
-  getRestosAPagarResumo,
-  getResumoDiarias,
-} from "@transparencia/db";
-import {
-  BarChartH,
-  DonutGastosLocais,
   fmtCompact,
   fmtCurrency,
   fmtPercent,
-  getPartialYearPeriod,
   KPICard,
-  KPIGrid,
-  RestosAPagarVendorsChart,
-  SectionHeader,
   toTitleCase,
-  UnidadesGastosChart,
 } from "@transparencia/ui";
+import type { Metadata } from "next";
+import { BarChartH } from "@/components/bar-chart-h";
+import { DonutGastosLocais } from "@/components/donut-gastos-locais";
+import { KPIGrid } from "@/components/kpi-grid";
+import { RestosAPagarVendorsChart } from "@/components/restos-a-pagar-vendors-chart";
+import { SectionHeader } from "@/components/section-header";
+import { UnidadesGastosChart } from "@/components/unidades-gastos-chart";
+import { createPortalMetadata } from "@/lib/metadata";
+import { loadDespesasData } from "./loader";
+import { buildDespesasViewModel } from "./view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -30,72 +23,47 @@ interface DespesasPageProps {
   searchParams: Promise<{ ano?: string; entidades?: string }>;
 }
 
+export async function generateMetadata({
+  params,
+}: DespesasPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Despesas", portalSlug, {
+    description:
+      "Análise detalhada das despesas municipais empenhadas, liquidadas e pagas por órgãos, unidades e funções contábeis.",
+    path: "/despesas",
+    keywords: [
+      "despesas municipais",
+      "empenhado",
+      "liquidado",
+      "pago",
+      "órgãos públicos",
+      "funções contábeis",
+    ],
+  });
+}
+
 export default async function DespesasPage({
   params,
   searchParams,
 }: DespesasPageProps) {
   const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
+  const rawData = await loadDespesasData(portalSlug, resolvedSearchParams);
+  const viewModel = buildDespesasViewModel(rawData);
 
-  const currentYear = new Date().getFullYear();
-  const selectedYear = resolvedSearchParams.ano
-    ? Number(resolvedSearchParams.ano)
-    : currentYear;
-  const entidadesIds = resolvedSearchParams.entidades
-    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
-    : undefined;
-
-  const portalConfig = await getPortalConfig();
-  const isCurrentYear = selectedYear === currentYear;
-  const partialPeriod = getPartialYearPeriod();
-
-  // Query DB data
-  const metricasGerais = await getMetricasGeraisDespesas(
+  const {
     selectedYear,
-    entidadesIds,
-    portalSlug,
-  );
-  const impactoLocais = await getImpactoGastosLocais({
-    year: selectedYear,
-    empresaIds: entidadesIds,
-    cidadeClean: portalConfig?.cidadeClean || "",
-    portalSlug,
-  });
-  const concentracao = await getConcentracaoFornecedores(
-    selectedYear,
-    entidadesIds,
-    portalSlug,
-  );
-  const restosResumo = await getRestosAPagarResumo(
-    selectedYear,
-    entidadesIds,
-    portalSlug,
-  );
-  const despesasUnidades = await getDespesasPorUnidade(
-    selectedYear,
-    entidadesIds,
-    portalSlug,
-  );
-  const diariasResumo = await getResumoDiarias(
-    selectedYear,
-    entidadesIds,
-    portalSlug,
-  );
-  const diariasBeneficiarios = await getPrincipaisBeneficiariosDiarias({
-    year: selectedYear,
-    limit: 10,
-    empresaIds: entidadesIds,
-    portalSlug,
-  });
-
-  // HHI text status
-  const hhiVal = Math.round(concentracao.hhi || 0);
-  const hhiStatusText =
-    hhiVal <= 1500
-      ? "baixa · abaixo de 1.500"
-      : hhiVal <= 2500
-        ? "moderada · abaixo de 2.500"
-        : "alta · acima de 2.500";
+    isCurrentYear,
+    partialPeriod,
+    metricasGerais,
+    impactoLocais,
+    restosResumo,
+    despesasUnidades,
+    diariasResumo,
+    diariasBeneficiarios,
+    hhiVal,
+    hhiStatusText,
+  } = viewModel;
 
   return (
     <div className="space-y-10">

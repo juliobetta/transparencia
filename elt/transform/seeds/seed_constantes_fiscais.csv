@@ -1,0 +1,27 @@
+dominio,chave,ano_inicio,ano_fim,valor_num,valor_txt,descricao,base_legal
+licitacoes,limite_dispensa_obras_engenharia,2000,2020,33000.00,,Limite dispensa obras e engenharia histórico,Decreto 9.412/2018
+licitacoes,limite_dispensa_compras_servicos,2000,2020,17600.00,,Limite dispensa compras e serviços histórico,Decreto 9.412/2018
+licitacoes,limite_dispensa_veiculos,2000,2020,8000.00,,Limite dispensa manutenção de veículos histórico,Decreto 9.412/2018
+licitacoes,limite_dispensa_obras_engenharia,2021,2021,100000.00,,Limite dispensa obras e engenharia,Lei 14.133/2021 Art. 75 I
+licitacoes,limite_dispensa_compras_servicos,2021,2021,50000.00,,Limite dispensa compras e serviços,Lei 14.133/2021 Art. 75 II
+licitacoes,limite_dispensa_veiculos,2021,2021,8000.00,,Limite dispensa manutenção de veículos,Lei 14.133/2021 Art. 75 § 7º
+licitacoes,limite_dispensa_obras_engenharia,2022,2022,108040.82,,Limite dispensa obras e engenharia,Decreto 10.922/2021
+licitacoes,limite_dispensa_compras_servicos,2022,2022,54020.41,,Limite dispensa compras e serviços,Decreto 10.922/2021
+licitacoes,limite_dispensa_veiculos,2022,2022,8643.27,,Limite dispensa manutenção de veículos,Decreto 10.922/2021
+licitacoes,limite_dispensa_obras_engenharia,2023,2023,114416.65,,Limite dispensa obras e engenharia,Decreto 11.317/2022
+licitacoes,limite_dispensa_compras_servicos,2023,2023,57208.33,,Limite dispensa compras e serviços,Decreto 11.317/2022
+licitacoes,limite_dispensa_veiculos,2023,2023,9153.33,,Limite dispensa manutenção de veículos,Decreto 11.317/2022
+licitacoes,limite_dispensa_obras_engenharia,2024,2024,119812.02,,Limite dispensa obras e engenharia,Decreto 11.871/2023
+licitacoes,limite_dispensa_compras_servicos,2024,2024,59906.02,,Limite dispensa compras e serviços,Decreto 11.871/2023
+licitacoes,limite_dispensa_veiculos,2024,2024,9584.96,,Limite dispensa manutenção de veículos,Decreto 11.871/2023
+licitacoes,limite_dispensa_obras_engenharia,2025,2025,125451.15,,Limite dispensa obras e engenharia,Decreto 12.343/2024
+licitacoes,limite_dispensa_compras_servicos,2025,2025,62725.59,,Limite dispensa compras e serviços,Decreto 12.343/2024
+licitacoes,limite_dispensa_veiculos,2025,2025,10036.10,,Limite dispensa manutenção de veículos,Decreto 12.343/2024
+licitacoes,limite_dispensa_obras_engenharia,2026,2099,130984.20,,Limite dispensa obras e engenharia,Decreto 12.807/2025
+licitacoes,limite_dispensa_compras_servicos,2026,2099,65492.11,,Limite dispensa compras e serviços,Decreto 12.807/2025
+licitacoes,limite_dispensa_veiculos,2026,2099,10478.74,,Limite dispensa manutenção de veículos,Decreto 12.807/2025
+pessoal,lrf_limite_maximo_executivo,2000,2099,54.00,,Limite máximo LRF Pessoal Executivo,LC 101/2000 Art. 20 III b
+pessoal,lrf_limite_prudencial_executivo,2000,2099,51.30,,Limite prudencial LRF Pessoal Executivo,LC 101/2000 Art. 22
+pessoal,lrf_limite_alerta_executivo,2000,2099,48.60,,Limite de alerta LRF Pessoal Executivo,LC 101/2000 Art. 59 § 1º I
+despesas,elemento_folha_pessoal,2000,2099,,11,Código do elemento de despesa de folha de pagamento,Portaria STN/SOF
+despesas,elemento_subvencoes_sociais,2000,2099,,43,Código do elemento de despesa de subvenções sociais,Portaria STN/SOF

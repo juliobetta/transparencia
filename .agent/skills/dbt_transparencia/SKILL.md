@@ -24,6 +24,10 @@ raw_<portal_slug>.*        ← carregado por elt/load/run.py
 - **Sem alinhamento de colunas**: não use espaços para alinhar `as`; deixa cada coluna na mesma indentação
 - **Tipos**: sempre `text`, nunca `varchar`. Numéricos: `numeric(15, 2)`. Inteiros: `int`
 - **Nunca use `select *`**: sempre liste as colunas explicitamente em todos os models (staging, intermediate e marts)
+- **Nomes de colunas e métricas explícitos**: **Evite estritamente abreviações opacas em colunas de métricas** (ex: `c_valor`, `c_empenhado`, `df`, `do`, `pct`). Use sempre nomes 100% claros e descritivos: `valor_contrato`, `empenhado_contrato`, `percentual_folha`, `total_folha`, `total_pago`, etc.
+- **Valores fixos/códigos em lowercase snake_case**: É estritamente proibido gravar strings formatadas para exibição em colunas de código/categoria/modalidade (ex: `'Adesão a ata (externa)'`, `'Sem licitação'`). Use sempre **lowercase snake_case** (ex: `'adesao_ata_externa'`, `'sem_licitacao'`, `'gap_licitacao'`, `'licitacao_propria'`). A formatação amigável é responsabilidade exclusiva da UI.
+- **Insensibilidade a Acentuação e Caixa em Filtros de Texto (`unaccent`)**: Ao realizar comparações ou buscas por padrões de texto (`like`, `ilike` ou `case when`) em colunas de descrição, modalidade ou resumo (ex: `descricao`, `resumo`, `tipo_emenda`, `destinacao`), **é obrigatório** aplicar `{{ target.schema }}.unaccent(lower(...))` (ou `unaccent`) para evitar falhas de categorização por variações de acentuação ou caixa na fonte de dados (ex: `'TRANSFERÊNCIA ESPECIAL'` vs `'transferencia especial'`).
+
 
 ```sql
 -- ✅ correto
@@ -225,9 +229,10 @@ models:
           min_value: 1000
 ```
 
-### Unit tests (quando necessário)
+### Unit tests (OBRIGATÓRIO para todos os models e marts)
 
-Use `unit_tests:` no mesmo `_<model>.yml` para testar lógica de transformação não-trivial (cálculos, deduplicações, unions com casos especiais). Não escreva unit tests para modelos que apenas renomeiam colunas.
+Todo model em `marts/` ou `marts/metrics/` **deve obrigatoriamente incluir ao menos um `unit_test`** no seu respectivo `_<model>.yml`.
+O `unit_test` valida a lógica de agregação, filtros, categorizações e invariantes fiscais injetando dados sintéticos controlados.
 
 ```yaml
 unit_tests:
@@ -305,3 +310,25 @@ make dbt/debug    # testa conexão
 ```
 
 O wrapper `scripts/run_dbt.py` parseia `DATABASE_URL` automaticamente — não é necessário configurar variáveis individuais.
+
+---
+
+## Auditoria e Paridade Fiscal (Lições Práticas & Invariantes Contábeis)
+
+### 1. Invariantes Contábeis Rígidos (LRF e MCASP)
+- **Hierarquia Orçamentária**: Sempre validar a regra `Empenhado >= Liquidado >= Pago`. Testes no dbt devem incluir `expression_is_true` para impedir inversões contábeis nos marts.
+- **Exercício Parcial vs Encerrado**: Alertas de sub-execução orçamentária (ex: meta de 70% de execução anual da Saúde) só fazem sentido para **exercícios encerrados** (`!isCurrentYear`). Em anos parciais (ex: Jan-Jul de 2026), a dotação de 12 meses não deve disparar alertas prematuros de gestão irregular.
+- **Restos a Pagar Pendentes (MCASP)**: Saldo pendente (`saldo_restos`) **deve** abater anulações e cancelamentos (`empenhado - pago - valor_anulacoes`). Ignorar anulações inflaciona indevidamente o passivo fiscal pendente.
+
+### 2. Separação Estrita Previdenciária (RPPS vs RGPS / Elemento 13)
+- **Elemento 13 (Obrigações Patronais)**: É um elemento genérico que engloba contribuições para o **RPPS** (Previdência Municipal - CAPREM), para o **RGPS** (Previdência Federal - INSS / Receita Federal para comissionados/temporários) e para planos de saúde (CASP).
+- **Déficit de Repasse do RPPS (CAPREM)**: É **obrigatório** restringir os cálculos do rombo patronal do CAPREM às obrigações previdenciárias próprias do RPPS (`fornecedor_nome ILIKE '%CAPREM%' OR natureza_despesa ILIKE '%RPPS%'`). Lançamentos devidos ao INSS/Receita Federal constituem dívida com a União (RGPS) e **jamais devem ser somados ao déficit do CAPREM**, sob pena de inflacionar o déficit previdenciário municipal por contaminação de impostos federais.
+- **Trava por dbt Unit Tests**: Todos os marts de métricas previdenciárias **devem** conter testes de unidade em seus arquivos `_<model>.yml` injetando linhas sintéticas de INSS para garantir que o pipeline `dbt test` falhe caso ocorra contaminação do RGPS no RPPS.
+
+### 3. Gastos Locais e Concentração de Fornecedores (HHI)
+- **Filtro Comercial Estrito**: Cálculo de índice de compras locais e concentração HHI deve filtrar apenas transações comerciais de produtos e serviços (`elemento IN ('30', '36', '39', '52')`).
+- **Proibição de Agrupamentos Anuais por `SELECT DISTINCT`**: Nunca agrupar fornecedores via `SELECT DISTINCT` em visões anuais pré-agregadas (`fct_despesas_por_fornecedor`). Isso atrai transações não-comerciais (folha/encargos previdenciários) de credores locais, distorcendo o percentual de gastos locais.
+
+### 4. Protocolo de Auditoria e Paridade
+- **Verificação ao Centavo**: Antes de aprovar refatorações de marts, extrair o HTML de Produção via `read_url_content` e comparar cada indicador com o banco local ao centavo.
+- **Validação Dupla de Testes**: Após qualquer alteração no dbt, executar `make test` (pytest no backend efêmero) e `pnpm test` (vitest e tipagem no TypeScript) sem exceções.

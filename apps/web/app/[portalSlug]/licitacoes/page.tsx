@@ -1,18 +1,11 @@
-import {
-  getAdesaoDeAta,
-  getAdesaoExterna,
-  getAnomaliasContratuais,
-  getDistribucaoModalidades,
-  getLicitacaoGaps,
-} from "@transparencia/db";
-import {
-  cn,
-  DistribucaoModalidadesChart,
-  getPartialYearPeriod,
-  KPICard,
-  KPIGrid,
-  LicitacoesTable,
-} from "@transparencia/ui";
+import { cn, KPICard } from "@transparencia/ui";
+import type { Metadata } from "next";
+import { DistribucaoModalidadesChart } from "@/components/distribuicao-modalidades-chart";
+import { KPIGrid } from "@/components/kpi-grid";
+import { LicitacoesTable } from "@/components/licitacoes-table";
+import { createPortalMetadata } from "@/lib/metadata";
+import { loadLicitacoesData } from "./loader";
+import { buildLicitacoesViewModel } from "./view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -21,43 +14,45 @@ interface LicitacoesPageProps {
   searchParams: Promise<{ ano?: string; entidades?: string }>;
 }
 
+export async function generateMetadata({
+  params,
+}: LicitacoesPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Licitações", portalSlug, {
+    description:
+      "Consulta e transparência dos processos licitatórios, contratos públicos e modalidades de contratação municipal.",
+    path: "/licitacoes",
+    keywords: [
+      "licitações municipais",
+      "contratos públicos",
+      "pregão eletrônico",
+      "concorrência",
+      "compras públicas",
+    ],
+  });
+}
+
 export default async function LicitacoesPage({
   params,
   searchParams,
 }: LicitacoesPageProps) {
-  const { portalSlug: _portalSlug } = await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
+  const rawData = await loadLicitacoesData(portalSlug, resolvedSearchParams);
+  const viewModel = buildLicitacoesViewModel(rawData);
 
-  const currentYear = new Date().getFullYear();
-  const selectedYear = resolvedSearchParams.ano
-    ? Number(resolvedSearchParams.ano)
-    : currentYear;
-  const entidadesIds = resolvedSearchParams.entidades
-    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
-    : undefined;
-
-  const isCurrentYear = selectedYear === currentYear;
-  const partialPeriod = getPartialYearPeriod();
-
-  // DB Queries
-  const gaps = await getLicitacaoGaps(selectedYear, entidadesIds);
-  const adesao = await getAdesaoDeAta(selectedYear, entidadesIds);
-  const adesaoExterna = await getAdesaoExterna(selectedYear, entidadesIds);
-  const anomalias = await getAnomaliasContratuais(selectedYear, entidadesIds);
-  const modalidades = await getDistribucaoModalidades(
+  const {
     selectedYear,
-    entidadesIds,
-  );
-
-  const acimaLimiteGaps = gaps.filter((g) => g.acimaLimite);
-
-  // Map fracionamento count per supplier
-  const fracionamentoVendorsMap: Record<string, number> = {};
-  for (const f of anomalias.fracionamento) {
-    fracionamentoVendorsMap[f.fornecedor] =
-      (fracionamentoVendorsMap[f.fornecedor] || 0) + 1;
-  }
-  const numCasosFracionamento = Object.keys(fracionamentoVendorsMap).length;
+    isCurrentYear,
+    partialPeriod,
+    gaps,
+    adesao,
+    adesaoExterna,
+    modalidades,
+    acimaLimiteGaps,
+    fracionamentoVendorsMap,
+    numCasosFracionamento,
+  } = viewModel;
 
   return (
     <div className="space-y-8 pb-10">

@@ -85,7 +85,7 @@ dbt/run:
 	uv run --project elt python elt/scripts/run_dbt.py run $(if $(SELECT),--select $(SELECT))
 
 dbt/test:
-	uv run --project elt python elt/scripts/run_dbt.py test
+	uv run --project elt python elt/scripts/run_dbt.py test $(if $(SELECT),--select $(SELECT))
 
 dbt/debug:
 	uv run --project elt python elt/scripts/run_dbt.py debug

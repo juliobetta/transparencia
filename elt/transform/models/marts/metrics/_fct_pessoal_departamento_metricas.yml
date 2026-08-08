@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: fct_pessoal_departamento_metricas
+    description: Mart de métricas de folha por departamento (folhas de agrupamento por grupo/descrição).
+    columns:
+      - name: departamento_metricas_id
+        description: Chave primária substituta composta por portal_slug, ano, empresa_id e descricao.
+        tests:
+          - unique
+          - not_null
+      - name: portal_slug
+        description: Identificador do portal tenant.
+        tests:
+          - not_null
+      - name: ano
+        description: Ano de referência.
+        tests:
+          - not_null
+      - name: empresa_id
+        description: Identificador da empresa/órgão.
+        tests:
+          - not_null
+      - name: descricao
+        description: Descrição do agrupamento departamental de pessoal.
+        tests:
+          - not_null
+      - name: total_pago
+        description: Total pago ao departamento.
+
+unit_tests:
+  - name: test_pessoal_departamento_metricas_filtragem
+    description: "Valida que apenas fornecedores com padrão E OUTROS são agregados em departamento"
+    model: fct_pessoal_departamento_metricas
+    given:
+      - input: ref('fct_despesas_por_fornecedor')
+        rows:
+          - { ano: 2025, empresa: "1", descricao: "FOLHA DE PAGAMENTO E OUTROS", pago: 120000.00 }
+          - { ano: 2025, empresa: "1", descricao: "FORNECEDOR COMUM LTDA", pago: 50000.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", descricao: "FOLHA DE PAGAMENTO E OUTROS", total_pago: 120000.00 }
