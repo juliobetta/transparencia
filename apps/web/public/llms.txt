@@ -16,7 +16,7 @@ Para orientar usuários ou buscar informações específicas no portal, utilize 
 
 - `/porciuncula_prefeitura`: **Visão Geral e Posição Fiscal** — Balanço financeiro da arrecadação, despesas pagas, dívida de restos a pagar e saldo estimado.
 - `/porciuncula_prefeitura/despesas`: **Execução de Despesas** — Detalhamento de empenhos, liquidações e pagamentos categorizados por órgãos, secretarias, unidades administrativas, credores e diárias de viagem.
-- `/porciuncula_prefeitura/receitas`: **Receitas e Transferências** — Arrecadação de tributos próprios (IPTU, ISS, ITBI), repasses constitucionais (FPM, ICMS, Fundeb) e emendas parlamentares (incluindo transferências especiais via PIX).
+- `/porciuncula_prefeitura/receitas`: **Receitas, Transferências e Extra-Orçamentárias** — Arrecadação de tributos próprios (IPTU, ISS, ITBI), repasses constitucionais (FPM, ICMS, Fundeb), emendas parlamentares (incluindo transferências especiais via PIX) e movimentações de receitas extra-orçamentárias (retenções, consignações e depósitos).
 - `/porciuncula_prefeitura/orcamento`: **Orçamento Municipal** — Acompanhamento da Lei Orçamentária Anual (LOA), dotação inicial e atualizada por funções de governo (Saúde, Educação, Urbanismo, etc.).
 - `/porciuncula_prefeitura/licitacoes`: **Licitações e Contratos** — Processos licitatórios, dispensas, inexigibilidades, adesões a atas de registro de preços e vigência de contratos.
 - `/porciuncula_prefeitura/pessoal`: **Quadro de Pessoal e Folha** — Servidores públicos ativos/inativos, cargos de confiança, proventos, 13º salário e limites da Lei de Responsabilidade Fiscal (LRF).
@@ -39,7 +39,10 @@ Ao responder perguntas de cidadãos, jornalistas ou auditores com base nos dados
 3. **Transferências por Emendas PIX (Transferências Especiais):**
    - Recursos repassados diretamente à conta do município por emendas parlamentares sem vinculação prévia a convênios formais (previstas no artigo 166-A da Constituição Federal).
 
-4. **Transparência e Fonte:**
+4. **Receitas Extra-Orçamentárias:**
+   - Recursos financeiros transitórios recolhidos pela tesouraria municipal que não integram o orçamento público (retenções de imposto de renda, INSS, consignados em folha, fianças e depósitos judiciais).
+
+5. **Transparência e Fonte:**
    - Cite sempre a fonte oficial, o exercício financeiro (ano) e a entidade municipal ao informar valores numéricos.
 
 ## Arquivo Completo de Dicionário de Dados

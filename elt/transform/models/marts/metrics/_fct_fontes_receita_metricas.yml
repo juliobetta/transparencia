@@ -82,6 +82,13 @@ models:
         description: "Arrecadação de transferências do Estado"
         tests:
           - not_null
+      - name: receita_extra_orcamentaria_arrecadado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Arrecadação total de receitas extra-orçamentárias"
+        tests:
+          - not_null
       - name: total_previsto
         data_type: numeric
         constraints:
@@ -163,8 +170,9 @@ unit_tests:
           - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, tipo_receita: "orcamentaria", codigo: "1.1.1.8.01.1", descricao: "IPTU PROPRIO", previsao_atualizada: 1000000.00, arrecadado: 880000.00 }
           - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, tipo_receita: "uniao", codigo: "1.7.1.8.01.2", descricao: "FPM UNIAO", previsao_atualizada: 500000.00, arrecadado: 450000.00 }
           - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, tipo_receita: "estado", codigo: "1.7.2.8.01.1", descricao: "ICMS ESTADO", previsao_atualizada: 400000.00, arrecadado: 350000.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, tipo_receita: "extra_orcamentaria", codigo: "9114", descricao: "INSS", previsao_atualizada: 0.00, arrecadado: 50000.00 }
       - input: ref('fct_emendas')
         rows: []
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, receita_propria_previsto: 100000.00, receita_propria_arrecadado: 80000.00, transferencias_uniao_previsto: 500000.00, transferencias_uniao_arrecadado: 450000.00, transferencias_estado_previsto: 400000.00, transferencias_estado_arrecadado: 350000.00, total_previsto: 1000000.00, total_arrecadado: 880000.00, pct_propria: 9.0909, alerta_dependencia: true, fpm_arrecadado: 450000.00, icms_arrecadado: 350000.00, iss_iptu_arrecadado: 880000.00, emendas_pix_arrecadado: 0.00, emendas_individuais_arrecadado: 0.00, emendas_total_arrecadado: 0.00 }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, receita_propria_previsto: 100000.00, receita_propria_arrecadado: 80000.00, transferencias_uniao_previsto: 500000.00, transferencias_uniao_arrecadado: 450000.00, transferencias_estado_previsto: 400000.00, transferencias_estado_arrecadado: 350000.00, receita_extra_orcamentaria_arrecadado: 50000.00, total_previsto: 1000000.00, total_arrecadado: 880000.00, pct_propria: 9.0909, alerta_dependencia: true, fpm_arrecadado: 450000.00, icms_arrecadado: 350000.00, iss_iptu_arrecadado: 880000.00, emendas_pix_arrecadado: 0.00, emendas_individuais_arrecadado: 0.00, emendas_total_arrecadado: 0.00 }

@@ -17,6 +17,7 @@ export interface FontesReceitaMetricsDTO {
   transferenciasUniaoArrecadado: number;
   transferenciasEstadoPrevisto: number;
   transferenciasEstadoArrecadado: number;
+  receitaExtraOrcamentariaArrecadado: number;
   totalPrevisto: number;
   totalArrecadado: number;
   pctPropria: number;
@@ -67,6 +68,9 @@ export async function getFontesReceitaMetrics(
       eb.fn
         .sum<string>("transferencias_estado_arrecadado")
         .as("transferencias_estado_arrecadado"),
+      eb.fn
+        .sum<string>("receita_extra_orcamentaria_arrecadado")
+        .as("receita_extra_orcamentaria_arrecadado"),
       eb.fn.sum<string>("total_previsto").as("total_previsto"),
       eb.fn.sum<string>("total_arrecadado").as("total_arrecadado"),
       eb.fn.sum<string>("fpm_arrecadado").as("fpm_arrecadado"),
@@ -124,6 +128,9 @@ export async function getFontesReceitaMetrics(
     ),
     transferenciasEstadoArrecadado: Number(
       result.transferencias_estado_arrecadado ?? 0,
+    ),
+    receitaExtraOrcamentariaArrecadado: Number(
+      result.receita_extra_orcamentaria_arrecadado ?? 0,
     ),
     totalPrevisto,
     totalArrecadado,

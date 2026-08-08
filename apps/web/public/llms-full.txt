@@ -33,7 +33,7 @@ Esta seção detalha como o dinheiro público é aplicado e distribuído pela ad
 
 ---
 
-### 1.3. Receitas Orçamentárias e Repasses
+### 1.3. Receitas Orçamentárias, Repasses e Extra-Orçamentárias
 
 Esta seção especifica a origem de todos os recursos que ingressam nos cofres do município:
 
@@ -42,6 +42,7 @@ Esta seção especifica a origem de todos os recursos que ingressam nos cofres d
 - **Emendas Parlamentares Individuais:** Verbas destinadas ao município por indicação direta de Deputados ou Senadores para obras ou serviços específicos.
 - **Emendas PIX (Transferências Especiais):** Repasses diretos realizados por emendas parlamentares sem vinculação prévia a contratos ou convênios formais (previstas no artigo 166-A da Constituição Federal).
 - **Total de Emendas Parlamentares:** O somatório consolidado de todas as modalidades de emendas parlamentares recebidas pelo município.
+- **Receitas Extra-Orçamentárias:** Recursos financeiros temporários recolhidos pela tesouraria que transitam pelos cofres municipais mas não constituem receita orçamentária própria (como retenções de imposto de renda, INSS, consignados de empréstimos em folha, cauções de contratos e depósitos judiciais).
 
 ---
 

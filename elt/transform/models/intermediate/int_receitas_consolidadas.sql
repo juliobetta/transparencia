@@ -43,12 +43,27 @@ porciuncula_estado as (
     from {{ ref('stg_porciuncula_prefeitura__receita_estado') }}
 ),
 
+porciuncula_extra_orcamentaria as (
+    select
+        portal_slug,
+        'extra_orcamentaria' as tipo_receita,
+        ano,
+        empresa_id,
+        codigo,
+        descricao,
+        0.00 as previsao_atualizada,
+        coalesce(valor_arrecadado, 0.00) as arrecadado_efetivo
+    from {{ ref('stg_porciuncula_prefeitura__receita_extra_orcamentaria') }}
+),
+
 combined as (
     select * from porciuncula_orcamentaria
     union all
     select * from porciuncula_uniao
     union all
     select * from porciuncula_estado
+    union all
+    select * from porciuncula_extra_orcamentaria
 )
 
 select
