@@ -39,25 +39,28 @@ export function UnidadesGastosChart({
             return (
               <div
                 key={`${item.descricao}`}
-                className="flex items-center justify-between gap-4 text-sm"
+                className="block items-center justify-between gap-4 text-sm md:flex"
               >
-                <div className="w-1/2 truncate font-medium text-ink">
+                <div className="w-auto truncate font-medium text-ink md:w-1/2">
                   {toTitleCase(item.descricao)}
                 </div>
-                <div className="relative flex h-5 flex-1 items-center overflow-hidden rounded-md bg-[#F0F2F5]">
-                  <div
-                    className="h-full rounded-lg transition-all duration-300"
-                    style={{
-                      width: `${Math.max(execPct, 2)}%`,
-                      backgroundColor: "oklch(0.55 0.11 250)",
-                    }}
-                  />
-                  <span className="absolute right-2 font-semibold text-[10px] text-gray-400">
-                    {execPct.toFixed(0)}% pago
-                  </span>
-                </div>
-                <div className="w-24 shrink-0 text-right font-bold text-ink">
-                  {fmtCompact(emp)}
+
+                <div className="flex flex-1 items-center gap-4">
+                  <div className="relative flex h-5 flex-1 items-center overflow-hidden rounded-md bg-[#F0F2F5]">
+                    <div
+                      className="h-full rounded-lg transition-all duration-300"
+                      style={{
+                        width: `${Math.max(execPct, 2)}%`,
+                        backgroundColor: "oklch(0.55 0.11 250)",
+                      }}
+                    />
+                    <span className="absolute right-2 font-semibold text-[10px] text-gray-400">
+                      {execPct.toFixed(0)}% pago
+                    </span>
+                  </div>
+                  <div className="w-24 shrink-0 text-right font-bold text-ink">
+                    {fmtCompact(emp)}
+                  </div>
                 </div>
               </div>
             );

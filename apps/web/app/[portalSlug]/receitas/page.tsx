@@ -25,12 +25,13 @@ export async function generateMetadata({
   const { portalSlug } = await params;
   return createPortalMetadata("Receitas", portalSlug, {
     description:
-      "Consulta detalhada das fontes de receita municipal, arrecadação prevista vs. realizada e repasses de emendas.",
+      "Consulta detalhada das fontes de receita municipal, arrecadação prevista vs. realizada, receitas extra-orçamentárias e repasses de emendas.",
     path: "/receitas",
     keywords: [
       "receitas municipais",
       "arrecadação",
       "fontes de receita",
+      "receitas extra-orçamentárias",
       "emendas parlamentares",
       "impostos municipais",
     ],
@@ -99,7 +100,7 @@ export default async function ReceitasPage({
           <strong className="font-semibold text-ink">
             efetivamente entrou
           </strong>{" "}
-          no caixa, por origem do recurso.
+          no caixa, por origem do recurso e movimentações extra-orçamentárias.
         </p>
       </div>
 

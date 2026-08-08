@@ -49,7 +49,8 @@ receitas_breakdown_root as (
         t.previsao_atualizada,
         t.arrecadado
     from {{ ref('fct_receitas') }} t
-    where not exists (
+    where t.tipo_receita = 'extra_orcamentaria'
+       or not exists (
         select 1 from {{ ref('fct_receitas') }} t2
         where t2.tipo_receita = t.tipo_receita
           and t2.ano = t.ano
@@ -69,6 +70,7 @@ receitas_breakdown as (
         sum(case when tipo_receita = 'uniao' then coalesce(arrecadado, 0) else 0 end) as transferencias_uniao_arrecadado,
         sum(case when tipo_receita = 'estado' then coalesce(previsao_atualizada, 0) else 0 end) as transferencias_estado_previsto,
         sum(case when tipo_receita = 'estado' then coalesce(arrecadado, 0) else 0 end) as transferencias_estado_arrecadado,
+        sum(case when tipo_receita = 'extra_orcamentaria' then coalesce(arrecadado, 0) else 0 end) as receita_extra_orcamentaria_arrecadado,
         sum(
             case
                 when tipo_receita in ('uniao', 'estado', 'orcamentaria') and ({{ target.schema }}.unaccent(descricao) ilike '%TRANSFERENCIA ESPECIAL%' or codigo like '1.7.1.5%')
@@ -155,6 +157,7 @@ receitas_base as (
         coalesce(b.transferencias_uniao_arrecadado, 0) as transferencias_uniao_arrecadado,
         coalesce(b.transferencias_estado_previsto, 0) as transferencias_estado_previsto,
         coalesce(b.transferencias_estado_arrecadado, 0) as transferencias_estado_arrecadado,
+        coalesce(b.receita_extra_orcamentaria_arrecadado, 0) as receita_extra_orcamentaria_arrecadado,
         coalesce(c.fpm_arrecadado, 0) as fpm_arrecadado,
         coalesce(c.icms_arrecadado, 0) as icms_arrecadado,
         coalesce(c.iss_iptu_arrecadado, 0) as iss_iptu_arrecadado,
@@ -186,6 +189,7 @@ calculos as (
         transferencias_uniao_arrecadado::numeric(15, 2) as transferencias_uniao_arrecadado,
         transferencias_estado_previsto::numeric(15, 2) as transferencias_estado_previsto,
         transferencias_estado_arrecadado::numeric(15, 2) as transferencias_estado_arrecadado,
+        receita_extra_orcamentaria_arrecadado::numeric(15, 2) as receita_extra_orcamentaria_arrecadado,
         total_previsto::numeric(15, 2) as total_previsto,
         total_arrecadado::numeric(15, 2) as total_arrecadado,
         fpm_arrecadado::numeric(15, 2) as fpm_arrecadado,
@@ -208,6 +212,7 @@ select
     transferencias_uniao_arrecadado,
     transferencias_estado_previsto,
     transferencias_estado_arrecadado,
+    receita_extra_orcamentaria_arrecadado,
     total_previsto,
     total_arrecadado,
     case

@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: stg_porciuncula_prefeitura__receita_extra_orcamentaria
+    description: "Receitas extra-orçamentárias do portal Porciúncula Prefeitura — casts e renomeação de colunas"
+    columns:
+      - name: portal_slug
+        data_type: text
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 2015
+              max_value: 2035
+      - name: empresa_id
+        data_type: text
+        tests:
+          - not_null
+      - name: codigo
+        data_type: text
+      - name: descricao
+        data_type: text
+      - name: valor_arrecadado
+        data_type: numeric
+      - name: data_lancamento
+        data_type: text
+      - name: empresa_nome
+        data_type: text

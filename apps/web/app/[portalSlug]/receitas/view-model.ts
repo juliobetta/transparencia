@@ -8,6 +8,7 @@ export function buildReceitasViewModel(raw: ReceitasRawData) {
     receitaPropria: 0,
     transferenciasUniao: 0,
     transferenciasEstado: 0,
+    receitaExtraOrcamentaria: 0,
     total: 0,
     pctPropria: 0,
     pctPropriaPrevisto: 0,
@@ -18,6 +19,7 @@ export function buildReceitasViewModel(raw: ReceitasRawData) {
     transferenciasUniaoArrecadado: 0,
     transferenciasEstadoPrevisto: 0,
     transferenciasEstadoArrecadado: 0,
+    receitaExtraOrcamentariaArrecadado: 0,
     totalPrevisto: 0,
     totalArrecadado: 0,
     pctArrecadado: 0,
@@ -66,6 +68,13 @@ export function buildReceitasViewModel(raw: ReceitasRawData) {
           ? (rec.receitaPropriaArrecadado / rec.receitaPropriaPrevisto) * 100
           : 0,
     },
+    {
+      // A receita extra-orçamentária não tem valor previsto, então o percentual realizado é sempre 100%
+      fonte: "Receita Extra-Orçamentária",
+      previsto: rec.receitaExtraOrcamentariaArrecadado,
+      arrecadado: rec.receitaExtraOrcamentariaArrecadado,
+      pctRealizado: 100,
+    },
   ];
 
   const tableData = [
@@ -99,6 +108,12 @@ export function buildReceitasViewModel(raw: ReceitasRawData) {
               rec.transferenciasEstadoPrevisto) *
             100
           : 0,
+    },
+    {
+      fonte: "Receita Extra-Orçamentária (Entradas de Caixas / Retenções)",
+      previsto: 0,
+      arrecadado: rec.receitaExtraOrcamentariaArrecadado,
+      pct: 0,
     },
     {
       fonte: "Total Orçamentário",
@@ -138,6 +153,7 @@ export function buildReceitasViewModel(raw: ReceitasRawData) {
     pctArrecadadoAnual,
     origensData,
     tableData,
+    totalExtraOrcamentario: rec.receitaExtraOrcamentariaArrecadado,
     variationText,
   };
 }

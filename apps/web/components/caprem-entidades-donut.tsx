@@ -1,6 +1,6 @@
 "use client";
 
-import { fmtCurrency, toTitleCase } from "@transparencia/ui";
+import { fmtCompact, fmtCurrency, toTitleCase } from "@transparencia/ui";
 import { Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 export interface EntityCapremItem {
@@ -114,8 +114,13 @@ export function CapremEntidadesDonut({
                 >
                   {toTitleCase(item.name)}
                 </span>
-                <span className="ml-2 shrink-0 font-bold font-serif text-slate-900">
+                {/* desktop only */}
+                <span className="ml-2 hidden shrink-0 font-bold font-serif text-slate-900 lg:block">
                   {fmtCurrency(item.value)}
+                </span>
+                {/* mobile only */}
+                <span className="ml-2 shrink-0 font-bold font-serif text-slate-900 lg:hidden">
+                  {fmtCompact(item.value)}
                 </span>
               </div>
             </div>
