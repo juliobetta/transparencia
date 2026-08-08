@@ -85,6 +85,8 @@ function mapFontesMetricToLegacy(
     receitaPropria,
     transferenciasUniao,
     transferenciasEstado,
+    receitaExtraOrcamentariaArrecadado:
+      fontes.receitaExtraOrcamentariaArrecadado,
     total,
     pctPropria: fontes.pctPropria,
     pctPropriaPrevisto,

@@ -28,6 +28,7 @@ import {
   getPosicaoFiscalDetalhesMetrics,
   getPosicaoFiscalMetrics,
   getPrincipaisBeneficiariosDiariasMetrics,
+  getReceitasExtraOrcamentariasList,
   getRestosAPagarResumoMetrics,
   getResumoDiariasMetrics,
   getSaudeFornecedoresCountMetrics,
@@ -239,7 +240,7 @@ describe("queries Kysely (paridade e integridade contábil via leitores de métr
       expect(typeof metrics.pctPropria).toBe("number");
       expect(typeof metrics.alertaDependencia).toBe("boolean");
       expect(typeof metrics.fpmArrecadado).toBe("number");
-      expect(typeof metrics.emendasTotalArrecadado).toBe("number");
+      expect(typeof metrics.receitaExtraOrcamentariaArrecadado).toBe("number");
     }
 
     const emptyFilter = await getFontesReceitaMetrics(
@@ -248,6 +249,31 @@ describe("queries Kysely (paridade e integridade contábil via leitores de métr
       [],
     );
     expect(emptyFilter).toBeNull();
+  });
+
+  it("deve buscar receitas extra-orçamentárias via leitor atômico (getReceitasExtraOrcamentariasList)", async () => {
+    const entidades = await getEntidades("porciuncula_prefeitura");
+    const empresaIds = entidades.map((e: { id: string }) => e.id);
+
+    const list = await getReceitasExtraOrcamentariasList(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      empresaIds.length > 0 ? empresaIds : ["1"],
+    );
+    expect(Array.isArray(list)).toBe(true);
+    if (list.length > 0) {
+      expect(typeof list[0].receitaExtraId).toBe("string");
+      expect(typeof list[0].portalSlug).toBe("string");
+      expect(typeof list[0].ano).toBe("number");
+      expect(typeof list[0].valorArrecadado).toBe("number");
+    }
+
+    const emptyFilter = await getReceitasExtraOrcamentariasList(
+      "porciuncula_prefeitura",
+      TEST_YEAR,
+      [],
+    );
+    expect(emptyFilter).toEqual([]);
   });
 
   it("deve buscar história previdenciária via mart atômico (getHistoriaCapremMetrics) com restrição de portal", async () => {
