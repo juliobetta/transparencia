@@ -188,7 +188,7 @@ export default async function DespesasPage({
           <KPIGrid columns={3}>
             <KPICard
               title="Total pago em diárias"
-              value={fmtCurrency(diariasResumo.totalValor)}
+              value={fmtCompact(diariasResumo.totalValor)}
             />
             <KPICard
               title="Servidores beneficiários"
