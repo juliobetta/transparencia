@@ -18,7 +18,18 @@ export async function generateMetadata({
   params,
 }: LicitacoesPageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("Licitações", portalSlug);
+  return createPortalMetadata("Licitações", portalSlug, {
+    description:
+      "Consulta e transparência dos processos licitatórios, contratos públicos e modalidades de contratação municipal.",
+    path: "/licitacoes",
+    keywords: [
+      "licitações municipais",
+      "contratos públicos",
+      "pregão eletrônico",
+      "concorrência",
+      "compras públicas",
+    ],
+  });
 }
 
 export default async function LicitacoesPage({

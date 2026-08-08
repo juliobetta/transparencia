@@ -19,7 +19,18 @@ export async function generateMetadata({
   params,
 }: PessoalPageProps): Promise<Metadata> {
   const { portalSlug } = await params;
-  return createPortalMetadata("Pessoal", portalSlug);
+  return createPortalMetadata("Pessoal", portalSlug, {
+    description:
+      "Informações sobre folha de pagamento municipal, despesas com pessoal, remunerações e distribuição por órgãos.",
+    path: "/pessoal",
+    keywords: [
+      "folha de pagamento",
+      "despesas com pessoal",
+      "servidores públicos",
+      "remuneração municipal",
+      "gastos com pessoal",
+    ],
+  });
 }
 
 export default async function PessoalPage({
