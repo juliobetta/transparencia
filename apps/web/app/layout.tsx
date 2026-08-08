@@ -6,6 +6,11 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
+import {
+  generateDataCatalogSchema,
+  generateGovernmentOrganizationSchema,
+  JsonLd,
+} from "../components/json-ld";
 import { SidebarWrapper } from "./components/sidebar-wrapper";
 import "./globals.css";
 
@@ -43,11 +48,26 @@ export default async function RootLayout({
   const portalConfig = await getPortalConfig();
   const entidades = await getEntidades();
 
+  const governmentOrganizationSchema = generateGovernmentOrganizationSchema({
+    displayName: portalConfig?.displayName,
+    stateUF: portalConfig?.uf,
+    officialPortalUrl: portalConfig?.portalUrl,
+  });
+
+  const dataCatalogSchema = generateDataCatalogSchema({
+    displayName: portalConfig?.displayName,
+    officialPortalUrl: portalConfig?.portalUrl,
+  });
+
   return (
     <html
       lang="pt-BR"
       className={`${ibmPlexSans.variable} ${sourceSerif4.variable}`}
     >
+      <head>
+        <JsonLd schema={governmentOrganizationSchema} />
+        <JsonLd schema={dataCatalogSchema} />
+      </head>
       <body className="flex min-h-screen flex-col bg-canvas font-sans text-ink antialiased md:flex-row">
         <NuqsAdapter>
           <Suspense fallback={null}>

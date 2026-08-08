@@ -80,4 +80,14 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 
 - **Tratamento de Acentuação e Caixa:** Em queries SQL de analytics e modelos dbt, ao filtrar ou categorizar colunas de texto/descrição (ex: `descricao`, `resumo`, `tipo_emenda`, `destinacao`), é **obrigatório** utilizar a função `{{ target.schema }}.unaccent(lower(...))` (ou `unaccent`). Isso previne falhas de categorização causadas por variações de caixa e acentuação nos dados brutos de origem.
 
+---
+
+## 12. MANUTENÇÃO DOS ARQUIVOS DE CONTEXTO E GUIA DE LEITURA PARA IA (`llms.txt` E `llms-full.txt`)
+
+- **Orientação ao Consumo Público por LLMs**: Os arquivos `apps/web/public/llms.txt` e `apps/web/public/llms-full.txt` destinam-se a orientar agentes de IA externos e modelos de linguagem (LLMs) sobre como **consumir, consultar e interpretar o conteúdo público** de transparência fiscal do município.
+- **Sincronização Obrigatória**: Sempre que houver inclusão, alteração ou remoção de rotas públicas (`apps/web/app/[portalSlug]/`), adição de novos indicadores/métricas públicas (Posição Fiscal, Despesas, Receitas, Licitações, Pessoal, CAPREM, Saúde) ou mudanças nas convenções contábeis exibidas aos usuários, é **obrigatório** atualizar os arquivos `apps/web/public/llms.txt` e `apps/web/public/llms-full.txt`.
+- **Foco no Domínio do Usuário/Cidadão**: O conteúdo destes arquivos deve focar exclusivamente no entendimento das rotas, dicionário de campos públicos, conceitos contábeis (STN/MCASP) e orientações de consulta para assistentes de IA, sem poluição com detalhes internos de código ou infraestrutura.
+
+
+
 

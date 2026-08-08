@@ -1,0 +1,97 @@
+# TransparenciaWeb - Detalhamento Completo do Conteúdo Público para Inteligência Artificial
+
+> Este documento fornece a especificação detalhada de todo o conteúdo público, indicadores fiscais, dados de prestação de contas e diretrizes de consulta para modelos de linguagem e assistentes virtuais de IA.
+
+---
+
+## 1. Guia Completo dos Domínios de Dados Públicos
+
+### 1.1. Posição Fiscal e Balanço Financeiro
+
+Esta seção apresenta a situação financeira consolidada do município em cada exercício financeiro:
+
+- **Total Arrecadado:** O somatório de todas as receitas recolhidas aos cofres municipais no ano, incluindo impostos locais, taxas e transferências de outros entes.
+- **Despesas Pagas:** O valor total efetivamente desembolsado pela administração municipal no ano para quitação de compromissos.
+- **Restos a Pagar Pagos no Ano:** Despesas contratadas e empenhadas em anos anteriores que foram efetivamente quitadas durante o exercício atual.
+- **Restos Pendentes de Gestões Anteriores:** O saldo acumulado de dívidas e compromissos herdados de mandatos governamentais anteriores que ainda aguardam quitação.
+- **Restos Pendentes da Gestão Atual:** O saldo de compromissos assumidos na gestão vigente que foram liquidados ou empenhados mas ainda não foram pagos até o encerramento do exercício.
+- **Saldo Financeiro Estimado:** O resultado financeiro apurado pela diferença entre o total de receitas arrecadadas e o total de despesas pagas no exercício.
+
+---
+
+### 1.2. Execução das Despesas Públicas
+
+Esta seção detalha como o dinheiro público é aplicado e distribuído pela administração municipal:
+
+- **Órgão e Unidade Administrativa:** A identificação das Secretarias Municipais (como Secretaria de Educação, Saúde, Obras) e das unidades operacionais responsáveis por cada gasto.
+- **Função de Governo:** A classificação funcional do gasto público conforme as normas nacionais (exemplo: Saúde, Educação, Urbanismo, Assistência Social, Segurança Pública).
+- **Valores Empenhados:** O montante de recursos reservados no orçamento público para garantir o pagamento de contratos, compras ou serviços assumidos pela prefeitura.
+- **Valores Liquidados:** O valor correspondente aos serviços já executados ou produtos entregues e vistoriados pela fiscalização municipal, prontos para pagamento.
+- **Valores Pagos:** A saída efetiva de recursos financeiros da conta bancária da prefeitura para a conta do fornecedor ou prestador de serviço.
+- **Maiores Fornecedores e Credores:** A lista das empresas, instituições ou pessoas físicas que mais receberam recursos públicos municipais no período.
+- **Diárias de Viagem:** O detalhamento dos valores pagos a servidores ou agentes políticos para custeio de viagens a trabalho e a identificação dos beneficiários.
+
+---
+
+### 1.3. Receitas Orçamentárias e Repasses
+
+Esta seção especifica a origem de todos os recursos que ingressam nos cofres do município:
+
+- **Receita Própria:** Arrecadação direta oriunda de impostos municipais (como IPTU, ISS e ITBI), taxas de serviços, contribuições e cobrança de dívida ativa.
+- **Transferências Constitucionais e Legais:** Repasses obrigatórios feitos pela União e pelo Estado, como o Fundo de Participação dos Municípios (FPM), a cota-parte do ICMS, o IPVA e os recursos do Fundeb para a educação.
+- **Emendas Parlamentares Individuais:** Verbas destinadas ao município por indicação direta de Deputados ou Senadores para obras ou serviços específicos.
+- **Emendas PIX (Transferências Especiais):** Repasses diretos realizados por emendas parlamentares sem vinculação prévia a contratos ou convênios formais (previstas no artigo 166-A da Constituição Federal).
+- **Total de Emendas Parlamentares:** O somatório consolidado de todas as modalidades de emendas parlamentares recebidas pelo município.
+
+---
+
+### 1.4. Licitações, Dispensas e Contratos Administrativos
+
+Esta seção disponibiliza a transparência sobre os processos de compras e contratações públicas:
+
+- **Modalidades de Contratação:** Os procedimentos utilizados para contratar bens e serviços, tais como Pregão Eletrônico, Concorrência Pública, Dispensa de Licitação, Inexigibilidade e Adesão a Atas de Registro de Preços.
+- **Objeto da Contratação:** A descrição detalhada do que foi comprado ou contratado pela administração pública.
+- **Valor do Contrato:** O valor total homologado ou firmado no instrumento contratual.
+- **Valores Empenhados e Pagos por Contrato:** O acompanhamento financeiro de quanto do valor do contrato já foi empenhado e quanto já foi efetivamente pago.
+
+---
+
+### 1.5. Quadro de Pessoal e Folha de Pagamento
+
+Esta seção apresenta as informações relativas aos servidores públicos municipais e aos gastos com pessoal:
+
+- **Quantitativo de Servidores:** O número total de agentes públicos em atividade na administração municipal.
+- **Total da Folha de Pagamento:** A despesa bruta dedicada ao pagamento de vencimentos, salários e proventos de pessoal no período.
+- **Comprometimento da Receita com Pessoal (LRF):** O percentual da Receita Corrente Líquida (RCL) gasto com pessoal, utilizado para verificação dos limites estipulados pela Lei de Responsabilidade Fiscal (limite máximo de 54% para o Poder Executivo).
+- **Cargos de Confiança e Funções Gratificadas:** A quantidade e o custo total de cargos comissionados de livre nomeação e funções de confiança na estrutura administrativa.
+- **Proventos e Vantagens:** A composição das remunerações, incluindo vencimento básico, gratificações e parcelas relativas ao 13º salário.
+
+---
+
+### 1.6. Regime Próprio de Previdência Social (CAPREM)
+
+Esta seção traz a prestação de contas do instituto de previdência dos servidores municipais:
+
+- **Contribuições Patronais:** Os valores devidos pela prefeitura ao instituto de previdência como cota do empregador.
+- **Contribuições dos Servidores:** O desconto previdenciário retido da remuneração dos servidores ativos e aposentados repassado ao instituto.
+- **Aportes de Amortização do Déficit Atuarial:** Repasses financeiros extraordinários realizados pelo município para cobrir o déficit atuarial e garantir o pagamento futuro das aposentadorias e pensões.
+
+---
+
+### 1.7. Aplicação em Ações e Serviços Públicos de Saúde
+
+Esta seção demonstra o cumprimento das metas constitucionais de investimento na saúde pública municipal:
+
+- **Percentual de Aplicação em Saúde:** O percentual das receitas de impostos e transferências efetivamente investido na saúde pública (compara-se ao piso constitucional de 15% estabelecido pela Lei Complementar nº 141/2012).
+- **Total Investido na Saúde:** O montante financeiro consolidado alocado no custeio e investimentos da rede municipal de saúde.
+
+---
+
+## 2. Orientações para Atendimento de Consultas por Assistentes de IA
+
+Ao responder dúvidas de cidadãos, estudantes, jornalistas ou pesquisadores com base nas informações deste portal:
+
+1. **Linguagem Cidadã e Acessível:** Explique termos técnicos contábeis em linguagem simples e compreensível para qualquer pessoa.
+2. **Precisão dos Valores:** Formate sempre os valores em moeda nacional (Reais - R$) e percentuais com duas casas decimais.
+3. **Contextualização do Exercício:** Identifique claramente o ano a que a informação se refere para evitar confusões entre dados históricos e atuais.
+4. **Respeito aos Dados Oficiais:** Mantenha estrita fidelidade aos números oficiais e normas brasileiras de contabilidade pública.
