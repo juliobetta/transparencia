@@ -68,3 +68,6 @@ make report/compare YEAR_A=2024 MONTH_A_START=1 MONTH_A_END=12 YEAR_B=2025 MONTH
 - **Executar testes TS (Kysely):** `pnpm test`
 - **Lint e formatar código Python:** `make check`
 
+## Licença
+
+Este projeto é distribuído sob a [GNU Affero General Public License v3.0](LICENSE). Uso, modificação e distribuição (incluindo como serviço web) são permitidos, desde que a atribuição seja mantida e, no caso de versões modificadas rodando como serviço, o código-fonte correspondente seja disponibilizado.
