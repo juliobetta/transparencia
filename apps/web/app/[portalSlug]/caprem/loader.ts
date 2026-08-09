@@ -68,6 +68,7 @@ export async function loadCapremData(
   const totalAporteExigido = capremMetrics?.totalAporteExigido ?? 0;
   const totalAporteQuitado = capremMetrics?.totalAporteQuitado ?? 0;
   const totalEmpenhadoPatronal = capremMetrics?.totalEmpenhadoPatronal ?? 0;
+  const totalLiquidadoPatronal = capremMetrics?.totalLiquidadoPatronal ?? 0;
   const totalPagoPatronal = capremMetrics?.totalPagoPatronal ?? 0;
   const totalAmortizacaoDivida = capremMetrics?.totalAmortizacaoDivida ?? 0;
   const totalCaspPlanoSaude = capremMetrics?.totalCaspPlanoSaude ?? 0;
@@ -80,7 +81,7 @@ export async function loadCapremData(
   );
   const romboPatronalNaoRepassado = Math.max(
     0,
-    totalEmpenhadoPatronal - totalPagoPatronal,
+    totalLiquidadoPatronal - totalPagoPatronal,
   );
   const taxaAdimplenciaAporte =
     totalAporteExigido > 0

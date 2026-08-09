@@ -87,6 +87,7 @@ export interface HistoriaCapremRow {
   totalAporteQuitado?: number;
   taxaAdimplenciaAporte?: number;
   totalEmpenhadoPatronal?: number;
+  totalLiquidadoPatronal?: number;
   totalPagoPatronal?: number;
   romboPatronalNaoRepassado?: number;
   totalAmortizacaoDivida?: number;
@@ -111,6 +112,7 @@ export async function seedHistoriaCaprem(
       total_aporte_quitado: row.totalAporteQuitado ?? 0,
       taxa_adimplencia_aporte: row.taxaAdimplenciaAporte ?? 0,
       total_empenhado_patronal: row.totalEmpenhadoPatronal ?? 0,
+      total_liquidado_patronal: row.totalLiquidadoPatronal ?? 0,
       total_pago_patronal: row.totalPagoPatronal ?? 0,
       rombo_patronal_nao_repassado: row.romboPatronalNaoRepassado ?? 0,
       total_amortizacao_divida: row.totalAmortizacaoDivida ?? 0,

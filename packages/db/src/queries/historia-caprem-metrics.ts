@@ -9,6 +9,7 @@ export interface HistoriaCapremMetricsDTO {
   totalAporteQuitado: number;
   taxaAdimplenciaAporte: number;
   totalEmpenhadoPatronal: number;
+  totalLiquidadoPatronal: number;
   totalPagoPatronal: number;
   romboPatronalNaoRepassado: number;
   totalAmortizacaoDivida: number;
@@ -48,6 +49,7 @@ export async function getHistoriaCapremMetrics(
     totalAporteQuitado: Number(result.total_aporte_quitado ?? 0),
     taxaAdimplenciaAporte: Number(result.taxa_adimplencia_aporte ?? 0),
     totalEmpenhadoPatronal: Number(result.total_empenhado_patronal ?? 0),
+    totalLiquidadoPatronal: Number(result.total_liquidado_patronal ?? 0),
     totalPagoPatronal: Number(result.total_pago_patronal ?? 0),
     romboPatronalNaoRepassado: Number(result.rombo_patronal_nao_repassado ?? 0),
     totalAmortizacaoDivida: Number(result.total_amortizacao_divida ?? 0),
