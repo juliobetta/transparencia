@@ -20,3 +20,7 @@ export const db = new Kysely<any>({
     }),
   }),
 });
+
+export async function closeDb(): Promise<void> {
+  await db.destroy();
+}

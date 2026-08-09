@@ -207,6 +207,11 @@ export function CapremActuarialRiskSection({
             columns={cadprevCols}
             searchableKeys={["numeroCadprev", "descricao"]}
           />
+          <p className="text-mutedText text-xs">
+            Não inclui multas ou penalidades tributárias pagas a outros credores
+            (ex: Receita Federal), mesmo quando relacionadas à contribuição
+            previdenciária — apenas acordos formais junto ao CAPREM.
+          </p>
         </div>
       )}
 
