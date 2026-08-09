@@ -1,0 +1,94 @@
+version: 2
+
+models:
+  - name: fct_caprem_natureza_metricas
+    description: "Mart de repasses e despesas do CAPREM agrupados por elemento, natureza e destino contábil"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: caprem_natureza_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | ano | elemento | natureza_despesa | destino)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Dimensão de tenant isolada por portal"
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Ano do exercício fiscal"
+        tests:
+          - not_null
+      - name: empenho_id
+        data_type: text
+        description: "Identificador ou número do empenho"
+      - name: elemento
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Elemento de despesa (ex: 13, 71, 97)"
+        tests:
+          - not_null
+      - name: natureza_despesa
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Descrição da natureza da despesa"
+        tests:
+          - not_null
+      - name: destino
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Slug snake_case de destino contábil (ex: aporte_atuarial_caprem, rpps_caprem)"
+        tests:
+          - not_null
+      - name: descricao
+        data_type: text
+        description: "Exemplo de histórico ou descrição do lançamento"
+      - name: data_empenho
+        data_type: date
+        description: "Data do empenho/lançamento"
+      - name: empenhado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total empenhado"
+        tests:
+          - not_null
+      - name: liquidado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total liquidado"
+        tests:
+          - not_null
+      - name: pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total pago"
+        tests:
+          - not_null
+
+unit_tests:
+  - name: test_caprem_natureza_metricas_destino
+    description: "Valida categorização por elemento e cálculo de valores por destino contábil"
+    model: fct_caprem_natureza_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, empenho_id: "E-100", elemento: "97", natureza_despesa: "APORTE RPPS", fornecedor_nome: "CAPREM", descricao: "Aporte deficit atuarial", data_empenho: "2025-01-10", empenhado_liquido: 100000.00, liquidado: 100000.00, pago: 100000.00, fonte: "exercicio" }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empenho_id: "E-100", elemento: "97", natureza_despesa: "APORTE RPPS", destino: "aporte_atuarial_caprem", descricao: "Aporte deficit atuarial", data_empenho: "2025-01-10", empenhado: 100000.00, liquidado: 100000.00, pago: 100000.00 }

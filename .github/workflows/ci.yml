@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main ]
+    branches: [main, dev]
 
 jobs:
   ci:
@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       - name: Install PostgreSQL
         run: sudo apt-get install -y postgresql postgresql-client
@@ -40,6 +40,20 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        ports:
+          - 5544:5432
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -48,8 +62,8 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -57,19 +71,30 @@ jobs:
       - name: Run linting
         run: pnpm lint
 
+      - name: Restore packages/db test schema
+        run: gunzip -c packages/db/tests/fixtures/schema.sql.gz | psql "$DATABASE_URL"
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5544/postgres
+
       - name: Run tests
-        run: pnpm test
+        run: make test/ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5544/postgres
+
+      - name: Run build
+        run: pnpm build
 
   migrate:
     needs: ci
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       - name: Install dependencies
         run: pip install uv && uv sync --project elt

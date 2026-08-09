@@ -23,7 +23,9 @@ export function fmtCompact(value: number): string {
   }).format(value);
 }
 
-export function fmtPercent(value: number): string {
+export function fmtPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value))
+    return "0,00%";
   return `${value.toFixed(2)}%`;
 }
 
@@ -42,7 +44,31 @@ export function fmtDate(dateStr: string | null | undefined): string {
   return dateStr;
 }
 
+export function fmtLicitacaoModalidade(
+  modalidade: string | null | undefined,
+): string {
+  const MODALIDADE_LABELS: Record<string, string> = {
+    adesao_ata_interna: "Adesão a Ata (Carona Interna)",
+    adesao_ata_externa: "Adesão a Ata (Externa)",
+    sem_licitacao: "Sem Licitação",
+    gap_licitacao: "Sem Licitação",
+    licitacao_propria: "Licitação Própria",
+    outros: "Outros",
+  };
+
+  if (!modalidade?.trim()) return "Outros";
+  const clean = modalidade.trim().toLowerCase();
+  if (MODALIDADE_LABELS[clean]) {
+    return MODALIDADE_LABELS[clean];
+  }
+  return clean
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function getPartialYearPeriod(referenceDate = new Date()): string {
+  if (!referenceDate || Number.isNaN(referenceDate.getTime())) return "";
   const currentMonthIndex = referenceDate.getMonth();
   const prevMonthIndex = currentMonthIndex > 0 ? currentMonthIndex - 1 : 0;
   const year = referenceDate.getFullYear();

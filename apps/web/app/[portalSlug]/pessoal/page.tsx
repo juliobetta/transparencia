@@ -1,21 +1,12 @@
-import {
-  getDepartmentalPayroll,
-  getDistribuicaoProventos,
-  getExecucaoDecimoTerceiro,
-  getFolhaVsServicos,
-  getPercentualChefiasEfetivas,
-  getPortalConfig,
-} from "@transparencia/db";
-import {
-  DecimoTerceiroCard,
-  DepartmentalPayrollChart,
-  fmtCompact,
-  fmtPercent,
-  getPartialYearPeriod,
-  KPICard,
-  KPIGrid,
-  ProventosDistributionChart,
-} from "@transparencia/ui";
+import { fmtCompact, fmtPercent, KPICard } from "@transparencia/ui";
+import type { Metadata } from "next";
+import { DecimoTerceiroCard } from "@/components/decimo-terceiro-card";
+import { DepartmentalPayrollChart } from "@/components/departmental-payroll-chart";
+import { KPIGrid } from "@/components/kpi-grid";
+import { ProventosDistributionChart } from "@/components/proventos-distribution-chart";
+import { createPortalMetadata } from "@/lib/metadata";
+import { loadPessoalData } from "./loader";
+import { buildPessoalViewModel } from "./view-model";
 
 export const dynamic = "force-dynamic";
 
@@ -24,48 +15,42 @@ interface PessoalPageProps {
   searchParams: Promise<{ ano?: string; entidades?: string }>;
 }
 
+export async function generateMetadata({
+  params,
+}: PessoalPageProps): Promise<Metadata> {
+  const { portalSlug } = await params;
+  return createPortalMetadata("Pessoal", portalSlug, {
+    description:
+      "Informações sobre folha de pagamento municipal, despesas com pessoal, remunerações e distribuição por órgãos.",
+    path: "/pessoal",
+    keywords: [
+      "folha de pagamento",
+      "despesas com pessoal",
+      "servidores públicos",
+      "remuneração municipal",
+      "gastos com pessoal",
+    ],
+  });
+}
+
 export default async function PessoalPage({
   params,
   searchParams,
 }: PessoalPageProps) {
-  const { portalSlug: _portalSlug } = await params;
+  const { portalSlug } = await params;
   const resolvedSearchParams = await searchParams;
-
-  const currentYear = new Date().getFullYear();
-  const selectedYear = resolvedSearchParams.ano
-    ? Number(resolvedSearchParams.ano)
-    : currentYear;
-  const entidadesIds = resolvedSearchParams.entidades
-    ? resolvedSearchParams.entidades.split(",").filter(Boolean)
-    : undefined;
-
-  const isCurrentYear = selectedYear === currentYear;
-  const partialPeriod = getPartialYearPeriod();
-
-  // Queries
-  const portalConfig = await getPortalConfig();
-  const folhaData = await getFolhaVsServicos({
-    years: [selectedYear],
-    empresaIds: entidadesIds,
-    portalSlug: portalConfig?.portalSlug ?? "",
-  });
-  const pctChefias = await getPercentualChefiasEfetivas(
+  const rawData = await loadPessoalData(portalSlug, resolvedSearchParams);
+  const viewModel = buildPessoalViewModel(rawData);
+  const {
     selectedYear,
-    entidadesIds,
-  );
-  const decimo13 = await getExecucaoDecimoTerceiro(selectedYear, entidadesIds);
-  const distribuicaoProventos = await getDistribuicaoProventos(selectedYear);
-  const departmentalPayroll = await getDepartmentalPayroll(
-    selectedYear,
-    entidadesIds,
-  );
-
-  const currentYearRow = folhaData[0] || {
-    totalFolha: 0,
-    totalPago: 0,
-    rclProxy: 0,
-    percentualFolha: 0,
-  };
+    isCurrentYear,
+    partialPeriod,
+    pctChefias,
+    decimo13,
+    distribuicaoProventos,
+    departmentalPayroll,
+    currentYearRow,
+  } = viewModel;
 
   return (
     <div className="space-y-8 pb-10">

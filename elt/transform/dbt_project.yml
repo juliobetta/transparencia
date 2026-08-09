@@ -17,6 +17,8 @@ clean-targets:
 
 vars:
   test_mode: false
+  administracao_reference_year: 2025
+  administracao_min_valid_year: 2000
 
 models:
   transparencia:

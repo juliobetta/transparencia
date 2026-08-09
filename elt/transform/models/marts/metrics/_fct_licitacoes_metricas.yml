@@ -1,0 +1,144 @@
+version: 2
+
+models:
+  - name: fct_licitacoes_metricas
+    description: Mart de métricas consolidadas de contratações (licitações próprias, adesão a atas internas, adesões a atas externas e gaps sem licitação).
+    columns:
+      - name: licitacao_metricas_id
+        description: Chave primária substituta.
+        tests:
+          - unique
+          - not_null
+      - name: portal_slug
+        description: Identificador do portal tenant.
+        tests:
+          - not_null
+      - name: ano
+        description: Ano de referência.
+        tests:
+          - not_null
+      - name: empresa_id
+        description: Identificador da empresa/órgão.
+        tests:
+          - not_null
+      - name: tipo_contratacao
+        description: Categoria discriminadora do processo (licitacao_propria, adesao_ata_interna, adesao_ata_externa, gap_licitacao).
+        tests:
+          - not_null
+      - name: numero
+        description: Número do processo ou contrato.
+      - name: licitacao_numero
+        description: Número da licitação associada.
+      - name: contrato_numero
+        description: Número do contrato associado.
+      - name: fornecedor_nome
+        description: Nome do fornecedor contratado ou favorecido.
+      - name: objeto
+        description: Objeto do certame, contrato ou adesão.
+      - name: modalidade
+        description: Modalidade de licitação ou contratação.
+      - name: fundlegal
+        description: Fundamento legal da contratação.
+      - name: carona
+        description: Indicador se permite ou decorre de carona/adesão a ata.
+      - name: mes
+        description: Mês de referência.
+      - name: numero_obra
+        description: Número da obra se aplicável.
+      - name: tipo_obra
+        description: Tipo da obra se aplicável.
+      - name: quantidade
+        description: Contagem base.
+      - name: licitacao_valor
+        description: Valor estimado do certame.
+      - name: valor_contrato
+        description: Valor total do contrato ou adesão.
+      - name: empenhado_contrato
+        description: Valor empenhado no contrato ou adesão.
+      - name: pago_contrato
+        description: Valor pago no contrato ou adesão.
+      - name: data_referencia
+        description: Data do certame, assinatura do contrato ou empenho.
+      - name: limite_dispensa
+        description: Limite regulatório de dispensa de licitação aplicável ao ano e categoria do contrato (Lei 14.133/2021).
+      - name: isento_legalmente
+        description: Indicador booleano se o contrato possui isenção legal por lei de dispensa (Consórcio Público, Rateio, Contrato de Programa ou Inexigibilidade).
+      - name: acima_limite
+        description: Indicador booleano se o contrato sem licitação não isento ultrapassou o limite legal do exercício.
+
+unit_tests:
+  - name: test_licitacoes_metricas_unificacao_e_discriminacao
+    description: "Valida unificação das 4 origens de contratação com discriminador tipo_contratacao"
+    model: fct_licitacoes_metricas
+    given:
+      - input: ref('fct_licitacoes')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", licitacao_numero: "001/2025", discriminacao: "REFORMA DA ESCOLA", valor: 100000.00, carona: "N", modalidade: "Pregão Eletrônico" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", licitacao_numero: "002/2025", discriminacao: "MEDICAMENTOS", valor: 200000.00, carona: "S", modalidade: "Pregão Eletrônico" }
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", contrato_numero: "C-002", licitacao_numero: "002/2025", fornecedor_nome: "FARMACEUTICA A", objeto: "MEDICAMENTOS", valor_contrato: 50000.00, empenhado: 40000.00, mes: "3", modalidade: "adesao_ata_interna", fundlegal: null, numero_obra: null, tipo_obra: null }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", contrato_numero: "C-999", licitacao_numero: null, fornecedor_nome: "SERVICOS X", objeto: "MANUTENCAO", valor_contrato: 15000.00, empenhado: 15000.00, mes: "4", modalidade: "Dispensa", fundlegal: "Art. 75", numero_obra: null, tipo_obra: null }
+      - input: ref('fct_despesas')
+        rows:
+          - { despesa_id: "D-100", portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", licitacao_numero: "020/2025", fornecedor_nome: "DISTRIBUIDORA Y", descricao: "AQUISICAO VIA ADESAO A ATA DE REGISTRO DE PRECOS", empenhado: 80000.00, pago: 75000.00, mes: "5", data_empenho: "2025-05-10" }
+      - input: ref('seed_constantes_fiscais')
+        rows:
+          - { dominio: "licitacoes", chave: "limite_dispensa_compras_servicos", ano_inicio: 2025, ano_fim: 2025, valor_num: 62725.59 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "licitacao_propria", numero: "001/2025", licitacao_valor: 100000.00, valor_contrato: 0.00 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "adesao_ata_interna", numero: "002/2025", licitacao_valor: 200000.00, valor_contrato: 50000.00 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "adesao_ata_externa", numero: "020/2025", licitacao_valor: 0.00, valor_contrato: 80000.00 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", tipo_contratacao: "gap_licitacao", numero: "C-999", licitacao_valor: 0.00, valor_contrato: 15000.00 }
+
+  - name: test_licitacoes_metricas_limites_dispensa_por_categoria_e_ano
+    description: "Valida enquadramento correto dos limites de dispensa de licitação por ano do exercício e categoria do objeto (Obras, Veículos, Compras)"
+    model: fct_licitacoes_metricas
+    given:
+      - input: ref('fct_licitacoes')
+        rows: []
+      - input: ref('fct_despesas')
+        rows: []
+      - input: ref('seed_constantes_fiscais')
+        rows:
+          - { dominio: "licitacoes", chave: "limite_dispensa_obras_engenharia", ano_inicio: 2024, ano_fim: 2024, valor_num: 119812.02 }
+          - { dominio: "licitacoes", chave: "limite_dispensa_compras_servicos", ano_inicio: 2024, ano_fim: 2024, valor_num: 59906.02 }
+          - { dominio: "licitacoes", chave: "limite_dispensa_veiculos", ano_inicio: 2024, ano_fim: 2024, valor_num: 9584.96 }
+          - { dominio: "licitacoes", chave: "limite_dispensa_obras_engenharia", ano_inicio: 2026, ano_fim: 2099, valor_num: 130984.20 }
+          - { dominio: "licitacoes", chave: "limite_dispensa_compras_servicos", ano_inicio: 2026, ano_fim: 2099, valor_num: 65492.11 }
+          - { dominio: "licitacoes", chave: "limite_dispensa_veiculos", ano_inicio: 2026, ano_fim: 2099, valor_num: 10478.74 }
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2024, empresa_id: "1", contrato_numero: "C-OBRA-2024", licitacao_numero: null, fornecedor_nome: "CONSTRUTORA A", objeto: "REFORMA DA ESCOLA MUNICIPAL", valor_contrato: 120000.00, empenhado: 120000.00, mes: "5", modalidade: "Dispensa", fundlegal: "Art. 75 I", numero_obra: "01/2024", tipo_obra: "Reforma" }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2024, empresa_id: "1", contrato_numero: "C-VEIC-2024", licitacao_numero: null, fornecedor_nome: "OFICINA B", objeto: "MANUTENCAO DE VEICULO DA FROTA", valor_contrato: 9000.00, empenhado: 9000.00, mes: "6", modalidade: "Dispensa", fundlegal: "Art. 75 § 7º", numero_obra: null, tipo_obra: null }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2026, empresa_id: "1", contrato_numero: "C-COMPRA-2026-ABAXO", licitacao_numero: null, fornecedor_nome: "PAPELARIA C", objeto: "AQUISICAO DE MATERIAL DE ESCRITORIO", valor_contrato: 50000.00, empenhado: 50000.00, mes: "2", modalidade: "Dispensa", fundlegal: "Art. 75 II", numero_obra: null, tipo_obra: null }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2026, empresa_id: "1", contrato_numero: "C-COMPRA-2026-ACIMA", licitacao_numero: null, fornecedor_nome: "TECNOLOGIA D", objeto: "COMPRA DE SOFTWARE", valor_contrato: 70000.00, empenhado: 70000.00, mes: "3", modalidade: "Dispensa", fundlegal: "Art. 75 II", numero_obra: null, tipo_obra: null }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2024, tipo_contratacao: "gap_licitacao", numero: "C-OBRA-2024", valor_contrato: 120000.00, limite_dispensa: 119812.02, acima_limite: true }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2024, tipo_contratacao: "gap_licitacao", numero: "C-VEIC-2024", valor_contrato: 9000.00, limite_dispensa: 9584.96, acima_limite: false }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2026, tipo_contratacao: "gap_licitacao", numero: "C-COMPRA-2026-ABAXO", valor_contrato: 50000.00, limite_dispensa: 65492.11, acima_limite: false }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2026, tipo_contratacao: "gap_licitacao", numero: "C-COMPRA-2026-ACIMA", valor_contrato: 70000.00, limite_dispensa: 65492.11, acima_limite: true }
+
+  - name: test_licitacoes_metricas_isencao_legal_consorcio_e_rateio
+    description: "Valida que transferências de consórcio público, contratos de programa/rateio e inexigibilidade são isentos legalmente e não ativam flag de acima_limite"
+    model: fct_licitacoes_metricas
+    given:
+      - input: ref('fct_licitacoes')
+        rows: []
+      - input: ref('fct_despesas')
+        rows: []
+      - input: ref('seed_constantes_fiscais')
+        rows:
+          - { dominio: "licitacoes", chave: "limite_dispensa_compras_servicos", ano_inicio: 2026, ano_fim: 2099, valor_num: 65492.11 }
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2026, empresa_id: "1", contrato_numero: "C-CONSORCIO-001", licitacao_numero: null, fornecedor_nome: "CODESP - CONSORCIO INTERMUNICIPAL", objeto: "CONTRATO DE PROGRAMA CODESP ESF", valor_contrato: 3000000.00, empenhado: 3000000.00, mes: "1", modalidade: "Dispensa", fundlegal: "Lei 11.107/2005", numero_obra: null, tipo_obra: null }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2026, empresa_id: "1", contrato_numero: "C-INEXIG-002", licitacao_numero: null, fornecedor_nome: "ARTISTA FAMOSO", objeto: "APRESENTACAO ARTISTICA", valor_contrato: 500000.00, empenhado: 500000.00, mes: "2", modalidade: "Inexigibilidade de Licitação", fundlegal: "Art. 74", numero_obra: null, tipo_obra: null }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2026, empresa_id: "1", contrato_numero: "C-COMUM-003", licitacao_numero: null, fornecedor_nome: "EMPRESA PRIVADA X", objeto: "AQUISICAO DE MOBILIARIO DE ESCRITORIO", valor_contrato: 100000.00, empenhado: 100000.00, mes: "3", modalidade: "Dispensa", fundlegal: "Art. 75 II", numero_obra: null, tipo_obra: null }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2026, tipo_contratacao: "gap_licitacao", numero: "C-CONSORCIO-001", valor_contrato: 3000000.00, isento_legalmente: true, acima_limite: false }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2026, tipo_contratacao: "gap_licitacao", numero: "C-INEXIG-002", valor_contrato: 500000.00, isento_legalmente: true, acima_limite: false }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2026, tipo_contratacao: "gap_licitacao", numero: "C-COMUM-003", valor_contrato: 100000.00, isento_legalmente: false, acima_limite: true }

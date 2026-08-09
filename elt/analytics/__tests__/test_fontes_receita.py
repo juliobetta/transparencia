@@ -154,3 +154,39 @@ def test_root_only_excludes_intermediate_hierarchy(conn):
     # Root code (90000) only — not root + children (90000 + 36000 + 54000 = 180000)
     assert row["receita_propria_arrecadado"] == pytest.approx(90000, rel=0.01)
     assert row["receita_propria_previsto"] == pytest.approx(100000, rel=0.01)
+
+
+def test_emendas_pix_and_individuais(conn):
+    db.upsert(
+        conn,
+        "emendas_cad",
+        [
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "numero": "101",
+                "numero_emenda": "101",
+                "resumo": "Transferência Especial PIX para Infraestrutura",
+                "valor_total": "150000.00",
+                "empenhado": "150000.00",
+                "autor": "Deputado X",
+                "tipo_emenda_descr": "Transferência Especial",
+                "esfera_origem": "União",
+            },
+            {
+                "ano": 2026,
+                "empresa": "7",
+                "numero": "102",
+                "numero_emenda": "102",
+                "resumo": "Emenda Individual de Bancada para Saúde",
+                "valor_total": "200000.00",
+                "empenhado": "200000.00",
+                "autor": "Senador Y",
+                "tipo_emenda_descr": "Emenda Individual",
+                "esfera_origem": "União",
+            },
+        ],
+        ["ano", "empresa", "numero"],
+    )
+    df = run(conn, [2026])
+    assert len(df[df["ano"] == 2026]) == 1

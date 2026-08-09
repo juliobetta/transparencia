@@ -57,6 +57,9 @@ models:
               row_condition: "tipo_empenho is not null"
       - name: orgao_codigo
         data_type: text
+      - name: unidade_codigo
+        data_type: text
+        description: "Código da unidade orçamentária (coalesce com '00')"
       - name: funcao
         data_type: text
       - name: funcao_nome

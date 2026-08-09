@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: fct_pessoal_folha_metricas
+    description: Mart de métricas consolidadas de folha de pagamento, 13º salário, chefias e proventos por portal e empresa.
+    columns:
+      - name: pessoal_folha_metricas_id
+        description: Chave primária substituta composta por portal_slug, ano e empresa_id.
+        tests:
+          - unique
+          - not_null
+      - name: portal_slug
+        description: Identificador do portal tenant.
+        tests:
+          - not_null
+      - name: ano
+        description: Ano de referência da folha.
+        tests:
+          - not_null
+      - name: empresa_id
+        description: Identificador da empresa/órgão.
+        tests:
+          - not_null
+      - name: total_folha
+        description: Total pago com despesas de pessoal no ano.
+      - name: total_pago
+        description: Total pago consolidado por órgão no ano.
+
+unit_tests:
+  - name: test_pessoal_folha_metricas_calculo
+    description: "Valida agregação de folha de pagamento, 13º salário, chefias e faixas de proventos"
+    model: fct_pessoal_folha_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, elemento: "01", pago: 50000.00, empenhado_liquido: 0, empenhado: 0, liquidado: 0, descricao: "VENCIMENTOS", tipo_empenho: "OR" }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, elemento: "01", pago: 10000.00, empenhado_liquido: 10000.00, empenhado: 10000.00, liquidado: 10000.00, descricao: "13 SALARIO", tipo_empenho: "OR" }
+      - input: ref('fct_despesas_por_orgao')
+        rows:
+          - { ano: 2025, empresa: "1", pago: 60000.00 }
+      - input: ref('fct_pessoal')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "001", vinculo: "FG1", categoria_funcional: "Efetivo", proventos: 3000.00 }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "001", vinculo: "Comissionado INSS", categoria_funcional: "Cargo comissionado extra-quadro", proventos: 1500.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", total_folha: 60000.00, total_pago: 60000.00, empenhado_13: 10000.00, empenhado_bruto_13: 10000.00, liquidado_13: 10000.00, pago_13: 10000.00, efetivos_confianca: 1, comissionados_externos: 1, bin_0_25k: 1, bin_25k_5k: 1 }

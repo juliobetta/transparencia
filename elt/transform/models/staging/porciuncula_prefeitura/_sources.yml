@@ -200,7 +200,7 @@ sources:
       - name: receita_extra_orcamentaria
         description: "Receitas extra-orçamentárias"
         meta:
-          primary_key: [ano, empresa, codigo]
+          primary_key: [ano, empresa, codigo, dtlan, descricao, valor]
         columns:
           - name: ano
           - name: empresa

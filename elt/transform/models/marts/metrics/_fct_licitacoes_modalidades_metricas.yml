@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: fct_licitacoes_modalidades_metricas
+    description: Mart de métricas de distribuição de modalidades de licitação/contratos.
+    columns:
+      - name: modalidade_metricas_id
+        description: Chave primária substituta.
+        tests:
+          - unique
+          - not_null
+      - name: portal_slug
+        description: Identificador do portal tenant.
+        tests:
+          - not_null
+      - name: ano
+        description: Ano de referência.
+        tests:
+          - not_null
+      - name: empresa_id
+        description: Identificador da empresa/órgão.
+        tests:
+          - not_null
+      - name: modalidade
+        description: Nome da modalidade de contratação.
+        tests:
+          - not_null
+      - name: quantidade
+        description: Quantidade de contratos na modalidade.
+      - name: valor_total
+        description: Valor total acumulado na modalidade.
+
+unit_tests:
+  - name: test_licitacoes_modalidades_metricas_agregacao
+    description: "Valida agregação de quantidade e valor por modalidade de licitação"
+    model: fct_licitacoes_modalidades_metricas
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", modalidade: "Pregão Eletrônico", valor_contrato: 50000.00 }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", modalidade: "Pregão Eletrônico", valor_contrato: 30000.00 }
+          - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", modalidade: "Dispensa de Licitação", valor_contrato: 15000.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", modalidade: "Pregão Eletrônico", quantidade: 2, valor_total: 80000.00 }
+        - { portal_slug: "porciuncula_prefeitura", ano: 2025, empresa_id: "1", modalidade: "Dispensa de Licitação", quantidade: 1, valor_total: 15000.00 }
