@@ -40,6 +40,20 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        ports:
+          - 5544:5432
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -57,8 +71,15 @@ jobs:
       - name: Run linting
         run: pnpm lint
 
+      - name: Restore packages/db test schema
+        run: gunzip -c packages/db/tests/fixtures/schema.sql.gz | psql "$DATABASE_URL"
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5544/postgres
+
       - name: Run tests
         run: make test/ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5544/postgres
 
       - name: Run build
         run: pnpm build

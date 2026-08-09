@@ -16,6 +16,13 @@ with despesas_caprem as (
         sum(
             case
                 when d.elemento = '13' and (d.fornecedor_nome ilike '%CAPREM%' or d.natureza_despesa ilike '%RPPS%' or d.natureza_despesa ilike '%CAPREM%' or d.descricao ilike '%CAPREM%')
+                then coalesce(d.liquidado, 0)
+                else 0
+            end
+        ) as total_liquidado_patronal,
+        sum(
+            case
+                when d.elemento = '13' and (d.fornecedor_nome ilike '%CAPREM%' or d.natureza_despesa ilike '%RPPS%' or d.natureza_despesa ilike '%CAPREM%' or d.descricao ilike '%CAPREM%')
                 then coalesce(d.pago, 0)
                 else 0
             end
@@ -70,8 +77,9 @@ calculos as (
             else 100
         end::numeric(15, 4) as taxa_adimplencia_aporte,
         d.total_empenhado_patronal::numeric(15, 2) as total_empenhado_patronal,
+        d.total_liquidado_patronal::numeric(15, 2) as total_liquidado_patronal,
         d.total_pago_patronal::numeric(15, 2) as total_pago_patronal,
-        greatest(0, d.total_empenhado_patronal - d.total_pago_patronal)::numeric(15, 2) as rombo_patronal_nao_repassado,
+        greatest(0, d.total_liquidado_patronal - d.total_pago_patronal)::numeric(15, 2) as rombo_patronal_nao_repassado,
         d.total_amortizacao_divida::numeric(15, 2) as total_amortizacao_divida,
         d.total_casp_plano_saude::numeric(15, 2) as total_casp_plano_saude,
         d.total_empenhado::numeric(15, 2) as total_empenhado,
@@ -93,6 +101,7 @@ select
     total_aporte_quitado,
     taxa_adimplencia_aporte,
     total_empenhado_patronal,
+    total_liquidado_patronal,
     total_pago_patronal,
     rombo_patronal_nao_repassado,
     total_amortizacao_divida,

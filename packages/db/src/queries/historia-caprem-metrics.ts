@@ -9,6 +9,7 @@ export interface HistoriaCapremMetricsDTO {
   totalAporteQuitado: number;
   taxaAdimplenciaAporte: number;
   totalEmpenhadoPatronal: number;
+  totalLiquidadoPatronal: number;
   totalPagoPatronal: number;
   romboPatronalNaoRepassado: number;
   totalAmortizacaoDivida: number;
@@ -48,6 +49,7 @@ export async function getHistoriaCapremMetrics(
     totalAporteQuitado: Number(result.total_aporte_quitado ?? 0),
     taxaAdimplenciaAporte: Number(result.taxa_adimplencia_aporte ?? 0),
     totalEmpenhadoPatronal: Number(result.total_empenhado_patronal ?? 0),
+    totalLiquidadoPatronal: Number(result.total_liquidado_patronal ?? 0),
     totalPagoPatronal: Number(result.total_pago_patronal ?? 0),
     romboPatronalNaoRepassado: Number(result.rombo_patronal_nao_repassado ?? 0),
     totalAmortizacaoDivida: Number(result.total_amortizacao_divida ?? 0),
@@ -351,18 +353,67 @@ export interface CadprevParcelamentoItemDTO {
   dataEmpenho?: string;
 }
 
+function toCadprevDTO(r: {
+  empenhoId: string | null;
+  descricao: string | null;
+  dataEmpenho: unknown;
+  empenhado: number | string;
+  pago: number | string;
+}): CadprevParcelamentoItemDTO {
+  const match = r.descricao
+    ? r.descricao.match(/CADPREV\s*(?:N[º°]?\s*)?([\d/]+)/i)
+    : null;
+  const cadprevStr = (() => {
+    if (match) return `CADPREV Nº ${match[1]}`;
+    if (r.empenhoId) return `Empenho ${r.empenhoId}`;
+    return "N/A";
+  })();
+  let cleanDate: string | undefined;
+  if (r.dataEmpenho) {
+    cleanDate = String(r.dataEmpenho).split("T")[0];
+  }
+  return {
+    numeroCadprev: cadprevStr,
+    descricao:
+      r.descricao ?? "Parcelamento de Dívida Previdenciária (Elemento 71)",
+    elemento: "71",
+    empenhado: Number(r.empenhado ?? 0),
+    pago: Number(r.pago ?? 0),
+    dataEmpenho: cleanDate,
+  };
+}
+
 export async function getCapremCadprevMetrics(
   portalSlug: string,
   ano: number,
 ): Promise<CadprevParcelamentoItemDTO[]> {
   try {
     const rows = await db
+      .selectFrom("fct_caprem_cadprev_metricas")
+      .select([
+        "empenho_id as empenhoId",
+        "descricao",
+        "data_empenho as dataEmpenho",
+        "empenhado",
+        "pago",
+      ])
+      .where("portal_slug", "=", portalSlug)
+      .where("ano", "=", ano)
+      .orderBy("empenhado", "desc")
+      .execute();
+
+    return rows.map(toCadprevDTO);
+  } catch {
+    // Fallback para fct_despesas caso a tabela fct_caprem_cadprev_metricas ainda não tenha sido criada via dbt run
+  }
+
+  try {
+    const rows = await db
       .selectFrom("fct_despesas")
       .select([
         "empenho_id as empenhoId",
         "descricao",
-        "elemento",
-        "data_empenho",
+        "data_empenho as dataEmpenho",
         sql<number>`cast(coalesce(sum(empenhado_liquido), 0) as numeric)`.as(
           "empenhado",
         ),
@@ -374,33 +425,11 @@ export async function getCapremCadprevMetrics(
       .where((eb) =>
         eb.or([eb("tipo_empenho", "is", null), eb("tipo_empenho", "!=", "AN")]),
       )
-      .groupBy(["empenho_id", "descricao", "elemento", "data_empenho"])
+      .groupBy(["empenho_id", "descricao", "data_empenho"])
       .orderBy("empenhado", "desc")
       .execute();
 
-    return rows.map((r) => {
-      const match = r.descricao
-        ? r.descricao.match(/CADPREV\s*(?:N[º°]?\s*)?([\d/]+)/i)
-        : null;
-      const cadprevStr = match
-        ? `CADPREV Nº ${match[1]}`
-        : r.empenhoId
-          ? `Empenho ${r.empenhoId}`
-          : "N/A";
-      let cleanDate: string | undefined;
-      if (r.data_empenho) {
-        cleanDate = String(r.data_empenho).split("T")[0];
-      }
-      return {
-        numeroCadprev: cadprevStr,
-        descricao:
-          r.descricao ?? "Parcelamento de Dívida Previdenciária (Elemento 71)",
-        elemento: r.elemento ?? "71",
-        empenhado: Number(r.empenhado ?? 0),
-        pago: Number(r.pago ?? 0),
-        dataEmpenho: cleanDate,
-      };
-    });
+    return rows.map(toCadprevDTO);
   } catch {
     return [];
   }
