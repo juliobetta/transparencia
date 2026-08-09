@@ -2,40 +2,71 @@
 
 [![CI](https://github.com/juliobetta/transparencia/actions/workflows/ci.yml/badge.svg)](https://github.com/juliobetta/transparencia/actions/workflows/ci.yml)
 
-Transparencia é uma ferramenta abrangente para coletar, analisar e visualizar dados de transparência pública. Ela agiliza o processo desde a ingestão dos dados até a geração de relatórios e a exploração em um dashboard interativo.
+Transparencia é uma ferramenta abrangente para coletar, transformar e visualizar dados de transparência pública municipal. Ela agiliza o processo desde a extração dos dados brutos dos portais públicos até a modelagem analítica (dbt) e a exploração em um dashboard web interativo.
 
 ## Funcionalidades
 
-- **Pipeline de Ingestão de Dados:** Coleta e processamento automatizado de conjuntos de dados de transparência pública.
-- **Análise de Dados:** Módulos para identificar lacunas em licitações, análise de execução orçamentária, anomalias em contratos, concentração de fornecedores e tendências ano a ano.
-- **Relatórios:** Geração automatizada de relatórios em HTML, incluindo relatórios específicos de saúde e comparações.
-- **Dashboard:** Um dashboard web interativo para explorar dados processados e insights.
+- **Pipeline de Extração e Carga (ELT):** Extração e carga automatizadas de dados brutos de portais de transparência pública, por portal (ex: `porciuncula_prefeitura`).
+- **Transformação Analítica (dbt):** Modelagem em camadas (staging → marts) sobre PostgreSQL, com testes de dados e documentação geradas via dbt.
+- **Análise de Dados:** Módulos para posição fiscal, execução orçamentária, lacunas em licitações, anomalias contratuais, concentração de fornecedores, folha vs. serviços, fontes de receita, CAPREM, saúde e tendências ano a ano.
+- **Dashboard Web:** Aplicação Next.js interativa para explorar os dados dos marts dbt, com componentes e queries compartilhados entre pacotes do monorepo.
+
+## Arquitetura
+
+Monorepo com pipeline Python (ELT + dbt) e frontend TypeScript (Next.js):
+
+- `elt/` — extração, carga e transformação (dbt) dos dados públicos; projeto Python gerenciado com `uv`.
+- `apps/web/` — dashboard Next.js (App Router).
+- `packages/db/` — camada de queries Kysely sobre os marts dbt (schema `public`), consumida pelo `apps/web`.
+- `packages/ui/` — componentes de visualização compartilhados.
 
 ## Pré-requisitos
 
-- [uv](https://github.com/astral-sh/uv): Um gerenciador e instalador de pacotes Python rápido.
+- [uv](https://github.com/astral-sh/uv): gerenciador e instalador de pacotes Python (Python 3.13).
+- [pnpm](https://pnpm.io/): gerenciador de pacotes do monorepo TypeScript (Node conforme `.nvmrc`).
+- [Docker](https://www.docker.com/): para subir o PostgreSQL local usado pelo ELT/dbt e pelo dashboard.
 
 ## Configuração
 
 1. Clone o repositório.
-2. Instale as dependências:
+2. Suba o PostgreSQL local:
 
 ```bash
-make install
+docker compose up -d postgres
 ```
+
+3. Instale as dependências:
+
+```bash
+make install   # dependências Python (elt/)
+pnpm install   # dependências do monorepo TypeScript
+```
+
+4. Copie `.env.example` para `.env` e ajuste `DATABASE_URL`/`PORTAL_SLUG` conforme necessário.
 
 ## Uso
 
-O projeto utiliza um `Makefile` para gerenciar tarefas:
+O projeto utiliza um `Makefile` para gerenciar as tarefas do ELT/dbt e scripts `pnpm`/`turbo` para o monorepo TypeScript.
 
-### Pipeline de Dados
-Para executar o pipeline completo de ingestão de dados:
+### Pipeline ELT (extração e carga)
 
 ```bash
-make pipeline
+make elt/extract PORTAL=porciuncula_prefeitura [YEARS="2024 2025"] [ONLY=DespesasGerais]
+make elt/load PORTAL=porciuncula_prefeitura [DIR=data/raw_runs/20250101_120000]
 ```
 
-### Frontend Web App (Next.js + TypeScript)
+### Transformação (dbt)
+
+```bash
+make dbt/deps    # instala pacotes dbt
+make dbt/seed    # carrega seeds
+make dbt/run     # roda os models [SELECT=...]
+make dbt/test    # roda os testes de dados [SELECT=...]
+make dbt/docs    # gera e serve a documentação dbt
+```
+
+### Dashboard Web (Next.js + TypeScript)
+
 Para iniciar o servidor de desenvolvimento do portal web:
 
 ```bash
@@ -51,22 +82,11 @@ pnpm build
 pnpm test
 ```
 
-### Relatórios PDF
-
-```bash
-# Relatórios gerais
-make report
-
-# Relatórios específicos (ex: Saúde, Comparação)
-make report/saude YEAR=2025
-make report/compare YEAR_A=2024 MONTH_A_START=1 MONTH_A_END=12 YEAR_B=2025 MONTH_B_START=1 MONTH_B_END=12
-```
-
 ## Desenvolvimento
 
-- **Executar testes Python:** `make test`
-- **Executar testes TS (Kysely):** `pnpm test`
+- **Executar testes Python (ELT/dbt):** `make test`
 - **Lint e formatar código Python:** `make check`
+- **Executar testes TS (Kysely, web):** `make test/ts` (ou `pnpm test`)
 
 ## Licença
 
