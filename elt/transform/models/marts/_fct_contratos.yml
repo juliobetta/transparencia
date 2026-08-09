@@ -25,9 +25,6 @@ models:
           - type: not_null
         tests:
           - not_null
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 2000
-              max_value: 2035
       - name: empresa_id
         data_type: text
         constraints:

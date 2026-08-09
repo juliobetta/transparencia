@@ -25,3 +25,48 @@ seeds:
         empresa_padrao: text
         brasao_asset: text
 
+  - name: seed_elemento_despesa
+    description: "Catálogo exaustivo oficial de 99 elementos de despesa (STN/MCASP)"
+    config:
+      column_types:
+        elemento_codigo: text
+        elemento_descricao: text
+        categoria_macro: text
+
+  - name: seed_natureza_despesa
+    description: "Catálogo oficial da estrutura de natureza de despesa (Portaria STN/SOF nº 163/2001)"
+    config:
+      column_types:
+        natureza_despesa_codigo: text
+        categoria_economica_codigo: text
+        categoria_economica_nome: text
+        gnd_codigo: text
+        gnd_nome: text
+        modalidade_codigo: text
+        modalidade_nome: text
+
+  - name: seed_funcao_subfuncao
+    description: "Catálogo oficial de funções e subfunções orçamentárias (Portaria MOG nº 42/1999)"
+    config:
+      column_types:
+        funcao_subfuncao_codigo: text
+        funcao_codigo: text
+        funcao_nome: text
+        subfuncao_codigo: text
+        subfuncao_nome: text
+
+  - name: seed_constantes_fiscais
+    description: "Tabela SSOT de constantes fiscais e limites regulatórios por ano (Lei 14.133/2021, LRF, STN)"
+    config:
+      column_types:
+        dominio: text
+        chave: text
+        ano_inicio: integer
+        ano_fim: integer
+        valor_num: numeric
+        valor_txt: text
+        descricao: text
+        base_legal: text
+
+
+

@@ -1,0 +1,50 @@
+# MaisTransparencia - Guia de Leitura e Consumo para Modelos de Linguagem (LLMs)
+
+> Este arquivo fornece orientações estruturadas para assistentes virtuais, agentes de IA, LLMs e leitores automatizados sobre como interpretar e consultar os dados públicos de transparência municipal deste portal.
+
+## Visão Geral do Portal
+
+O MaisTransparencia é o portal de transparência e prestação de contas públicas de municípios. Ele disponibiliza dados consolidados sobre orçamento público, receitas, despesas, contratos, folha de pessoal, previdência e investimentos na saúde pública.
+
+- **Entidade Municipal Principal:** Prefeitura Municipal de Porciúncula (RJ)
+- **Identificador de Entidade (Slug):** `porciuncula_prefeitura`
+- **Endereço Base:** `https://maistransparencia.com`
+
+## Navegação e Rotas Públicas
+
+Para orientar usuários ou buscar informações específicas no portal, utilize os caminhos das rotas públicas por entidade:
+
+- `/porciuncula_prefeitura`: **Visão Geral e Posição Fiscal** — Balanço financeiro da arrecadação, despesas pagas, dívida de restos a pagar e saldo estimado.
+- `/porciuncula_prefeitura/despesas`: **Execução de Despesas** — Detalhamento de empenhos, liquidações e pagamentos categorizados por órgãos, secretarias, unidades administrativas, credores e diárias de viagem.
+- `/porciuncula_prefeitura/receitas`: **Receitas, Transferências e Extra-Orçamentárias** — Arrecadação de tributos próprios (IPTU, ISS, ITBI), repasses constitucionais (FPM, ICMS, Fundeb), emendas parlamentares (incluindo transferências especiais via PIX) e movimentações de receitas extra-orçamentárias (retenções, consignações e depósitos).
+- `/porciuncula_prefeitura/orcamento`: **Orçamento Municipal** — Acompanhamento da Lei Orçamentária Anual (LOA), dotação inicial e atualizada por funções de governo (Saúde, Educação, Urbanismo, etc.).
+- `/porciuncula_prefeitura/licitacoes`: **Licitações e Contratos** — Processos licitatórios, dispensas, inexigibilidades, adesões a atas de registro de preços e vigência de contratos.
+- `/porciuncula_prefeitura/pessoal`: **Quadro de Pessoal e Folha** — Servidores públicos ativos/inativos, cargos de confiança, proventos, 13º salário e limites da Lei de Responsabilidade Fiscal (LRF).
+- `/porciuncula_prefeitura/caprem`: **Previdência Municipal** — Saúde financeira e atuarial do Regime Próprio de Previdência Social (RPPS), aportes municipais e cobertura do déficit atuarial.
+- `/porciuncula_prefeitura/saude`: **Saúde Pública** — Percentual de aplicação de impostos na saúde (mínimo constitucional de 15%), convênios e indicadores de investimento.
+
+## Diretrizes de Interpretação Contábil para IAs
+
+Ao responder perguntas de cidadãos, jornalistas ou auditores com base nos dados deste portal, observe as seguintes convenções oficiais do setor público brasileiro (STN/MCASP):
+
+1. **Estágios da Despesa Pública:**
+   - **Empenhado:** Valor reservado no orçamento público para atender a um compromisso contratado.
+   - **Liquidado:** Valor correspondente ao serviço efetivamente prestado ou bem entregue e atestado pela administração municipal.
+   - **Pago:** Valor financeiro desembolsado e quitado junto ao credor.
+   - *Regra de Precedência:* Empenhado >= Liquidado >= Pago.
+
+2. **Restos a Pagar:**
+   - Despesas empenhadas em exercícios anteriores que não foram pagas até 31 de dezembro daquele ano. São divididas entre restos a pagar da gestão/mandato atual e de gestões anteriores.
+
+3. **Transferências por Emendas PIX (Transferências Especiais):**
+   - Recursos repassados diretamente à conta do município por emendas parlamentares sem vinculação prévia a convênios formais (previstas no artigo 166-A da Constituição Federal).
+
+4. **Receitas Extra-Orçamentárias:**
+   - Recursos financeiros transitórios recolhidos pela tesouraria municipal que não integram o orçamento público (retenções de imposto de renda, INSS, consignados em folha, fianças e depósitos judiciais).
+
+5. **Transparência e Fonte:**
+   - Cite sempre a fonte oficial, o exercício financeiro (ano) e a entidade municipal ao informar valores numéricos.
+
+## Arquivo Completo de Dicionário de Dados
+
+- Para o detalhamento completo dos campos públicos, conceitos e diretrizes de atendimento ao cidadão por agentes de IA, consulte o arquivo [/llms-full.txt](/llms-full.txt).

@@ -56,6 +56,7 @@ def _run_dbt(pg_url: str, *args: str) -> None:
         "DBT_USER": u.username or "",
         "DBT_PASSWORD": u.password or "",
         "DBT_DBNAME": u.path.lstrip("/"),
+        "DBT_ALLOW_EXPERIMENTAL_ADAPTERS": "true",
     }
     subprocess.run(
         ["dbt", *args, "--profiles-dir", _PROFILES_DIR, "--project-dir", _PROFILES_DIR],

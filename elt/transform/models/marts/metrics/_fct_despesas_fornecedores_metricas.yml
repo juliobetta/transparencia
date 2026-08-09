@@ -1,0 +1,93 @@
+version: 2
+
+models:
+  - name: fct_despesas_fornecedores_metricas
+    description: "Mart de métricas de fornecedores agregadas por portal, entidade, exercício e fornecedor"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: fornecedores_metricas_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Chave surrogate MD5 (portal_slug | empresa_id | ano | fornecedor_codigo | fornecedor_nome)"
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Dimensão de tenant isolada por portal"
+        tests:
+          - not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Identificador da entidade contábil"
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        description: "Ano do exercício fiscal"
+        tests:
+          - not_null
+      - name: fornecedor_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Código do fornecedor"
+        tests:
+          - not_null
+      - name: fornecedor_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Nome do fornecedor"
+        tests:
+          - not_null
+      - name: fornecedor_cidade_clean
+        data_type: text
+        constraints:
+          - type: not_null
+        description: "Cidade limpa em caixa alta do fornecedor"
+        tests:
+          - not_null
+      - name: total_empenhado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total empenhado para o fornecedor"
+        tests:
+          - not_null
+      - name: total_pago
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Valor total pago para o fornecedor"
+        tests:
+          - not_null
+
+unit_tests:
+  - name: test_despesas_fornecedores_metricas_filtro_elementos_comerciais
+    description: "Valida se apenas elementos comerciais (30, 36, 39, 52) são incluídos nas métricas de fornecedores, ignorando elemento 13 patronal e 04 folha"
+    model: fct_despesas_fornecedores_metricas
+    given:
+      - input: ref('fct_despesas')
+        rows:
+          # Linha de fornecimento comercial (Material de Consumo 30) - DEVE SER INCLUÍDA
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, fornecedor_cpf_cnpj: "11.111.111/0001-11", fornecedor_nome: "LOJA LOCAL", fonte: "exercicio", elemento: "30", empenhado_liquido: 1000.00, pago: 800.00 }
+          # Linha de fornecimento comercial (Serviços Terceiros 39) - DEVE SER INCLUÍDA
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, fornecedor_cpf_cnpj: "11.111.111/0001-11", fornecedor_nome: "LOJA LOCAL", fonte: "exercicio", elemento: "39", empenhado_liquido: 2000.00, pago: 1500.00 }
+          # Linha de encargo patronal (Elemento 13) - DEVE SER IGNORADA
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, fornecedor_cpf_cnpj: "11.111.111/0001-11", fornecedor_nome: "LOJA LOCAL", fonte: "exercicio", elemento: "13", empenhado_liquido: 50000.00, pago: 50000.00 }
+      - input: ref('fct_despesas_por_fornecedor')
+        rows:
+          - { ano: 2025, descricao: "LOJA LOCAL", fornecedor_cidade_clean: "PORCIUNCULA" }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, fornecedor_codigo: "11.111.111/0001-11", fornecedor_nome: "LOJA LOCAL", fornecedor_cidade_clean: "PORCIUNCULA", total_empenhado: 3000.00, total_pago: 2300.00 }

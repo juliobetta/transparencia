@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: dim_natureza_despesa
+    description: "Dimensão canônica da estrutura de natureza de despesa (STN/MCASP)"
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: natureza_despesa_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+          - type: primary_key
+        tests:
+          - not_null
+          - unique
+      - name: categoria_economica_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: categoria_economica_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: gnd_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: gnd_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: modalidade_codigo
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: modalidade_nome
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
