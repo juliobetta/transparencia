@@ -20,3 +20,19 @@ services:
     volumes:
       - ./docker/volumes/data:/var/lib/postgresql/data
     restart: unless-stopped
+
+  # Postgres efêmero (sem volume persistente, sem dados reais) para rodar os
+  # testes de integração de packages/db localmente do mesmo jeito que o CI.
+  # O restore só cria o schema (tabelas vazias); os dados vêm das fixtures
+  # programáticas em packages/db/tests/fixtures/seed.ts.
+  # Uso: docker compose up -d postgres_test && make db/test/restore && \
+  #      DATABASE_URL=postgresql://postgres:postgres@localhost:5545/postgres pnpm --filter @transparencia/db test
+  postgres_test:
+    image: postgres:17.6-alpine
+    container_name: transparencia_postgres_test
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5545:5432"
