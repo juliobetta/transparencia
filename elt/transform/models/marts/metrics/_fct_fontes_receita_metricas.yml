@@ -159,6 +159,13 @@ models:
         description: "Somatório total de arrecadação de emendas"
         tests:
           - not_null
+      - name: emendas_total_empenhado
+        data_type: numeric
+        constraints:
+          - type: not_null
+        description: "Somatório total empenhado de emendas parlamentares"
+        tests:
+          - not_null
 
 unit_tests:
   - name: test_fontes_receita_metricas_calculos
@@ -175,4 +182,4 @@ unit_tests:
         rows: []
     expect:
       rows:
-        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, receita_propria_previsto: 100000.00, receita_propria_arrecadado: 80000.00, transferencias_uniao_previsto: 500000.00, transferencias_uniao_arrecadado: 450000.00, transferencias_estado_previsto: 400000.00, transferencias_estado_arrecadado: 350000.00, receita_extra_orcamentaria_arrecadado: 50000.00, total_previsto: 1000000.00, total_arrecadado: 880000.00, pct_propria: 9.0909, alerta_dependencia: true, fpm_arrecadado: 450000.00, icms_arrecadado: 350000.00, iss_iptu_arrecadado: 880000.00, emendas_pix_arrecadado: 0.00, emendas_individuais_arrecadado: 0.00, emendas_total_arrecadado: 0.00 }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "1", ano: 2025, receita_propria_previsto: 100000.00, receita_propria_arrecadado: 80000.00, transferencias_uniao_previsto: 500000.00, transferencias_uniao_arrecadado: 450000.00, transferencias_estado_previsto: 400000.00, transferencias_estado_arrecadado: 350000.00, receita_extra_orcamentaria_arrecadado: 50000.00, total_previsto: 1000000.00, total_arrecadado: 880000.00, pct_propria: 9.0909, alerta_dependencia: true, fpm_arrecadado: 450000.00, icms_arrecadado: 350000.00, iss_iptu_arrecadado: 880000.00, emendas_pix_arrecadado: 0.00, emendas_individuais_arrecadado: 0.00, emendas_total_arrecadado: 0.00, emendas_total_empenhado: 0.00 }
