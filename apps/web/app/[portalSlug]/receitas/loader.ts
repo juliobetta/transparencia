@@ -102,6 +102,7 @@ function mapFontesMetricToLegacy(
     pctArrecadado,
     totalPctChange,
     emendasTotalArrecadado: fontes.emendasTotalArrecadado,
+    emendasTotalEmpenhado: fontes.emendasTotalEmpenhado,
     emendasPixArrecadado: fontes.emendasPixArrecadado,
     emendasIndividuaisArrecadado: fontes.emendasIndividuaisArrecadado,
     fpmArrecadado: fontes.fpmArrecadado,

@@ -25,6 +25,7 @@ export function buildReceitasViewModel(raw: ReceitasRawData) {
     pctArrecadado: 0,
     totalPctChange: null,
     emendasTotalArrecadado: 0,
+    emendasTotalEmpenhado: 0,
     emendasPixArrecadado: 0,
     emendasIndividuaisArrecadado: 0,
     fpmArrecadado: 0,

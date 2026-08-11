@@ -5,6 +5,7 @@ export interface EmendasCardProps {
   pctDoArrecadado: number;
   emendasPix: number;
   emendasIndividuais: number;
+  emendasTotalEmpenhado: number;
   className?: string;
 }
 
@@ -12,6 +13,7 @@ export function EmendasCard({
   totalEmendas,
   emendasPix,
   emendasIndividuais,
+  emendasTotalEmpenhado,
   className,
 }: EmendasCardProps) {
   const pixPct = totalEmendas > 0 ? (emendasPix / totalEmendas) * 100 : 0;
@@ -35,8 +37,17 @@ export function EmendasCard({
               </span>
             </div>
 
-            <div className="mt-3 font-bold font-serif text-3xl text-indigo-950 tracking-tight sm:text-4xl">
-              {fmtCompact(totalEmendas)}
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="font-bold font-serif text-3xl text-indigo-950 tracking-tight sm:text-4xl">
+                {fmtCompact(totalEmendas)}
+              </span>
+              <span className="font-medium text-indigo-400 text-sm">/</span>
+              <span className="font-semibold text-base text-indigo-700/70 tracking-tight">
+                {fmtCompact(emendasTotalEmpenhado)}
+              </span>
+              <span className="font-medium text-indigo-500/60 text-xs">
+                empenhados
+              </span>
             </div>
 
             <p className="mt-3 text-indigo-900/80 text-xs leading-relaxed">
@@ -49,7 +60,7 @@ export function EmendasCard({
 
         {/* Coluna Direita: Linhas de detalhamento */}
         <div className="space-y-3 lg:col-span-6">
-          {/* Linha 3: Emendas Individuais / de Bancada */}
+          {/* Linha: Emendas Individuais / de Bancada */}
           <div className="rounded-xl border border-indigo-100/90 bg-white/90 p-3.5 shadow-2xs transition-all hover:border-indigo-200">
             <div className="mb-1.5 flex items-center justify-between text-xs">
               <span className="font-medium text-slate-700">
