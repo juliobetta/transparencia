@@ -20,6 +20,7 @@ function makeFonte(overrides: Record<string, unknown> = {}) {
     alertaDependencia: false,
     totalPctChange: 5,
     emendasTotalArrecadado: 0,
+    emendasTotalEmpenhado: 0,
     emendasPixArrecadado: 0,
     emendasIndividuaisArrecadado: 0,
     fpmArrecadado: 0,
@@ -86,5 +87,17 @@ describe("buildReceitasViewModel", () => {
       (o) => o.fonte === "Transferências da União",
     );
     expect(transferenciasUniao?.pctRealizado).toBe(0);
+  });
+
+  it("mapeia emendasTotalEmpenhado corretamente a partir do loader", () => {
+    const vm = buildReceitasViewModel(
+      makeRaw({ fonte: makeFonte({ emendasTotalEmpenhado: 75000 }) }),
+    );
+    expect(vm.rec.emendasTotalEmpenhado).toBe(75000);
+  });
+
+  it("usa 0 como fallback para emendasTotalEmpenhado quando ausente", () => {
+    const vm = buildReceitasViewModel(makeRaw({ fonte: undefined }));
+    expect(vm.rec.emendasTotalEmpenhado).toBe(0);
   });
 });

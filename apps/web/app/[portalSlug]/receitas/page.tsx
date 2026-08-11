@@ -157,6 +157,7 @@ export default async function ReceitasPage({
         }
         emendasPix={rec.emendasPixArrecadado || 0}
         emendasIndividuais={rec.emendasIndividuaisArrecadado || 0}
+        emendasTotalEmpenhado={rec.emendasTotalEmpenhado || 0}
       />
 
       {/* Previsto vs. Arrecadado por Origem */}
