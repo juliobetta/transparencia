@@ -3,6 +3,7 @@ import {
   getExecucaoOrcamentariaMetrics,
   getOrcamentoFuncionalMetrics,
 } from "@transparencia/db";
+import { createCachedDataLoader } from "@/lib/cache";
 
 function summarizeExecucao(
   items: Array<{
@@ -116,7 +117,7 @@ function mapExecucaoMetricsToLegacyItems(
     });
 }
 
-export async function loadOrcamentoData(
+async function fetchRawOrcamentoData(
   portalSlug: string,
   searchParams: OrcamentoSearchParams,
 ) {
@@ -144,3 +145,8 @@ export async function loadOrcamentoData(
     summary: summarizeExecucao(items),
   };
 }
+
+export const loadOrcamentoData = createCachedDataLoader(
+  fetchRawOrcamentoData,
+  "orcamento",
+);

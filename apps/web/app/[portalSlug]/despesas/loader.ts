@@ -17,6 +17,7 @@ import {
   getRestosAPagarResumoMetrics,
   getResumoDiariasMetrics,
 } from "@transparencia/db";
+import { createCachedDataLoader } from "@/lib/cache";
 
 export interface DespesasSearchParams {
   ano?: string;
@@ -103,7 +104,7 @@ function requireEmpresaIdsForMetrics(
   return empresaIds;
 }
 
-export async function loadDespesasData(
+async function fetchRawDespesasData(
   portalSlug: string,
   searchParams: DespesasSearchParams,
 ) {
@@ -160,3 +161,8 @@ export async function loadDespesasData(
     diariasBeneficiarios,
   };
 }
+
+export const loadDespesasData = createCachedDataLoader(
+  fetchRawDespesasData,
+  "despesas",
+);
