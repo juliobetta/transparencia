@@ -126,8 +126,14 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
         : "Sem pendências de anos anteriores",
   };
 
+  const contratosServicos = raw.contratosServicos || {
+    totalContratosVigentes: 0,
+    totalContratosComPendencia: 0,
+    totalEmpenhado: 0,
+  };
+
   const licitacoesCardData = {
-    title: "Licitações",
+    title: "Licitações e Contratos",
     linkText: "Contratos →",
     linkHref: `/${portalSlug}/licitacoes`,
     items: [
@@ -140,7 +146,20 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
         count: gaps.length,
         label: "Contratos sem licitação registrados",
       },
+      {
+        count: contratosServicos.totalContratosVigentes,
+        label: "Contratos de serviços vigentes",
+      },
+      {
+        count: contratosServicos.totalContratosComPendencia,
+        label: "Contratos sem pagamento registrado",
+        isAlert: contratosServicos.totalContratosComPendencia > 0,
+      },
     ],
+    footerText:
+      contratosServicos.totalEmpenhado > 0
+        ? `${fmtCompact(contratosServicos.totalEmpenhado)} em contratos de serviços vigentes`
+        : undefined,
   };
 
   const pessoalCardData = {
