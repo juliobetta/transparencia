@@ -20,6 +20,7 @@ import type React from "react";
 import { useState } from "react";
 import { cn } from "../utils/cn";
 import { fmtDate } from "../utils/formatters";
+import { buildNavUrl } from "../utils/nav";
 import { MultiSelect, type MultiSelectOption } from "./multi-select";
 
 export interface NavGroup {
@@ -68,31 +69,6 @@ export interface SidebarProps {
   selectedEntidades?: string[];
   onEntidadesChange?: (selectedIds: string[]) => void;
   portalSlug?: string;
-}
-
-function buildNavUrl({
-  path,
-  slug,
-  exercice,
-  entidades,
-}: {
-  path: string;
-  slug: string;
-  exercice?: string;
-  entidades?: string[];
-}): string {
-  const slugPrefix = slug ? `/${slug}` : "";
-  const basePath = path === "/" ? slugPrefix || "/" : `${slugPrefix}${path}`;
-
-  const params = new URLSearchParams();
-  if (exercice) {
-    params.set("ano", exercice);
-  }
-  if (entidades && entidades.length > 0) {
-    params.set("entidades", entidades.join(","));
-  }
-  const queryString = params.toString();
-  return queryString ? `${basePath}?${queryString}` : basePath;
 }
 
 function YearSelect({
