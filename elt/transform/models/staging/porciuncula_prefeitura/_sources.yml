@@ -249,6 +249,11 @@ sources:
           - name: empenhado
           - name: data_inicio
           - name: data_fim
+          - name: vencimento_atual
+          - name: objeto_completo
+          - name: saldoempenhar
+          - name: aditado
+          - name: insmf
 
       - name: diarias
         description: "Diárias pagas a servidores"
