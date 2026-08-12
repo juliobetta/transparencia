@@ -8,4 +8,5 @@ export * from "./components/sidebar";
 export * from "./tokens";
 export * from "./utils/cn";
 export * from "./utils/formatters";
+export * from "./utils/nav";
 export * from "./utils/text";
