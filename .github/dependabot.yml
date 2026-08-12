@@ -6,8 +6,16 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     versioning-strategy: "auto"
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"
   - package-ecosystem: "pip"
     directory: "/elt"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      pip-dependencies:
+        patterns:
+          - "*"
