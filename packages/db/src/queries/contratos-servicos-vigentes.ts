@@ -89,14 +89,21 @@ export async function getContratosServicosVigentes(
         totalEmpenhado > 0 ? (totalPago / totalEmpenhado) * 100 : 0;
 
       return {
-        contratoServicoId: row.contrato_servico_id,
-        portalSlug: row.portal_slug,
-        empresaId: row.empresa_id ?? undefined,
+        contratoServicoId:
+          row.contrato_servico_id != null
+            ? String(row.contrato_servico_id)
+            : undefined,
+        portalSlug: row.portal_slug != null ? String(row.portal_slug) : "",
+        empresaId: row.empresa_id != null ? String(row.empresa_id) : undefined,
         ano: Number(row.ano ?? 0),
-        contratoNumero: row.contrato_numero ?? undefined,
-        fornecedorNome: row.fornecedor_nome ?? "",
-        fornecedorCnpj: row.fornecedor_cnpj ?? "",
-        objetoDescricao: row.objeto_descricao ?? "",
+        contratoNumero:
+          row.contrato_numero != null ? String(row.contrato_numero) : undefined,
+        fornecedorNome:
+          row.fornecedor_nome != null ? String(row.fornecedor_nome) : "",
+        fornecedorCnpj:
+          row.fornecedor_cnpj != null ? String(row.fornecedor_cnpj) : "",
+        objetoDescricao:
+          row.objeto_descricao != null ? String(row.objeto_descricao) : "",
         dataInicio: toIsoDateString(row.data_inicio),
         vencimentoAtual: toIsoDateString(row.vencimento_atual),
         valorAditado: valorAditado > 0 ? valorAditado : undefined,
