@@ -33,13 +33,30 @@ export function fmtNumber(value: number): string {
   return new Intl.NumberFormat("pt-BR").format(value);
 }
 
-export function fmtDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "--/--/----";
-  const cleanStr = dateStr.split("T")[0];
-  const parts = cleanStr.split("-");
-  if (parts.length === 3 && parts[0].length === 4) {
-    const [year, month, day] = parts;
-    return `${day}/${month}/${year}`;
+export function fmtDate(val: string | Date | null | undefined): string {
+  if (!val) return "--/--/----";
+  if (val instanceof Date) {
+    if (Number.isNaN(val.getTime())) return "--/--/----";
+    const dd = String(val.getUTCDate()).padStart(2, "0");
+    const mm = String(val.getUTCMonth() + 1).padStart(2, "0");
+    const yyyy = val.getUTCFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+  const dateStr = String(val).trim();
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+  }
+  const brMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (brMatch) {
+    return `${brMatch[1]}/${brMatch[2]}/${brMatch[3]}`;
+  }
+  const parsed = new Date(dateStr);
+  if (!Number.isNaN(parsed.getTime())) {
+    const dd = String(parsed.getUTCDate()).padStart(2, "0");
+    const mm = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+    const yyyy = parsed.getUTCFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   }
   return dateStr;
 }

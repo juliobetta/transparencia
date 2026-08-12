@@ -2,6 +2,7 @@ import {
   getAdesaoDeAtaMetrics,
   getAdesaoExternaMetrics,
   getAnomaliasContratuaisMetrics,
+  getContratosServicosVigentes,
   getDistribucaoModalidadesMetrics,
   getEntidades,
   getLicitacaoGapsMetrics,
@@ -68,14 +69,21 @@ export async function loadLicitacoesData(
   const { selectedYear, entidadesIds } = context;
   const empresaIds = await resolveEmpresaIds(tenantSlug, entidadesIds);
 
-  const [gaps, adesao, adesaoExterna, anomalias, modalidades] =
-    await Promise.all([
-      getLicitacaoGapsMetrics(tenantSlug, selectedYear, empresaIds),
-      getAdesaoDeAtaMetrics(tenantSlug, selectedYear, empresaIds),
-      getAdesaoExternaMetrics(tenantSlug, selectedYear, empresaIds),
-      getAnomaliasContratuaisMetrics(tenantSlug, selectedYear, empresaIds),
-      getDistribucaoModalidadesMetrics(tenantSlug, selectedYear, empresaIds),
-    ]);
+  const [
+    gaps,
+    adesao,
+    adesaoExterna,
+    anomalias,
+    modalidades,
+    contratosServicosVigentes,
+  ] = await Promise.all([
+    getLicitacaoGapsMetrics(tenantSlug, selectedYear, empresaIds),
+    getAdesaoDeAtaMetrics(tenantSlug, selectedYear, empresaIds),
+    getAdesaoExternaMetrics(tenantSlug, selectedYear, empresaIds),
+    getAnomaliasContratuaisMetrics(tenantSlug, selectedYear, empresaIds),
+    getDistribucaoModalidadesMetrics(tenantSlug, selectedYear, empresaIds),
+    getContratosServicosVigentes(tenantSlug, selectedYear, empresaIds),
+  ]);
 
   return {
     portalSlug: tenantSlug,
@@ -85,5 +93,6 @@ export async function loadLicitacoesData(
     adesaoExterna,
     anomalias,
     modalidades,
+    contratosServicosVigentes,
   };
 }

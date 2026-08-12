@@ -23,5 +23,7 @@ export function buildLicitacoesViewModel(raw: LicitacoesRawData) {
     acimaLimiteGaps,
     fracionamentoVendorsMap,
     numCasosFracionamento: Object.keys(fracionamentoVendorsMap).length,
+    contratosServicosVigentes: raw.contratosServicosVigentes || [],
+    top3ContratosVigentes: (raw.contratosServicosVigentes || []).slice(0, 3),
   };
 }

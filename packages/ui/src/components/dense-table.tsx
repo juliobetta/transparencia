@@ -33,6 +33,7 @@ export interface Column<T> {
     | "date";
   className?: string;
   sortable?: boolean;
+  renderCell?: (row: T) => React.ReactNode;
 }
 
 export interface DenseTableProps<T> {
@@ -168,6 +169,9 @@ export function DenseTable<T extends Record<string, any>>({
   };
 
   const renderCellValue = (col: Column<T>, row: T) => {
+    if (col.renderCell) {
+      return col.renderCell(row);
+    }
     const raw = col.accessorKey ? row[col.accessorKey] : undefined;
     if (raw === null || raw === undefined) return "-";
 
@@ -351,6 +355,13 @@ export function DenseTable<T extends Record<string, any>>({
                     {columns.map((col) => (
                       <td
                         key={`td-${rKey}-${String(col.accessorKey || col.header)}`}
+                        title={
+                          col.accessorKey &&
+                          row[col.accessorKey] !== null &&
+                          row[col.accessorKey] !== undefined
+                            ? String(row[col.accessorKey])
+                            : undefined
+                        }
                         className={cn(
                           col.className ? col.className : "whitespace-nowrap",
                           "px-3 py-2 text-ink sm:px-4",

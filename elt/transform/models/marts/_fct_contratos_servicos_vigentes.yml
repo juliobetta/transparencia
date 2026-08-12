@@ -1,0 +1,110 @@
+version: 2
+
+models:
+  - name: fct_contratos_servicos_vigentes
+    description: "Mart de contratos de serviços vigentes agrupados por portal e fornecedor com totais financeiros"
+    config:
+      contract:
+        enforced: true
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "total_empenhado >= total_liquidado"
+          name: fct_contratos_servicos_empenhado_gte_liquidado
+      - dbt_utils.expression_is_true:
+          expression: "total_liquidado >= total_pago"
+          name: fct_contratos_servicos_liquidado_gte_pago
+      - dbt_utils.expression_is_true:
+          expression: "extract(year from vencimento_atual) >= ano or vencimento_atual is null"
+          name: fct_contratos_servicos_vencimento_vigente
+    columns:
+      - name: contrato_servico_id
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - unique
+      - name: portal_slug
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: empresa_id
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: ano
+        data_type: integer
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+      - name: contrato_numero
+        data_type: text
+      - name: fornecedor_nome
+        data_type: text
+        tests:
+          - not_null
+      - name: fornecedor_cnpj
+        data_type: text
+        tests:
+          - not_null
+      - name: objeto_descricao
+        data_type: text
+      - name: data_inicio
+        data_type: date
+      - name: vencimento_atual
+        data_type: date
+      - name: valor_aditado
+        data_type: numeric
+      - name: total_empenhado
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: total_liquidado
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: total_pago
+        data_type: numeric
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+
+unit_tests:
+  - name: test_contratos_servicos_vigentes_filtragem_e_agregacao
+    description: "Valida se apenas contratos vigentes no ano do exercício são vinculados e consolidados por empresa_id e contrato_numero"
+    model: fct_contratos_servicos_vigentes
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, contrato_numero: "0010/26", fornecedor_cpf_cnpj: "11.111.111/0001-11", fornecedor_nome: "EMPRESA VIGENTE LTDA", objeto: "Serviço de Informática", objeto_completo: null, data_inicio: "2026-01-01", vencimento_atual: "2028-12-31", valor_contrato: 50000.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, contrato_numero: "0005/20", fornecedor_cpf_cnpj: "22.222.222/0001-22", fornecedor_nome: "EMPRESA EXPIRADA LTDA", objeto: "Serviço Antigo", objeto_completo: null, data_inicio: "2019-01-01", vencimento_atual: "2020-01-01", valor_contrato: 10000.00 }
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, grupo_natureza: "3", elemento: "39", fornecedor_cpf_cnpj: "11.111.111/0001-11", fornecedor_nome: "EMPRESA VIGENTE LTDA", empenhado_liquido: 50000.00, liquidado: 30000.00, pago: 20000.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, grupo_natureza: "3", elemento: "39", fornecedor_cpf_cnpj: "22.222.222/0001-22", fornecedor_nome: "EMPRESA EXPIRADA LTDA", empenhado_liquido: 10000.00, liquidado: 10000.00, pago: 10000.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, contrato_numero: "0010/26", fornecedor_nome: "EMPRESA VIGENTE LTDA", fornecedor_cnpj: "11.111.111/0001-11", objeto_descricao: "Serviço de Informática", data_inicio: "2026-01-01", vencimento_atual: "2028-12-31", total_empenhado: 50000.00, total_liquidado: 30000.00, total_pago: 20000.00 }
+
+  - name: test_contratos_multiplos_fornecedor
+    description: "Garante que múltiplos contratos do mesmo fornecedor não sobrescrevem ou duplicam os valores de empenho individual"
+    model: fct_contratos_servicos_vigentes
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "0036/26", fornecedor_cpf_cnpj: "09.528.346/0001-31", fornecedor_nome: "CONSORCIO NOROESTE", objeto: "SAMU 192", objeto_completo: null, data_inicio: "2026-01-01", vencimento_atual: "2026-12-31", valor_contrato: 70000.00, empenhado: 70000.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "0035/26", fornecedor_cpf_cnpj: "09.528.346/0001-31", fornecedor_nome: "CONSORCIO NOROESTE", objeto: "Rateio Custeio", objeto_completo: null, data_inicio: "2026-01-12", vencimento_atual: "2027-01-12", valor_contrato: 30000.00, empenhado: 30000.00 }
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, fornecedor_cpf_cnpj: "09.528.346/0001-31", fornecedor_nome: "CONSORCIO NOROESTE", empenhado_liquido: 100000.00, liquidado: 50000.00, pago: 40000.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "0036/26", fornecedor_nome: "CONSORCIO NOROESTE", fornecedor_cnpj: "09.528.346/0001-31", objeto_descricao: "SAMU 192", data_inicio: "2026-01-01", vencimento_atual: "2026-12-31", total_empenhado: 70000.00, total_liquidado: 35000.00, total_pago: 28000.00 }
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "0035/26", fornecedor_nome: "CONSORCIO NOROESTE", fornecedor_cnpj: "09.528.346/0001-31", objeto_descricao: "Rateio Custeio", data_inicio: "2026-01-12", vencimento_atual: "2027-01-12", total_empenhado: 30000.00, total_liquidado: 15000.00, total_pago: 12000.00 }

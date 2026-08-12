@@ -1,5 +1,6 @@
 import { cn, KPICard } from "@transparencia/ui";
 import type { Metadata } from "next";
+import { ContratosServicosVigentesSection } from "@/components/contratos-servicos-vigentes-section";
 import { DistribucaoModalidadesChart } from "@/components/distribuicao-modalidades-chart";
 import { KPIGrid } from "@/components/kpi-grid";
 import { LicitacoesTable } from "@/components/licitacoes-table";
@@ -52,6 +53,7 @@ export default async function LicitacoesPage({
     acimaLimiteGaps,
     fracionamentoVendorsMap,
     numCasosFracionamento,
+    contratosServicosVigentes,
   } = viewModel;
 
   return (
@@ -116,7 +118,7 @@ export default async function LicitacoesPage({
 
       {/* Section 1: Distribuição por modalidade */}
       <section className="space-y-4">
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-baseline justify-between border-ink border-t-2 pt-8">
           <h2 className="font-bold font-serif text-slate-900 text-xl">
             Distribuição por modalidade
           </h2>
@@ -136,26 +138,31 @@ export default async function LicitacoesPage({
         </div>
       </section>
 
+      {/* Section: Contratos de Serviços Vigentes */}
+      <ContratosServicosVigentesSection contratos={contratosServicosVigentes} />
+
       {/* Section 2: Contratos acima do limite, sem licitação */}
       <section className="space-y-4">
-        <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
-          <h2 className="font-bold font-serif text-slate-900 text-xl">
-            Contratos acima do limite, sem licitação
-          </h2>
-          <span className="font-medium text-slate-400 text-xs">
-            {acimaLimiteGaps.length} contratos · exige justificativa formal
-          </span>
-        </div>
+        <div className="border-ink border-t-2 pt-8">
+          <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
+            <h2 className="font-bold font-serif text-slate-900 text-xl">
+              Contratos acima do limite, sem licitação
+            </h2>
+            <span className="font-medium text-slate-400 text-xs">
+              {acimaLimiteGaps.length} contratos · exige justificativa formal
+            </span>
+          </div>
 
-        <p className="text-slate-600 text-xs leading-relaxed sm:text-sm">
-          Cada linha merece análise da justificativa oficial. Quando o mesmo
-          fornecedor aparece várias vezes com valores próximos ao teto de R$
-          62.725,59, pode indicar{" "}
-          <strong className="font-semibold text-slate-900">
-            fracionamento
-          </strong>
-          .
-        </p>
+          <p className="mb-4 text-slate-600 text-xs leading-relaxed sm:text-sm">
+            Cada linha merece análise da justificativa oficial. Quando o mesmo
+            fornecedor aparece várias vezes com valores próximos ao teto de R$
+            62.725,59, pode indicar{" "}
+            <strong className="font-semibold text-slate-900">
+              fracionamento
+            </strong>
+            .
+          </p>
+        </div>
 
         <LicitacoesTable
           data={acimaLimiteGaps}
