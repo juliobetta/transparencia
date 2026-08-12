@@ -1,4 +1,5 @@
 import {
+  buildNavUrl,
   fmtCompact,
   fmtPercent,
   getPartialYearPeriod,
@@ -22,6 +23,14 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
   const selectedYear = context.selectedYear;
   const isCurrentYear = context.isCurrentYear;
   const portalName = portalConfig?.displayName;
+
+  const routeUrl = (path: string) =>
+    buildNavUrl({
+      path,
+      slug: portalSlug,
+      exercice: String(selectedYear),
+      entidades: context.entidadesIds,
+    });
 
   const folhaPct = Number((raw.folha.percentualFolha || 0).toFixed(1));
 
@@ -112,7 +121,7 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
   const despesasCardData = {
     title: "Despesas",
     linkText: "Restos a pagar →",
-    linkHref: `/${portalSlug}/despesas`,
+    linkHref: routeUrl("/despesas"),
     totalRestosPagarFormatted: fmtCompact(posicao.restosPendentesTotal),
     subtext: `pendentes a ${posicao.totalCredoresAdmAtual || 0} fornecedores`,
     antiguidadeBars: posicao.restosPendentes.map((r) => ({
@@ -126,10 +135,16 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
         : "Sem pendências de anos anteriores",
   };
 
+  const contratosServicos = raw.contratosServicos || {
+    totalContratosVigentes: 0,
+    totalContratosComPendencia: 0,
+    totalEmpenhado: 0,
+  };
+
   const licitacoesCardData = {
-    title: "Licitações",
+    title: "Licitações e Contratos",
     linkText: "Contratos →",
-    linkHref: `/${portalSlug}/licitacoes`,
+    linkHref: routeUrl("/licitacoes"),
     items: [
       {
         count: acimaLimiteCount,
@@ -140,13 +155,26 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
         count: gaps.length,
         label: "Contratos sem licitação registrados",
       },
+      {
+        count: contratosServicos.totalContratosVigentes,
+        label: "Contratos de serviços vigentes",
+      },
+      {
+        count: contratosServicos.totalContratosComPendencia,
+        label: "Contratos sem pagamento registrado",
+        isAlert: contratosServicos.totalContratosComPendencia > 0,
+      },
     ],
+    footerText:
+      contratosServicos.totalEmpenhado > 0
+        ? `${fmtCompact(contratosServicos.totalEmpenhado)} em contratos de serviços vigentes`
+        : undefined,
   };
 
   const pessoalCardData = {
     title: "Pessoal",
     linkText: "Folha →",
-    linkHref: `/${portalSlug}/pessoal`,
+    linkHref: routeUrl("/pessoal"),
     receitaFolhaPercentFormatted: fmtPercent(folhaPct),
     receitaFolhaPercentValue: folhaPct,
     subtext: "da receita comprometida com a folha",
@@ -222,6 +250,6 @@ export function buildVisaoGeralViewModel(raw: VisaoGeralRawData) {
     pessoalCardData,
     sanitizedCredores,
     credoresCols,
-    orcamentoDetailUrl: `/${portalSlug}/orcamento`,
+    orcamentoDetailUrl: routeUrl("/orcamento"),
   };
 }

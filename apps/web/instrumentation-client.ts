@@ -2,18 +2,17 @@ import posthog from "posthog-js";
 
 const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 const _host = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+const isProduction = process.env.NODE_ENV === "production";
 
-if (!token) {
-  if (process.env.NODE_ENV !== "production") {
-  }
-} else {
+if (token) {
   posthog.init(token, {
     api_host: "/ingest",
     ui_host: "https://us.posthog.com",
     // Include the defaults option as required by PostHog
     defaults: "2026-01-30",
-    // Enables capturing unhandled exceptions via Error Tracking
-    capture_exceptions: true,
+    // Enable Error Tracking only in production, so dev-time compile
+    // errors and hot-reload crashes don't pollute production issues.
+    capture_exceptions: isProduction,
     // Turn on debug in development mode
     debug: process.env.NODE_ENV === "development",
   });

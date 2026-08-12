@@ -1,4 +1,5 @@
 import { getEntidades, getFontesReceitaMetrics } from "@transparencia/db";
+import { createCachedDataLoader } from "@/lib/cache";
 
 export interface ReceitasSearchParams {
   ano?: string;
@@ -102,6 +103,7 @@ function mapFontesMetricToLegacy(
     pctArrecadado,
     totalPctChange,
     emendasTotalArrecadado: fontes.emendasTotalArrecadado,
+    emendasTotalEmpenhado: fontes.emendasTotalEmpenhado,
     emendasPixArrecadado: fontes.emendasPixArrecadado,
     emendasIndividuaisArrecadado: fontes.emendasIndividuaisArrecadado,
     fpmArrecadado: fontes.fpmArrecadado,
@@ -110,7 +112,7 @@ function mapFontesMetricToLegacy(
   };
 }
 
-export async function loadReceitasData(
+async function fetchRawReceitasData(
   portalSlug: string,
   searchParams: ReceitasSearchParams,
 ) {
@@ -143,3 +145,8 @@ export async function loadReceitasData(
       : undefined,
   };
 }
+
+export const loadReceitasData = createCachedDataLoader(
+  fetchRawReceitasData,
+  "receitas",
+);

@@ -19,6 +19,8 @@ models:
         data_type: text
         constraints:
           - type: not_null
+        tests:
+          - not_null
       - name: ano
         data_type: integer
         constraints:
@@ -29,9 +31,13 @@ models:
         data_type: text
         constraints:
           - type: not_null
+        tests:
+          - not_null
       - name: contrato_numero
         data_type: text
       - name: fornecedor_nome
+        data_type: text
+      - name: fornecedor_cpf_cnpj
         data_type: text
       - name: objeto
         data_type: text
@@ -41,6 +47,8 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               row_condition: "valor_contrato is not null"
+      - name: valor_aditado
+        data_type: numeric
       - name: licitacao_numero
         data_type: text
       - name: modalidade
@@ -55,3 +63,23 @@ models:
         data_type: text
       - name: empenhado
         data_type: numeric
+      - name: objeto_completo
+        data_type: text
+      - name: data_inicio
+        data_type: date
+      - name: vencimento_atual
+        data_type: date
+      - name: saldo_a_empenhar
+        data_type: numeric
+
+unit_tests:
+  - name: test_fct_contratos_geracao_chave_e_mapeamento
+    description: "Valida geração de chave primária surrogate contrato_id e repasse correto das colunas de contrato, fornecedor e datas"
+    model: fct_contratos
+    given:
+      - input: ref('int_contratos_consolidados')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", ano: 2026, empresa_id: "7", contrato_numero: "010/2026", fornecedor_nome: "EMPRESA EXEMPLE", fornecedor_cpf_cnpj: "12.345.678/0001-99", objeto: "Locação de Veículos", objeto_completo: "Locação de veículos leves e pesados para transporte escolar", valor_contrato: 120000.00, valor_aditado: 12000.00, licitacao_numero: "002/2026", modalidade: "Pregão Presencial", mes: "Janeiro", tipo_obra: null, numero_obra: null, fundlegal: "Lei 14.133/2021", empenhado: 100000.00, data_inicio: "2026-01-15", vencimento_atual: "2026-12-31", saldo_a_empenhar: 20000.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", ano: 2026, empresa_id: "7", contrato_numero: "010/2026", fornecedor_nome: "EMPRESA EXEMPLE", fornecedor_cpf_cnpj: "12.345.678/0001-99", objeto: "Locação de Veículos", objeto_completo: "Locação de veículos leves e pesados para transporte escolar", valor_contrato: 120000.00, valor_aditado: 12000.00, licitacao_numero: "002/2026", modalidade: "Pregão Presencial", mes: "Janeiro", tipo_obra: null, numero_obra: null, fundlegal: "Lei 14.133/2021", empenhado: 100000.00, data_inicio: "2026-01-15", vencimento_atual: "2026-12-31", saldo_a_empenhar: 20000.00 }

@@ -20,9 +20,13 @@ models:
         data_type: text
       - name: fornecedor_nome
         data_type: text
+      - name: fornecedor_cpf_cnpj
+        data_type: text
       - name: objeto
         data_type: text
       - name: valor_contrato
+        data_type: numeric
+      - name: valor_aditado
         data_type: numeric
       - name: licitacao_numero
         data_type: text
@@ -33,4 +37,12 @@ models:
       - name: numero_obra
         data_type: text
       - name: empenhado
+        data_type: numeric
+      - name: objeto_completo
+        data_type: text
+      - name: data_inicio
+        data_type: date
+      - name: vencimento_atual
+        data_type: date
+      - name: saldo_a_empenhar
         data_type: numeric

@@ -1,4 +1,5 @@
 import {
+  getContratosServicosVigentes,
   getEntidades,
   getExecucaoOrcamentariaMetrics,
   getFolhaVsServicosMetrics,
@@ -167,6 +168,7 @@ export async function loadVisaoGeralData(
     posicaoDetalhada,
     folhaData,
     pctChefiasEfetivas,
+    contratosServicosVigentes,
   ] = await Promise.all([
     getPortalConfig(tenantSlug),
     getPosicaoFiscalMetrics(tenantSlug, selectedYear, empresaIds),
@@ -180,6 +182,7 @@ export async function loadVisaoGeralData(
       portalSlug: tenantSlug,
     }),
     getPercentualChefiasEfetivasMetrics(tenantSlug, selectedYear, empresaIds),
+    getContratosServicosVigentes(tenantSlug, selectedYear, empresaIds),
   ]);
 
   const execSummary = summarizeExecucaoMetrics(execMetricas);
@@ -216,5 +219,15 @@ export async function loadVisaoGeralData(
     fonte: fontesMetricas ? mapFontesMetricToLegacy(fontesMetricas) : undefined,
     folha: folhaData[0] || { percentualFolha: 0 },
     pctChefiasEfetivas,
+    contratosServicos: {
+      totalContratosVigentes: contratosServicosVigentes.length,
+      totalContratosComPendencia: contratosServicosVigentes.filter(
+        (c) => c.totalPago === 0 && c.totalEmpenhado > 0,
+      ).length,
+      totalEmpenhado: contratosServicosVigentes.reduce(
+        (acc, c) => acc + c.totalEmpenhado,
+        0,
+      ),
+    },
   };
 }

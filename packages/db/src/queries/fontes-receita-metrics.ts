@@ -28,6 +28,7 @@ export interface FontesReceitaMetricsDTO {
   emendasPixArrecadado: number;
   emendasIndividuaisArrecadado: number;
   emendasTotalArrecadado: number;
+  emendasTotalEmpenhado: number;
 }
 
 /**
@@ -83,6 +84,9 @@ export async function getFontesReceitaMetrics(
       eb.fn
         .sum<string>("emendas_total_arrecadado")
         .as("emendas_total_arrecadado"),
+      eb.fn
+        .sum<string>("emendas_total_empenhado")
+        .as("emendas_total_empenhado"),
     ])
     .where("portal_slug", "=", portalSlug)
     .where("ano", "=", ano)
@@ -144,5 +148,6 @@ export async function getFontesReceitaMetrics(
       result.emendas_individuais_arrecadado ?? 0,
     ),
     emendasTotalArrecadado: Number(result.emendas_total_arrecadado ?? 0),
+    emendasTotalEmpenhado: Number(result.emendas_total_empenhado ?? 0),
   } satisfies FontesReceitaMetricsDTO;
 }

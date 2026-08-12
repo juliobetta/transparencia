@@ -3,6 +3,7 @@ import { Ribbon } from "@transparencia/ui";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
@@ -15,7 +16,24 @@ import {
 import { SidebarWrapper } from "./components/sidebar-wrapper";
 import "./globals.css";
 
+import { version } from "../package.json";
+
 const defaultBaseUrl = formatBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
+
+// Cache de configuração do portal.
+// Cache key versionada: bust automático a cada novo deploy.
+// revalidate: 86400 (24h) como safety net para reextrações sem redeploy.
+const getCachedPortalConfig = unstable_cache(
+  () => getPortalConfig(),
+  [`portal-config-v${version}`],
+  { revalidate: 86400 },
+);
+
+const getCachedEntidades = unstable_cache(
+  () => getEntidades(),
+  [`entidades-v${version}`],
+  { revalidate: 86400 },
+);
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultBaseUrl),
@@ -97,8 +115,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const portalConfig = await getPortalConfig();
-  const entidades = await getEntidades();
+  const [portalConfig, entidades] = await Promise.all([
+    getCachedPortalConfig(),
+    getCachedEntidades(),
+  ]);
 
   const governmentOrganizationSchema = generateGovernmentOrganizationSchema({
     displayName: portalConfig?.displayName,

@@ -141,7 +141,8 @@ emendas_fct as (
                 then coalesce(valor_total, empenhado, 0)
                 else 0
             end
-        ) as emendas_individuais_fct
+        ) as emendas_individuais_fct,
+        sum(coalesce(empenhado, 0)) as emendas_total_empenhado
     from {{ ref('fct_emendas') }}
     group by portal_slug, empresa_id, ano
 ),
@@ -162,7 +163,8 @@ receitas_base as (
         coalesce(c.icms_arrecadado, 0) as icms_arrecadado,
         coalesce(c.iss_iptu_arrecadado, 0) as iss_iptu_arrecadado,
         greatest(coalesce(ef.emendas_pix_fct, 0), coalesce(b.emendas_pix_arrecadado, 0)) as emendas_pix_arrecadado,
-        greatest(coalesce(ef.emendas_individuais_fct, 0), coalesce(b.emendas_individuais_arrecadado, 0)) as emendas_individuais_arrecadado
+        greatest(coalesce(ef.emendas_individuais_fct, 0), coalesce(b.emendas_individuais_arrecadado, 0)) as emendas_individuais_arrecadado,
+        coalesce(ef.emendas_total_empenhado, 0) as emendas_total_empenhado
     from totais_orcamentarios t
     left join receitas_breakdown b
         on t.portal_slug = b.portal_slug
@@ -197,7 +199,8 @@ calculos as (
         iss_iptu_arrecadado::numeric(15, 2) as iss_iptu_arrecadado,
         emendas_pix_arrecadado::numeric(15, 2) as emendas_pix_arrecadado,
         emendas_individuais_arrecadado::numeric(15, 2) as emendas_individuais_arrecadado,
-        (emendas_pix_arrecadado + emendas_individuais_arrecadado)::numeric(15, 2) as emendas_total_arrecadado
+        (emendas_pix_arrecadado + emendas_individuais_arrecadado)::numeric(15, 2) as emendas_total_arrecadado,
+        emendas_total_empenhado::numeric(15, 2) as emendas_total_empenhado
     from receitas_base
 )
 
@@ -246,5 +249,6 @@ select
     iss_iptu_arrecadado,
     emendas_pix_arrecadado,
     emendas_individuais_arrecadado,
-    emendas_total_arrecadado
+    emendas_total_arrecadado,
+    emendas_total_empenhado
 from calculos

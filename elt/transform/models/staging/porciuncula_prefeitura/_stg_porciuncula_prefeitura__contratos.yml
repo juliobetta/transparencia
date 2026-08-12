@@ -16,6 +16,8 @@ models:
         data_type: text
       - name: fornecedor_nome
         data_type: text
+      - name: fornecedor_cpf_cnpj
+        data_type: text
       - name: objeto
         data_type: text
       - name: valor_contrato
@@ -24,6 +26,8 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               row_condition: "valor_contrato is not null"
+      - name: valor_aditado
+        data_type: numeric
       - name: licitacao_numero
         data_type: text
       - name: mes
@@ -36,3 +40,23 @@ models:
         data_type: numeric
       - name: modalidade
         data_type: text
+      - name: objeto_completo
+        data_type: text
+      - name: data_inicio
+        data_type: date
+      - name: vencimento_atual
+        data_type: date
+      - name: saldo_a_empenhar
+        data_type: numeric
+
+unit_tests:
+  - name: test_stg_contratos_conversao_datas_e_valores
+    description: "Valida conversão de datas (DD/MM/YYYY e YYYY-MM-DD), CNPJ e substituição de vírgula por ponto em campos numéricos"
+    model: stg_porciuncula_prefeitura__contratos
+    given:
+      - input: source('porciuncula_prefeitura', 'contratos')
+        rows:
+          - { ano: "2026", empresa: "7", numero: "001/2026", fornecedor: "FORNECEDOR TESTE", insmf: "12.345.678/0001-90", valcon: "50.000,00", aditado: "5.000,00", data_inicio: "01/01/2026 00:00:00", vencimento_atual: "31/12/2026 00:00:00" }
+    expect:
+      rows:
+        - { ano: 2026, empresa_id: "7", contrato_numero: "001/2026", fornecedor_nome: "FORNECEDOR TESTE", fornecedor_cpf_cnpj: "12.345.678/0001-90", valor_contrato: 50000.00, valor_aditado: 5000.00, data_inicio: "2026-01-01", vencimento_atual: "2026-12-31" }
