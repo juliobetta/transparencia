@@ -2,9 +2,22 @@
     materialized='table'
 ) }}
 
-with exercicios as (
-    select distinct ano
+with despesas_fornecedor as (
+    select
+        portal_slug,
+        empresa_id,
+        ano,
+        regexp_replace(fornecedor_cpf_cnpj, '[^\d]', '', 'g') as cnpj_clean,
+        sum(coalesce(liquidado, 0)) as total_liquidado,
+        sum(coalesce(pago, 0)) as total_pago
     from {{ ref('fct_despesas') }}
+    where fornecedor_cpf_cnpj is not null
+    group by portal_slug, empresa_id, ano, regexp_replace(fornecedor_cpf_cnpj, '[^\d]', '', 'g')
+),
+
+exercicios as (
+    select distinct portal_slug, empresa_id, ano
+    from despesas_fornecedor
 ),
 
 contratos_base as (
@@ -26,7 +39,9 @@ contratos_base as (
         coalesce(nullif(c.empenhado, 0), (coalesce(c.valor_contrato, 0) + coalesce(c.valor_aditado, 0)), 0) as empenhado_contrato
     from {{ ref('fct_contratos') }} c
     join exercicios e
-        on (c.data_inicio is null or extract(year from c.data_inicio) <= e.ano)
+        on c.portal_slug = e.portal_slug
+       and c.empresa_id = e.empresa_id
+       and (c.data_inicio is null or extract(year from c.data_inicio) <= e.ano)
        and (c.vencimento_atual is null or extract(year from c.vencimento_atual) >= e.ano)
     where c.fornecedor_cpf_cnpj is not null
 ),
@@ -40,19 +55,6 @@ totais_fornecedor as (
         sum(empenhado_contrato) as sum_empenhado_contrato
     from contratos_base
     group by portal_slug, empresa_id, ano, cnpj_clean
-),
-
-despesas_fornecedor as (
-    select
-        portal_slug,
-        empresa_id,
-        ano,
-        regexp_replace(fornecedor_cpf_cnpj, '[^\d]', '', 'g') as cnpj_clean,
-        sum(coalesce(liquidado, 0)) as total_liquidado,
-        sum(coalesce(pago, 0)) as total_pago
-    from {{ ref('fct_despesas') }}
-    where fornecedor_cpf_cnpj is not null
-    group by portal_slug, empresa_id, ano, regexp_replace(fornecedor_cpf_cnpj, '[^\d]', '', 'g')
 ),
 
 calculado as (
@@ -101,4 +103,5 @@ select
     least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))::numeric(15, 2) as total_pago
 from calculado
 order by ano desc, total_pago asc, (greatest(empenhado_contrato, coalesce(liquidado_calc, 0)) - least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))) desc
+
 
