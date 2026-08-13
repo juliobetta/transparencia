@@ -12,6 +12,12 @@ export function buildLicitacoesViewModel(raw: LicitacoesRawData) {
       (fracionamentoVendorsMap[f.fornecedor] || 0) + 1;
   }
 
+  const limiteDispensaComprasServicos =
+    raw.limiteDispensaComprasServicos ??
+    raw.gaps?.find((g) => g.limiteDispensa && g.limiteDispensa > 0)
+      ?.limiteDispensa ??
+    0;
+
   return {
     selectedYear: raw.context.selectedYear,
     isCurrentYear: raw.context.isCurrentYear,
@@ -21,6 +27,7 @@ export function buildLicitacoesViewModel(raw: LicitacoesRawData) {
     adesaoExterna: raw.adesaoExterna,
     modalidades: raw.modalidades,
     acimaLimiteGaps,
+    limiteDispensaComprasServicos,
     fracionamentoVendorsMap,
     numCasosFracionamento: Object.keys(fracionamentoVendorsMap).length,
     contratosServicosVigentes: raw.contratosServicosVigentes || [],

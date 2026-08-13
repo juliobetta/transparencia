@@ -1,4 +1,4 @@
-import { cn, KPICard } from "@transparencia/ui";
+import { cn, fmtCurrency, KPICard } from "@transparencia/ui";
 import type { Metadata } from "next";
 import { ContratosServicosVigentesSection } from "@/components/contratos-servicos-vigentes-section";
 import { DistribucaoModalidadesChart } from "@/components/distribuicao-modalidades-chart";
@@ -28,6 +28,8 @@ export async function generateMetadata({
       "contratos públicos",
       "pregão eletrônico",
       "concorrência",
+      "dispensa de licitação",
+      "inexigibilidade",
       "compras públicas",
     ],
   });
@@ -51,6 +53,7 @@ export default async function LicitacoesPage({
     adesaoExterna,
     modalidades,
     acimaLimiteGaps,
+    limiteDispensaComprasServicos,
     fracionamentoVendorsMap,
     numCasosFracionamento,
     contratosServicosVigentes,
@@ -72,7 +75,7 @@ export default async function LicitacoesPage({
           de baixo valor e inexigibilidades são permitidas por lei. O ponto de
           atenção são os contratos{" "}
           <strong className="font-semibold text-slate-900">
-            acima de R$ 62.725,59 sem licitação
+            acima de {fmtCurrency(limiteDispensaComprasServicos)} sem licitação
           </strong>
           , que exigem justificativa formal.
         </p>
