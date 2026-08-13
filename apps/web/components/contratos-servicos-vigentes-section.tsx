@@ -16,11 +16,18 @@ export function ContratosServicosVigentesSection({
     if (!Array.isArray(contratos)) return [];
     return contratos.map((c) => ({
       ...c,
-      vigenciaFormatada: c.vencimentoAtual
-        ? `${fmtDate(c.dataInicio)} – ${fmtDate(c.vencimentoAtual)}`
-        : c.dataInicio
-          ? `A partir de ${fmtDate(c.dataInicio)}`
-          : "Em vigência",
+      vigenciaFormatada: (() => {
+        if (c.dataInicio && c.vencimentoAtual) {
+          return `${fmtDate(c.dataInicio)} – ${fmtDate(c.vencimentoAtual)}`;
+        }
+        if (c.vencimentoAtual) {
+          return `Até ${fmtDate(c.vencimentoAtual)}`;
+        }
+        if (c.dataInicio) {
+          return `A partir de ${fmtDate(c.dataInicio)}`;
+        }
+        return "";
+      })(),
     }));
   }, [contratos]);
 
