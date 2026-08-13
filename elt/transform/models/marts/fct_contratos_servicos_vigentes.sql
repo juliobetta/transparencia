@@ -37,7 +37,7 @@ contratos_base as (
         coalesce(c.valor_contrato, 0) as valor_contrato_inicial,
         coalesce(c.valor_aditado, 0) as valor_aditado,
         (coalesce(c.valor_contrato, 0) + coalesce(c.valor_aditado, 0)) as valor_contrato_total,
-        coalesce(nullif(c.empenhado, 0), (coalesce(c.valor_contrato, 0) + coalesce(c.valor_aditado, 0)), 0) as empenhado_contrato
+        greatest(0, coalesce(nullif(c.empenhado, 0), (coalesce(c.valor_contrato, 0) + coalesce(c.valor_aditado, 0)), 0)) as empenhado_contrato
     from {{ ref('fct_contratos') }} c
     join exercicios e
         on c.portal_slug = e.portal_slug
@@ -101,9 +101,9 @@ select
     data_inicio,
     vencimento_atual,
     valor_aditado::numeric(15, 2) as valor_aditado,
-    greatest(coalesce(empenhado_calc, empenhado_contrato), coalesce(liquidado_calc, 0))::numeric(15, 2) as total_empenhado,
-    coalesce(liquidado_calc, 0)::numeric(15, 2) as total_liquidado,
-    least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))::numeric(15, 2) as total_pago
+    greatest(0, greatest(coalesce(empenhado_calc, empenhado_contrato), coalesce(liquidado_calc, 0)))::numeric(15, 2) as total_empenhado,
+    greatest(0, coalesce(liquidado_calc, 0))::numeric(15, 2) as total_liquidado,
+    greatest(0, least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0)))::numeric(15, 2) as total_pago
 from calculado
 order by ano desc, total_pago asc, (greatest(empenhado_contrato, coalesce(liquidado_calc, 0)) - least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))) desc
 

@@ -150,5 +150,19 @@ unit_tests:
     expect:
       rows: []
 
+  - name: test_sanitizacao_empenho_negativo
+    description: "Valida se contratos com valores de empenho brutos negativos (origem estornos/supressões no sistema fonte) são sanitizados para zero sem propagar valores negativos no mart final"
+    model: fct_contratos_servicos_vigentes
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2023, contrato_numero: "0628/23", fornecedor_cpf_cnpj: "38.226.796/0001-78", fornecedor_nome: "ENGTEC ENGENHARIA", objeto: "Obras", objeto_completo: null, data_inicio: "2023-01-01", vencimento_atual: "2024-12-31", valor_contrato: 481702.05, empenhado: -15986.52 }
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2024, fornecedor_cpf_cnpj: "38.226.796/0001-78", fornecedor_nome: "ENGTEC ENGENHARIA", empenhado_liquido: 50000.00, liquidado: 50000.00, pago: 50000.00 }
+    expect:
+      rows: []
+
+
 
 
