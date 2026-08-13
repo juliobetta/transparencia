@@ -108,3 +108,18 @@ unit_tests:
       rows:
         - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "0036/26", fornecedor_nome: "CONSORCIO NOROESTE", fornecedor_cnpj: "09.528.346/0001-31", objeto_descricao: "SAMU 192", data_inicio: "2026-01-01", vencimento_atual: "2026-12-31", total_empenhado: 70000.00, total_liquidado: 35000.00, total_pago: 28000.00 }
         - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "0035/26", fornecedor_nome: "CONSORCIO NOROESTE", fornecedor_cnpj: "09.528.346/0001-31", objeto_descricao: "Rateio Custeio", data_inicio: "2026-01-12", vencimento_atual: "2027-01-12", total_empenhado: 30000.00, total_liquidado: 15000.00, total_pago: 12000.00 }
+
+  - name: test_contrato_ano_anterior_vigente_no_exercicio
+    description: "Garante que contratos celebrados em anos anteriores (ex: 2022) com vencimento futuro (ex: 2027) apareçam no exercício selecionado (2026)"
+    model: fct_contratos_servicos_vigentes
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2022, contrato_numero: "2459/22", fornecedor_cpf_cnpj: "13.400.834/0001-36", fornecedor_nome: "ESN INCINERACAO", objeto: "Serviço de Incineração", objeto_completo: null, data_inicio: "2022-06-01", vencimento_atual: "2027-04-03", valor_contrato: 131400.00, empenhado: 135238.41 }
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, fornecedor_cpf_cnpj: "13.400.834/0001-36", fornecedor_nome: "ESN INCINERACAO", empenhado_liquido: 135238.41, liquidado: 32850.00, pago: 32850.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "2459/22", fornecedor_nome: "ESN INCINERACAO", fornecedor_cnpj: "13.400.834/0001-36", objeto_descricao: "Serviço de Incineração", data_inicio: "2022-06-01", vencimento_atual: "2027-04-03", total_empenhado: 135238.41, total_liquidado: 32850.00, total_pago: 32850.00 }
+

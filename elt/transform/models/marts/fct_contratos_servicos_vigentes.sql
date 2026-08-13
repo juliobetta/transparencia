@@ -2,11 +2,17 @@
     materialized='table'
 ) }}
 
-with contratos_base as (
+with exercicios as (
+    select distinct ano
+    from {{ ref('fct_despesas') }}
+),
+
+contratos_base as (
     select
+        c.contrato_id,
         c.portal_slug,
         c.empresa_id,
-        c.ano,
+        e.ano,
         c.contrato_numero,
         c.fornecedor_nome,
         c.fornecedor_cpf_cnpj as fornecedor_cnpj,
@@ -19,9 +25,10 @@ with contratos_base as (
         (coalesce(c.valor_contrato, 0) + coalesce(c.valor_aditado, 0)) as valor_contrato_total,
         coalesce(nullif(c.empenhado, 0), (coalesce(c.valor_contrato, 0) + coalesce(c.valor_aditado, 0)), 0) as empenhado_contrato
     from {{ ref('fct_contratos') }} c
+    join exercicios e
+        on (c.data_inicio is null or extract(year from c.data_inicio) <= e.ano)
+       and (c.vencimento_atual is null or extract(year from c.vencimento_atual) >= e.ano)
     where c.fornecedor_cpf_cnpj is not null
-      and (c.data_inicio is null or extract(year from c.data_inicio) <= c.ano)
-      and (c.vencimento_atual is null or extract(year from c.vencimento_atual) >= c.ano)
 ),
 
 totais_fornecedor as (
@@ -50,6 +57,7 @@ despesas_fornecedor as (
 
 calculado as (
     select
+        cb.contrato_id,
         cb.portal_slug,
         cb.empresa_id,
         cb.ano,
@@ -77,7 +85,7 @@ calculado as (
 )
 
 select
-    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'empresa_id', 'ano', 'coalesce(contrato_numero, \'\')', 'regexp_replace(fornecedor_cnpj, \'[^\d]\', \'\', \'g\')']) }} as contrato_servico_id,
+    {{ dbt_utils.generate_surrogate_key(['portal_slug', 'empresa_id', 'ano', 'contrato_id']) }} as contrato_servico_id,
     portal_slug,
     empresa_id,
     ano,
@@ -93,3 +101,4 @@ select
     least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))::numeric(15, 2) as total_pago
 from calculado
 order by ano desc, total_pago asc, (greatest(empenhado_contrato, coalesce(liquidado_calc, 0)) - least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))) desc
+
