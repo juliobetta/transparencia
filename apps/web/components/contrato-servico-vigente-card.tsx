@@ -31,11 +31,18 @@ export function ContratoServicoVigenteCard({
     ? Math.min(100, Math.max(0, percentualPago))
     : 0;
 
-  const vigenciaText = vencimentoAtual
-    ? `${fmtDate(dataInicio)} – ${fmtDate(vencimentoAtual)}`
-    : dataInicio
-      ? `A partir de ${fmtDate(dataInicio)}`
-      : "Em vigência";
+  const vigenciaText = (() => {
+    if (dataInicio && vencimentoAtual) {
+      return `${fmtDate(dataInicio)} – ${fmtDate(vencimentoAtual)}`;
+    }
+    if (vencimentoAtual) {
+      return `Até ${fmtDate(vencimentoAtual)}`;
+    }
+    if (dataInicio) {
+      return `A partir de ${fmtDate(dataInicio)}`;
+    }
+    return "";
+  })();
 
   return (
     <div className="flex flex-col justify-between rounded-xl border border-borderLine bg-white p-5 shadow-xs transition-shadow hover:shadow-sm">
