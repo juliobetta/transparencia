@@ -44,6 +44,7 @@ contratos_base as (
        and (c.data_inicio is null or extract(year from c.data_inicio) <= e.ano)
        and (c.vencimento_atual is null or extract(year from c.vencimento_atual) >= e.ano)
     where c.fornecedor_cpf_cnpj is not null
+      and (c.data_inicio is not null or c.vencimento_atual is not null)
 ),
 
 totais_fornecedor as (

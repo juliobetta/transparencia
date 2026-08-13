@@ -123,3 +123,17 @@ unit_tests:
       rows:
         - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "2459/22", fornecedor_nome: "ESN INCINERACAO", fornecedor_cnpj: "13.400.834/0001-36", objeto_descricao: "Serviço de Incineração", data_inicio: "2022-06-01", vencimento_atual: "2027-04-03", total_empenhado: 135238.41, total_liquidado: 32850.00, total_pago: 32850.00 }
 
+  - name: test_descarte_contratos_sem_datas
+    description: "Valida se contratos que não possuem nem data_inicio nem vencimento_atual cadastrados são descartados do resultado final"
+    model: fct_contratos_servicos_vigentes
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, contrato_numero: "0868/21", fornecedor_cpf_cnpj: "99.999.999/0001-99", fornecedor_nome: "FORNECEDOR SEM DATAS LTDA", objeto: "Sem datas", objeto_completo: null, data_inicio: null, vencimento_atual: null, valor_contrato: 20000.00 }
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, fornecedor_cpf_cnpj: "99.999.999/0001-99", fornecedor_nome: "FORNECEDOR SEM DATAS LTDA", empenhado_liquido: 20000.00, liquidado: 20000.00, pago: 20000.00 }
+    expect:
+      rows: []
+
+
