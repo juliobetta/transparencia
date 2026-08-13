@@ -8,6 +8,7 @@ with despesas_fornecedor as (
         empresa_id,
         ano,
         regexp_replace(fornecedor_cpf_cnpj, '[^\d]', '', 'g') as cnpj_clean,
+        sum(coalesce(empenhado_liquido, 0)) as total_empenhado_despesa,
         sum(coalesce(liquidado, 0)) as total_liquidado,
         sum(coalesce(pago, 0)) as total_pago
     from {{ ref('fct_despesas') }}
@@ -72,6 +73,7 @@ calculado as (
         cb.vencimento_atual,
         cb.valor_aditado,
         cb.empenhado_contrato,
+        round(coalesce(df.total_empenhado_despesa, 0) * (cb.empenhado_contrato / nullif(tf.sum_empenhado_contrato, 0)), 2) as empenhado_calc,
         round(coalesce(df.total_liquidado, 0) * (cb.empenhado_contrato / nullif(tf.sum_empenhado_contrato, 0)), 2) as liquidado_calc,
         round(coalesce(df.total_pago, 0) * (cb.empenhado_contrato / nullif(tf.sum_empenhado_contrato, 0)), 2) as pago_calc
     from contratos_base cb
@@ -99,7 +101,7 @@ select
     data_inicio,
     vencimento_atual,
     valor_aditado::numeric(15, 2) as valor_aditado,
-    greatest(empenhado_contrato, coalesce(liquidado_calc, 0))::numeric(15, 2) as total_empenhado,
+    greatest(coalesce(empenhado_calc, empenhado_contrato), coalesce(liquidado_calc, 0))::numeric(15, 2) as total_empenhado,
     coalesce(liquidado_calc, 0)::numeric(15, 2) as total_liquidado,
     least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))::numeric(15, 2) as total_pago
 from calculado
