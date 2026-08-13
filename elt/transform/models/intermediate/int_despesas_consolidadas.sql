@@ -65,13 +65,23 @@ with porciuncula_exercicio as (
     from {{ ref('stg_porciuncula_prefeitura__despesas_gerais') }}
 ),
 
+porciuncula_fornecedores_mapa as (
+    select distinct on ({{ target.schema }}.unaccent(lower(trim(fornecedor_nome))))
+        {{ target.schema }}.unaccent(lower(trim(fornecedor_nome))) as fornecedor_nome_clean,
+        fornecedor_nome,
+        fornecedor_cpf_cnpj
+    from {{ ref('stg_porciuncula_prefeitura__despesas_gerais') }}
+    where fornecedor_nome is not null and fornecedor_cpf_cnpj is not null
+    order by {{ target.schema }}.unaccent(lower(trim(fornecedor_nome))), ano desc
+),
+
 porciuncula_rap as (
     select
         'porciuncula_prefeitura' as portal_slug,
         'restos_a_pagar' as fonte,
-        ano,
-        empresa_id,
-        rap_id as empenho_id,
+        r.ano,
+        r.empresa_id,
+        r.rap_id as empenho_id,
         null as pk_empenho,
         null as pk_empenho_pai,
         null as tipo_empenho,
@@ -90,9 +100,9 @@ porciuncula_rap as (
         null as proj_atividade,
         null as projeto_atividade_nome,
         null as mes,
-        null as fornecedor_nome,
-        null as fornecedor_cpf_cnpj,
-        null as fornecedor_raw,
+        coalesce(fm.fornecedor_nome, nullif(trim(r.descricao), '')) as fornecedor_nome,
+        fm.fornecedor_cpf_cnpj as fornecedor_cpf_cnpj,
+        nullif(trim(r.descricao), '') as fornecedor_raw,
         null as licitacao_numero,
         null as licitacao_modalidade,
         null as licitacao_descricao,
@@ -106,15 +116,15 @@ porciuncula_rap as (
         null as fonte_stn_desc,
         null as fonte_recurso_desc,
         null::date as data_empenho,
-        empenhado,
-        liquidado,
-        pago,
+        r.empenhado,
+        r.liquidado,
+        r.pago,
         null::numeric as dotacao_inicial,
         null::numeric as alteracao_dotacao,
         null::numeric as dotacao_atualizada,
         null::numeric as anulado,
         null::numeric as reforco,
-        descricao,
+        r.descricao,
         null as entidade_nome,
         null as proc,
         null as codlo,
@@ -125,7 +135,9 @@ porciuncula_rap as (
         null as produ,
         null as vingrupo_vincodigo,
         null as vincodigonome
-    from {{ ref('stg_porciuncula_prefeitura__despesas_restos_pagar') }}
+    from {{ ref('stg_porciuncula_prefeitura__despesas_restos_pagar') }} r
+    left join porciuncula_fornecedores_mapa fm
+        on {{ target.schema }}.unaccent(lower(trim(r.descricao))) = fm.fornecedor_nome_clean
 )
 
 select
