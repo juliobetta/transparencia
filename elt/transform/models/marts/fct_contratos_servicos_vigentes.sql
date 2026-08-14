@@ -8,7 +8,8 @@ with despesas_fornecedor as (
         empresa_id,
         ano,
         regexp_replace(fornecedor_cpf_cnpj, '[^\d]', '', 'g') as cnpj_clean,
-        sum(coalesce(empenhado_liquido, 0)) as total_empenhado_despesa,
+        sum(case when fonte = 'exercicio' then coalesce(empenhado_liquido, 0) else 0 end) as total_empenhado_exercicio,
+        sum(case when fonte = 'restos_a_pagar' then coalesce(empenhado_liquido, 0) else 0 end) as total_empenhado_rap,
         sum(coalesce(liquidado, 0)) as total_liquidado,
         sum(coalesce(pago, 0)) as total_pago
     from {{ ref('fct_despesas') }}
@@ -73,7 +74,14 @@ calculado as (
         cb.vencimento_atual,
         cb.valor_aditado,
         cb.empenhado_contrato,
-        round(coalesce(df.total_empenhado_despesa, 0) * (cb.empenhado_contrato / nullif(tf.sum_empenhado_contrato, 0)), 2) as empenhado_calc,
+        round(
+            coalesce(
+                nullif(df.total_empenhado_exercicio, 0),
+                nullif(df.total_empenhado_rap, 0),
+                0
+            ) * (cb.empenhado_contrato / nullif(tf.sum_empenhado_contrato, 0)),
+            2
+        ) as empenhado_calc,
         round(coalesce(df.total_liquidado, 0) * (cb.empenhado_contrato / nullif(tf.sum_empenhado_contrato, 0)), 2) as liquidado_calc,
         round(coalesce(df.total_pago, 0) * (cb.empenhado_contrato / nullif(tf.sum_empenhado_contrato, 0)), 2) as pago_calc
     from contratos_base cb

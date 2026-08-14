@@ -163,6 +163,22 @@ unit_tests:
     expect:
       rows: []
 
+  - name: test_empenhado_desconsidera_restos_a_pagar
+    description: "Valida se o cálculo de total_empenhado no exercício corrente considera estritamente despesas do exercício corrente (fonte = exercicio), ignorando Restos a Pagar de anos anteriores para evitar dupla contagem"
+    model: fct_contratos_servicos_vigentes
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2025, contrato_numero: "0240/25", fornecedor_cpf_cnpj: "45.298.774/0001-89", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", objeto: "Consultoria", objeto_completo: null, data_inicio: "2025-05-20", vencimento_atual: "2026-05-19", valor_contrato: 499800.00, empenhado: 166600.00 }
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, fonte: "exercicio", fornecedor_cpf_cnpj: "45.298.774/0001-89", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", empenhado_liquido: 166600.00, liquidado: 0.00, pago: 0.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, fonte: "restos_a_pagar", fornecedor_cpf_cnpj: "45.298.774/0001-89", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", empenhado_liquido: 200926.68, liquidado: 0.00, pago: 0.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, contrato_numero: "0240/25", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", fornecedor_cnpj: "45.298.774/0001-89", objeto_descricao: "Consultoria", data_inicio: "2025-05-20", vencimento_atual: "2026-05-19", total_empenhado: 166600.00, total_liquidado: 0.00, total_pago: 0.00 }
+
+
 
 
 
