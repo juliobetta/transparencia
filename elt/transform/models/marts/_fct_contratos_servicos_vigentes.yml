@@ -124,7 +124,7 @@ unit_tests:
         - { portal_slug: "porciuncula_prefeitura", empresa_id: "2", ano: 2026, contrato_numero: "2459/22", fornecedor_nome: "ESN INCINERACAO", fornecedor_cnpj: "13.400.834/0001-36", objeto_descricao: "Serviço de Incineração", data_inicio: "2022-06-01", vencimento_atual: "2027-04-03", total_empenhado: 135238.41, total_liquidado: 32850.00, total_pago: 32850.00 }
 
   - name: test_empenhado_proporcional_ao_exercicio
-    description: "Valida se contratos plurianuais com valor global alto utilizam o empenho do exercício corrente para calcular total_empenhado em vez do valor total do contrato"
+    description: "Valida se contratos plurianuais com valor global alto utilizam o empenho de restos a pagar do exercício corrente para calcular total_empenhado quando não há novo empenho no exercício"
     model: fct_contratos_servicos_vigentes
     given:
       - input: ref('fct_contratos')
@@ -132,7 +132,7 @@ unit_tests:
           - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2024, contrato_numero: "2937/24", fornecedor_cpf_cnpj: "11.816.706/0001-42", fornecedor_nome: "L.PHILIPPE CONSTRUCOES LTDA", objeto: "Obras de esgotamento", objeto_completo: null, data_inicio: "2024-06-21", vencimento_atual: "2026-06-21", valor_contrato: 24698277.36, empenhado: 24698277.36 }
       - input: ref('fct_despesas')
         rows:
-          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, fornecedor_cpf_cnpj: "11.816.706/0001-42", fornecedor_nome: "L.PHILIPPE CONSTRUCOES LTDA", empenhado_liquido: 10615123.41, liquidado: 500776.48, pago: 22034.17 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, fonte: "restos_a_pagar", fornecedor_cpf_cnpj: "11.816.706/0001-42", fornecedor_nome: "L.PHILIPPE CONSTRUCOES LTDA", empenhado_liquido: 10615123.41, liquidado: 500776.48, pago: 22034.17 }
     expect:
       rows:
         - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, contrato_numero: "2937/24", fornecedor_nome: "L.PHILIPPE CONSTRUCOES LTDA", fornecedor_cnpj: "11.816.706/0001-42", objeto_descricao: "Obras de esgotamento", data_inicio: "2024-06-21", vencimento_atual: "2026-06-21", total_empenhado: 10615123.41, total_liquidado: 500776.48, total_pago: 22034.17 }
@@ -162,6 +162,22 @@ unit_tests:
           - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2024, fornecedor_cpf_cnpj: "38.226.796/0001-78", fornecedor_nome: "ENGTEC ENGENHARIA", empenhado_liquido: 50000.00, liquidado: 50000.00, pago: 50000.00 }
     expect:
       rows: []
+
+  - name: test_empenhado_desconsidera_restos_a_pagar
+    description: "Valida se o cálculo de total_empenhado no exercício corrente considera estritamente despesas do exercício corrente (fonte = exercicio), ignorando Restos a Pagar de anos anteriores para evitar dupla contagem"
+    model: fct_contratos_servicos_vigentes
+    given:
+      - input: ref('fct_contratos')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2025, contrato_numero: "0240/25", fornecedor_cpf_cnpj: "45.298.774/0001-89", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", objeto: "Consultoria", objeto_completo: null, data_inicio: "2025-05-20", vencimento_atual: "2026-05-19", valor_contrato: 499800.00, empenhado: 166600.00 }
+      - input: ref('fct_despesas')
+        rows:
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, fonte: "exercicio", fornecedor_cpf_cnpj: "45.298.774/0001-89", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", empenhado_liquido: 166600.00, liquidado: 0.00, pago: 0.00 }
+          - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, fonte: "restos_a_pagar", fornecedor_cpf_cnpj: "45.298.774/0001-89", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", empenhado_liquido: 200926.68, liquidado: 0.00, pago: 0.00 }
+    expect:
+      rows:
+        - { portal_slug: "porciuncula_prefeitura", empresa_id: "7", ano: 2026, contrato_numero: "0240/25", fornecedor_nome: "G2 SOLUCOES E GESTAO LTDA", fornecedor_cnpj: "45.298.774/0001-89", objeto_descricao: "Consultoria", data_inicio: "2025-05-20", vencimento_atual: "2026-05-19", total_empenhado: 166600.00, total_liquidado: 0.00, total_pago: 0.00 }
+
 
 
 
