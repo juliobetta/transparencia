@@ -110,7 +110,7 @@ Views disponíveis e colunas exatas:
 - fct_fontes_receita_metricas (columns: portal_slug, ano, SUM(total_previsto) as total_previsto, SUM(total_arrecadado) as total_arrecadado, SUM(emendas_pix_arrecadado) as emendas_pix_arrecadado)
 - fct_historia_saude_metricas (columns: portal_slug, ano, SUM(total_liquidado) as total_liquidado, SUM(total_pago) as total_pago)
 - fct_historia_caprem_metricas (columns: portal_slug, ano, SUM(total_empenhado_patronal) as total_empenhado_patronal, SUM(total_pago_patronal) as total_pago_patronal)
-- fct_licitacoes_gaps_metricas (columns: portal_slug, ano, valor_contrato, objeto)
+- fct_licitacoes_gaps_metricas (columns: portal_slug, ano, SUM(valor_contrato) as total_dispensas, COUNT(*) as qtd_dispensas)
 
 Filtre obrigatoriamente por portal_slug = '${portalSlug}' AND ano = ${year}.
 NUNCA esqueça do filtro ano = ${year}.
@@ -249,6 +249,38 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
           { label: "Empenhado", valor: empenhado },
           { label: "Pago", valor: pago },
         ],
+        chartType: "bar",
+        sqlQuery: sql,
+      });
+    }
+
+    if (
+      queryText.includes("licitacao") ||
+      queryText.includes("licitação") ||
+      queryText.includes("dispensa") ||
+      queryText.includes("contrato")
+    ) {
+      const sql = `SELECT SUM(valor_contrato) as total_dispensas, COUNT(*) as qtd_dispensas FROM fct_licitacoes_gaps_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const rows = await queryDuckDbParquet<{
+        total_dispensas: number;
+        qtd_dispensas: number;
+      }>(sql);
+      const row = rows[0] || { total_dispensas: 0, qtd_dispensas: 0 };
+
+      const total = Number(row.total_dispensas || 0);
+      const qtd = Number(row.qtd_dispensas || 0);
+
+      return NextResponse.json({
+        answer: `No exercício de **${year}**, o valor total registrado em dispensas de licitação e contratações diretas foi de **${fmtMoney(total)}**, englobando **${qtd}** processos catalogados.`,
+        metrics: [
+          {
+            title: "Total Dispensas",
+            value: fmtMoney(total),
+            variant: "accent",
+          },
+          { title: "Processos", value: String(qtd), variant: "default" },
+        ],
+        chartData: [{ label: "Total Dispensas", valor: total }],
         chartType: "bar",
         sqlQuery: sql,
       });
