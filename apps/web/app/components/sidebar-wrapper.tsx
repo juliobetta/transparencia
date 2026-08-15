@@ -3,6 +3,7 @@
 import { type MultiSelectOption, Sidebar } from "@transparencia/ui";
 import { parseAsString, useQueryState } from "nuqs";
 import posthog from "posthog-js";
+import { AssistantChatDrawer } from "./assistant-chat-drawer";
 
 interface SidebarWrapperProps {
   portalName?: string;
@@ -77,6 +78,9 @@ export function SidebarWrapper({
       onExerciceChange={handleExerciceChange}
       selectedEntidades={selectedEntidades}
       onEntidadesChange={handleEntidadesChange}
+      assistantAction={
+        <AssistantChatDrawer portalSlug={portalSlug} ano={ano} />
+      }
     />
   );
 }

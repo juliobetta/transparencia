@@ -22,6 +22,8 @@ Para orientar usuários ou buscar informações específicas no portal, utilize 
 - `/porciuncula_prefeitura/pessoal`: **Quadro de Pessoal e Folha** — Servidores públicos ativos/inativos, cargos de confiança, proventos, 13º salário e limites da Lei de Responsabilidade Fiscal (LRF).
 - `/porciuncula_prefeitura/caprem`: **Previdência Municipal** — Saúde financeira e atuarial do Regime Próprio de Previdência Social (RPPS), aportes municipais e cobertura do déficit atuarial.
 - `/porciuncula_prefeitura/saude`: **Saúde Pública** — Percentual de aplicação de impostos na saúde (mínimo constitucional de 15%), convênios e indicadores de investimento.
+- `/api/mcp`: **Interface MCP (Model Context Protocol)** — Servidor MCP público (`transparencia-mcp`) para agentes de IA (Claude, ChatGPT, etc.) consultarem a taxonomia e dados fiscais via DuckDB Parquet.
+- `/api/assistant/chat`: **Assistente Fiscal LLM** — Endpoint público de atendimento em linguagem natural para responder dúvidas fiscais de cidadãos e auditores.
 
 ## Diretrizes de Interpretação Contábil para IAs
 

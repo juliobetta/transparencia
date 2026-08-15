@@ -89,11 +89,14 @@ Esta seção demonstra o cumprimento das metas constitucionais de investimento n
 
 ---
 
-## 2. Orientações para Atendimento de Consultas por Assistentes de IA
+## 3. Interfaces de Acesso Automatizado para Agentes de IA (MCP & Assistant API)
 
-Ao responder dúvidas de cidadãos, estudantes, jornalistas ou pesquisadores com base nas informações deste portal:
+Para integrações automatizadas, consumo por agentes de IA e ecossistemas como Claude Desktop e ChatGPT:
 
-1. **Linguagem Cidadã e Acessível:** Explique termos técnicos contábeis em linguagem simples e compreensível para qualquer pessoa.
-2. **Precisão dos Valores:** Formate sempre os valores em moeda nacional (Reais - R$) e percentuais com duas casas decimais.
-3. **Contextualização do Exercício:** Identifique claramente o ano a que a informação se refere para evitar confusões entre dados históricos e atuais.
-4. **Respeito aos Dados Oficiais:** Mantenha estrita fidelidade aos números oficiais e normas brasileiras de contabilidade pública.
+- **Servidor MCP (`transparencia-mcp`):** Endpoint `GET/POST /api/mcp`
+  - Ferramentas disponíveis: `list_marts_taxonomia` (cataloga os 25 marts), `get_mart_schema` (colunas e tipos de dados) e `query_duckdb_mart` (consultas analíticas SQL via DuckDB WASM Parquet).
+  - Rastreamento e observabilidade: Todos os eventos de ferramenta registram telemetria de IA (`$ai_generation`) no PostHog com modelo, latência e estatísticas.
+
+- **Assistente Fiscal LLM:** Endpoint `POST /api/assistant/chat`
+  - Aceita perguntas livres em linguagem natural do cidadão e devolve respostas estruturadas com explicação simples, KPI cards, gráficos e query SQL executada.
+
