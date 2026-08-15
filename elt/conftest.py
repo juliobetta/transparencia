@@ -3,10 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Iterator
-from urllib.parse import urlparse
 
 import pytest
-import testing.postgresql
 import yaml
 from sqlalchemy import text
 from sqlalchemy.engine import Connection
@@ -47,47 +45,50 @@ def _create_raw_schema(eng) -> None:
         conn.commit()
 
 
-def _run_dbt(pg_url: str, *args: str) -> None:
-    u = urlparse(pg_url)
+def _run_dbt(db_path: str, *args: str) -> None:
     env = {
         **os.environ,
-        "DBT_HOST": u.hostname or "",
-        "DBT_PORT": str(u.port or 5432),
-        "DBT_USER": u.username or "",
-        "DBT_PASSWORD": u.password or "",
-        "DBT_DBNAME": u.path.lstrip("/"),
+        "DBT_DUCKDB_PATH": db_path,
         "DBT_ALLOW_EXPERIMENTAL_ADAPTERS": "true",
     }
-    subprocess.run(
-        ["dbt", *args, "--profiles-dir", _PROFILES_DIR, "--project-dir", _PROFILES_DIR],
-        env=env,
-        check=True,
-        capture_output=True,
-    )
+    env.pop("DBT_DATABASE", None)
+    try:
+        subprocess.run(
+            ["dbt", *args, "--profiles-dir", _PROFILES_DIR, "--project-dir", _PROFILES_DIR],
+            env=env,
+            check=True,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        if exc.stderr:
+            print(f"dbt stderr: {exc.stderr.decode()}", file=sys.stderr)
+        raise
 
 
 @pytest.fixture(scope="session")
-def pg():
-    with testing.postgresql.Postgresql() as pg:
-        yield pg
+def engine(tmp_path_factory):
+    db_dir = tmp_path_factory.mktemp("duckdb")
+    db_path = str(db_dir / "test.duckdb")
 
-
-@pytest.fixture(scope="session")
-def engine(pg):
-    pg_url = pg.url()
-    eng = create_engine(pg_url)
-    # Raw schema e tabelas derivadas de _sources.yml
+    eng = create_engine(f"duckdb:///{db_path}")
     _create_raw_schema(eng)
-    # dbt cria staging/intermediate (views) e marts (views em test_mode) em public
-    _run_dbt(pg_url, "deps")
-    _run_dbt(pg_url, "seed")
-    _run_dbt(pg_url, "run", "--vars", '{"test_mode": true}')
-    return eng
+    eng.dispose()
+
+    _run_dbt(db_path, "deps")
+    _run_dbt(db_path, "seed")
+    _run_dbt(db_path, "run", "--vars", '{"test_mode": true}')
+
+    eng = create_engine(f"duckdb:///{db_path}")
+    yield eng
+    eng.dispose()
 
 
 @pytest.fixture
 def conn(engine) -> Iterator[Connection]:
     with engine.connect() as connection:
-        connection.execute(text("SET search_path = raw_porciuncula_prefeitura, public"))
-        yield connection
-        connection.rollback()
+        trans = connection.begin()
+        connection.execute(text("SET search_path = 'raw_porciuncula_prefeitura,main'"))
+        try:
+            yield connection
+        finally:
+            trans.rollback()

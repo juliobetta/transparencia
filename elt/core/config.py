@@ -25,7 +25,7 @@ class PortalConfig:
 
     @property
     def orgaos_csv_path(self) -> Path:
-        return Path("elt/transform/seeds") / f"seed_{self.slug}_orgaos.csv"
+        return Path(__file__).parent.parent / "transform" / "seeds" / f"seed_{self.slug}_orgaos.csv"
 
     def load_orgaos(self) -> dict[str, str]:
         """Returns {empresa_id: nome} from the seed CSV."""
@@ -42,3 +42,16 @@ class PortalConfig:
         path = Path(__file__).parent.parent / "portals" / f"{slug}.yml"
         data = yaml.safe_load(path.read_text())
         return cls(**data)
+
+
+def get_source_columns(table_name: str, slug: str = "porciuncula_prefeitura") -> list[str]:
+    """Returns declared column names from _sources.yml for the given table."""
+    sources_yml = Path(__file__).parent.parent / "transform" / "models" / "staging" / slug / "_sources.yml"
+    if not sources_yml.exists():
+        return []
+    data = yaml.safe_load(sources_yml.read_text())
+    for src in data.get("sources", []):
+        for tbl in src.get("tables", []):
+            if tbl.get("name") == table_name:
+                return [c["name"] for c in tbl.get("columns", [])]
+    return []

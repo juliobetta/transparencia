@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy import MetaData, Table, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
-from elt.core.config import PortalConfig
+from elt.core.config import PortalConfig, get_source_columns
 from elt.core.db import get_engine
 from elt.extract.base import EndpointConfig
 from elt.extract.porciuncula_prefeitura.api_endpoints import ENDPOINT_CONFIGS
@@ -31,22 +31,17 @@ def _sanitize_key(k: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", ascii_str.lower()).strip("_")
 
 
-def _ensure_table(engine, schema: str, table: str, cols: list[str], key_cols: list[str]) -> None:
-    valid_keys = [k for k in key_cols if k in cols]
-    if not valid_keys:
-        valid_keys = [cols[0]] if cols else []
-    pk_def = ", ".join(f'"{k}"' for k in valid_keys)
+def _ensure_table(engine, schema: str, table: str, cols: list[str]) -> None:
     col_defs = ",\n    ".join(f'"{c}" TEXT' for c in cols)
     with engine.begin() as conn:
         conn.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
-        if pk_def:
-            conn.execute(
-                text(
-                    f'CREATE TABLE IF NOT EXISTS "{schema}"."{table}" (\n    {col_defs},\n    PRIMARY KEY ({pk_def})\n)'
-                )
-            )
-        else:
-            conn.execute(text(f'CREATE TABLE IF NOT EXISTS "{schema}"."{table}" (\n    {col_defs}\n)'))
+        row = conn.execute(
+            text("SELECT table_type FROM information_schema.tables WHERE table_schema = :s AND table_name = :t"),
+            {"s": schema, "t": table},
+        ).fetchone()
+        if row and row[0] == "VIEW":
+            conn.execute(text(f'DROP VIEW IF EXISTS "{schema}"."{table}" CASCADE'))
+        conn.execute(text(f'CREATE TABLE IF NOT EXISTS "{schema}"."{table}" (\n    {col_defs}\n)'))
         for col in cols:
             conn.execute(text(f'ALTER TABLE "{schema}"."{table}" ADD COLUMN IF NOT EXISTS "{col}" TEXT'))
 
@@ -54,10 +49,11 @@ def _ensure_table(engine, schema: str, table: str, cols: list[str], key_cols: li
 def _upsert_raw(engine, schema: str, table: str, rows: list[dict], key_cols: list[str]) -> int:
     if not rows:
         return 0
-    all_cols = sorted({k for row in rows for k in row.keys()})
-    valid_keys = [k for k in key_cols if k in all_cols]
+    source_cols = get_source_columns(table)
+    all_cols = sorted({k for row in rows for k in row.keys()} | set(source_cols))
+    valid_keys = [k for k in key_cols if k in all_cols and not any(row.get(k) is None for row in rows)]
     non_pk_cols = [c for c in all_cols if c not in valid_keys]
-    _ensure_table(engine, schema, table, all_cols, key_cols)
+    _ensure_table(engine, schema, table, all_cols)
     meta = MetaData()
     tbl = Table(table, meta, schema=schema, autoload_with=engine)
     normalised = [{c: str(row[c]) if row.get(c) is not None else None for c in all_cols} for row in rows]
@@ -65,13 +61,21 @@ def _upsert_raw(engine, schema: str, table: str, rows: list[dict], key_cols: lis
     for row in normalised:
         seen[tuple(row.get(k) for k in valid_keys)] = row
     deduped = list(seen.values())
-    stmt = pg_insert(tbl).values(deduped)
-    if valid_keys and non_pk_cols:
-        stmt = stmt.on_conflict_do_update(index_elements=valid_keys, set_={c: stmt.excluded[c] for c in non_pk_cols})
-    elif valid_keys:
-        stmt = stmt.on_conflict_do_nothing(index_elements=valid_keys)
+
     with engine.begin() as conn:
-        conn.execute(stmt)
+        if engine.dialect.name == "postgresql":
+            stmt = pg_insert(tbl).values(deduped)
+            if valid_keys and non_pk_cols:
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=valid_keys,
+                    set_={c: stmt.excluded[c] for c in non_pk_cols},
+                )
+            elif valid_keys:
+                stmt = stmt.on_conflict_do_nothing(index_elements=valid_keys)
+            conn.execute(stmt)
+        else:
+            conn.execute(tbl.insert(), deduped)
+
     return len(deduped)
 
 
