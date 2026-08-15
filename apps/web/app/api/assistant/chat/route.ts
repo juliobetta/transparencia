@@ -184,6 +184,207 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Execução Determinística Fallback inteligente baseada em palavras-chave do usuário
+
+    // A. CAPREM / Previdência Municipal / Aportes / Patronal
+    if (
+      queryText.includes("caprem") ||
+      queryText.includes("previdencia") ||
+      queryText.includes("previdência") ||
+      queryText.includes("aporte") ||
+      queryText.includes("patronal") ||
+      queryText.includes("atuaria")
+    ) {
+      const sql = `SELECT CAST(SUM(total_empenhado_patronal) AS DOUBLE) as total_empenhado_patronal, CAST(SUM(total_pago_patronal) AS DOUBLE) as total_pago_patronal FROM fct_historia_caprem_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const rows = await queryDuckDbParquet<{
+        total_empenhado_patronal: number;
+        total_pago_patronal: number;
+      }>(sql);
+      const row = rows[0] || {
+        total_empenhado_patronal: 0,
+        total_pago_patronal: 0,
+      };
+
+      const empenhado = Number(row.total_empenhado_patronal || 0);
+      const pago = Number(row.total_pago_patronal || 0);
+
+      const resData = {
+        answer: `No âmbito da previdência municipal (**CAPREM - ${year}**), a retenção e aportes patronais empenhados somaram **${fmtMoney(empenhado)}**, sendo quitados **${fmtMoney(pago)}**.`,
+        metrics: [
+          { title: "Patronal Empenhado", value: fmtMoney(empenhado) },
+          {
+            title: "Patronal Quitado",
+            value: fmtMoney(pago),
+            variant: "success",
+          },
+        ],
+        chartData: [
+          { label: "Empenhado", valor: empenhado },
+          { label: "Pago", valor: pago },
+        ],
+        chartType: "bar",
+        sqlQuery: sql,
+      };
+
+      await trackMcpToolCall(
+        "assistant_fallback_chat",
+        {
+          input: { message, portalSlug, year },
+          output: resData,
+          latencyMs: Date.now() - startTime,
+        },
+        { traceId },
+      );
+
+      return NextResponse.json(resData);
+    }
+
+    // B. Saúde Pública
+    if (
+      queryText.includes("saude") ||
+      queryText.includes("saúde") ||
+      queryText.includes("hospital")
+    ) {
+      const sql = `SELECT CAST(SUM(total_liquidado) AS DOUBLE) as total_liquidado, CAST(SUM(total_pago) AS DOUBLE) as total_pago FROM fct_historia_saude_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const rows = await queryDuckDbParquet<{
+        total_liquidado: number;
+        total_pago: number;
+      }>(sql);
+      const row = rows[0] || { total_liquidado: 0, total_pago: 0 };
+
+      const liquidado = Number(row.total_liquidado || 0);
+      const pago = Number(row.total_pago || 0);
+
+      const resData = {
+        answer: `No setor da **Saúde (${year})**, o total liquidado foi de **${fmtMoney(liquidado)}** e os pagamentos efetuados somaram **${fmtMoney(pago)}**.`,
+        metrics: [
+          { title: "Liquidado Saúde", value: fmtMoney(liquidado) },
+          { title: "Pago Saúde", value: fmtMoney(pago), variant: "success" },
+        ],
+        chartData: [
+          { label: "Liquidado", valor: liquidado },
+          { label: "Pago", valor: pago },
+        ],
+        chartType: "bar",
+        sqlQuery: sql,
+      };
+
+      await trackMcpToolCall(
+        "assistant_fallback_chat",
+        {
+          input: { message, portalSlug, year },
+          output: resData,
+          latencyMs: Date.now() - startTime,
+        },
+        { traceId },
+      );
+
+      return NextResponse.json(resData);
+    }
+
+    // C. Receitas e Fontes
+    if (
+      queryText.includes("receita") ||
+      queryText.includes("fonte") ||
+      queryText.includes("emenda") ||
+      queryText.includes("pix")
+    ) {
+      const sql = `SELECT CAST(SUM(total_previsto) AS DOUBLE) as total_previsto, CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(emendas_pix_arrecadado) AS DOUBLE) as emendas_pix_arrecadado FROM fct_fontes_receita_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year} AND (empresa_id = 7 OR empresa_id = '7')`;
+      const rows = await queryDuckDbParquet<{
+        total_previsto: number;
+        total_arrecadado: number;
+        emendas_pix_arrecadado: number;
+      }>(sql);
+
+      const row = rows[0] || {
+        total_previsto: 0,
+        total_arrecadado: 0,
+        emendas_pix_arrecadado: 0,
+      };
+      const previsto = Number(row.total_previsto || 0);
+      const arrecadado = Number(row.total_arrecadado || 0);
+      const emendasPix = Number(row.emendas_pix_arrecadado || 0);
+
+      const resData = {
+        answer: `No exercício de **${year}**, a receita prevista total da Prefeitura foi de **${fmtMoney(previsto)}**, com **${fmtMoney(arrecadado)}** arrecadados (sendo **${fmtMoney(emendasPix)}** provenientes de Emendas PIX).`,
+        metrics: [
+          { title: "Receita Prevista", value: fmtMoney(previsto) },
+          {
+            title: "Total Arrecadado",
+            value: fmtMoney(arrecadado),
+            variant: "success",
+          },
+          {
+            title: "Emendas PIX",
+            value: fmtMoney(emendasPix),
+            variant: "accent",
+          },
+        ],
+        chartData: [
+          { label: "Previsto", valor: previsto },
+          { label: "Arrecadado", valor: arrecadado },
+        ],
+        chartType: "bar",
+        sqlQuery: sql,
+      };
+
+      await trackMcpToolCall(
+        "assistant_fallback_chat",
+        {
+          input: { message, portalSlug, year },
+          output: resData,
+          latencyMs: Date.now() - startTime,
+        },
+        { traceId },
+      );
+
+      return NextResponse.json(resData);
+    }
+
+    // D. Licitações e Dispensas
+    if (
+      queryText.includes("licitacao") ||
+      queryText.includes("licitação") ||
+      queryText.includes("dispensa")
+    ) {
+      const sql = `SELECT CAST(SUM(valor_contrato) AS DOUBLE) as total_dispensas, CAST(COUNT(*) AS DOUBLE) as qtd_dispensas FROM fct_licitacoes_gaps_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const rows = await queryDuckDbParquet<{
+        total_dispensas: number;
+        qtd_dispensas: number;
+      }>(sql);
+      const row = rows[0] || { total_dispensas: 0, qtd_dispensas: 0 };
+
+      const total = Number(row.total_dispensas || 0);
+      const qtd = Number(row.qtd_dispensas || 0);
+
+      const resData = {
+        answer: `No exercício de **${year}**, o valor total registrado em dispensas de licitação e contratações diretas foi de **${fmtMoney(total)}**, englobando **${qtd}** processos catalogados.`,
+        metrics: [
+          {
+            title: "Total Dispensas",
+            value: fmtMoney(total),
+            variant: "accent",
+          },
+          { title: "Processos", value: String(qtd), variant: "default" },
+        ],
+        chartData: [{ label: "Total Dispensas", valor: total }],
+        chartType: "bar",
+        sqlQuery: sql,
+      };
+
+      await trackMcpToolCall(
+        "assistant_fallback_chat",
+        {
+          input: { message, portalSlug, year },
+          output: resData,
+          latencyMs: Date.now() - startTime,
+        },
+        { traceId },
+      );
+
+      return NextResponse.json(resData);
+    }
+
+    // E. Busca por Fornecedor / Empresa / Contrato específico
     const searchMatch = message.match(
       /(?:empresa|fornecedor|credor|contrato)\s+([a-zA-Z0-9_-]{2,})/i,
     );
@@ -268,7 +469,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Pessoal e Folha
+    // F. Pessoal e Folha
     if (
       queryText.includes("pessoal") ||
       queryText.includes("folha") ||
