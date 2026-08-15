@@ -1,6 +1,6 @@
 SRC = elt
 
-.PHONY: install-uv install type-check lint lint/ruff lint/fix format format/check check test pipeline pipeline/extract pipeline/load elt/extract elt/load elt/load-csv dbt/deps dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs dev build test/ts db/fixture/dump db/test/restore
+.PHONY: install-uv install type-check lint lint/ruff lint/fix format format/check check test pipeline pipeline/extract pipeline/load elt/extract elt/load elt/load-csv dbt/deps dbt/run dbt/seed dbt/test dbt/debug dbt/compile dbt/docs export-parquet sync-parquet dev build test/ts db/fixture/dump db/test/restore
 
 # SETUP TASKS
 
@@ -95,6 +95,14 @@ dbt/compile:
 
 dbt/docs:
 	uv run --project elt python elt/scripts/run_dbt.py docs generate && uv run --project elt python elt/scripts/run_dbt.py docs serve
+
+# PARQUET EXPORT
+
+export-parquet:
+	uv run --project elt python elt/export_marts_parquet.py $(if $(OUTPUT_DIR),--output-dir $(OUTPUT_DIR))
+
+sync-parquet:
+	uv run --project elt python elt/scripts/sync_parquet.py
 
 # WEB APP (NEXT.JS)
 
