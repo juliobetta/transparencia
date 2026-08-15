@@ -46,117 +46,135 @@ function resolveParquetPath(tableName: string): string {
 }
 
 const MART_TABLES = [
-  "fct_posicao_fiscal_metricas",
-  "fct_posicao_fiscal_detalhes_metricas",
-  "fct_fontes_receita_metricas",
-  "fct_historia_saude_metricas",
-  "fct_historia_caprem_metricas",
-  "fct_licitacoes_gaps_metricas",
-  "fct_licitacoes_modalidades_metricas",
-  "fct_licitacoes_metricas",
-  "fct_licitacoes",
-  "fct_contratos_servicos_vigentes",
-  "fct_contratos",
-  "fct_despesas",
-  "fct_despesas_fornecedores_metricas",
-  "fct_despesas_diarias_metricas",
-  "fct_despesas_restos_metricas",
+  "dim_credor",
+  "dim_date",
+  "dim_elemento_despesa",
+  "dim_funcao_subfuncao",
+  "dim_metadata",
+  "dim_natureza_despesa",
+  "dim_orgao",
+  "dim_portais",
   "fct_analise_despesas_metricas",
+  "fct_caprem_cadprev_metricas",
+  "fct_caprem_entidades_metricas",
+  "fct_caprem_natureza_metricas",
+  "fct_caprem_tendencia_atuarial_metricas",
+  "fct_contratos",
+  "fct_contratos_servicos_vigentes",
+  "fct_despesas",
+  "fct_despesas_diarias_metricas",
+  "fct_despesas_fornecedores_metricas",
+  "fct_despesas_por_fornecedor",
+  "fct_despesas_por_orgao",
+  "fct_despesas_por_unidade",
+  "fct_despesas_restos_metricas",
+  "fct_diarias",
+  "fct_emendas",
   "fct_execucao_orcamentaria_metricas",
+  "fct_fontes_receita_metricas",
+  "fct_historia_caprem_metricas",
+  "fct_historia_saude_metricas",
+  "fct_licitacoes",
+  "fct_licitacoes_metricas",
+  "fct_licitacoes_modalidades_metricas",
   "fct_orcamento_funcional_metricas",
   "fct_pessoal",
-  "fct_pessoal_folha_metricas",
   "fct_pessoal_departamento_metricas",
-  "fct_emendas",
-  "fct_diarias",
+  "fct_pessoal_folha_metricas",
+  "fct_posicao_fiscal_detalhes_metricas",
+  "fct_posicao_fiscal_metricas",
+  "fct_receita_extra_orcamentaria",
   "fct_receitas",
   "fct_transferencias",
 ];
 
 export async function getDuckDbInstance(): Promise<unknown> {
-  if (!dbPromise) {
-    dbPromise = (async () => {
-      try {
-        if (typeof window === "undefined") {
-          // Ambiente Server-side Node.js (Vercel Functions / Next.js Server)
-          // biome-ignore lint/security/noGlobalEval: requer require dinamico para isolar bundle do Turbopack
-          const req = eval("require");
-          const duckdbNode = req(
-            "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
-          );
-          const wasmPath = req.resolve(
-            "@duckdb/duckdb-wasm/dist/duckdb-eh.wasm",
-          );
-          const bundles = {
-            mvp: { mainModule: wasmPath, mainWorker: "" },
-            eh: { mainModule: wasmPath, mainWorker: "" },
-          };
-          const logger = new duckdbNode.ConsoleLogger();
-          const instance = await duckdbNode.createDuckDB(
-            bundles,
-            logger,
-            duckdbNode.NODE_RUNTIME,
-          );
-          await instance.instantiate(wasmPath);
-          return instance;
-        }
-        // Ambiente Browser Client-side
-        const DUCKDB_BUNDLES = duckdb.getJsDelivrBundles();
-        const bundle = await duckdb.selectBundle(DUCKDB_BUNDLES);
-        const mainWorker = bundle.mainWorker ?? "";
-        const worker = new Worker(mainWorker);
-        const logger = new duckdb.ConsoleLogger();
-        const instance = new duckdb.AsyncDuckDB(logger, worker);
-        await instance.instantiate(bundle.mainModule, bundle.pthreadWorker);
-        return instance;
-      } catch (err) {
-        dbPromise = null;
-        throw err;
-      }
-    })();
-  }
+  if (dbPromise) return dbPromise;
 
-  const db = (await dbPromise) as {
-    connect: () => Promise<{
-      query: (sql: string) => Promise<unknown>;
-      close: () => Promise<void>;
-    }>;
-  };
-
-  if (!initializedViews && db) {
-    const conn = await db.connect();
-    for (const table of MART_TABLES) {
-      const parquetFile = resolveParquetPath(table);
-      try {
-        await conn.query(
-          `CREATE OR REPLACE VIEW ${table} AS SELECT * FROM '${parquetFile.replace(/\\/g, "/")}'`,
-        );
-      } catch (_err) {}
+  dbPromise = (async () => {
+    if (typeof window === "undefined") {
+      // Server-side Node.js CJS require to avoid Turbopack bundle errors
+      // biome-ignore lint/security/noGlobalEval: server-side requirement
+      const duckdbNode = eval("require")(
+        "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
+      );
+      const db = new duckdbNode.DuckDBNode();
+      await db.instantiate();
+      return db;
     }
-    await conn.close();
-    initializedViews = true;
-  }
 
-  return db;
+    // Client-side browser bundle
+    const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+    const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+
+    const workerUrl = URL.createObjectURL(
+      new Blob([`importScripts('${bundle.mainWorker}');`], {
+        type: "text/javascript",
+      }),
+    );
+
+    const worker = new Worker(workerUrl);
+    const logger = new duckdb.ConsoleLogger();
+    const db = new duckdb.AsyncDuckDB(logger, worker);
+    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    URL.revokeObjectURL(workerUrl);
+    return db;
+  })();
+
+  return dbPromise;
 }
 
 export async function queryDuckDbParquet<T = Record<string, unknown>>(
   sqlQuery: string,
 ): Promise<T[]> {
+  const db = (await getDuckDbInstance()) as {
+    connect: () => Promise<{
+      query: (sql: string) => Promise<{ toArray: () => unknown[] }>;
+      close: () => Promise<void>;
+    }>;
+  };
+  const conn = await db.connect();
+
   try {
-    const db = (await getDuckDbInstance()) as {
-      connect: () => Promise<{
-        query: (
-          sql: string,
-        ) => Promise<{ toArray: () => { toJSON: () => T }[] }>;
-        close: () => Promise<void>;
-      }>;
-    };
-    const conn = await db.connect();
+    if (!initializedViews) {
+      for (const table of MART_TABLES) {
+        const parquetPath = resolveParquetPath(table);
+        await conn.query(
+          `CREATE VIEW IF NOT EXISTS ${table} AS SELECT * FROM read_parquet('${parquetPath}')`,
+        );
+      }
+      initializedViews = true;
+    }
+
     const result = await conn.query(sqlQuery);
+    const rawRows = result.toArray() as Record<string, unknown>[];
+
+    // Converter HugeInt e BigInt de volta para Number/String nativo seguro
+    const sanitizedRows = rawRows.map((row) => {
+      const cleanObj: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(row)) {
+        if (val == null) {
+          cleanObj[key] = val;
+        } else if (typeof val === "bigint") {
+          cleanObj[key] = Number(val);
+        } else if (typeof val === "object") {
+          const obj = val as Record<string, unknown>;
+          if (typeof obj.doubleValue === "function") {
+            cleanObj[key] = (obj.doubleValue as () => number)();
+          } else if ("low" in obj && typeof obj.low === "number") {
+            cleanObj[key] = obj.low;
+          } else {
+            cleanObj[key] = val;
+          }
+        } else {
+          cleanObj[key] = val;
+        }
+      }
+      return cleanObj as T;
+    });
+
+    return sanitizedRows;
+  } finally {
     await conn.close();
-    return result.toArray().map((row: { toJSON: () => T }) => row.toJSON());
-  } catch (_err) {
-    return [];
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { runBenchmarkEvals } from "../eval-runner";
 
-vi.mock("../duckdb-executor", () => ({
+vi.mock("../../duckdb-executor", () => ({
   queryDuckDbParquet: vi.fn().mockResolvedValue([{ total_arrecadado: 1000 }]),
 }));
 
@@ -16,6 +16,5 @@ describe("AI Evals Benchmark Runner", () => {
     expect(summary.passed).toBe(summary.total);
     expect(summary.failed).toBe(0);
     expect(summary.passRate).toBe(100);
-    expect(summary.results[0].passed).toBe(true);
   });
 });

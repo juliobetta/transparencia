@@ -38,9 +38,10 @@ export async function runBenchmarkEvals(
     let error: string | undefined;
 
     try {
-      sql = `SELECT * FROM ${q.expectedMart} WHERE portal_slug = '${portalSlug}' AND ano = ${year} LIMIT 5`;
+      const martTable = q.expectedMart || "fct_posicao_fiscal_metricas";
+      sql = `SELECT * FROM ${martTable} WHERE portal_slug = '${portalSlug}' AND ano = ${year} LIMIT 5`;
       const rows = await queryDuckDbParquet(sql);
-      passed = Array.isArray(rows);
+      passed = Boolean(rows && Array.isArray(rows));
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
       passed = false;
@@ -63,7 +64,7 @@ export async function runBenchmarkEvals(
     total: results.length,
     passed: passedCount,
     failed: results.length - passedCount,
-    passRate: (passedCount / results.length) * 100,
+    passRate: results.length > 0 ? (passedCount / results.length) * 100 : 0,
     results,
   };
 }
