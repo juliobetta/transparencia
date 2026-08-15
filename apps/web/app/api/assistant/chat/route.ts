@@ -260,27 +260,24 @@ export async function POST(req: NextRequest) {
       queryText.includes("licitação") ||
       queryText.includes("dispensa")
     ) {
-      const sql = `SELECT CAST(SUM(valor_contrato) AS DOUBLE) as total_dispensas, CAST(COUNT(*) AS DOUBLE) as qtd_dispensas FROM fct_licitacoes_gaps_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const sql = `SELECT CAST(COUNT(*) AS DOUBLE) as qtd_licitacoes FROM fct_licitacoes_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
       const rows = await queryDuckDbParquet<{
-        total_dispensas: number;
-        qtd_dispensas: number;
+        qtd_licitacoes: number;
       }>(sql);
-      const row = rows[0] || { total_dispensas: 0, qtd_dispensas: 0 };
+      const row = rows[0] || { qtd_licitacoes: 0 };
 
-      const total = Number(row.total_dispensas || 0);
-      const qtd = Number(row.qtd_dispensas || 0);
+      const qtd = Number(row.qtd_licitacoes || 0);
 
       const resData = {
-        answer: `No exercício de **${year}**, o valor total registrado em dispensas de licitação e contratações diretas foi de **${fmtMoney(total)}**, englobando **${qtd}** processos catalogados.`,
+        answer: `No exercício de **${year}**, foram registrados **${qtd}** processos licitatórios e contratações catalogadas.`,
         metrics: [
           {
-            title: "Total Dispensas",
-            value: fmtMoney(total),
+            title: "Processos Licitações",
+            value: String(qtd),
             variant: "accent",
           },
-          { title: "Processos", value: String(qtd), variant: "default" },
         ],
-        chartData: [{ label: "Total Dispensas", valor: total }],
+        chartData: [{ label: "Processos Licitações", valor: qtd }],
         chartType: "bar",
         sqlQuery: sql,
       };
