@@ -38,6 +38,9 @@ opencode.json
 .streamlit/secrets.toml
 docs/superpowers/
 *.db
+*.duckdb
+*.duckdb.wal
+*.parquet
 .local_browsers/
 .local-browsers/
 elt/transform/target/
