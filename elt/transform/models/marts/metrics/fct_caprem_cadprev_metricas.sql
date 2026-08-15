@@ -1,7 +1,3 @@
-{{ config(
-    materialized='table',
-    pre_hook="create extension if not exists unaccent;"
-) }}
 
 with cadprev_despesas as (
     select
