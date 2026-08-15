@@ -82,7 +82,7 @@ dbt/seed:
 	uv run --project elt python elt/scripts/run_dbt.py seed
 
 dbt/run:
-	uv run --project elt python elt/scripts/run_dbt.py run $(if $(SELECT),--select $(SELECT))
+	uv run --project elt python elt/scripts/run_dbt.py seed && uv run --project elt python elt/scripts/run_dbt.py run $(if $(SELECT),--select $(SELECT))
 
 dbt/test:
 	uv run --project elt python elt/scripts/run_dbt.py test $(if $(SELECT),--select $(SELECT))

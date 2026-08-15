@@ -1,11 +1,3 @@
-{{
-    config(
-        materialized='table',
-        pre_hook=[
-            "create extension if not exists unaccent;"
-        ]
-    )
-}}
 
 with receitas_root as (
     select

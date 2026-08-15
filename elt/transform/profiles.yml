@@ -2,12 +2,14 @@ transparencia:
   target: dev
   outputs:
     dev:
-      type: postgres
-      host: "{{ env_var('DBT_HOST') }}"
-      port: "{{ env_var('DBT_PORT') | int }}"
-      user: "{{ env_var('DBT_USER') }}"
-      password: "{{ env_var('DBT_PASSWORD') }}"
-      dbname: "{{ env_var('DBT_DBNAME') }}"
-      schema: public
+      type: duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH', 'dev.duckdb') }}"
+      schema: main
       threads: 4
-      connect_timeout: 30
+      attach:
+        - path: "dbname={{ env_var('DBT_DBNAME', 'postgres') }} host={{ env_var('DBT_HOST', 'localhost') }} port={{ env_var('DBT_PORT', '5544') }} user={{ env_var('DBT_USER', 'postgres') }} password={{ env_var('DBT_PASSWORD', 'postgres') }}"
+          type: postgres
+          alias: postgres
+
+
+

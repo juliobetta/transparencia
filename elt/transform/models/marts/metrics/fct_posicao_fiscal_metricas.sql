@@ -3,7 +3,7 @@
 with metadata_gestao as (
     select
         portal_slug,
-        coalesce(max(case when key = 'ano_inicio_gestao_atual' then value::int end), 2025) as ano_inicio_gestao
+        coalesce(max(case when "key" = 'ano_inicio_gestao_atual' then value::int end), 2025) as ano_inicio_gestao
     from {{ ref('dim_metadata') }}
     group by portal_slug
 ),

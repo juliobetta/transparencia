@@ -5,7 +5,7 @@ with portais as (
 max_extracao as (
     select portal_slug, max(value)::date as value
     from {{ ref('dim_metadata') }}
-    where key = 'last_extracted_at'
+    where "key" = 'last_extracted_at'
     group by portal_slug
 )
 
