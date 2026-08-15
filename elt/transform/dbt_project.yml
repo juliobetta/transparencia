@@ -20,6 +20,15 @@ vars:
   administracao_reference_year: 2025
   administracao_min_valid_year: 2000
 
+on-run-start:
+  - "INSTALL icu; LOAD icu;"
+  - "CREATE MACRO IF NOT EXISTS to_date(str, fmt) AS CASE WHEN lower(fmt) = 'dd/mm/yyyy' THEN try_strptime(str, '%d/%m/%Y')::DATE WHEN lower(fmt) = 'yyyy-mm-dd' THEN try_strptime(str, '%Y-%m-%d')::DATE ELSE try_strptime(str, '%d/%m/%Y')::DATE END;"
+  - "CREATE MACRO IF NOT EXISTS to_timestamp(str, fmt) AS CASE WHEN lower(fmt) = 'dd/mm/yyyy hh24:mi:ss' THEN try_strptime(str, '%d/%m/%Y %H:%M:%S') WHEN lower(fmt) = 'yyyy-mm-dd hh24:mi:ss' THEN try_strptime(str, '%Y-%m-%d %H:%M:%S') ELSE try_strptime(str, '%d/%m/%Y %H:%M:%S') END;"
+  - "CREATE MACRO IF NOT EXISTS to_char(dt, fmt) AS CASE WHEN fmt ILIKE '%Month%' THEN strftime(dt, '%B') WHEN lower(fmt) = 'dd/mm/yyyy' THEN strftime(dt, '%d/%m/%Y') WHEN lower(fmt) = 'yyyy-mm' THEN strftime(dt, '%Y-%m') ELSE strftime(dt, '%Y-%m-%d') END;"
+  - "CREATE MACRO IF NOT EXISTS unaccent(str) AS strip_accents(str);"
+  - 'CREATE MACRO IF NOT EXISTS "~*"(str, pattern) AS regexp_matches(str, pattern, ''i'');'
+
+
 models:
   transparencia:
     staging:
@@ -27,4 +36,8 @@ models:
     intermediate:
       +materialized: view
     marts:
-      +materialized: "{{ 'view' if var('test_mode', false) else 'table' }}"
+      +materialized: "{{ 'view' if var('test_mode', false) else 'external' }}"
+      +file_format: parquet
+      +options:
+        compression: 'snappy'
+
