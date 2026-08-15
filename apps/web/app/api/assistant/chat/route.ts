@@ -23,12 +23,32 @@ export interface AssistantResponse {
   sqlQuery?: string;
 }
 
-function fmtMoney(val: number | null | undefined): string {
-  if (val == null || Number.isNaN(Number(val))) return "R$ 0,00";
+function fmtMoney(val: unknown): string {
+  if (val == null) return "R$ 0,00";
+  let num = 0;
+  if (typeof val === "bigint") {
+    num = Number(val);
+  } else if (typeof val === "object" && val !== null) {
+    const v = val as Record<string, unknown>;
+    if (typeof v.doubleValue === "function") {
+      num = (v.doubleValue as () => number)();
+    } else if ("low" in v && typeof v.low === "number") {
+      num = v.low;
+    } else {
+      num = Number(val);
+    }
+  } else {
+    num = Number(val);
+  }
+
+  if (Number.isNaN(num) || !Number.isFinite(num) || Math.abs(num) > 1e14) {
+    return "R$ 0,00";
+  }
+
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(Number(val));
+  }).format(num);
 }
 
 const assistantOutputSchema = jsonSchema<{
@@ -46,7 +66,7 @@ const assistantOutputSchema = jsonSchema<{
     sql: {
       type: "string",
       description:
-        "Consulta SQL DuckDB agregada com SUM() sobre os arquivos Parquet (views: fct_posicao_fiscal_metricas, fct_fontes_receita_metricas, fct_historia_saude_metricas, fct_historia_caprem_metricas, fct_licitacoes_gaps_metricas)",
+        "Consulta SQL DuckDB agregada com CAST(SUM(...) AS DOUBLE) para a Prefeitura (empresa_id = 7) sobre as views",
     },
     answer: {
       type: "string",
@@ -104,17 +124,16 @@ export async function POST(req: NextRequest) {
           prompt: `Você é o Assistente Fiscal AI do Portal da Transparência de ${portalSlug}.
 O usuário selecionou o exercício de ${year} e perguntou: "${message}".
 
-Gere a consulta SQL agregada com SUM() para rodar na base de dados fiscais do exercício de ${year}:
-Views disponíveis e colunas exatas:
-- fct_posicao_fiscal_metricas (columns: portal_slug, ano, SUM(total_arrecadado) as total_arrecadado, SUM(despesas_pagas) as despesas_pagas, SUM(saldo_estimado) as saldo_estimado)
-- fct_fontes_receita_metricas (columns: portal_slug, ano, SUM(total_previsto) as total_previsto, SUM(total_arrecadado) as total_arrecadado, SUM(emendas_pix_arrecadado) as emendas_pix_arrecadado)
-- fct_historia_saude_metricas (columns: portal_slug, ano, SUM(total_liquidado) as total_liquidado, SUM(total_pago) as total_pago)
-- fct_historia_caprem_metricas (columns: portal_slug, ano, SUM(total_empenhado_patronal) as total_empenhado_patronal, SUM(total_pago_patronal) as total_pago_patronal)
-- fct_licitacoes_gaps_metricas (columns: portal_slug, ano, SUM(valor_contrato) as total_dispensas, COUNT(*) as qtd_dispensas)
+Gere a consulta SQL agregada com CAST(... AS DOUBLE) para rodar na base de dados da Prefeitura (empresa_id = 7) do exercício de ${year}:
+Views disponíveis:
+- fct_posicao_fiscal_metricas (columns: CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(despesas_pagas) AS DOUBLE) as despesas_pagas, CAST(SUM(saldo_estimado) AS DOUBLE) as saldo_estimado)
+- fct_fontes_receita_metricas (columns: CAST(SUM(total_previsto) AS DOUBLE) as total_previsto, CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(emendas_pix_arrecadado) AS DOUBLE) as emendas_pix_arrecadado)
+- fct_historia_saude_metricas (columns: CAST(SUM(total_liquidado) AS DOUBLE) as total_liquidado, CAST(SUM(total_pago) AS DOUBLE) as total_pago)
+- fct_historia_caprem_metricas (columns: CAST(SUM(total_empenhado_patronal) AS DOUBLE) as total_empenhado_patronal, CAST(SUM(total_pago_patronal) AS DOUBLE) as total_pago_patronal)
+- fct_licitacoes_gaps_metricas (columns: CAST(SUM(valor_contrato) AS DOUBLE) as total_dispensas, CAST(COUNT(*) AS DOUBLE) as qtd_dispensas)
 
-Filtre obrigatoriamente por portal_slug = '${portalSlug}' AND ano = ${year}.
-NUNCA esqueça do filtro ano = ${year}.
-IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício de ${year}. NUNCA mencione termos técnicos como DuckDB, Parquet, R2, SQL ou banco de dados.`,
+Filtre obrigatoriamente por portal_slug = '${portalSlug}' AND ano = ${year} AND (empresa_id = 7 OR empresa_id = '7').
+IMPORTANTE: Na resposta 'answer', informe com clareza os valores da Prefeitura no exercício de ${year}. NUNCA mencione termos técnicos como DuckDB, Parquet, R2, SQL ou banco de dados.`,
         });
 
         let queryResults: Record<string, unknown>[] = [];
@@ -139,14 +158,14 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
       } catch (_llmErr) {}
     }
 
-    // 2. Execução Determinística Fallback agregada por SUM(...) no ano selecionado
+    // 2. Execução Determinística Fallback protegida com CAST(... AS DOUBLE) e filtro por empresa_id = 7
     if (
       queryText.includes("receita") ||
       queryText.includes("fonte") ||
       queryText.includes("emenda") ||
       queryText.includes("pix")
     ) {
-      const sql = `SELECT SUM(total_previsto) as total_previsto, SUM(total_arrecadado) as total_arrecadado, SUM(emendas_pix_arrecadado) as emendas_pix_arrecadado FROM fct_fontes_receita_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const sql = `SELECT CAST(SUM(total_previsto) AS DOUBLE) as total_previsto, CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(emendas_pix_arrecadado) AS DOUBLE) as emendas_pix_arrecadado FROM fct_fontes_receita_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year} AND (empresa_id = 7 OR empresa_id = '7')`;
       const rows = await queryDuckDbParquet<{
         total_previsto: number;
         total_arrecadado: number;
@@ -163,7 +182,7 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
       const emendasPix = Number(row.emendas_pix_arrecadado || 0);
 
       return NextResponse.json({
-        answer: `No exercício de **${year}**, a receita prevista total foi de **${fmtMoney(previsto)}**, com **${fmtMoney(arrecadado)}** arrecadados (sendo **${fmtMoney(emendasPix)}** provenientes de Emendas PIX).`,
+        answer: `No exercício de **${year}**, a receita prevista total da Prefeitura foi de **${fmtMoney(previsto)}**, com **${fmtMoney(arrecadado)}** arrecadados (sendo **${fmtMoney(emendasPix)}** provenientes de Emendas PIX).`,
         metrics: [
           { title: "Receita Prevista", value: fmtMoney(previsto) },
           {
@@ -191,7 +210,7 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
       queryText.includes("saúde") ||
       queryText.includes("hospital")
     ) {
-      const sql = `SELECT SUM(total_liquidado) as total_liquidado, SUM(total_pago) as total_pago FROM fct_historia_saude_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const sql = `SELECT CAST(SUM(total_liquidado) AS DOUBLE) as total_liquidado, CAST(SUM(total_pago) AS DOUBLE) as total_pago FROM fct_historia_saude_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
       const rows = await queryDuckDbParquet<{
         total_liquidado: number;
         total_pago: number;
@@ -222,7 +241,7 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
       queryText.includes("previdência") ||
       queryText.includes("atuaria")
     ) {
-      const sql = `SELECT SUM(total_empenhado_patronal) as total_empenhado_patronal, SUM(total_pago_patronal) as total_pago_patronal FROM fct_historia_caprem_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const sql = `SELECT CAST(SUM(total_empenhado_patronal) AS DOUBLE) as total_empenhado_patronal, CAST(SUM(total_pago_patronal) AS DOUBLE) as total_pago_patronal FROM fct_historia_caprem_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
       const rows = await queryDuckDbParquet<{
         total_empenhado_patronal: number;
         total_pago_patronal: number;
@@ -260,7 +279,7 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
       queryText.includes("dispensa") ||
       queryText.includes("contrato")
     ) {
-      const sql = `SELECT SUM(valor_contrato) as total_dispensas, COUNT(*) as qtd_dispensas FROM fct_licitacoes_gaps_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const sql = `SELECT CAST(SUM(valor_contrato) AS DOUBLE) as total_dispensas, CAST(COUNT(*) AS DOUBLE) as qtd_dispensas FROM fct_licitacoes_gaps_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
       const rows = await queryDuckDbParquet<{
         total_dispensas: number;
         qtd_dispensas: number;
@@ -286,8 +305,8 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
       });
     }
 
-    // Fallback Padrão: Posição Fiscal Agregada por SUM(...) no ano selecionado
-    const sql = `SELECT SUM(total_arrecadado) as total_arrecadado, SUM(despesas_pagas) as despesas_pagas, SUM(saldo_estimado) as saldo_estimado FROM fct_posicao_fiscal_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+    // Fallback Padrão: Posição Fiscal Agregada da Prefeitura (empresa_id = 7) protegida por CAST AS DOUBLE
+    const sql = `SELECT CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(despesas_pagas) AS DOUBLE) as despesas_pagas, CAST(SUM(saldo_estimado) AS DOUBLE) as saldo_estimado FROM fct_posicao_fiscal_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year} AND (empresa_id = 7 OR empresa_id = '7')`;
     const rows = await queryDuckDbParquet<{
       total_arrecadado: number;
       despesas_pagas: number;
@@ -304,7 +323,7 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores do exercício d
     const saldo = Number(row.saldo_estimado || totalArrecadado - despesasPagas);
 
     return NextResponse.json({
-      answer: `No exercício de **${year}**, a arrecadação total foi de **${fmtMoney(totalArrecadado)}** e as despesas pagas somaram **${fmtMoney(despesasPagas)}**, gerando um saldo estimado de **${fmtMoney(saldo)}**.`,
+      answer: `No exercício de **${year}**, a arrecadação da Prefeitura foi de **${fmtMoney(totalArrecadado)}** e as despesas pagas somaram **${fmtMoney(despesasPagas)}**, gerando um saldo de **${fmtMoney(saldo)}**.`,
       metrics: [
         {
           title: "Total Arrecadado",
