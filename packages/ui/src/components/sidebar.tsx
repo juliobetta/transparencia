@@ -69,6 +69,7 @@ export interface SidebarProps {
   selectedEntidades?: string[];
   onEntidadesChange?: (selectedIds: string[]) => void;
   portalSlug?: string;
+  assistantAction?: React.ReactNode;
 }
 
 function YearSelect({
@@ -149,6 +150,7 @@ export function Sidebar({
   selectedEntidades,
   onEntidadesChange,
   portalSlug = "porciuncula_prefeitura",
+  assistantAction,
 }: SidebarProps) {
   const pathname = usePathname();
   const currentYear = new Date().getFullYear();
@@ -327,6 +329,7 @@ export function Sidebar({
 
           {/* Navegação Principal */}
           <nav className="space-y-4 p-4">
+            {assistantAction && <div className="mb-2">{assistantAction}</div>}
             {/* Opção "Visão geral" isolada no topo sem cabeçalho de grupo */}
             <div>
               <Link
