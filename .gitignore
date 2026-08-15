@@ -69,3 +69,6 @@ _bmad-output
 .bmad-loop/policy.toml
 
 *.tsbuildinfo
+*.duckdb
+docker/volumes/*
+infra/bin/*

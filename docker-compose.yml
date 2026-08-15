@@ -36,3 +36,17 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5545:5432"
+
+  minio:
+    image: minio/minio:RELEASE.2024-11-07T00-52-17Z
+    container_name: transparencia_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./docker/volumes/minio_data:/data
+    restart: unless-stopped
