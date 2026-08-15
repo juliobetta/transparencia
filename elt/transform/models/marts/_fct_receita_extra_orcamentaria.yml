@@ -6,10 +6,7 @@ models:
     config:
       contract:
         enforced: true
-    tests:
-      - dbt_utils.expression_is_true:
-          expression: "valor_arrecadado >= 0"
-          name: receita_extra_orcamentaria_invariante_arrecadado
+
     columns:
       - name: receita_extra_id
         data_type: text

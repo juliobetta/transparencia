@@ -1,8 +1,4 @@
-{{
-    config(
-        materialized='table'
-    )
-}}
+
 
 select
     {{ dbt_utils.generate_surrogate_key(['portal_slug', 'empresa_id', 'ano', 'codigo', 'coalesce(descricao, \'\')']) }} as receita_extra_id,

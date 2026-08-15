@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 with restos_com_origem as (
     select

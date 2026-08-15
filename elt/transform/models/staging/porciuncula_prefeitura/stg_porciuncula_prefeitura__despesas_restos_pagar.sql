@@ -26,3 +26,4 @@ select
     liquidado,
     pago
 from renamed
+qualify row_number() over (partition by ano, empresa_id, rap_id order by empenhado desc nulls last, liquidado desc nulls last, pago desc nulls last) = 1

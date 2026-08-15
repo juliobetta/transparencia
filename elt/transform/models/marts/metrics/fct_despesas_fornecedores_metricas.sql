@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 with despesas_fonte as (
     select

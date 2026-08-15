@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 with diarias_detalhadas as (
     select
