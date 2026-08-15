@@ -16,6 +16,11 @@ const QUESTION_TEMPLATES = [
       `Existem pendências ou alertas cadastrados sobre ${desc}?`,
     metrics: ["saldo_estimado", "status_execucao"],
   },
+  {
+    pattern: (desc: string) =>
+      `Quais são os principais indicadores e registros de ${desc}?`,
+    metrics: ["total_folha", "valor_contrato", "despesas_pagas"],
+  },
 ];
 
 export function generateSyntheticBenchmarkQuestions(): BenchmarkQuestion[] {
