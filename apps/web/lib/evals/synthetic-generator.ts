@@ -22,18 +22,20 @@ export function generateSyntheticBenchmarkQuestions(): BenchmarkQuestion[] {
   const generated: BenchmarkQuestion[] = [];
   let index = 1;
 
-  for (const mart of FISCAL_TAXONOMY) {
-    for (const tmpl of QUESTION_TEMPLATES) {
-      const id = `syn-${String(index++).padStart(3, "0")}`;
-      generated.push({
-        id,
-        domain: mart.domain,
-        question: tmpl.pattern(mart.description.toLowerCase()),
-        expectedMart: mart.tableName,
-        expectedMetrics: mart.columns.filter((c) =>
-          tmpl.metrics.some((m) => c.includes(m)),
-        ),
-      });
+  for (const group of FISCAL_TAXONOMY) {
+    for (const mart of group.marts) {
+      for (const tmpl of QUESTION_TEMPLATES) {
+        const id = `syn-${String(index++).padStart(3, "0")}`;
+        generated.push({
+          id,
+          domain: group.domain,
+          question: tmpl.pattern(mart.description.toLowerCase()),
+          expectedMart: mart.table,
+          expectedMetrics: mart.columns.filter((c) =>
+            tmpl.metrics.some((m) => c.includes(m)),
+          ),
+        });
+      }
     }
   }
 

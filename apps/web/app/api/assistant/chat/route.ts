@@ -1,9 +1,7 @@
-import { google } from "@ai-sdk/google";
-import { generateObject, jsonSchema } from "ai";
 import { type NextRequest, NextResponse } from "next/server";
+import { executeReActAgent } from "@/lib/agent/react-engine";
 import { queryDuckDbParquet } from "@/lib/duckdb-executor";
 import { trackMcpToolCall } from "@/lib/mcp/transparencia-mcp";
-import { buildLayeredContext } from "@/lib/skills/context-builder";
 
 export interface AssistantMetricCard {
   title: string;
@@ -53,48 +51,6 @@ function fmtMoney(val: unknown): string {
   }).format(num);
 }
 
-const assistantOutputSchema = jsonSchema<{
-  sql: string;
-  answer: string;
-  metrics?: {
-    title: string;
-    value: string;
-    variant?: "default" | "accent" | "warning" | "success";
-  }[];
-  chartType?: "bar" | "donut" | "metric";
-}>({
-  type: "object",
-  properties: {
-    sql: {
-      type: "string",
-      description:
-        "Consulta SQL DuckDB agregada com CAST(... AS DOUBLE) sobre os marts de transparência pública",
-    },
-    answer: {
-      type: "string",
-      description:
-        "Explicação amigável em linguagem simples para o cidadão sem mencionar jargões técnicos de infraestrutura ou banco de dados",
-    },
-    metrics: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          value: { type: "string" },
-          variant: {
-            type: "string",
-            enum: ["default", "accent", "warning", "success"],
-          },
-        },
-        required: ["title", "value"],
-      },
-    },
-    chartType: { type: "string", enum: ["bar", "donut", "metric"] },
-  },
-  required: ["sql", "answer"],
-});
-
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
@@ -117,73 +73,31 @@ export async function POST(req: NextRequest) {
     const year = Number(yearParam) || 2025;
     const queryText = message.toLowerCase().trim();
 
-    // 1. Injeção de Contexto em Camadas (Layered Context)
-    const systemContext = buildLayeredContext({
-      portalSlug,
-      year,
-      currentRoute,
-    });
-
-    // 2. Orquestração LLM via Vercel AI SDK se API KEY estiver presente
+    // 1. Orquestração com Agente ReAct + Auto-Correção se a API Key estiver presente
     const apiKey =
       process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (apiKey) {
       try {
-        const promptText = `${systemContext}\n\nPERGUNTA DO CIDADÃO: "${message}"\n\nResponda devolvendo o JSON estrito com SQL DuckDB seguro e explicação amigável.`;
-        const { object } = await generateObject({
-          model: google("gemini-1.5-flash"),
-          schema: assistantOutputSchema,
-          prompt: promptText,
+        const reactResult = await executeReActAgent({
+          message,
+          portalSlug,
+          year,
+          currentRoute,
+          traceId,
         });
 
-        let queryResults: Record<string, unknown>[] = [];
-        if (object.sql) {
-          try {
-            queryResults = await queryDuckDbParquet(object.sql);
-          } catch (_e) {}
-        }
-
-        const responsePayload = {
-          answer: object.answer,
-          metrics: object.metrics,
-          chartType: object.chartType || "metric",
-          sqlQuery: object.sql,
-          chartData: queryResults.slice(0, 5).map((row) => ({
-            label: String(
-              row.contrato_numero ||
-                row.fornecedor_nome ||
-                row.label ||
-                row.objeto ||
-                "Item",
-            ),
-            valor: Number(
-              row.pago ||
-                row.valor ||
-                row.total_pago ||
-                row.valor_contrato ||
-                row.total_arrecadado ||
-                0,
-            ),
-          })),
-        };
-
-        // Rastreamento de Observabilidade no PostHog ($ai_generation)
-        await trackMcpToolCall(
-          "assistant_llm_chat",
-          {
-            input: { message, portalSlug, year, currentRoute },
-            output: responsePayload,
-            latencyMs: Date.now() - startTime,
-          },
-          { traceId, model: "gemini-1.5-flash" },
-        );
-
-        return NextResponse.json(responsePayload);
+        return NextResponse.json({
+          answer: reactResult.answer,
+          metrics: reactResult.metrics,
+          chartType: reactResult.chartType || "metric",
+          sqlQuery: reactResult.sqlQuery,
+          chartData: reactResult.chartData,
+        });
       } catch (_llmErr) {}
     }
 
-    // 3. Execução Determinística Fallback inteligente baseada em palavras-chave do usuário
+    // 2. Execução Determinística Fallback inteligente baseada em palavras-chave do usuário
 
     // A. CAPREM / Previdência Municipal / Aportes / Patronal
     if (
