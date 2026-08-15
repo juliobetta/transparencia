@@ -32,3 +32,4 @@ select
     data_abertura,
     carona
 from renamed
+qualify row_number() over (partition by ano, empresa_id, licitacao_numero order by valor desc nulls last, data_abertura desc nulls last) = 1

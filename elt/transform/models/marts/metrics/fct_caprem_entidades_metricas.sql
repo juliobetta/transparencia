@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 with caprem_entidades as (
     select

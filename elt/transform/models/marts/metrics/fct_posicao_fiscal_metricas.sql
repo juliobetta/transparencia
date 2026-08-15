@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 with metadata_gestao as (
     select

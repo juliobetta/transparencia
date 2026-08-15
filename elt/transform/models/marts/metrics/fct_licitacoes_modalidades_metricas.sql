@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 select
     {{ dbt_utils.generate_surrogate_key(['portal_slug', 'ano', 'empresa_id', "coalesce(nullif(trim(modalidade), ''), 'outros')"]) }} as modalidade_metricas_id,

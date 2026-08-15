@@ -82,4 +82,6 @@ renamed as (
     from source
 )
 
-select * from renamed
+select *
+from renamed
+qualify row_number() over (partition by ano, empresa_id, empenho_id, coalesce(pk_empenho, empenho_id) order by empenhado desc nulls last, liquidado desc nulls last, pago desc nulls last) = 1

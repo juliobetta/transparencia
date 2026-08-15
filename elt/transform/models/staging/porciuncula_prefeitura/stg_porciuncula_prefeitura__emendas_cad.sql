@@ -34,3 +34,4 @@ select
     ato_normativo,
     destinacao
 from renamed
+qualify row_number() over (partition by ano, empresa_id, numero_emenda order by valor_total desc nulls last) = 1

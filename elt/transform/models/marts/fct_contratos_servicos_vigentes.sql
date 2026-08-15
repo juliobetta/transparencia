@@ -1,6 +1,4 @@
-{{ config(
-    materialized='table'
-) }}
+
 
 with despesas_fornecedor as (
     select

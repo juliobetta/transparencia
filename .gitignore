@@ -72,3 +72,5 @@ _bmad-output
 .bmad-loop/policy.toml
 
 *.tsbuildinfo
+
+docker/volumes/*

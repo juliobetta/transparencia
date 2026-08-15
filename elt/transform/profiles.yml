@@ -5,11 +5,16 @@ transparencia:
       type: duckdb
       path: "{{ env_var('DBT_DUCKDB_PATH', 'dev.duckdb') }}"
       schema: main
-      threads: 4
-      attach:
-        - path: "dbname={{ env_var('DBT_DBNAME', 'postgres') }} host={{ env_var('DBT_HOST', 'localhost') }} port={{ env_var('DBT_PORT', '5544') }} user={{ env_var('DBT_USER', 'postgres') }} password={{ env_var('DBT_PASSWORD', 'postgres') }}"
-          type: postgres
-          alias: postgres
+      external_root: "{{ env_var('DBT_EXTERNAL_ROOT', 's3://transparencia-marts') }}"
+      extensions:
+        - httpfs
+      settings:
+        s3_endpoint: "{{ env_var('S3_ENDPOINT', 'localhost:9000') }}"
+        s3_access_key_id: "{{ env_var('S3_ACCESS_KEY_ID', 'minioadmin') }}"
+        s3_secret_access_key: "{{ env_var('S3_SECRET_ACCESS_KEY', 'minioadmin') }}"
+        s3_use_ssl: false
+        s3_url_style: "path"
+      attach: "{{ [{'path': 'dbname=' ~ env_var('DBT_DBNAME', 'postgres') ~ ' host=' ~ env_var('DBT_HOST', 'localhost') ~ ' port=' ~ env_var('DBT_PORT', '5544') ~ ' user=' ~ env_var('DBT_USER', 'postgres') ~ ' password=' ~ env_var('DBT_PASSWORD', 'postgres'), 'type': 'postgres', 'alias': 'postgres'}] if env_var('DBT_ATTACH_POSTGRES', 'false') == 'true' else [] }}"
 
 
 

@@ -25,14 +25,14 @@ renamed as (
         nullif(replace(replace(trim(aditado), '.', ''), ',', '.'), '')::numeric(15, 2) as valor_aditado,
         case
             when nullif(trim(data_inicio), '') is null then null
-            when trim(data_inicio) ~ '^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}' then to_date(left(trim(data_inicio), 10), 'DD/MM/YYYY')
-            when trim(data_inicio) ~ '^\d{4}-\d{2}-\d{2}' then left(trim(data_inicio), 10)::date
+            when trim(data_inicio) ~ '^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}.*' then to_date(left(trim(data_inicio), 10), 'DD/MM/YYYY')
+            when trim(data_inicio) ~ '^\d{4}-\d{2}-\d{2}.*' then left(trim(data_inicio), 10)::date
             else null
         end as data_inicio,
         case
             when nullif(trim(vencimento_atual), '') is null then null
-            when trim(vencimento_atual) ~ '^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}' then to_date(left(trim(vencimento_atual), 10), 'DD/MM/YYYY')
-            when trim(vencimento_atual) ~ '^\d{4}-\d{2}-\d{2}' then left(trim(vencimento_atual), 10)::date
+            when trim(vencimento_atual) ~ '^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}.*' then to_date(left(trim(vencimento_atual), 10), 'DD/MM/YYYY')
+            when trim(vencimento_atual) ~ '^\d{4}-\d{2}-\d{2}.*' then left(trim(vencimento_atual), 10)::date
             else null
         end as vencimento_atual,
         nullif(replace(replace(trim(saldoempenhar), '.', ''), ',', '.'), '')::numeric(15, 2) as saldo_a_empenhar
@@ -60,3 +60,4 @@ select
     vencimento_atual,
     saldo_a_empenhar
 from renamed
+qualify row_number() over (partition by ano, empresa_id, contrato_numero order by valor_contrato desc nulls last, empenhado desc nulls last) = 1

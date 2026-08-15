@@ -34,7 +34,7 @@ check: lint format/check type-check
 # TESTS
 
 test:
-	uv run --project elt pytest -v
+	cd elt && uv run pytest -v
 
 # PIPELINE
 
@@ -58,12 +58,32 @@ ifndef PORTAL
 endif
 	PYTHONPATH=. uv run --project elt python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
 
+elt/load-duckdb:
+ifndef PORTAL
+	$(error PORTAL is required. Usage: make elt/load-duckdb PORTAL=porciuncula_prefeitura [DIR=data/raw_runs/20250101_120000] [DB=elt/transform/dev.duckdb])
+endif
+	DATABASE_URL="duckdb:///$${DB:-elt/transform/dev.duckdb}" PYTHONPATH=. uv run --project elt python elt/load/run.py --portal $(PORTAL) $(if $(DIR),--dir $(DIR))
+
+duckdb/tables:
+	PYTHONPATH=. uv run --project elt python -c "import duckdb; conn = duckdb.connect('$${DB:-elt/transform/dev.duckdb}', read_only=True); print(conn.sql('SHOW TABLES'))"
+
+
 elt/load-csv:
 ifndef PORTAL
 	$(error PORTAL is required. Usage: make elt/load-csv PORTAL=porciuncula_prefeitura)
 endif
 ifeq ($(PORTAL),porciuncula_prefeitura)
 	PYTHONPATH=. uv run --project elt python elt/load/porciuncula_prefeitura/load_receitas_csv.py
+else
+	$(error No load-csv script available for portal '$(PORTAL)')
+endif
+
+elt/load-csv-duckdb:
+ifndef PORTAL
+	$(error PORTAL is required. Usage: make elt/load-csv-duckdb PORTAL=porciuncula_prefeitura [DB=elt/transform/dev.duckdb])
+endif
+ifeq ($(PORTAL),porciuncula_prefeitura)
+	DATABASE_URL="duckdb:///$${DB:-elt/transform/dev.duckdb}" PYTHONPATH=. uv run --project elt python elt/load/porciuncula_prefeitura/load_receitas_csv.py
 else
 	$(error No load-csv script available for portal '$(PORTAL)')
 endif

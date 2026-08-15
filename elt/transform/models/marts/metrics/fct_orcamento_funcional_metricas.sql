@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 with linhas_orcamentarias as (
     select

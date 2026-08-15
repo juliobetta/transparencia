@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 select
     {{ dbt_utils.generate_surrogate_key(["'porciuncula_prefeitura'", 'ano', "coalesce(nullif(ltrim(empresa, '0'), ''), '0')", 'descricao']) }} as departamento_metricas_id,

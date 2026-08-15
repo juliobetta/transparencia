@@ -30,3 +30,4 @@ select
     unidade,
     descricao
 from renamed
+qualify row_number() over (partition by ano, empresa_id, diaria_id order by valor desc nulls last, data desc nulls last) = 1

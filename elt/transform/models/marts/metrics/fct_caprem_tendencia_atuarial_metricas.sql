@@ -1,4 +1,4 @@
-{{ config(materialized='table') }}
+
 
 with tendencias as (
     select
