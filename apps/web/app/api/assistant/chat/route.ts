@@ -66,7 +66,7 @@ const assistantOutputSchema = jsonSchema<{
     sql: {
       type: "string",
       description:
-        "Consulta SQL DuckDB agregada com CAST(SUM(...) AS DOUBLE) para a Prefeitura (empresa_id = 7) sobre as views",
+        "Consulta SQL DuckDB agregada com CAST(... AS DOUBLE) sobre os marts de transparência pública",
     },
     answer: {
       type: "string",
@@ -122,18 +122,32 @@ export async function POST(req: NextRequest) {
           model: google("gemini-1.5-flash"),
           schema: assistantOutputSchema,
           prompt: `Você é o Assistente Fiscal AI do Portal da Transparência de ${portalSlug}.
-O usuário selecionou o exercício de ${year} e perguntou: "${message}".
+O usuário selecionou o exercício de ${year} e fez a pergunta livre: "${message}".
 
-Gere a consulta SQL agregada com CAST(... AS DOUBLE) para rodar na base de dados da Prefeitura (empresa_id = 7) do exercício de ${year}:
-Views disponíveis:
-- fct_posicao_fiscal_metricas (columns: CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(despesas_pagas) AS DOUBLE) as despesas_pagas, CAST(SUM(saldo_estimado) AS DOUBLE) as saldo_estimado)
-- fct_fontes_receita_metricas (columns: CAST(SUM(total_previsto) AS DOUBLE) as total_previsto, CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(emendas_pix_arrecadado) AS DOUBLE) as emendas_pix_arrecadado)
-- fct_historia_saude_metricas (columns: CAST(SUM(total_liquidado) AS DOUBLE) as total_liquidado, CAST(SUM(total_pago) AS DOUBLE) as total_pago)
-- fct_historia_caprem_metricas (columns: CAST(SUM(total_empenhado_patronal) AS DOUBLE) as total_empenhado_patronal, CAST(SUM(total_pago_patronal) AS DOUBLE) as total_pago_patronal)
-- fct_licitacoes_gaps_metricas (columns: CAST(SUM(valor_contrato) AS DOUBLE) as total_dispensas, CAST(COUNT(*) AS DOUBLE) as qtd_dispensas)
+Modelos de Dados Parquet disponíveis e colunas exatas para DuckDB SQL:
+- fct_contratos_servicos_vigentes: (portal_slug, ano, contrato_numero, fornecedor_nome, fornecedor_cnpj, objeto_descricao, CAST(total_empenhado AS DOUBLE) as empenhado, CAST(total_pago AS DOUBLE) as pago, status_execucao)
+- fct_contratos: (portal_slug, ano, contrato_numero, fornecedor_nome, fornecedor_cpf_cnpj, objeto, CAST(valor_contrato AS DOUBLE) as valor_contrato, modalidade)
+- fct_despesas_fornecedores_metricas: (portal_slug, ano, fornecedor_nome, fornecedor_cidade_clean, CAST(total_empenhado AS DOUBLE) as total_empenhado, CAST(total_pago AS DOUBLE) as total_pago)
+- fct_licitacoes_gaps_metricas: (portal_slug, ano, contrato_numero, fornecedor_nome, objeto, CAST(valor_contrato AS DOUBLE) as valor_contrato, modalidade)
+- fct_licitacoes: (portal_slug, ano, licitacao_numero, modalidade, objeto, CAST(valor AS DOUBLE) as valor, situacao)
+- fct_posicao_fiscal_metricas: (portal_slug, ano, empresa_id, CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(despesas_pagas) AS DOUBLE) as despesas_pagas, CAST(SUM(saldo_estimado) AS DOUBLE) as saldo_estimado)
+- fct_fontes_receita_metricas: (portal_slug, ano, empresa_id, CAST(SUM(total_previsto) AS DOUBLE) as total_previsto, CAST(SUM(total_arrecadado) AS DOUBLE) as total_arrecadado, CAST(SUM(emendas_pix_arrecadado) AS DOUBLE) as emendas_pix_arrecadado)
+- fct_historia_saude_metricas: (portal_slug, ano, CAST(SUM(total_liquidado) AS DOUBLE) as total_liquidado, CAST(SUM(total_pago) AS DOUBLE) as total_pago)
+- fct_historia_caprem_metricas: (portal_slug, ano, CAST(SUM(total_empenhado_patronal) AS DOUBLE) as total_empenhado_patronal, CAST(SUM(total_pago_patronal) AS DOUBLE) as total_pago_patronal)
+- fct_pessoal_folha_metricas: (portal_slug, ano, CAST(SUM(total_folha) AS DOUBLE) as total_folha, CAST(SUM(total_pago) AS DOUBLE) as total_pago, efetivos_confianca, comissionados_externos)
+- fct_emendas: (portal_slug, ano, numero_emenda, autor, resumo, CAST(valor_total AS DOUBLE) as valor_total, destinacao)
+- fct_despesas_diarias_metricas: (portal_slug, ano, favorecido, cargo, CAST(total_valor AS DOUBLE) as total_valor, qtd_concessoes)
 
-Filtre obrigatoriamente por portal_slug = '${portalSlug}' AND ano = ${year} AND (empresa_id = 7 OR empresa_id = '7').
-IMPORTANTE: Na resposta 'answer', informe com clareza os valores da Prefeitura no exercício de ${year}. NUNCA mencione termos técnicos como DuckDB, Parquet, R2, SQL ou banco de dados.`,
+Instruções Estritas de SQL e Formatação:
+1. Para buscas por nome de empresa, fornecedor ou credor, use filtro flexível: \`fornecedor_nome ILIKE '%NOME%'\` ou \`empresa ILIKE '%NOME%'\`.
+2. Para posição fiscal e fontes de receita da Prefeitura, adicione o filtro \`(empresa_id = 7 OR empresa_id = '7')\` para evitar contagem dupla de repasses internos.
+3. Sempre envolva somas em \`CAST(SUM(...) AS DOUBLE)\`.
+4. Filtre por \`portal_slug = '${portalSlug}'\` e \`ano = ${year}\`.
+5. Na resposta 'answer', explique o resultado de forma clara, natural e humana. NUNCA mencione palavras técnicas como DuckDB, Parquet, R2, SQL ou banco de dados.
+
+Exemplo para empresa/fornecedor:
+Pergunta: "Existe alguma pendência com a empresa ESN?"
+SQL: SELECT contrato_numero, fornecedor_nome, objeto_descricao, CAST(total_pago AS DOUBLE) as pago, status_execucao FROM fct_contratos_servicos_vigentes WHERE portal_slug = '${portalSlug}' AND ano = ${year} AND fornecedor_nome ILIKE '%ESN%'`,
         });
 
         let queryResults: Record<string, unknown>[] = [];
@@ -149,16 +163,138 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores da Prefeitura n
           chartType: object.chartType || "metric",
           sqlQuery: object.sql,
           chartData: queryResults.slice(0, 5).map((row) => ({
-            label: String(row.label || row.objeto || "Valor"),
+            label: String(
+              row.contrato_numero ||
+                row.fornecedor_nome ||
+                row.label ||
+                row.objeto ||
+                "Item",
+            ),
             valor: Number(
-              row.valor || row.total_arrecadado || row.valor_contrato || 0,
+              row.pago ||
+                row.valor ||
+                row.total_pago ||
+                row.valor_contrato ||
+                row.total_arrecadado ||
+                0,
             ),
           })),
         });
       } catch (_llmErr) {}
     }
 
-    // 2. Execução Determinística Fallback protegida com CAST(... AS DOUBLE) e filtro por empresa_id = 7
+    // 2. Execução Determinística Fallback inteligente baseada em palavras-chave do usuário
+
+    // A. Busca por Fornecedor / Empresa / Contrato específico (ex: "empresa ESN", "contrato X", "fornecedor Y")
+    const searchMatch = message.match(
+      /(?:empresa|fornecedor|credor|contrato)\s+([a-zA-Z0-9_-]{2,})/i,
+    );
+    const searchCompany = searchMatch
+      ? searchMatch[1]
+      : queryText.length <= 10 && !queryText.includes(" ")
+        ? queryText
+        : null;
+
+    if (
+      searchCompany ||
+      queryText.includes("esn") ||
+      queryText.includes("contrato") ||
+      queryText.includes("pendencia") ||
+      queryText.includes("pendência")
+    ) {
+      const companyTerm =
+        searchCompany || (queryText.includes("esn") ? "esn" : "");
+      let sql = "";
+      if (companyTerm) {
+        sql = `SELECT contrato_numero, fornecedor_nome, objeto_descricao, CAST(total_empenhado AS DOUBLE) as empenhado, CAST(total_pago AS DOUBLE) as pago, status_execucao FROM fct_contratos_servicos_vigentes WHERE portal_slug = '${portalSlug}' AND ano = ${year} AND fornecedor_nome ILIKE '%${companyTerm}%'`;
+      } else {
+        sql = `SELECT contrato_numero, fornecedor_nome, objeto_descricao, CAST(total_empenhado AS DOUBLE) as empenhado, CAST(total_pago AS DOUBLE) as pago, status_execucao FROM fct_contratos_servicos_vigentes WHERE portal_slug = '${portalSlug}' AND ano = ${year} LIMIT 5`;
+      }
+
+      const rows = await queryDuckDbParquet<{
+        contrato_numero: string;
+        fornecedor_nome: string;
+        objeto_descricao: string;
+        empenhado: number;
+        pago: number;
+        status_execucao: string;
+      }>(sql);
+
+      if (rows.length > 0) {
+        const totalEmpenhado = rows.reduce(
+          (sum, r) => sum + Number(r.empenhado || 0),
+          0,
+        );
+        const totalPago = rows.reduce((sum, r) => sum + Number(r.pago || 0), 0);
+        const firstSupplier = rows[0].fornecedor_nome;
+        const mainContract = rows[0].contrato_numero;
+
+        return NextResponse.json({
+          answer: `No exercício de **${year}**, encontramos **${rows.length} contrato(s)** vinculado(s) ao termo pesquisado (**${firstSupplier}**), com um total empenhado de **${fmtMoney(totalEmpenhado)}** e **${fmtMoney(totalPago)}** pagos (ex: Contrato nº ${mainContract}).`,
+          metrics: [
+            {
+              title: "Contratos Localizados",
+              value: String(rows.length),
+              variant: "accent",
+            },
+            {
+              title: "Total Empenhado",
+              value: fmtMoney(totalEmpenhado),
+              variant: "default",
+            },
+            {
+              title: "Total Pago",
+              value: fmtMoney(totalPago),
+              variant: "success",
+            },
+          ],
+          chartData: rows.slice(0, 5).map((r) => ({
+            label: `Contrato ${r.contrato_numero}`,
+            valor: Number(r.pago || 0),
+          })),
+          chartType: "bar",
+          sqlQuery: sql,
+        });
+      }
+    }
+
+    // B. Pessoal e Folha de Pagamento
+    if (
+      queryText.includes("pessoal") ||
+      queryText.includes("folha") ||
+      queryText.includes("servidor") ||
+      queryText.includes("salario") ||
+      queryText.includes("salário")
+    ) {
+      const sql = `SELECT CAST(SUM(total_folha) AS DOUBLE) as total_folha, CAST(SUM(total_pago) AS DOUBLE) as total_pago FROM fct_pessoal_folha_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
+      const rows = await queryDuckDbParquet<{
+        total_folha: number;
+        total_pago: number;
+      }>(sql);
+      const row = rows[0] || { total_folha: 0, total_pago: 0 };
+      const folha = Number(row.total_folha || 0);
+      const pago = Number(row.total_pago || 0);
+
+      return NextResponse.json({
+        answer: `No exercício de **${year}**, as despesas brutas com pessoal e folha de pagamento somaram **${fmtMoney(folha)}**, com **${fmtMoney(pago)}** quitados.`,
+        metrics: [
+          { title: "Total Folha", value: fmtMoney(folha), variant: "default" },
+          {
+            title: "Total Pago Pessoal",
+            value: fmtMoney(pago),
+            variant: "success",
+          },
+        ],
+        chartData: [
+          { label: "Folha Bruta", valor: folha },
+          { label: "Pago Pessoal", valor: pago },
+        ],
+        chartType: "bar",
+        sqlQuery: sql,
+      });
+    }
+
+    // C. Receitas e Fontes
     if (
       queryText.includes("receita") ||
       queryText.includes("fonte") ||
@@ -205,6 +341,7 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores da Prefeitura n
       });
     }
 
+    // D. Saúde
     if (
       queryText.includes("saude") ||
       queryText.includes("saúde") ||
@@ -235,6 +372,7 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores da Prefeitura n
       });
     }
 
+    // E. CAPREM / Previdência
     if (
       queryText.includes("caprem") ||
       queryText.includes("previdencia") ||
@@ -273,11 +411,11 @@ IMPORTANTE: Na resposta 'answer', informe com clareza os valores da Prefeitura n
       });
     }
 
+    // F. Licitações e Dispensas
     if (
       queryText.includes("licitacao") ||
       queryText.includes("licitação") ||
-      queryText.includes("dispensa") ||
-      queryText.includes("contrato")
+      queryText.includes("dispensa")
     ) {
       const sql = `SELECT CAST(SUM(valor_contrato) AS DOUBLE) as total_dispensas, CAST(COUNT(*) AS DOUBLE) as qtd_dispensas FROM fct_licitacoes_gaps_metricas WHERE portal_slug = '${portalSlug}' AND ano = ${year}`;
       const rows = await queryDuckDbParquet<{
