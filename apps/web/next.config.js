@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@transparencia/ui", "@transparencia/db"],
-  serverExternalPackages: ["pg", "kysely"],
+  serverExternalPackages: ["pg", "kysely", "@duckdb/duckdb-wasm"],
   async rewrites() {
     return [
       {

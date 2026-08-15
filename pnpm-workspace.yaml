@@ -1,8 +1,11 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  zod-to-json-schema: "3.24.1"
 allowBuilds:
   core-js: true
+  duckdb: true
   esbuild: true
   sharp: true
 minimumReleaseAgeExclude:
