@@ -13,6 +13,7 @@
     "@ai-sdk/google": "1.1.12",
     "@duckdb/duckdb-wasm": "1.28.0",
     "@google/generative-ai": "0.22.0",
+    "@modelcontextprotocol/sdk": "1.6.0",
     "@transparencia/db": "workspace:*",
     "@transparencia/ui": "workspace:*",
     "@vercel/analytics": "2.0.1",
