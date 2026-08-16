@@ -9,7 +9,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AssistantResponse } from "../api/assistant/chat/route";
 
@@ -66,9 +66,30 @@ export function AssistantChatDrawer({
   const [showSqlFor, setShowSqlFor] = useState<Record<string, boolean>>({});
   const isProduction = process.env.NODE_ENV === "production";
 
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "msg-welcome",
+      sender: "assistant",
+      text: `Olá! Sou o **Assistente Fiscal AI** do Portal da Transparência. Como posso ajudar nas suas consultas sobre o exercício de **${ano}**?`,
+      timestamp: new Date().toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    },
+  ]);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: auto scroll on message update
+  useEffect(() => {
+    if (isOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length, isLoading, isOpen]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -88,18 +109,6 @@ export function AssistantChatDrawer({
       return prev;
     });
   }, [ano]);
-
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "msg-welcome",
-      sender: "assistant",
-      text: `Olá! Sou o **Assistente Fiscal AI** do Portal da Transparência. Como posso ajudar nas suas consultas sobre o exercício de **${ano}**?`,
-      timestamp: new Date().toLocaleTimeString("pt-BR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    },
-  ]);
 
   const handleSendMessage = async (customMessage?: string) => {
     const textToSend = customMessage || inputMessage;
@@ -319,6 +328,7 @@ export function AssistantChatDrawer({
               <span>Consultando dados fiscais...</span>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Sugestões de Perguntas Rápidas */}
