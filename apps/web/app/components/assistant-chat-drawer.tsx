@@ -134,6 +134,10 @@ export function AssistantChatDrawer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: textToSend,
+          messagesHistory: messages.map((m) => ({
+            sender: m.sender,
+            text: m.text,
+          })),
           portalSlug,
           ano,
         }),

@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       message,
+      messagesHistory,
       portalSlug = "porciuncula_prefeitura",
       ano: yearParam,
       currentRoute = "/visao-geral",
@@ -41,9 +42,35 @@ export async function POST(req: NextRequest) {
 
     const year = Number(yearParam) || 2025;
 
-    // Execução 100% Agêntica via Motor ReAct + Ferramentas MCP + Auto-Correção
+    const history = Array.isArray(messagesHistory)
+      ? messagesHistory
+          .filter(
+            (m: {
+              sender?: string;
+              role?: string;
+              text?: string;
+              content?: string;
+            }) => (m.sender || m.role) && (m.text || m.content),
+          )
+          .map(
+            (m: {
+              sender?: string;
+              role?: string;
+              text?: string;
+              content?: string;
+            }) => ({
+              role: (m.role || (m.sender === "user" ? "user" : "assistant")) as
+                | "user"
+                | "assistant",
+              content: m.content || m.text || "",
+            }),
+          )
+      : undefined;
+
+    // Execução 100% Agêntica via Motor ReAct + Memória Conversacional + DuckDB
     const reactResult = await executeReActAgent({
       message,
+      history,
       portalSlug,
       year,
       currentRoute,
@@ -58,12 +85,14 @@ export async function POST(req: NextRequest) {
       chartData: reactResult.chartData,
     });
   } catch (error) {
-    // biome-ignore lint/suspicious/noConsole: error logger for diagnostics
+    // biome-ignore lint/suspicious/noConsole: server error logging
     console.error("API Assistant Chat Agent Error:", error);
     return NextResponse.json(
       {
         error:
-          "Não foi possível processar a consulta agêntica no momento. Verifique se a chave de API de IA está configurada.",
+          error instanceof Error
+            ? error.message
+            : "Erro interno no servidor assistente.",
       },
       { status: 500 },
     );

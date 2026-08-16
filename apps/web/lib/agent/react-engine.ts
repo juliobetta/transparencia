@@ -6,6 +6,7 @@ import { buildLayeredContext } from "../skills/context-builder";
 
 export interface ReActExecuteOptions {
   message: string;
+  history?: Array<{ role: "user" | "assistant"; content: string }>;
   portalSlug?: string;
   year?: number;
   currentRoute?: string;
@@ -165,7 +166,6 @@ export async function executeReActAgent(
           errMsg.includes("404") ||
           errMsg.includes("not found")
         ) {
-          // Tentar próximo modelo candidato da lista silenciosamente
           continue;
         }
         throw lastError;
@@ -174,20 +174,32 @@ export async function executeReActAgent(
     throw lastError || new Error("Nenhum modelo de IA disponível.");
   }
 
+  let historyContext = "";
+  if (options.history && options.history.length > 0) {
+    const turnsText = options.history
+      .slice(-4)
+      .map(
+        (h) =>
+          `${h.role === "user" ? "Cidadão" : "Assistente"}: "${h.content.replace(/\n+/g, " ").slice(0, 300)}"`,
+      )
+      .join("\n");
+    historyContext = `\n\nHISTÓRICO RECENTE DAS PERGUNTAS E RESPOSTAS ANTERIORES:\n${turnsText}\n\nNOTA DE MEMÓRIA CONVERSACIONAL: Se a pergunta atual contiver pronomes como "disso", "dele", "dela", "nesse período" ou pedir desdobramento da resposta anterior, reutilize os filtros de anos, fornecedores, órgãos ou categorias citados no histórico acima.`;
+  }
+
   let executedSql = "";
   let queryResults: Record<string, unknown>[] = [];
   let autoCorrected = false;
   let stepsCount = 2;
 
   try {
-    // PASSO 1: Geração Agêntica da Query SQL com base no Contexto e Taxonomia de 40 Marts
+    // PASSO 1: Geração Agêntica da Query SQL com base no Contexto, Memória Multi-Turno e Taxonomia
     const step1 = await generateWithFallback<{
       sqlQuery: string;
       reasoning?: string;
     }>({
       schema: sqlGenerationSchema,
-      system: `${systemContext}\n\nREGRAS MANDATÓRIAS SQL DUCKDB:\n1. Escreva queries válidas para DuckDB.\n2. Toda agregação (SUM, AVG) DEVE ser convertida com CAST(SUM(...) AS DOUBLE).\n3. Sempre filtre por portal_slug = '${portalSlug}'. Se o cidadão citar um ano específico na pergunta (ex: 2023, 2024, 2026) ou solicitar comparação de exercícios, utilize o(s) ano(s) explicitamente solicitados. Caso contrário, se o cidadão não citar nenhum ano, utilize o ano do exercício selecionado (ano = ${year}).\n4. Use apenas tabelas e colunas declaradas na taxonomia oficial.`,
-      prompt: `TAXONOMIA DE MARTS DISPONÍVEIS:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}\n\nPERGUNTA DO CIDADÃO: "${options.message}"`,
+      system: `${systemContext}\n\nREGRAS MANDATÓRIAS SQL DUCKDB:\n1. Escreva queries válidas para DuckDB.\n2. Toda agregação (SUM, AVG) DEVE ser convertida com CAST(SUM(...) AS DOUBLE).\n3. Sempre filtre por portal_slug = '${portalSlug}'. Se o cidadão citar um ano específico na pergunta ou no histórico recente (ex: 2023, 2024, 2026), utilize o(s) ano(s) solicitados. Caso contrário, se nenhum ano for citado, utilize ano = ${year}.\n4. Use apenas tabelas e colunas declaradas na taxonomia oficial.`,
+      prompt: `TAXONOMIA DE MARTS DISPONÍVEIS:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA ATUAL DO CIDADÃO: "${options.message}"`,
     });
 
     executedSql = step1.object.sqlQuery;
@@ -206,7 +218,7 @@ export async function executeReActAgent(
         }>({
           schema: sqlGenerationSchema,
           system: systemContext,
-          prompt: `A query anterior '${executedSql}' retornou 0 resultados.\nAjuste a query para o cidadão. Dica: use filtros ILIKE '%termo%' se for nome de fornecedor/descrição.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}\n\nPERGUNTA: "${options.message}"`,
+          prompt: `A query anterior '${executedSql}' retornou 0 resultados.\nAjuste a query para o cidadão. Dica: use filtros ILIKE '%termo%' se for nome de fornecedor/descrição.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA: "${options.message}"`,
         });
         executedSql = stepCorrected.object.sqlQuery;
         queryResults = await queryDuckDbParquet(executedSql);
@@ -221,7 +233,7 @@ export async function executeReActAgent(
       }>({
         schema: sqlGenerationSchema,
         system: systemContext,
-        prompt: `A query anterior '${executedSql}' falhou com o erro: '${errMsg}'.\nCorrija a sintaxe e use apenas colunas válidas da taxonomia.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}\n\nPERGUNTA: "${options.message}"`,
+        prompt: `A query anterior '${executedSql}' falhou com o erro: '${errMsg}'.\nCorrija a sintaxe e use apenas colunas válidas da taxonomia.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA: "${options.message}"`,
       });
       executedSql = stepCorrected.object.sqlQuery;
       queryResults = await queryDuckDbParquet(executedSql);
@@ -240,7 +252,7 @@ export async function executeReActAgent(
     }>({
       schema: finalAnswerSchema,
       system: systemContext,
-      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 10))}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, com cartões de métricas (se aplicável) e gráfico.`,
+      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 10))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa, incluindo cartões de métricas e gráfico se apropriado.`,
     });
 
     await trackMcpToolCall(
