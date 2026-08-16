@@ -7,6 +7,7 @@ import {
   Loader2,
   Send,
   Sparkles,
+  Square,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -79,6 +80,7 @@ export function AssistantChatDrawer({
   ]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -110,6 +112,26 @@ export function AssistantChatDrawer({
     });
   }, [ano]);
 
+  const handleCancelRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `cancel-${Date.now()}`,
+        sender: "assistant",
+        text: "🛑 **Consulta cancelada por você.**",
+        timestamp: new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      },
+    ]);
+  };
+
   const handleSendMessage = async (customMessage?: string) => {
     const textToSend = customMessage || inputMessage;
     if (!textToSend.trim() || isLoading) return;
@@ -128,10 +150,14 @@ export function AssistantChatDrawer({
     if (!customMessage) setInputMessage("");
     setIsLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const res = await fetch("/api/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: textToSend,
           messagesHistory: messages.map((m) => ({
@@ -158,7 +184,10 @@ export function AssistantChatDrawer({
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (_error) {
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
@@ -173,6 +202,7 @@ export function AssistantChatDrawer({
       ]);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -327,9 +357,19 @@ export function AssistantChatDrawer({
           ))}
 
           {isLoading && (
-            <div className="flex items-center gap-2 font-medium text-indigo-600 text-xs">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Consultando dados fiscais...</span>
+            <div className="flex items-center justify-between rounded-xl border border-indigo-100 bg-indigo-50/60 p-2.5 font-medium text-indigo-900 text-xs">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                <span>Consultando dados fiscais...</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelRequest}
+                className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-1 font-semibold text-[10px] text-red-600 hover:bg-red-100"
+              >
+                <Square className="h-3 w-3 fill-red-600" />
+                <span>Cancelar</span>
+              </button>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -374,14 +414,26 @@ export function AssistantChatDrawer({
               disabled={isLoading}
               className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-900 text-xs placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none"
             />
-            <button
-              type="submit"
-              disabled={!inputMessage.trim() || isLoading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs transition-colors hover:bg-indigo-700 disabled:opacity-50"
-              aria-label="Enviar"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={handleCancelRequest}
+                className="flex h-9 items-center gap-1 rounded-xl bg-red-600 px-3 font-semibold text-white text-xs shadow-xs hover:bg-red-700"
+                aria-label="Cancelar consulta"
+              >
+                <Square className="h-3.5 w-3.5 fill-white" />
+                <span>Parar</span>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!inputMessage.trim()}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                aria-label="Enviar"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            )}
           </form>
         </div>
       </div>
