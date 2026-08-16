@@ -17,4 +17,5 @@
 
 4. **Regras SQL**:
    - Para busca de credores, utilizar `ILIKE '%termo%'`.
-   - Agrupar por `credor_nome` ou `orgao_codigo` aplicando obrigatoriamente `portal_slug` e `ano`.
+   - Utilize `unaccent` na coluna `fornecedor_nome` ou outra similar para evitar problemas com acentuação. ex: `WHERE unaccent(fornecedor_nome) ILIKE unaccent('%termo%')`.
+   - Agrupar por `fornecedor_nome` ou `orgao_codigo` aplicando obrigatoriamente `portal_slug` e `ano`.

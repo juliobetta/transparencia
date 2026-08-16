@@ -98,7 +98,44 @@ export async function getDuckDbInstance(): Promise<unknown> {
       const duckdbNode = eval("require")(
         "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
       );
-      const db = new duckdbNode.DuckDBNode();
+
+      const rootPath = process.cwd().replace(/\/apps\/web$/, "");
+      const webNodeModules = path.join(
+        rootPath,
+        "apps",
+        "web",
+        "node_modules",
+        "@duckdb",
+        "duckdb-wasm",
+        "dist",
+      );
+      const rootNodeModules = path.join(
+        rootPath,
+        "node_modules",
+        "@duckdb",
+        "duckdb-wasm",
+        "dist",
+      );
+      const distDir = fs.existsSync(webNodeModules)
+        ? webNodeModules
+        : rootNodeModules;
+
+      const wasmPath = path.join(distDir, "duckdb-eh.wasm");
+      const workerPath = path.join(distDir, "duckdb-node-eh.worker.cjs");
+
+      const bundles = {
+        eh: {
+          mainModule: wasmPath,
+          mainWorker: workerPath,
+        },
+      };
+
+      const logger = new duckdbNode.ConsoleLogger();
+      const db = await duckdbNode.createDuckDB(
+        bundles,
+        logger,
+        duckdbNode.NODE_RUNTIME,
+      );
       await db.instantiate();
       return db;
     }

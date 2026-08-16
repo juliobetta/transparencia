@@ -1,5 +1,5 @@
-import { google } from "@ai-sdk/google";
-import { generateObject, generateText, jsonSchema, tool } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateObject, jsonSchema } from "ai";
 import { queryDuckDbParquet } from "../duckdb-executor";
 import { FISCAL_TAXONOMY, trackMcpToolCall } from "../mcp/transparencia-mcp";
 import { buildLayeredContext } from "../skills/context-builder";
@@ -27,21 +27,40 @@ export interface ReActResult {
   autoCorrected: boolean;
 }
 
+const sqlGenerationSchema = jsonSchema<{
+  sqlQuery: string;
+  reasoning?: string;
+}>({
+  type: "object",
+  properties: {
+    sqlQuery: {
+      type: "string",
+      description:
+        "Query SQL DuckDB válida filtrada estritamente por portal_slug e ano",
+    },
+    reasoning: {
+      type: "string",
+      description: "Justificativa da escolha da tabela e colunas",
+    },
+  },
+  required: ["sqlQuery"],
+});
+
 const finalAnswerSchema = jsonSchema<{
   answer: string;
-  metrics?: {
+  metrics?: Array<{
     title: string;
     value: string;
     variant?: "default" | "accent" | "warning" | "success";
-  }[];
+  }>;
+  chartData?: Array<{ label: string; valor: number }>;
   chartType?: "bar" | "donut" | "metric";
 }>({
   type: "object",
   properties: {
     answer: {
       type: "string",
-      description:
-        "Resposta amigável em linguagem simples para o cidadão sem mencionar termos de banco de dados",
+      description: "Resposta explicativa e direta para o cidadão",
     },
     metrics: {
       type: "array",
@@ -58,7 +77,21 @@ const finalAnswerSchema = jsonSchema<{
         required: ["title", "value"],
       },
     },
-    chartType: { type: "string", enum: ["bar", "donut", "metric"] },
+    chartData: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string" },
+          valor: { type: "number" },
+        },
+        required: ["label", "valor"],
+      },
+    },
+    chartType: {
+      type: "string",
+      enum: ["bar", "donut", "metric"],
+    },
   },
   required: ["answer"],
 });
@@ -77,148 +110,183 @@ export async function executeReActAgent(
     currentRoute,
   });
 
+  const apiKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return {
+      answer:
+        "⚠️ **Chave de API de IA Não Configurada**\n\nPara habilitar as consultas inteligentes com o motor agêntico, adicione a variável `GOOGLE_GENERATIVE_AI_API_KEY` ou `GEMINI_API_KEY` com sua chave do Google Gemini no arquivo `.env.local` da aplicação web (`apps/web/.env.local`).",
+      metrics: [
+        { title: "Status IA", value: "Aguardando API Key", variant: "warning" },
+      ],
+      stepsCount: 0,
+      autoCorrected: false,
+    };
+  }
+
+  const google = createGoogleGenerativeAI({ apiKey });
+  const candidateModels = Array.from(
+    new Set(
+      [
+        process.env.GEMINI_MODEL,
+        "gemini-3.1-flash-lite",
+        "gemini-flash-lite-latest",
+        "gemini-3.6-flash",
+      ].filter(Boolean) as string[],
+    ),
+  );
+
+  async function generateWithFallback<T>(params: {
+    // biome-ignore lint/suspicious/noExplicitAny: generic AI SDK schema typing
+    schema: any;
+    prompt: string;
+    system?: string;
+  }): Promise<{ object: T }> {
+    let lastError: Error | null = null;
+    for (const modelName of candidateModels) {
+      try {
+        const result = await generateObject({
+          model: google(modelName),
+          schema: params.schema,
+          system: params.system,
+          prompt: params.prompt,
+        });
+        return result as { object: T };
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        const errMsg = lastError.message;
+        if (
+          errMsg.includes("Quota exceeded") ||
+          errMsg.includes("rate-limit") ||
+          errMsg.includes("limit: 20") ||
+          errMsg.includes("404") ||
+          errMsg.includes("not found")
+        ) {
+          // Tentar próximo modelo candidato da lista silenciosamente
+          continue;
+        }
+        throw lastError;
+      }
+    }
+    throw lastError || new Error("Nenhum modelo de IA disponível.");
+  }
+
   let executedSql = "";
   let queryResults: Record<string, unknown>[] = [];
   let autoCorrected = false;
+  let stepsCount = 2;
 
-  const apiKey =
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+  try {
+    // PASSO 1: Geração Agêntica da Query SQL com base no Contexto e Taxonomia de 40 Marts
+    const step1 = await generateWithFallback<{
+      sqlQuery: string;
+      reasoning?: string;
+    }>({
+      schema: sqlGenerationSchema,
+      system: `${systemContext}\n\nREGRAS MANDATÓRIAS SQL DUCKDB:\n1. Escreva queries válidas para DuckDB.\n2. Toda agregação (SUM, AVG) DEVE ser convertida com CAST(SUM(...) AS DOUBLE).\n3. Sempre filtre por portal_slug = '${portalSlug}'. Se o cidadão citar um ano específico na pergunta (ex: 2023, 2024, 2026) ou solicitar comparação de exercícios, utilize o(s) ano(s) explicitamente solicitados. Caso contrário, se o cidadão não citar nenhum ano, utilize o ano do exercício selecionado (ano = ${year}).\n4. Use apenas tabelas e colunas declaradas na taxonomia oficial.`,
+      prompt: `TAXONOMIA DE MARTS DISPONÍVEIS:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}\n\nPERGUNTA DO CIDADÃO: "${options.message}"`,
+    });
 
-  if (!apiKey) {
-    throw new Error("API Key de IA não configurada.");
+    executedSql = step1.object.sqlQuery;
+
+    // PASSO 2: Execução no DuckDB WASM Parquet com Auto-Correção Agêntica
+    try {
+      queryResults = await queryDuckDbParquet(executedSql);
+
+      // Auto-Correção se retornar 0 linhas
+      if (queryResults.length === 0) {
+        autoCorrected = true;
+        stepsCount++;
+        const stepCorrected = await generateWithFallback<{
+          sqlQuery: string;
+          reasoning?: string;
+        }>({
+          schema: sqlGenerationSchema,
+          system: systemContext,
+          prompt: `A query anterior '${executedSql}' retornou 0 resultados.\nAjuste a query para o cidadão. Dica: use filtros ILIKE '%termo%' se for nome de fornecedor/descrição.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}\n\nPERGUNTA: "${options.message}"`,
+        });
+        executedSql = stepCorrected.object.sqlQuery;
+        queryResults = await queryDuckDbParquet(executedSql);
+      }
+    } catch (sqlErr) {
+      autoCorrected = true;
+      stepsCount++;
+      const errMsg = sqlErr instanceof Error ? sqlErr.message : String(sqlErr);
+      const stepCorrected = await generateWithFallback<{
+        sqlQuery: string;
+        reasoning?: string;
+      }>({
+        schema: sqlGenerationSchema,
+        system: systemContext,
+        prompt: `A query anterior '${executedSql}' falhou com o erro: '${errMsg}'.\nCorrija a sintaxe e use apenas colunas válidas da taxonomia.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}\n\nPERGUNTA: "${options.message}"`,
+      });
+      executedSql = stepCorrected.object.sqlQuery;
+      queryResults = await queryDuckDbParquet(executedSql);
+    }
+
+    // PASSO 3: Síntese Agêntica Final para o Cidadão (Resposta + Métricas + Gráfico)
+    const stepFinal = await generateWithFallback<{
+      answer: string;
+      metrics?: Array<{
+        title: string;
+        value: string;
+        variant?: "default" | "accent" | "warning" | "success";
+      }>;
+      chartData?: Array<{ label: string; valor: number }>;
+      chartType?: "bar" | "donut" | "metric";
+    }>({
+      schema: finalAnswerSchema,
+      system: systemContext,
+      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 10))}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, com cartões de métricas (se aplicável) e gráfico.`,
+    });
+
+    await trackMcpToolCall(
+      "react_agent_execution",
+      {
+        input: { message: options.message, portalSlug, year },
+        output: {
+          answer: stepFinal.object.answer,
+          sqlQuery: executedSql,
+          stepsCount,
+        },
+        latencyMs: Date.now() - startTime,
+      },
+      { traceId: options.traceId },
+    );
+
+    return {
+      answer: stepFinal.object.answer,
+      metrics: stepFinal.object.metrics,
+      chartData: stepFinal.object.chartData,
+      chartType: stepFinal.object.chartType,
+      sqlQuery: executedSql,
+      stepsCount,
+      autoCorrected,
+    };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (
+      errMsg.includes("Quota exceeded") ||
+      errMsg.includes("rate-limit") ||
+      errMsg.includes("limit: 20")
+    ) {
+      return {
+        answer:
+          "⏳ **Limite de Requisições Atingido na Cota Gratuita do Gemini**\n\nA chave de API gratuita do Google Gemini atingiu o limite de requisições por minuto. Por favor, aguarde alguns segundos e tente novamente.",
+        metrics: [
+          {
+            title: "Cota Gratuita",
+            value: "20 RPM Excedido",
+            variant: "warning",
+          },
+        ],
+        stepsCount: 0,
+        autoCorrected: false,
+      };
+    }
+    throw err;
   }
-
-  // Definição das Ferramentas MCP para o Motor ReAct
-  const tools = {
-    listMartsTaxonomia: tool({
-      description: "Lista a taxonomia dos marts Parquet e domínios disponíveis",
-      parameters: jsonSchema<{ domain?: string }>({
-        type: "object",
-        properties: { domain: { type: "string" } },
-      }),
-      execute: async ({ domain }) => {
-        const allMarts = FISCAL_TAXONOMY.flatMap((group) =>
-          group.marts.map((m) => ({
-            domain: group.domain,
-            tableName: m.table,
-            description: m.description,
-          })),
-        );
-
-        if (domain) {
-          return allMarts.filter((m) =>
-            m.domain.toLowerCase().includes(domain.toLowerCase()),
-          );
-        }
-        return allMarts;
-      },
-    }),
-
-    getMartSchema: tool({
-      description:
-        "Obtém o schema detalhado (colunas e tipos de dados) de uma tabela",
-      parameters: jsonSchema<{ tableName: string }>({
-        type: "object",
-        properties: { tableName: { type: "string" } },
-        required: ["tableName"],
-      }),
-      execute: async ({ tableName }) => {
-        for (const group of FISCAL_TAXONOMY) {
-          const found = group.marts.find((m) => m.table === tableName);
-          if (found) {
-            return { tableName: found.table, columns: found.columns };
-          }
-        }
-        return { error: `Tabela '${tableName}' não encontrada.` };
-      },
-    }),
-
-    queryDuckDbMart: tool({
-      description:
-        "Executa uma consulta SQL no DuckDB. Sempre inclua CAST(SUM(...) AS DOUBLE) e filtre por portal_slug e ano",
-      parameters: jsonSchema<{ sql: string }>({
-        type: "object",
-        properties: { sql: { type: "string" } },
-        required: ["sql"],
-      }),
-      execute: async ({ sql }) => {
-        executedSql = sql;
-        try {
-          const rows = await queryDuckDbParquet(sql);
-          queryResults = rows;
-
-          if (rows.length === 0) {
-            autoCorrected = true;
-            return {
-              warning:
-                "A consulta retornou 0 resultados. Verifique se o nome de fornecedor/filtro necessita de ILIKE '%termo%' ou se o portal_slug e ano estão corretos.",
-              rows: [],
-            };
-          }
-          return { rowCount: rows.length, data: rows.slice(0, 10) };
-        } catch (err) {
-          autoCorrected = true;
-          const errMsg = err instanceof Error ? err.message : String(err);
-          return {
-            error: `Erro SQL DuckDB: ${errMsg}. Por favor, ajuste a query SQL usando colunas válidas.`,
-          };
-        }
-      },
-    }),
-  };
-
-  // Loop ReAct via Vercel AI SDK generateText
-  const response = await generateText({
-    model: google("gemini-1.5-flash"),
-    system: `${systemContext}\n\nInstruções ReAct:\n1. Pense passo a passo antes de agir.\n2. Inspecione a taxonomia/schema se houver dúvida sobre colunas.\n3. Execute a query SQL DuckDB usando a ferramenta queryDuckDbMart.\n4. Se a query falhar ou retornar 0 linhas, ajuste a query e tente novamente (Auto-Correção).`,
-    prompt: `PERGUNTA DO CIDADÃO: "${options.message}"`,
-    tools,
-    maxSteps: options.maxSteps || 4,
-  });
-
-  // Geração final do objeto estruturado com base nos resultados obtidos
-  const { object } = await generateObject({
-    model: google("gemini-1.5-flash"),
-    schema: finalAnswerSchema,
-    prompt: `Com base no seguinte diálogo ReAct e resultados da consulta SQL:\n\n${response.text}\n\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 5))}\n\nFormate a resposta final clara para o cidadão.`,
-  });
-
-  const result: ReActResult = {
-    answer: object.answer,
-    metrics: object.metrics,
-    chartType: object.chartType || "metric",
-    sqlQuery: executedSql,
-    stepsCount: response.steps.length,
-    autoCorrected,
-    chartData: queryResults.slice(0, 5).map((row) => ({
-      label: String(
-        row.contrato_numero ||
-          row.fornecedor_nome ||
-          row.label ||
-          row.objeto ||
-          "Item",
-      ),
-      valor: Number(
-        row.pago ||
-          row.valor ||
-          row.total_pago ||
-          row.valor_contrato ||
-          row.total_arrecadado ||
-          0,
-      ),
-    })),
-  };
-
-  // Telemetria PostHog ($ai_generation)
-  await trackMcpToolCall(
-    "react_agent_execution",
-    {
-      input: { message: options.message, portalSlug, year },
-      output: result,
-      latencyMs: Date.now() - startTime,
-    },
-    { traceId: options.traceId, model: "gemini-1.5-flash" },
-  );
-
-  return result;
 }

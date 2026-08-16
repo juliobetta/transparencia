@@ -19,6 +19,7 @@ vi.mock("ai", () => ({
 
 vi.mock("@ai-sdk/google", () => ({
   google: vi.fn(),
+  createGoogleGenerativeAI: vi.fn(() => vi.fn()),
 }));
 
 vi.mock("../../duckdb-executor", () => ({
