@@ -191,6 +191,11 @@ export async function executeReActAgent(
   let autoCorrected = false;
   let stepsCount = 2;
 
+  // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+  console.log(
+    `\n🤖 [AI AGENT] Nova pergunta do Cidadão: "${options.message}" (Portal: ${portalSlug}, Exercício: ${year})`,
+  );
+
   try {
     // PASSO 1: Geração Agêntica da Query SQL com base no Contexto, Memória Multi-Turno e Taxonomia
     const step1 = await generateWithFallback<{
@@ -204,14 +209,25 @@ export async function executeReActAgent(
 
     executedSql = step1.object.sqlQuery;
 
+    // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+    console.log(`🔍 [AI AGENT] Query SQL Gerada (Passo 1):\n   ${executedSql}`);
+
     // PASSO 2: Execução no DuckDB WASM Parquet com Auto-Correção Agêntica
     try {
       queryResults = await queryDuckDbParquet(executedSql);
+      // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+      console.log(
+        `📊 [AI AGENT] DuckDB Retornou: ${queryResults.length} linha(s)`,
+      );
 
       // Auto-Correção se retornar 0 linhas
       if (queryResults.length === 0) {
         autoCorrected = true;
         stepsCount++;
+        // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+        console.log(
+          "⚠️ [AI AGENT] 0 resultados obtidos. Disparando Auto-Correção Agêntica...",
+        );
         const stepCorrected = await generateWithFallback<{
           sqlQuery: string;
           reasoning?: string;
@@ -221,12 +237,18 @@ export async function executeReActAgent(
           prompt: `A query anterior '${executedSql}' retornou 0 resultados.\nAjuste a query para o cidadão. Dica: use filtros ILIKE '%termo%' se for nome de fornecedor/descrição.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA: "${options.message}"`,
         });
         executedSql = stepCorrected.object.sqlQuery;
+        // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+        console.log(`🔄 [AI AGENT] Query Corrigida:\n   ${executedSql}`);
         queryResults = await queryDuckDbParquet(executedSql);
       }
     } catch (sqlErr) {
       autoCorrected = true;
       stepsCount++;
       const errMsg = sqlErr instanceof Error ? sqlErr.message : String(sqlErr);
+      // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+      console.log(
+        `❌ [AI AGENT] Falha DuckDB: ${errMsg}. Disparando Auto-Correção Agêntica...`,
+      );
       const stepCorrected = await generateWithFallback<{
         sqlQuery: string;
         reasoning?: string;
@@ -236,6 +258,8 @@ export async function executeReActAgent(
         prompt: `A query anterior '${executedSql}' falhou com o erro: '${errMsg}'.\nCorrija a sintaxe e use apenas colunas válidas da taxonomia.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA: "${options.message}"`,
       });
       executedSql = stepCorrected.object.sqlQuery;
+      // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+      console.log(`🔄 [AI AGENT] Query Corrigida:\n   ${executedSql}`);
       queryResults = await queryDuckDbParquet(executedSql);
     }
 
@@ -255,6 +279,12 @@ export async function executeReActAgent(
       prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 10))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa, incluindo cartões de métricas e gráfico se apropriado.`,
     });
 
+    const durationMs = Date.now() - startTime;
+    // biome-ignore lint/suspicious/noConsole: terminal observability for AI agent queries
+    console.log(
+      `✅ [AI AGENT] Resposta final concluída em ${durationMs}ms (${stepsCount} passos).`,
+    );
+
     await trackMcpToolCall(
       "react_agent_execution",
       {
@@ -264,7 +294,7 @@ export async function executeReActAgent(
           sqlQuery: executedSql,
           stepsCount,
         },
-        latencyMs: Date.now() - startTime,
+        latencyMs: durationMs,
       },
       { traceId: options.traceId },
     );
