@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import * as duckdb from "@duckdb/duckdb-wasm";
 
@@ -93,9 +94,8 @@ export async function getDuckDbInstance(): Promise<unknown> {
 
   dbPromise = (async () => {
     if (typeof window === "undefined") {
-      // Server-side Node.js CJS require to avoid Turbopack bundle errors
-      // biome-ignore lint/security/noGlobalEval: server-side requirement
-      const duckdbNode = eval("require")(
+      const customRequire = createRequire(import.meta.url);
+      const duckdbNode = customRequire(
         "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
       );
 
@@ -174,6 +174,11 @@ export async function queryDuckDbParquet<T = Record<string, unknown>>(
 
   try {
     if (!initializedViews) {
+      // Registrar macro unaccent para compatibilidade 100% com sintaxe PostgreSQL
+      await conn.query(
+        "CREATE MACRO IF NOT EXISTS unaccent(str) AS strip_accents(str)",
+      );
+
       for (const table of MART_TABLES) {
         const parquetPath = resolveParquetPath(table);
         await conn.query(

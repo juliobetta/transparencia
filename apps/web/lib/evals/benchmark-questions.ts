@@ -86,4 +86,12 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
     expectedMart: "fct_pessoal_folha_metricas",
     expectedMetrics: ["total_folha", "total_pago"],
   },
+  {
+    id: "eval-11",
+    domain: "Despesas e Credores",
+    question:
+      "Quanto foi gasto com merenda escolar em 2025 e 2026? Retorne valor empenhado e pago para os dois anos.",
+    expectedMart: "fct_despesas",
+    expectedMetrics: ["empenhado", "pago"],
+  },
 ];
