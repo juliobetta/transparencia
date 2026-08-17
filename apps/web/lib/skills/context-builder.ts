@@ -65,6 +65,8 @@ export function buildLayeredContext(options: ContextOptions): string {
 
   // Layer 3: Taxonomia de Marts Parquet Disponíveis
   contextPrompt += "\n# TAXONOMIA DOS MARTS PARQUET DISPONÍVEIS\n";
+  contextPrompt +=
+    "- GUIA DE CONSULTA A DIMENSÕES (dim_*): Utilize tabelas 'dim_*' para enriquecer consultas e fazer JOINs de detalhes cadastrais (ex: dim_credor para fornecedores/CPF/CNPJ, dim_elemento_despesa para elementos 30/36/39/52, dim_natureza_despesa para naturezas STN/MCASP, dim_funcao_subfuncao para funções orçamentárias e dim_orgao para secretarias).\n";
   for (const dom of FISCAL_TAXONOMY) {
     contextPrompt += `\n## Domínio: ${dom.domain}\n`;
     for (const mart of dom.marts) {

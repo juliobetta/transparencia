@@ -203,7 +203,7 @@ export async function executeReActAgent(
       reasoning?: string;
     }>({
       schema: sqlGenerationSchema,
-      system: `${systemContext}\n\nREGRAS MANDATÓRIAS SQL DUCKDB:\n1. Escreva queries válidas para DuckDB.\n2. Toda agregação (SUM, AVG) DEVE ser convertida com CAST(SUM(...) AS DOUBLE).\n3. Sempre filtre por portal_slug = '${portalSlug}'. Se o cidadão citar um ano específico na pergunta ou no histórico recente (ex: 2023, 2024, 2026), utilize o(s) ano(s) solicitados. Caso contrário, se nenhum ano for citado, utilize ano = ${year}.\n4. Use apenas tabelas e colunas declaradas na taxonomia oficial.`,
+      system: `${systemContext}\n\nREGRAS MANDATÓRIAS SQL DUCKDB:\n1. Escreva queries válidas para DuckDB.\n2. Toda agregação (SUM, AVG) DEVE ser convertida com CAST(SUM(...) AS DOUBLE).\n3. Sempre filtre por portal_slug = '${portalSlug}'. Se o cidadão citar um ano específico na pergunta ou no histórico recente (ex: 2023, 2024, 2026), utilize o(s) ano(s) solicitados. Caso contrário, se nenhum ano for citado, utilize ano = ${year}.\n4. CONSULTAS MULTI-TABELAS & CTEs: Você pode e deve fazer JOINs ou usar CTEs (WITH) cruzando tabelas de fatos (fct_*) e dimensões (dim_*) quando a pergunta exigir identificar termos ou códigos específicos (ex: para 'merenda escolar', busque elementos/naturezas de alimentação ou JOIN com dim_elemento_despesa / dim_natureza_despesa; para fornecedores de um setor, faça JOIN com dim_credor).\n5. Use apenas tabelas e colunas declaradas na taxonomia oficial.`,
       prompt: `TAXONOMIA DE MARTS DISPONÍVEIS:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA ATUAL DO CIDADÃO: "${options.message}"`,
     });
 

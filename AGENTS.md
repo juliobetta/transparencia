@@ -88,6 +88,14 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 - **Sincronização Obrigatória**: Sempre que houver inclusão, alteração ou remoção de rotas públicas (`apps/web/app/[portalSlug]/`), adição de novos indicadores/métricas públicas (Posição Fiscal, Despesas, Receitas, Licitações, Pessoal, CAPREM, Saúde) ou mudanças nas convenções contábeis exibidas aos usuários, é **obrigatório** atualizar os arquivos `apps/web/public/llms.txt` e `apps/web/public/llms-full.txt`.
 - **Foco no Domínio do Usuário/Cidadão**: O conteúdo destes arquivos deve focar exclusivamente no entendimento das rotas, dicionário de campos públicos, conceitos contábeis (STN/MCASP) e orientações de consulta para assistentes de IA, sem poluição com detalhes internos de código ou infraestrutura.
 
+---
+
+## 13. SINCRONIZAÇÃO DA TAXONOMIA MCP E EVALS DE IA (`codegen:taxonomy` E `benchmark-questions.ts`)
+
+- **Sincronização Obrigatória da Taxonomia MCP**: Sempre que houver inclusão, alteração ou remoção de modelos dbt marts (`elt/transform/models/marts/**/*.yml`) ou adição/alteração de colunas em marts, é **obrigatório** executar o script de geração de código `pnpm codegen:taxonomy` (ou `python3 scripts/codegen-taxonomy.py`). Isso recompila e atualiza a constante `FISCAL_TAXONOMY` em `apps/web/lib/mcp/transparencia-mcp.ts` automaticamente a partir das definições YAML do dbt.
+- **Manutenção de Benchmark & Evals**: Sempre que novos marts ou indicadores forem criados, adicione 2 a 3 perguntas de teste correspondentes no arquivo `apps/web/lib/evals/benchmark-questions.ts` e verifique a aprovação da suíte de evals executando `pnpm test`.
+
+
 
 
 

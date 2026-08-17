@@ -332,3 +332,8 @@ O wrapper `scripts/run_dbt.py` parseia `DATABASE_URL` automaticamente — não �
 ### 4. Protocolo de Auditoria e Paridade
 - **Verificação ao Centavo**: Antes de aprovar refatorações de marts, extrair o HTML de Produção via `read_url_content` e comparar cada indicador com o banco local ao centavo.
 - **Validação Dupla de Testes**: Após qualquer alteração no dbt, executar `make test` (pytest no backend efêmero) e `pnpm test` (vitest e tipagem no TypeScript) sem exceções.
+
+### 5. Sincronização Obrigatória da Taxonomia MCP e Evals de IA (`codegen:taxonomy`)
+- **Atualização da Taxonomia MCP**: Sempre que um novo model dbt mart for criado ou alterado em `elt/transform/models/marts/`, execute obrigatoriamente `pnpm codegen:taxonomy` (ou `python3 scripts/codegen-taxonomy.py`). Isso recompila o dicionário `FISCAL_TAXONOMY` em `apps/web/lib/mcp/transparencia-mcp.ts` diretamente dos metadados YAML do dbt.
+- **Atualização de Evals de IA**: Ao criar novos marts ou métricas, adicione 2 a 3 perguntas correspondentes no arquivo `apps/web/lib/evals/benchmark-questions.ts` e valide a acurácia executando `pnpm test`.
+
