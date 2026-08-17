@@ -32,9 +32,13 @@ models:
               row_condition: "proventos is not null"
       - name: categoria_funcional
         data_type: text
+        description: "Categoria da função do servidor (ex: Efetivos, Contratação por excepcional interesse público, Cargo comissionado extra-quadro, Efetivos ocupantes de cargo comissionado)."
       - name: vinculo
         data_type: text
+        description: "Tipo de vínculo jurídico do servidor. Contém identificadores de posições de confiança/chefia como 'FG' (Função Gratificada) e 'CC' (Cargo em Comissão)."
       - name: cargo
         data_type: text
+        description: "Nome do cargo exercido pelo servidor (ex: Apoio Urbano, Professor, Assessor, Guarda Municipal)."
       - name: forma_provimento
         data_type: text
+        description: "Forma de recrutamento e admissão (ex: CONCURSO PUBLICO, LIVRE PROVIMENTO, TEMPO DETERMINADO, ELEICAO/INDICACAO)."

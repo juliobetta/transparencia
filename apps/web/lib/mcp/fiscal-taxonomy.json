@@ -583,7 +583,13 @@
           "ano",
           "empresa_id",
           "total_folha",
-          "total_pago"
+          "total_pago",
+          "empenhado_13",
+          "empenhado_bruto_13",
+          "liquidado_13",
+          "pago_13",
+          "efetivos_confianca",
+          "comissionados_externos"
         ]
       }
     ]

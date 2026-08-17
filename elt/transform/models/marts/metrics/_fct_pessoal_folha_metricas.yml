@@ -25,6 +25,18 @@ models:
         description: Total pago com despesas de pessoal no ano.
       - name: total_pago
         description: Total pago consolidado por órgão no ano.
+      - name: empenhado_13
+        description: Valor empenhado líquido com 13º salário.
+      - name: empenhado_bruto_13
+        description: Valor empenhado bruto com 13º salário.
+      - name: liquidado_13
+        description: Valor liquidado com 13º salário.
+      - name: pago_13
+        description: Valor efetivamente pago com 13º salário.
+      - name: efetivos_confianca
+        description: Total de servidores efetivos concursados ocupando funções de chefia ou cargos de confiança (Função Gratificada - FG ou Cargo em Comissão - CC).
+      - name: comissionados_externos
+        description: Total de servidores em cargos comissionados de livre nomeação extra-quadro (sem vínculo efetivo concursado).
 
 unit_tests:
   - name: test_pessoal_folha_metricas_calculo
