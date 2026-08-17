@@ -171,6 +171,45 @@ function getDuckDbDistDir(): string {
   return webNodeModules;
 }
 
+async function ensureWasmFiles(distDir: string): Promise<{
+  wasmPath: string;
+  workerPath: string;
+}> {
+  const localWasm = path.join(distDir, "duckdb-eh.wasm");
+  const localWorker = path.join(distDir, "duckdb-node-eh.worker.cjs");
+
+  if (fs.existsSync(localWasm) && fs.existsSync(localWorker)) {
+    return { wasmPath: localWasm, workerPath: localWorker };
+  }
+
+  const tmpDir = path.join("/tmp", "duckdb-wasm");
+  const tmpWasm = path.join(tmpDir, "duckdb-eh.wasm");
+  const tmpWorker = path.join(tmpDir, "duckdb-node-eh.worker.cjs");
+
+  if (fs.existsSync(tmpWasm) && fs.existsSync(tmpWorker)) {
+    return { wasmPath: tmpWasm, workerPath: tmpWorker };
+  }
+
+  fs.mkdirSync(tmpDir, { recursive: true });
+
+  const cdnBase =
+    "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/";
+
+  if (!fs.existsSync(tmpWasm)) {
+    const res = await fetch(`${cdnBase}duckdb-eh.wasm`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    fs.writeFileSync(tmpWasm, buf);
+  }
+
+  if (!fs.existsSync(tmpWorker)) {
+    const res = await fetch(`${cdnBase}duckdb-node-eh.worker.cjs`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    fs.writeFileSync(tmpWorker, buf);
+  }
+
+  return { wasmPath: tmpWasm, workerPath: tmpWorker };
+}
+
 export async function getDuckDbInstance(): Promise<unknown> {
   if (dbPromise) return dbPromise;
 
@@ -184,8 +223,7 @@ export async function getDuckDbInstance(): Promise<unknown> {
         path.join(distDir, "duckdb-node-blocking.cjs"),
       );
 
-      const wasmPath = path.join(distDir, "duckdb-eh.wasm");
-      const workerPath = path.join(distDir, "duckdb-node-eh.worker.cjs");
+      const { wasmPath, workerPath } = await ensureWasmFiles(distDir);
 
       const bundles = {
         eh: {
