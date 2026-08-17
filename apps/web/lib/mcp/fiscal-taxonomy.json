@@ -589,7 +589,16 @@
           "liquidado_13",
           "pago_13",
           "efetivos_confianca",
-          "comissionados_externos"
+          "comissionados_externos",
+          "bin_0_25k",
+          "bin_25k_5k",
+          "bin_5k_75k",
+          "bin_75k_10k",
+          "bin_10k_125k",
+          "bin_125k_15k",
+          "bin_15k_175k",
+          "bin_175k_20k",
+          "bin_acima_20k"
         ]
       }
     ]

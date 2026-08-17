@@ -37,6 +37,24 @@ models:
         description: Total de servidores efetivos concursados ocupando funções de chefia ou cargos de confiança (Função Gratificada - FG ou Cargo em Comissão - CC).
       - name: comissionados_externos
         description: Total de servidores em cargos comissionados de livre nomeação extra-quadro (sem vínculo efetivo concursado).
+      - name: bin_0_25k
+        description: "Contagem de servidores com proventos entre R$ 0 e R$ 2.500,00."
+      - name: bin_25k_5k
+        description: "Contagem de servidores com proventos entre R$ 2.500,00 e R$ 5.000,00."
+      - name: bin_5k_75k
+        description: "Contagem de servidores com proventos entre R$ 5.000,00 e R$ 7.500,00."
+      - name: bin_75k_10k
+        description: "Contagem de servidores com proventos entre R$ 7.500,00 e R$ 10.000,00."
+      - name: bin_10k_125k
+        description: "Contagem de servidores com proventos entre R$ 10.000,00 e R$ 12.500,00."
+      - name: bin_125k_15k
+        description: "Contagem de servidores com proventos entre R$ 12.500,00 e R$ 15.000,00."
+      - name: bin_15k_175k
+        description: "Contagem de servidores com proventos entre R$ 15.000,00 e R$ 17.500,00."
+      - name: bin_175k_20k
+        description: "Contagem de servidores com proventos entre R$ 17.500,00 e R$ 20.000,00."
+      - name: bin_acima_20k
+        description: "Contagem de servidores com proventos acima de R$ 20.000,00."
 
 unit_tests:
   - name: test_pessoal_folha_metricas_calculo
