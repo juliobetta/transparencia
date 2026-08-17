@@ -94,4 +94,15 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
     expectedMart: "fct_despesas",
     expectedMetrics: ["empenhado", "pago"],
   },
+  {
+    id: "eval-12",
+    domain: "Saúde e CAPREM",
+    question:
+      "Qual o valor da obrigação patronal empenhada e o rombo patronal não repassado ao CAPREM em 2026?",
+    expectedMart: "fct_historia_caprem_metricas",
+    expectedMetrics: [
+      "total_empenhado_patronal",
+      "rombo_patronal_nao_repassado",
+    ],
+  },
 ];

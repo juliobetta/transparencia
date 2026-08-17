@@ -58,7 +58,7 @@ models:
         data_type: numeric
         constraints:
           - type: not_null
-        description: "Total de contribuição patronal empenhada (Elemento 13), inclui reservas orçamentárias para períodos futuros"
+        description: "Total orçamentário anual de contribuição patronal empenhada (Elemento 13), incluindo reservas orçamentárias para o exercício inteiro"
         tests:
           - not_null
       - name: total_liquidado_patronal
@@ -79,7 +79,7 @@ models:
         data_type: numeric
         constraints:
           - type: not_null
-        description: "Rombo patronal não repassado (liquidado patronal - pago patronal). Usa liquidado em vez de empenhado para não contar reservas orçamentárias de períodos futuros como inadimplência atual."
+        description: "Rombo patronal não repassado (liquidado patronal - pago patronal). Diferença exata entre obrigação liquidada e efetivamente paga ao RPPS. NÃO se trata de divisão por secretarias ou rubricas."
         tests:
           - not_null
       - name: total_amortizacao_divida

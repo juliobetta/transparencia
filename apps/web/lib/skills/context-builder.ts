@@ -41,6 +41,11 @@ export function buildLayeredContext(options: ContextOptions): string {
 - Exercício Fiscal Selecionado: ${year}
 - Rota Atual da Interface: "${currentRoute || "/visao-geral"}"
 - Regra de Ouro: Todas as consultas SQL DuckDB DEVEM incluir "WHERE portal_slug = '${portalSlug}' AND ano = ${year}".
+- REGRA GERAL ANTI-ALUCINAÇÃO FISCAL (TODAS AS ÁREAS):
+  1. DIFERENCIAÇÃO RIGOROSA DE FASES ORÇAMENTÁRIAS: NUNCA justifique diferenças numéricas entre estágios da despesa/receita (Empenhado vs. Liquidado vs. Pago) supondo "divisões por secretarias, programas, órgãos ou rubricas" (ex: "Educação Infantil"). A diferença entre Empenhado e Liquidado representa reservas orçamentárias ainda não executadas; a diferença entre Liquidado e Pago representa restos a pagar ou retenções pendentes de repasse.
+  2. PROIBIÇÃO DE HIPÓTESES SEM DADOS: NUNCA invente secretarias, categorias ou razões operacionais não explicitamente presentes nas linhas retornadas pelas queries DuckDB.
+  3. VALORES ACUMULADOS NO EXERCÍCIO: Todas as métricas monetárias nos marts representam o valor ACUMULADO no exercício fiscal (ano) até o momento, NUNCA parcelas mensais isoladas.
+  4. DISTINÇÃO DE ESCOPO: Ao comparar totais consolidados de um mart com subconjuntos (ex: Total Consolidado do CAPREM vs. Contribuição Patronal da Folha), explicite a diferença de escopo para não tratar o total do domínio como se fosse uma única obrigação isolada.
 
 `;
 
