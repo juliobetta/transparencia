@@ -337,3 +337,10 @@ O wrapper `scripts/run_dbt.py` parseia `DATABASE_URL` automaticamente — não �
 - **Atualização da Taxonomia MCP**: Sempre que um novo model dbt mart for criado ou alterado em `elt/transform/models/marts/`, execute obrigatoriamente `pnpm codegen:taxonomy` (ou `python3 scripts/codegen-taxonomy.py`). Isso recompila o dicionário `FISCAL_TAXONOMY` em `apps/web/lib/mcp/transparencia-mcp.ts` diretamente dos metadados YAML do dbt.
 - **Atualização de Evals de IA**: Ao criar novos marts ou métricas, adicione 2 a 3 perguntas correspondentes no arquivo `apps/web/lib/evals/benchmark-questions.ts` e valide a acurácia executando `pnpm test`.
 
+### 6. Diretrizes Antialucinação de Fases Fiscais e Telemetria do Assistente AI
+- **Diferenciação Estrita de Estágios Fiscais**: O assistente de IA nunca deve justificar discrepâncias entre valores Empenhados, Liquidados e Pagos inventando divisões por secretarias ou rubricas (ex: "Educação Infantil"). A diferença entre Empenhado e Liquidado é a reserva orçamentária ainda não executada; a diferença entre Liquidado e Pago representa restos a pagar ou retenções pendentes de repasse.
+- **Valores Acumulados do Exercício**: Todas as métricas monetárias nos marts representam o valor acumulado no exercício (ano) até o momento, NUNCA parcelas mensais isoladas.
+- **Distinção entre Consolidado do Domínio vs Subconjuntos Específicos**: Ao comparar números agregados do mart (ex: Total Consolidado do CAPREM/CASP `total_empenhado`) com métricas específicas (ex: Contribuição Patronal `total_empenhado_patronal`), a documentação do mart no YAML do dbt deve explicitar essa diferença de escopo para impedir que o agente de IA trate o total do fundo como se fosse uma única obrigação patronal.
+- **Ciclo de Telemetria de Feedback (Telemetry-to-Eval)**: Rastrear avaliações dos cidadãos na UI via evento `ai_feedback` no PostHog (com `score`, `message_id` e `portal_slug`). Perguntas reais que gerem feedback negativo (👎) devem ser convertidas em novos casos de teste no benchmark (`benchmark-questions.ts`).
+
+

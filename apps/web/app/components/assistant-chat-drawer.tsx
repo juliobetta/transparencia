@@ -8,8 +8,11 @@ import {
   Send,
   Sparkles,
   Square,
+  ThumbsDown,
+  ThumbsUp,
   X,
 } from "lucide-react";
+import posthog from "posthog-js";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AssistantResponse } from "../api/assistant/chat/route";
@@ -65,7 +68,21 @@ export function AssistantChatDrawer({
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showSqlFor, setShowSqlFor] = useState<Record<string, boolean>>({});
+  const [feedbackFor, setFeedbackFor] = useState<Record<string, 1 | -1>>({});
   const isProduction = process.env.NODE_ENV === "production";
+
+  const handleFeedback = (msgId: string, text: string, score: 1 | -1) => {
+    setFeedbackFor((prev) => ({ ...prev, [msgId]: score }));
+    try {
+      posthog.capture("ai_feedback", {
+        score,
+        message_id: msgId,
+        answer_snippet: text.slice(0, 300),
+        portal_slug: portalSlug,
+        ano,
+      });
+    } catch (_err) {}
+  };
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -347,6 +364,47 @@ export function AssistantChatDrawer({
                         {msg.responseObj.sqlQuery}
                       </pre>
                     )}
+                  </div>
+                )}
+                {/* Barra de Feedback do Usuário (Thumbs up / Thumbs down) */}
+                {msg.sender === "assistant" && msg.id !== "msg-welcome" && (
+                  <div className="mt-2.5 flex items-center justify-between border-slate-200/60 border-t pt-1.5 text-[10px] text-slate-500">
+                    <span className="text-[10px]">Essa resposta foi útil?</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleFeedback(msg.id, msg.text, 1)}
+                        className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors ${
+                          feedbackFor[msg.id] === 1
+                            ? "bg-emerald-100 font-semibold text-emerald-700"
+                            : "text-slate-600 hover:bg-slate-200"
+                        }`}
+                        title="Resposta útil"
+                        aria-label="Resposta útil"
+                      >
+                        <ThumbsUp className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFeedback(msg.id, msg.text, -1)}
+                        className={`flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-colors ${
+                          feedbackFor[msg.id] === -1
+                            ? "bg-red-100 font-semibold text-red-700"
+                            : "text-slate-600 hover:bg-slate-200"
+                        }`}
+                        title="Resposta imprecisa ou com erro"
+                        aria-label="Resposta imprecisa ou com erro"
+                      >
+                        <ThumbsDown className="h-3 w-3" />
+                      </button>
+                      {feedbackFor[msg.id] !== undefined && (
+                        <span className="font-medium text-[9px] text-emerald-600">
+                          {feedbackFor[msg.id] === 1
+                            ? "Obrigado!"
+                            : "Agradecemos o aviso!"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
