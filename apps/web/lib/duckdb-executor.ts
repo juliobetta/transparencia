@@ -171,6 +171,16 @@ function getDuckDbDistDir(): string {
   return webNodeModules;
 }
 
+function isFileReadable(filePath: string): boolean {
+  try {
+    const fd = fs.openSync(filePath, "r");
+    fs.closeSync(fd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function ensureWasmFiles(distDir: string): Promise<{
   wasmPath: string;
   workerPath: string;
@@ -178,7 +188,7 @@ async function ensureWasmFiles(distDir: string): Promise<{
   const localWasm = path.join(distDir, "duckdb-eh.wasm");
   const localWorker = path.join(distDir, "duckdb-node-eh.worker.cjs");
 
-  if (fs.existsSync(localWasm) && fs.existsSync(localWorker)) {
+  if (isFileReadable(localWasm) && isFileReadable(localWorker)) {
     return { wasmPath: localWasm, workerPath: localWorker };
   }
 
@@ -186,7 +196,7 @@ async function ensureWasmFiles(distDir: string): Promise<{
   const tmpWasm = path.join(tmpDir, "duckdb-eh.wasm");
   const tmpWorker = path.join(tmpDir, "duckdb-node-eh.worker.cjs");
 
-  if (fs.existsSync(tmpWasm) && fs.existsSync(tmpWorker)) {
+  if (isFileReadable(tmpWasm) && isFileReadable(tmpWorker)) {
     return { wasmPath: tmpWasm, workerPath: tmpWorker };
   }
 
@@ -195,14 +205,24 @@ async function ensureWasmFiles(distDir: string): Promise<{
   const cdnBase =
     "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/";
 
-  if (!fs.existsSync(tmpWasm)) {
+  if (!isFileReadable(tmpWasm)) {
     const res = await fetch(`${cdnBase}duckdb-eh.wasm`);
+    if (!res.ok) {
+      throw new Error(
+        `Falha ao baixar duckdb-eh.wasm do CDN: ${res.status} ${res.statusText}`,
+      );
+    }
     const buf = Buffer.from(await res.arrayBuffer());
     fs.writeFileSync(tmpWasm, buf);
   }
 
-  if (!fs.existsSync(tmpWorker)) {
+  if (!isFileReadable(tmpWorker)) {
     const res = await fetch(`${cdnBase}duckdb-node-eh.worker.cjs`);
+    if (!res.ok) {
+      throw new Error(
+        `Falha ao baixar duckdb-node-eh.worker.cjs do CDN: ${res.status} ${res.statusText}`,
+      );
+    }
     const buf = Buffer.from(await res.arrayBuffer());
     fs.writeFileSync(tmpWorker, buf);
   }
