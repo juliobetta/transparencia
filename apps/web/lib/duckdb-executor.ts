@@ -283,9 +283,75 @@ export async function getDuckDbInstance(): Promise<unknown> {
   return dbPromise;
 }
 
+async function queryMotherDuck<T = Record<string, unknown>>(
+  sqlQuery: string,
+): Promise<T[]> {
+  const token =
+    process.env.MOTHER_DUCK_MOTHERDUCK_TOKEN || process.env.MOTHERDUCK_TOKEN;
+  if (!token) {
+    throw new Error(
+      "MotherDuck token não configurado em MOTHER_DUCK_MOTHERDUCK_TOKEN",
+    );
+  }
+
+  const database =
+    process.env.MOTHERDUCK_DATABASE ||
+    process.env.MOTHER_DUCK_DATABASE ||
+    "my_db";
+
+  // Prepara declarações de macro unaccent e VIEWs para as tabelas apontando para o R2/S3
+  const prepStatements: string[] = [
+    "CREATE MACRO IF NOT EXISTS unaccent(str) AS strip_accents(str);",
+  ];
+
+  for (const table of MART_TABLES) {
+    if (sqlQuery.includes(table)) {
+      const parquetPath = resolveParquetPath(table);
+      prepStatements.push(
+        `CREATE VIEW IF NOT EXISTS ${table} AS SELECT * FROM read_parquet('${parquetPath}');`,
+      );
+    }
+  }
+
+  const fullQuery = `${prepStatements.join("\n")}\n${sqlQuery}`;
+
+  const res = await fetch("https://api.motherduck.com/v1/sql", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      query: fullQuery,
+      database: database,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Erro na API do MotherDuck (${res.status}): ${errText}`);
+  }
+
+  const json = (await res.json()) as {
+    rows?: Record<string, unknown>[];
+    data?: Record<string, unknown>[];
+    results?: { rows?: Record<string, unknown>[] }[];
+  };
+
+  const rawRows = json.rows || json.data || json.results?.[0]?.rows || [];
+  return rawRows as T[];
+}
+
 export async function queryDuckDbParquet<T = Record<string, unknown>>(
   sqlQuery: string,
 ): Promise<T[]> {
+  if (
+    process.env.MOTHER_DUCK_MOTHERDUCK_TOKEN ||
+    process.env.MOTHERDUCK_TOKEN
+  ) {
+    return queryMotherDuck<T>(sqlQuery);
+  }
+
   const db = (await getDuckDbInstance()) as {
     connect: () => Promise<{
       query: (sql: string) => Promise<{ toArray: () => unknown[] }>;
