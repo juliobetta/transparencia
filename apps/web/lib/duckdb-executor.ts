@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import * as duckdb from "@duckdb/duckdb-wasm";
 
 let dbPromise: Promise<unknown> | null = null;
 let initializedViews = false;
@@ -263,6 +262,7 @@ export async function getDuckDbInstance(): Promise<unknown> {
     }
 
     // Client-side browser bundle
+    const duckdb = await import("@duckdb/duckdb-wasm");
     const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
