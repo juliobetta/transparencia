@@ -89,36 +89,100 @@ const MART_TABLES = [
   "fct_transferencias",
 ];
 
+function getDuckDbDistDir(): string {
+  const candidateBasePaths = [
+    path.resolve(process.cwd(), "apps/web/package.json"),
+    path.resolve(process.cwd(), "package.json"),
+    path.resolve(process.cwd(), "node_modules"),
+  ];
+
+  for (const basePath of candidateBasePaths) {
+    try {
+      const customRequire = createRequire(basePath);
+      const cjsPath = customRequire.resolve(
+        "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
+      );
+      const distDir = path.dirname(cjsPath);
+      if (fs.existsSync(path.join(distDir, "duckdb-eh.wasm"))) {
+        return distDir;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+
+  try {
+    const customRequire = createRequire(import.meta.url);
+    const cjsPath = customRequire.resolve(
+      "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
+    );
+    const distDir = path.dirname(cjsPath);
+    if (fs.existsSync(path.join(distDir, "duckdb-eh.wasm"))) {
+      return distDir;
+    }
+  } catch {
+    // try fallback paths
+  }
+
+  const rootPath = process.cwd().replace(/\/apps\/web$/, "");
+  const webNodeModules = path.join(
+    rootPath,
+    "apps",
+    "web",
+    "node_modules",
+    "@duckdb",
+    "duckdb-wasm",
+    "dist",
+  );
+  const rootNodeModules = path.join(
+    rootPath,
+    "node_modules",
+    "@duckdb",
+    "duckdb-wasm",
+    "dist",
+  );
+
+  if (fs.existsSync(webNodeModules)) return webNodeModules;
+  if (fs.existsSync(rootNodeModules)) return rootNodeModules;
+
+  const pnpmDir = path.join(rootPath, "node_modules", ".pnpm");
+  if (fs.existsSync(pnpmDir)) {
+    try {
+      const entries = fs.readdirSync(pnpmDir);
+      const duckdbPkg = entries.find((e) =>
+        e.startsWith("@duckdb+duckdb-wasm@"),
+      );
+      if (duckdbPkg) {
+        const pnpmDist = path.join(
+          pnpmDir,
+          duckdbPkg,
+          "node_modules",
+          "@duckdb",
+          "duckdb-wasm",
+          "dist",
+        );
+        if (fs.existsSync(pnpmDist)) return pnpmDist;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return webNodeModules;
+}
+
 export async function getDuckDbInstance(): Promise<unknown> {
   if (dbPromise) return dbPromise;
 
   dbPromise = (async () => {
     if (typeof window === "undefined") {
-      const customRequire = createRequire(import.meta.url);
+      const distDir = getDuckDbDistDir();
+      const customRequire = createRequire(
+        path.join(distDir, "duckdb-node-blocking.cjs"),
+      );
       const duckdbNode = customRequire(
-        "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
+        path.join(distDir, "duckdb-node-blocking.cjs"),
       );
-
-      const rootPath = process.cwd().replace(/\/apps\/web$/, "");
-      const webNodeModules = path.join(
-        rootPath,
-        "apps",
-        "web",
-        "node_modules",
-        "@duckdb",
-        "duckdb-wasm",
-        "dist",
-      );
-      const rootNodeModules = path.join(
-        rootPath,
-        "node_modules",
-        "@duckdb",
-        "duckdb-wasm",
-        "dist",
-      );
-      const distDir = fs.existsSync(webNodeModules)
-        ? webNodeModules
-        : rootNodeModules;
 
       const wasmPath = path.join(distDir, "duckdb-eh.wasm");
       const workerPath = path.join(distDir, "duckdb-node-eh.worker.cjs");
