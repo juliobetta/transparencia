@@ -154,6 +154,7 @@ export async function executeReActAgent(
           schema: params.schema,
           system: params.system,
           prompt: params.prompt,
+          maxTokens: 4096,
         });
         return result as { object: T };
       } catch (err) {
@@ -164,7 +165,10 @@ export async function executeReActAgent(
           errMsg.includes("rate-limit") ||
           errMsg.includes("limit: 20") ||
           errMsg.includes("404") ||
-          errMsg.includes("not found")
+          errMsg.includes("not found") ||
+          errMsg.includes("Unexpected end of JSON") ||
+          errMsg.includes("JSON") ||
+          errMsg.includes("SyntaxError")
         ) {
           continue;
         }
@@ -276,7 +280,7 @@ export async function executeReActAgent(
     }>({
       schema: finalAnswerSchema,
       system: systemContext,
-      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 10))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa, incluindo cartões de métricas e gráfico se apropriado.`,
+      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 8))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa. Limite 'metrics' a no máximo 4 itens e 'chartData' a no máximo 5 itens para manter a resposta concisa.`,
     });
 
     const durationMs = Date.now() - startTime;
