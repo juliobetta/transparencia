@@ -323,10 +323,15 @@ export function AssistantChatDrawer({
                               <div className="flex justify-between font-medium text-[11px] text-slate-700">
                                 <span>{pt.label}</span>
                                 <span>
-                                  {new Intl.NumberFormat("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                  }).format(pt.valor)}
+                                  {pt.formattedValue ??
+                                    (/servidor|pessoa|quantidade|qtd|unidade|porcentagem|pct|%|taxa|total|cargo|efetivo|contratado|outros/i.test(
+                                      pt.label,
+                                    )
+                                      ? pt.valor.toLocaleString("pt-BR")
+                                      : new Intl.NumberFormat("pt-BR", {
+                                          style: "currency",
+                                          currency: "BRL",
+                                        }).format(pt.valor))}
                                 </span>
                               </div>
                               <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">

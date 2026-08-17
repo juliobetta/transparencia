@@ -22,7 +22,7 @@ export interface ReActResult {
     value: string;
     variant?: "default" | "accent" | "warning" | "success";
   }>;
-  chartData?: Array<{ label: string; valor: number }>;
+  chartData?: Array<{ label: string; valor: number; formattedValue?: string }>;
   chartType?: "bar" | "donut" | "metric";
   sqlQuery?: string;
   stepsCount: number;
@@ -55,7 +55,7 @@ const finalAnswerSchema = jsonSchema<{
     value: string;
     variant?: "default" | "accent" | "warning" | "success";
   }>;
-  chartData?: Array<{ label: string; valor: number }>;
+  chartData?: Array<{ label: string; valor: number; formattedValue?: string }>;
   chartType?: "bar" | "donut" | "metric";
 }>({
   type: "object",
@@ -86,6 +86,11 @@ const finalAnswerSchema = jsonSchema<{
         properties: {
           label: { type: "string" },
           valor: { type: "number" },
+          formattedValue: {
+            type: "string",
+            description:
+              "Valor formatado legível com unidade (ex: '796 servidores', '95,6%', 'R$ 1.500,00'). Se a quantidade não for monetária, NÃO inclua R$.",
+          },
         },
         required: ["label", "valor"],
       },
@@ -272,7 +277,7 @@ export async function executeReActAgent(
     }>({
       schema: finalAnswerSchema,
       system: systemContext,
-      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 8))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa. Limite 'metrics' a no máximo 4 itens e 'chartData' a no máximo 5 itens para manter a resposta concisa.`,
+      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 8))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa. Limite 'metrics' a no máximo 4 itens e 'chartData' a no máximo 5 itens para manter a resposta concisa. Se 'chartData' não representar valores monetários (ex: contagem de servidores ou percentuais), forneça o 'formattedValue' adequado sem R$.`,
     });
 
     const durationMs = Date.now() - startTime;

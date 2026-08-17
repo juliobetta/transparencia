@@ -11,6 +11,7 @@ export interface AssistantMetricCard {
 export interface AssistantChartPoint {
   label: string;
   valor: number;
+  formattedValue?: string;
 }
 
 export interface AssistantResponse {
