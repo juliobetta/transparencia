@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import pg from "pg";
 
 let dbPromise: Promise<unknown> | null = null;
 let initializedViews = false;
@@ -283,9 +284,11 @@ export async function getDuckDbInstance(): Promise<unknown> {
   return dbPromise;
 }
 
-async function queryMotherDuck<T = Record<string, unknown>>(
-  sqlQuery: string,
-): Promise<T[]> {
+let motherduckPool: pg.Pool | null = null;
+
+function getMotherDuckPool(): pg.Pool {
+  if (motherduckPool) return motherduckPool;
+
   const token =
     process.env.MOTHER_DUCK_MOTHERDUCK_TOKEN || process.env.MOTHERDUCK_TOKEN;
   if (!token) {
@@ -294,52 +297,53 @@ async function queryMotherDuck<T = Record<string, unknown>>(
     );
   }
 
+  const host = process.env.MOTHERDUCK_HOST || "pg.us-east-1-aws.motherduck.com";
   const database =
     process.env.MOTHERDUCK_DATABASE ||
     process.env.MOTHER_DUCK_DATABASE ||
     "my_db";
 
-  // Prepara declarações de macro unaccent e VIEWs para as tabelas apontando para o R2/S3
-  const prepStatements: string[] = [
-    "CREATE MACRO IF NOT EXISTS unaccent(str) AS strip_accents(str);",
-  ];
-
-  for (const table of MART_TABLES) {
-    if (sqlQuery.includes(table)) {
-      const parquetPath = resolveParquetPath(table);
-      prepStatements.push(
-        `CREATE VIEW IF NOT EXISTS ${table} AS SELECT * FROM read_parquet('${parquetPath}');`,
-      );
-    }
-  }
-
-  const fullQuery = `${prepStatements.join("\n")}\n${sqlQuery}`;
-
-  const res = await fetch("https://api.motherduck.com/v1/sql", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      query: fullQuery,
-      database: database,
-    }),
+  motherduckPool = new pg.Pool({
+    host,
+    port: 5432,
+    user: "postgres",
+    password: token,
+    database,
+    ssl: { rejectUnauthorized: false },
+    max: 5,
   });
 
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Erro na API do MotherDuck (${res.status}): ${errText}`);
+  motherduckPool.on("error", (_err) => {});
+
+  return motherduckPool;
+}
+
+async function queryMotherDuck<T = Record<string, unknown>>(
+  sqlQuery: string,
+): Promise<T[]> {
+  const pool = getMotherDuckPool();
+  const client = await pool.connect();
+
+  try {
+    const prepStatements: string[] = [
+      "CREATE MACRO IF NOT EXISTS unaccent(str) AS strip_accents(str);",
+    ];
+
+    for (const table of MART_TABLES) {
+      if (sqlQuery.includes(table)) {
+        const parquetPath = resolveParquetPath(table);
+        prepStatements.push(
+          `CREATE VIEW IF NOT EXISTS ${table} AS SELECT * FROM read_parquet('${parquetPath}');`,
+        );
+      }
+    }
+
+    const fullQuery = `${prepStatements.join("\n")}\n${sqlQuery}`;
+    const result = await client.query(fullQuery);
+    return (result.rows || []) as T[];
+  } finally {
+    client.release();
   }
-
-  const json = (await res.json()) as {
-    rows?: Record<string, unknown>[];
-    data?: Record<string, unknown>[];
-    results?: { rows?: Record<string, unknown>[] }[];
-  };
-
-  const rawRows = json.rows || json.data || json.results?.[0]?.rows || [];
-  return rawRows as T[];
 }
 
 export async function queryDuckDbParquet<T = Record<string, unknown>>(
