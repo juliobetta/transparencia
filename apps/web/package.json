@@ -29,6 +29,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "3.10.1",
+    "winston": "3.19.0",
     "zod": "3.24.2"
   },
   "devDependencies": {
