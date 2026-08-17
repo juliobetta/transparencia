@@ -64,8 +64,8 @@ Esta seção apresenta as informações relativas aos servidores públicos munic
 
 - **Quantitativo de Servidores:** O número total de agentes públicos em atividade na administração municipal.
 - **Total da Folha de Pagamento:** A despesa bruta dedicada ao pagamento de vencimentos, salários e proventos de pessoal no período.
-- **Comprometimento da Receita com Pessoal (LRF):** O percentual da Receita Corrente Líquida (RCL) gasto com pessoal, utilizado para verificação dos limites estipulados pela Lei de Responsabilidade Fiscal (limite máximo de 54% para o Poder Executivo).
-- **Cargos de Confiança e Funções Gratificadas:** A quantidade e o custo total de cargos comissionados de livre nomeação e funções de confiança na estrutura administrativa.
+- **Cargos de Confiança e Funções Gratificadas:** A quantidade e o custo total de cargos comissionados de livre nomeação (CC) e funções gratificadas (FG) na estrutura administrativa.
+- **Percentual de Chefia Ocupada por Efetivos:** A proporção de cargos de chefia e confiança (FG e CC) ocupados por servidores concursados de carreira em relação ao total de posições de chefia na prefeitura.
 - **Proventos e Vantagens:** A composição das remunerações, incluindo vencimento básico, gratificações e parcelas relativas ao 13º salário.
 
 ---

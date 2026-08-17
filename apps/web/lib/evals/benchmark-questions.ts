@@ -105,4 +105,19 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
       "rombo_patronal_nao_repassado",
     ],
   },
+  {
+    id: "eval-13",
+    domain: "Licitações e Pessoal",
+    question:
+      "Qual a quantidade de servidores efetivos ocupando cargos de chefia ou confiança (FG e CC) em 2026?",
+    expectedMart: "fct_pessoal_folha_metricas",
+    expectedMetrics: ["efetivos_confianca", "comissionados_externos"],
+  },
+  {
+    id: "eval-14",
+    domain: "Licitações e Pessoal",
+    question: "Qual a porcentagem de cargos efetivos em posição de chefia?",
+    expectedMart: "fct_pessoal_folha_metricas",
+    expectedMetrics: ["efetivos_confianca"],
+  },
 ];
