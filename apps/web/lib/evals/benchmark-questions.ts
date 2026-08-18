@@ -139,4 +139,14 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
       "restos_pendentes_adm_atual",
     ],
   },
+  {
+    id: "eval-17",
+    domain: "Posição Fiscal",
+    question: "Qual a variação de Restos a Pagar do ano anterior para o atual?",
+    expectedMart: "fct_posicao_fiscal_metricas",
+    expectedMetrics: [
+      "restos_pendentes_adm_atual",
+      "restos_pendentes_adm_anterior",
+    ],
+  },
 ];
