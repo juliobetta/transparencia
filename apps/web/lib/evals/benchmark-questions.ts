@@ -120,4 +120,12 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
     expectedMart: "fct_pessoal_folha_metricas",
     expectedMetrics: ["efetivos_confianca"],
   },
+  {
+    id: "eval-15",
+    domain: "Licitações e Pessoal",
+    question:
+      "Qual a vigência do contrato com a empresa L.philippe Construcoes Ltda em 2026?",
+    expectedMart: "fct_contratos_servicos_vigentes",
+    expectedMetrics: ["vencimento_atual", "data_inicio"],
+  },
 ];

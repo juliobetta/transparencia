@@ -389,7 +389,7 @@
     "marts": [
       {
         "table": "fct_contratos",
-        "description": "Fato de contratos consolidados de todos os portais",
+        "description": "Fato de contratos celebrados. ATENÇÃO: a coluna 'ano' representa o ano de celebração/assinatura. Para consultar contratos VIGENTES/ATIVOS no exercício (mesmo celebrados em anos anteriores), prefira utilizar 'fct_contratos_servicos_vigentes'.",
         "columns": [
           "contrato_id",
           "portal_slug",
@@ -416,7 +416,7 @@
       },
       {
         "table": "fct_contratos_servicos_vigentes",
-        "description": "Mart de contratos de serviços vigentes agrupados por portal e fornecedor com totais financeiros",
+        "description": "Mart prioritário para buscar contratos VIGENTES/ATIVOS no ano do exercício consultado (inclui contratos celebrados em anos anteriores com vigência atual, como 2024 a 2026).",
         "columns": [
           "contrato_servico_id",
           "portal_slug",

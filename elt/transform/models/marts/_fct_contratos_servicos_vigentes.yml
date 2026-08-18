@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: fct_contratos_servicos_vigentes
-    description: "Mart de contratos de serviços vigentes agrupados por portal e fornecedor com totais financeiros"
+    description: "Mart prioritário para buscar contratos VIGENTES/ATIVOS no ano do exercício consultado (inclui contratos celebrados em anos anteriores com vigência atual, como 2024 a 2026)."
     config:
       contract:
         enforced: true
@@ -38,6 +38,7 @@ models:
           - not_null
       - name: ano
         data_type: integer
+        description: "Ano do exercício fiscal de vigência consultado (ex: 2026)."
         constraints:
           - type: not_null
         tests:

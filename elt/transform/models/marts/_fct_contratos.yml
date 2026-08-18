@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: fct_contratos
-    description: "Fato de contratos consolidados de todos os portais"
+    description: "Fato de contratos celebrados. ATENÇÃO: a coluna 'ano' representa o ano de celebração/assinatura. Para consultar contratos VIGENTES/ATIVOS no exercício (mesmo celebrados em anos anteriores), prefira utilizar 'fct_contratos_servicos_vigentes'."
     config:
       contract:
         enforced: true
@@ -23,6 +23,7 @@ models:
           - not_null
       - name: ano
         data_type: integer
+        description: "Ano em que o contrato foi celebrado/assinado."
         constraints:
           - type: not_null
         tests:
