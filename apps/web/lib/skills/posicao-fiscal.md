@@ -15,9 +15,10 @@
 3. **Paradoxo do Caixa vs. Orçamento**:
    - Um saldo de dotação zerado indica apenas impedimento legal para novos empenhos naquela ação pública específica; jamais inferir falta de recursos bancários em caixa unicamente por essa métrica.
 
-4. **Segregação de Restos a Pagar (RAP)**:
-   - `restos_pendentes_adm_anterior`: Dívidas de exercícios/gestões passadas pendentes.
-   - `restos_pendentes_adm_atual`: Dívidas geradas no exercício vigente pendentes de quitação.
+4. **Segregação de Restos a Pagar (RAP) e Variação entre Exercícios**:
+   - `restos_pendentes_adm_anterior`: Dívidas de gestões políticas anteriores (governos passados). NUNCA utilizar esta coluna como substituto do ano anterior ($N-1$).
+   - `restos_pendentes_adm_atual`: Dívidas geradas dentro do mandato atual pendentes de quitação.
+   - **Variação de RAP entre Exercícios**: Para responder sobre variações em relação ao ano anterior, consulte obrigatoriamente a linha do ano $N-1$ e a linha do ano $N$ (ex: `WHERE ano IN (2025, 2026)`).
 
 5. **Segregação de Passivos Financeiros vs. Contratos Futuros (Proibição de Dupla Contagem)**:
    - **NÃO somar Saldo de Contratos com Restos a Pagar**: Saldo futuro a empenhar de contratos representa previsão de execução orçamentária futura, NÃO um passivo financeiro exigível.
