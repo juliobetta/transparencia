@@ -19,6 +19,11 @@
    - `restos_pendentes_adm_anterior`: Dívidas de exercícios/gestões passadas pendentes.
    - `restos_pendentes_adm_atual`: Dívidas geradas no exercício vigente pendentes de quitação.
 
-5. **Regras SQL para DuckDB**:
+5. **Segregação de Passivos Financeiros vs. Contratos Futuros (Proibição de Dupla Contagem)**:
+   - **NÃO somar Saldo de Contratos com Restos a Pagar**: Saldo futuro a empenhar de contratos representa previsão de execução orçamentária futura, NÃO um passivo financeiro exigível.
+   - **Risco de Dupla Contagem**: Parcelas executadas dos contratos já são inscritas em Restos a Pagar. Somá-los duplica obrigações.
+   - **Passivo Financeiro Exigível**: Refere-se estritamente a Restos a Pagar (Processados e Não Processados) e despesas liquidadas não pagas.
+
+6. **Regras SQL para DuckDB**:
    - Toda consulta no DuckDB deve incluir a cláusula `WHERE portal_slug = '{portalSlug}' AND ano = {ano}`.
    - Proteger somatórios com `CAST(SUM(...) AS DOUBLE)` para evitar estouro de 128-bit (`HugeInt`).

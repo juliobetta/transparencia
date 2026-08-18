@@ -128,4 +128,15 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
     expectedMart: "fct_contratos_servicos_vigentes",
     expectedMetrics: ["vencimento_atual", "data_inicio"],
   },
+  {
+    id: "eval-16",
+    domain: "Posição Fiscal",
+    question:
+      "Qual o valor dos Restos a Pagar pendentes de gestões anteriores e da gestão atual em 2026?",
+    expectedMart: "fct_posicao_fiscal_metricas",
+    expectedMetrics: [
+      "restos_pendentes_adm_anterior",
+      "restos_pendentes_adm_atual",
+    ],
+  },
 ];

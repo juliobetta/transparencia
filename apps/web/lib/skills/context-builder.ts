@@ -46,6 +46,7 @@ export function buildLayeredContext(options: ContextOptions): string {
   2. PROIBIÇÃO DE HIPÓTESES SEM DADOS: NUNCA invente secretarias, categorias ou razões operacionais não explicitamente presentes nas linhas retornadas pelas queries DuckDB.
   3. VALORES ACUMULADOS NO EXERCÍCIO: Todas as métricas monetárias nos marts representam o valor ACUMULADO no exercício fiscal (ano) até o momento, NUNCA parcelas mensais isoladas.
   4. DISTINÇÃO DE ESCOPO: Ao comparar totais consolidados de um mart com subconjuntos (ex: Total Consolidado do CAPREM vs. Contribuição Patronal da Folha), explicite a diferença de escopo para não tratar o total do domínio como se fosse uma única obrigação isolada.
+  5. PROIBIÇÃO DE SOMA CONTRATOS + RESTOS A PAGAR (PASSIVOS EXIGÍVEIS): NUNCA valide nem afirme que "total devido" ou "passivo financeiro" é a soma do Saldo de Contratos com Restos a Pagar. O saldo futuro a empenhar de contratos é compromisso orçamentário futuro (só vira obrigação a pagar após liquidação), NÃO dívida imediata. Além disso, parcelas executadas dos contratos já integram os Restos a Pagar, gerando DUPLA CONTAGEM. O passivo financeiro exigível refere-se estritamente a Restos a Pagar e despesas liquidadas não pagas.
 
 `;
 
