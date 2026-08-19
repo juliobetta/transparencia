@@ -25,52 +25,6 @@ export interface ContratoServicoVigente {
   statusExecucao: StatusExecucaoContrato;
 }
 
-export interface DeriveStatusExecucaoOptions {
-  vencimentoAtual: string | null;
-  totalEmpenhado: number;
-  totalLiquidado: number;
-  totalPago: number;
-  ano?: number;
-  referenceDateISO?: string;
-}
-
-export function deriveStatusExecucao(
-  options: DeriveStatusExecucaoOptions,
-): StatusExecucaoContrato {
-  const {
-    vencimentoAtual,
-    totalEmpenhado,
-    totalLiquidado,
-    totalPago,
-    ano,
-    referenceDateISO,
-  } = options;
-
-  const now = new Date();
-  const defaultRefDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const refDateStr = referenceDateISO || defaultRefDate;
-  const isVencido = Boolean(vencimentoAtual && vencimentoAtual < refDateStr);
-  const currentYear =
-    Number.parseInt(refDateStr.slice(0, 4), 10) || now.getFullYear();
-  const isAnoPassado = Boolean(ano && ano < currentYear);
-
-  if (totalLiquidado <= 0 && totalPago <= 0 && (isVencido || isAnoPassado)) {
-    return "inexecutado";
-  }
-
-  const percentualPago =
-    totalEmpenhado > 0 ? (totalPago / totalEmpenhado) * 100 : 0;
-  if (
-    percentualPago >= 99.9 ||
-    (totalEmpenhado > 0 && totalEmpenhado - totalPago <= 0) ||
-    (isVencido && totalPago > 0 && totalLiquidado >= totalEmpenhado)
-  ) {
-    return "concluido";
-  }
-
-  return "em_execucao";
-}
-
 function toIsoDateString(val: unknown): string | null {
   if (!val) return null;
   if (val instanceof Date) return val.toISOString().slice(0, 10);
@@ -82,9 +36,10 @@ function toIsoDateString(val: unknown): string | null {
 export async function getContratosServicosVigentes(
   portalSlug: string,
   ano: number,
+  empresaIds?: string[],
 ): Promise<ContratoServicoVigente[]> {
   try {
-    const rows = await db
+    let query = db
       .selectFrom("fct_contratos_servicos_vigentes")
       .select([
         "contrato_servico_id",
@@ -93,6 +48,7 @@ export async function getContratosServicosVigentes(
         "ano",
         "contrato_numero",
         "fornecedor_nome",
+        "fornecedor_cnpj",
         "objeto_descricao",
         "data_inicio",
         "vencimento_atual",
@@ -102,9 +58,16 @@ export async function getContratosServicosVigentes(
         "total_pago",
         "status_execucao",
       ])
-      .where("portal_slug", "=", portalSlug);
+      .where("portal_slug", "=", portalSlug)
+      .where("ano", "=", ano);
 
-    return rows.map((row: Record<string, unknown>) => {
+    if (empresaIds && empresaIds.length > 0) {
+      query = query.where("empresa_id", "in", empresaIds);
+    }
+
+    const rows = await query.execute();
+
+    return rows.map((row) => {
       const totalEmpenhado = Number(row.total_empenhado ?? 0);
       const totalLiquidado = Number(row.total_liquidado ?? 0);
       const totalPago = Number(row.total_pago ?? 0);
@@ -115,21 +78,11 @@ export async function getContratosServicosVigentes(
 
       const vencimentoAtualStr = toIsoDateString(row.vencimento_atual);
       const rowAno = Number(row.ano ?? 0);
-      const rawStatus = row.status_execucao
-        ? String(row.status_execucao)
-        : null;
+      const rawStatus = row.status_execucao ? String(row.status_execucao) : "";
       const statusExecucao: StatusExecucaoContrato =
-        rawStatus === "inexecutado" ||
-        rawStatus === "concluido" ||
-        rawStatus === "em_execucao"
+        rawStatus === "inexecutado" || rawStatus === "concluido"
           ? rawStatus
-          : deriveStatusExecucao({
-              vencimentoAtual: vencimentoAtualStr,
-              totalEmpenhado,
-              totalLiquidado,
-              totalPago,
-              ano: rowAno > 0 ? rowAno : ano,
-            });
+          : "em_execucao";
 
       return {
         contratoServicoId:
