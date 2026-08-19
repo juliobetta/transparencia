@@ -1,4 +1,4 @@
-import { cn } from "@transparencia/ui";
+import { cn, Tooltip } from "@transparencia/ui";
 import Link from "next/link";
 
 export interface AntiguidadeBarItem {
@@ -87,9 +87,30 @@ export function CardsSecundariosVisaoGeral({
         <div>
           {/* Cabeçalho */}
           <div className="flex items-center justify-between border-[#f4f5f7] border-b pb-3">
-            <span className="font-bold font-serif text-base text-ink">
-              {despesasTitle}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold font-serif text-base text-ink">
+                {despesasTitle}
+              </span>
+              <Tooltip
+                ariaLabel="Informações sobre Restos a Pagar Processados e Não Processados"
+                position="bottom"
+                content={
+                  <div>
+                    <span className="mb-1.5 block font-semibold text-sky-400 text-xs">
+                      Restos a Pagar (Norma STN/MCASP)
+                    </span>
+                    <p className="mb-1 text-[11px] text-slate-300 leading-snug">
+                      • <strong>Processados:</strong> Dívidas de serviços já
+                      prestados e liquidados com direito adquirido do credor.
+                    </p>
+                    <p className="text-[11px] text-slate-300 leading-snug">
+                      • <strong>Não Processados:</strong> Obras ou contratos em
+                      andamento pendentes de medição e liquidação.
+                    </p>
+                  </div>
+                }
+              />
+            </div>
             {despesasLinkHref && (
               <Link
                 href={despesasLinkHref}
