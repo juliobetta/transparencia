@@ -54,7 +54,7 @@ Esta seção disponibiliza a transparência sobre os processos de compras e cont
 - **Objeto da Contratação:** A descrição detalhada do que foi comprado ou contratado pela administração pública.
 - **Valor do Contrato:** O valor total homologado ou firmado no instrumento contratual.
 - **Valores Empenhados e Pagos por Contrato:** O acompanhamento financeiro de quanto do valor do contrato já foi empenhado e quanto já foi efetivamente pago.
-- **Contratos de Serviços Vigentes:** Monitoramento dos principais contratos de serviços de terceiros em execução no município, incluindo vigência (data de início e vencimento atualizado), fornecedor, totais empenhado, liquidado e pago, percentual quitado e saldo pendente financeiro. Ordenados priorizando a atenção cidadã aos contratos com menor valor pago.
+- **Contratos de Serviços Vigentes:** Monitoramento dos principais contratos de serviços de terceiros no município, incluindo vigência (data de início e vencimento atualizado), fornecedor, status de execução (`em_execucao`, `concluido`, `inexecutado`), totais empenhado, liquidado e pago, percentual quitado e saldo pendente financeiro. Permite filtrar e segregar contratos inexecutados/sem execução orçamentária.
 
 ---
 
