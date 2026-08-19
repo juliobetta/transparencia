@@ -5,6 +5,7 @@ export * from "./components/kpi-card";
 export * from "./components/multi-select";
 export * from "./components/ribbon";
 export * from "./components/sidebar";
+export * from "./components/tooltip";
 export * from "./tokens";
 export * from "./utils/cn";
 export * from "./utils/formatters";
