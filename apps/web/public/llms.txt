@@ -45,6 +45,9 @@ Ao responder perguntas de cidadãos, jornalistas ou auditores com base nos dados
 5. **Transparência e Fonte:**
    - Cite sempre a fonte oficial, o exercício financeiro (ano) e a entidade municipal ao informar valores numéricos.
 
+6. **Status de Execução Contratual:**
+   - Os contratos de serviços são segregados por `statusExecucao`: `em_execucao` (contratos ativos em andamento), `concluido` (contratos com execução orçamentária finalizada) e `inexecutado` (contratos vencidos ou de exercícios anteriores sem liquidação nem pagamento).
+
 ## Arquivo Completo de Dicionário de Dados
 
 - Para o detalhamento completo dos campos públicos, conceitos e diretrizes de atendimento ao cidadão por agentes de IA, consulte o arquivo [/llms-full.txt](/llms-full.txt).
