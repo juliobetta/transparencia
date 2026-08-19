@@ -33,8 +33,8 @@ Ao responder perguntas de cidadãos, jornalistas ou auditores com base nos dados
    - **Pago:** Valor financeiro desembolsado e quitado junto ao credor.
    - *Regra de Precedência:* Empenhado >= Liquidado >= Pago.
 
-2. **Restos a Pagar:**
-   - Despesas empenhadas em exercícios anteriores que não foram pagas até 31 de dezembro daquele ano. São divididas entre restos a pagar da gestão/mandato atual e de gestões anteriores.
+2. **Restos a Pagar (Processados vs Não Processados e Mandatos):**
+   - Despesas empenhadas em exercícios anteriores que não foram pagas até 31 de dezembro daquele ano. São divididas contabilmente (STN/MCASP) entre Restos Processados (dívidas de serviços já prestados e liquidados) e Não Processados (obras/contratos em andamento), além da segregação por mandato de origem (`Gestão Atual [2025-2028]` vs `Gestões Anteriores [Pré-2025]`).
 
 3. **Transferências por Emendas PIX (Transferências Especiais):**
    - Recursos repassados diretamente à conta do município por emendas parlamentares sem vinculação prévia a convênios formais (previstas no artigo 166-A da Constituição Federal).
