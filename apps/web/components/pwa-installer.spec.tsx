@@ -5,6 +5,18 @@ import { PwaInstaller } from "./pwa-installer";
 describe("PwaInstaller Component", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
+
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
 
     const registerMock = vi.fn().mockResolvedValue({
       addEventListener: vi.fn(),
@@ -57,6 +69,7 @@ describe("PwaInstaller Component", () => {
     const installButton = screen.getByRole("button", { name: "Instalar" });
     fireEvent.click(installButton);
     expect(promptMock).toHaveBeenCalled();
+    expect(localStorage.getItem("pwa_dismissed")).toBe("true");
   });
 
   it("renders update banner when a waiting service worker is detected", async () => {
@@ -96,6 +109,51 @@ describe("PwaInstaller Component", () => {
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
     }));
+
+    render(<PwaInstaller />);
+
+    const beforeInstallEvent = new Event("beforeinstallprompt");
+    act(() => {
+      window.dispatchEvent(beforeInstallEvent);
+    });
+
+    expect(
+      screen.queryByText("Instale o App MaisTransparencia no seu dispositivo"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("persists dismissal when close button is clicked and suppresses banner on subsequent events", async () => {
+    const promptMock = vi.fn();
+    render(<PwaInstaller />);
+
+    const beforeInstallEvent = new Event("beforeinstallprompt");
+    Object.assign(beforeInstallEvent, {
+      prompt: promptMock,
+      userChoice: Promise.resolve({ outcome: "dismissed" }),
+    });
+
+    act(() => {
+      window.dispatchEvent(beforeInstallEvent);
+    });
+
+    expect(
+      await screen.findByText(
+        "Instale o App MaisTransparencia no seu dispositivo",
+      ),
+    ).toBeInTheDocument();
+
+    const closeButton = screen.getByRole("button", { name: "Fechar" });
+    fireEvent.click(closeButton);
+
+    expect(
+      screen.queryByText("Instale o App MaisTransparencia no seu dispositivo"),
+    ).not.toBeInTheDocument();
+
+    expect(localStorage.getItem("pwa_dismissed")).toBe("true");
+  });
+
+  it("suppresses install banner when pwa_dismissed is set in localStorage", () => {
+    localStorage.setItem("pwa_dismissed", "true");
 
     render(<PwaInstaller />);
 

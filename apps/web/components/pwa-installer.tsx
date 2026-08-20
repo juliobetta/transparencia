@@ -56,6 +56,10 @@ function checkIsStandaloneOrInstalled(): boolean {
   );
 }
 
+function checkIsBannerDismissed(): boolean {
+  return safeGetLocalStorage("pwa_dismissed") === "true";
+}
+
 export function PwaInstaller() {
   const [installPrompt, setInstallPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -63,12 +67,14 @@ export function PwaInstaller() {
     null,
   );
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     const standaloneOrInstalled = checkIsStandaloneOrInstalled();
     setIsStandalone(standaloneOrInstalled);
+    setIsDismissed(checkIsBannerDismissed());
 
     if (!("serviceWorker" in navigator)) return;
 
@@ -110,7 +116,7 @@ export function PwaInstaller() {
       .catch((_error) => {});
 
     const handleBeforeInstallPrompt = (event: Event) => {
-      if (checkIsStandaloneOrInstalled()) return;
+      if (checkIsStandaloneOrInstalled() || checkIsBannerDismissed()) return;
 
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
@@ -167,7 +173,7 @@ export function PwaInstaller() {
         </div>
       )}
 
-      {!isStandalone && installPrompt && (
+      {!isStandalone && !isDismissed && installPrompt && (
         <div className="fixed right-5 bottom-5 z-50 flex max-w-md items-center gap-3.5 rounded-xl border border-slate-200 bg-white p-4 text-slate-900 shadow-2xl ring-1 ring-slate-900/5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 font-bold text-base text-blue-600">
             📲
@@ -178,16 +184,20 @@ export function PwaInstaller() {
           <button
             type="button"
             onClick={() => {
+              safeSetLocalStorage("pwa_dismissed", "true");
+              setIsDismissed(true);
               installPrompt.prompt();
-              installPrompt.userChoice.then(
-                (choiceResult: { outcome?: string }) => {
+              installPrompt.userChoice
+                .then((choiceResult: { outcome?: string }) => {
                   if (choiceResult?.outcome === "accepted") {
                     safeSetLocalStorage("pwa_installed", "true");
                     setIsStandalone(true);
                   }
                   setInstallPrompt(null);
-                },
-              );
+                })
+                .catch(() => {
+                  setInstallPrompt(null);
+                });
             }}
             className="shrink-0 cursor-pointer rounded-lg bg-blue-600 px-3.5 py-1.5 font-semibold text-white text-xs shadow-sm transition-colors hover:bg-blue-700"
           >
@@ -195,9 +205,14 @@ export function PwaInstaller() {
           </button>
           <button
             type="button"
-            onClick={() => setInstallPrompt(null)}
+            onClick={() => {
+              safeSetLocalStorage("pwa_dismissed", "true");
+              setIsDismissed(true);
+              setInstallPrompt(null);
+            }}
             className="px-1 font-bold text-slate-400 text-xs transition-colors hover:text-slate-600"
             title="Fechar"
+            aria-label="Fechar"
           >
             ✕
           </button>
