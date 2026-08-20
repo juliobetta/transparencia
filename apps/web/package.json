@@ -17,10 +17,10 @@
     "echarts": "6.1.0",
     "echarts-for-react": "3.0.6",
     "lucide-react": "1.31.0",
-    "next": "16.3.0",
+    "next": "16.3.1",
     "nuqs": "2.9.5",
-    "posthog-js": "1.415.1",
-    "posthog-node": "5.48.1",
+    "posthog-js": "1.417.1",
+    "posthog-node": "5.49.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "3.10.1"
