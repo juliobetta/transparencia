@@ -1,5 +1,9 @@
-import { sql } from "kysely";
 import { db } from "../client";
+
+export type StatusExecucaoContrato =
+  | "em_execucao"
+  | "concluido"
+  | "inexecutado";
 
 export interface ContratoServicoVigente {
   contratoServicoId?: string;
@@ -18,33 +22,23 @@ export interface ContratoServicoVigente {
   totalPago: number;
   saldoPendente: number;
   percentualPago: number;
+  statusExecucao: StatusExecucaoContrato;
 }
 
 function toIsoDateString(val: unknown): string | null {
   if (!val) return null;
-  if (val instanceof Date) {
-    if (Number.isNaN(val.getTime())) return null;
-    const yyyy = val.getUTCFullYear();
-    const mm = String(val.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(val.getUTCDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-  const str = String(val).trim();
-  if (str.includes("T")) return str.split("T")[0];
+  if (val instanceof Date) return val.toISOString().slice(0, 10);
+  const str = String(val);
   if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
-  return str;
+  return null;
 }
 
 export async function getContratosServicosVigentes(
   portalSlug: string,
-  ano?: number,
-  empresaIds?: string[] | null,
+  ano: number,
+  empresaIds?: string[],
 ): Promise<ContratoServicoVigente[]> {
   try {
-    if (Array.isArray(empresaIds) && empresaIds.length === 0) {
-      return [];
-    }
-
     let query = db
       .selectFrom("fct_contratos_servicos_vigentes")
       .select([
@@ -62,24 +56,18 @@ export async function getContratosServicosVigentes(
         "total_empenhado",
         "total_liquidado",
         "total_pago",
+        "status_execucao",
       ])
-      .where("portal_slug", "=", portalSlug);
+      .where("portal_slug", "=", portalSlug)
+      .where("ano", "=", ano);
 
-    if (ano) {
-      query = query.where("ano", "=", ano);
-    }
-
-    if (Array.isArray(empresaIds) && empresaIds.length > 0) {
+    if (empresaIds && empresaIds.length > 0) {
       query = query.where("empresa_id", "in", empresaIds);
     }
 
-    const rows = await query
-      .orderBy("total_pago", "asc")
-      .orderBy(sql`(total_empenhado - total_pago)`, "desc")
-      .orderBy("total_empenhado", "desc")
-      .execute();
+    const rows = await query.execute();
 
-    return rows.map((row: Record<string, unknown>) => {
+    return rows.map((row) => {
       const totalEmpenhado = Number(row.total_empenhado ?? 0);
       const totalLiquidado = Number(row.total_liquidado ?? 0);
       const totalPago = Number(row.total_pago ?? 0);
@@ -88,6 +76,14 @@ export async function getContratosServicosVigentes(
       const percentualPago =
         totalEmpenhado > 0 ? (totalPago / totalEmpenhado) * 100 : 0;
 
+      const vencimentoAtualStr = toIsoDateString(row.vencimento_atual);
+      const rowAno = Number(row.ano ?? 0);
+      const rawStatus = row.status_execucao ? String(row.status_execucao) : "";
+      const statusExecucao: StatusExecucaoContrato =
+        rawStatus === "inexecutado" || rawStatus === "concluido"
+          ? rawStatus
+          : "em_execucao";
+
       return {
         contratoServicoId:
           row.contrato_servico_id != null
@@ -95,7 +91,7 @@ export async function getContratosServicosVigentes(
             : undefined,
         portalSlug: row.portal_slug != null ? String(row.portal_slug) : "",
         empresaId: row.empresa_id != null ? String(row.empresa_id) : undefined,
-        ano: Number(row.ano ?? 0),
+        ano: rowAno,
         contratoNumero:
           row.contrato_numero != null ? String(row.contrato_numero) : undefined,
         fornecedorNome:
@@ -105,13 +101,14 @@ export async function getContratosServicosVigentes(
         objetoDescricao:
           row.objeto_descricao != null ? String(row.objeto_descricao) : "",
         dataInicio: toIsoDateString(row.data_inicio),
-        vencimentoAtual: toIsoDateString(row.vencimento_atual),
+        vencimentoAtual: vencimentoAtualStr,
         valorAditado: valorAditado > 0 ? valorAditado : undefined,
         totalEmpenhado,
         totalLiquidado,
         totalPago,
         saldoPendente,
         percentualPago,
+        statusExecucao,
       };
     });
   } catch {

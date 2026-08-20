@@ -59,4 +59,13 @@ describe("buildLicitacoesViewModel", () => {
     expect(vm.numCasosFracionamento).toBe(0);
     expect(vm.fracionamentoVendorsMap).toEqual({});
   });
+
+  it("propaga o limite de dispensa de compras e serviços vigente para a view model", () => {
+    const vm = buildLicitacoesViewModel(
+      makeRaw({
+        limiteDispensaComprasServicos: 62725.59,
+      }),
+    );
+    expect(vm.limiteDispensaComprasServicos).toBe(62725.59);
+  });
 });

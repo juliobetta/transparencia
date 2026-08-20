@@ -111,7 +111,17 @@ select
     valor_aditado::numeric(15, 2) as valor_aditado,
     greatest(0, greatest(coalesce(empenhado_calc, empenhado_contrato), coalesce(liquidado_calc, 0)))::numeric(15, 2) as total_empenhado,
     greatest(0, coalesce(liquidado_calc, 0))::numeric(15, 2) as total_liquidado,
-    greatest(0, least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0)))::numeric(15, 2) as total_pago
+    greatest(0, least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0)))::numeric(15, 2) as total_pago,
+    case
+        when greatest(0, coalesce(liquidado_calc, 0)) = 0
+         and greatest(0, least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))) = 0
+         and (vencimento_atual < current_date or ano < extract(year from current_date))
+        then 'inexecutado'
+        when greatest(0, least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))) >= (greatest(0, greatest(coalesce(empenhado_calc, empenhado_contrato), coalesce(liquidado_calc, 0))) * 0.999)
+          and greatest(0, greatest(coalesce(empenhado_calc, empenhado_contrato), coalesce(liquidado_calc, 0))) > 0
+        then 'concluido'
+        else 'em_execucao'
+    end as status_execucao
 from calculado
 order by ano desc, total_pago asc, (greatest(empenhado_contrato, coalesce(liquidado_calc, 0)) - least(coalesce(pago_calc, 0), coalesce(liquidado_calc, 0))) desc
 

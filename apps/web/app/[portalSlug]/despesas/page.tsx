@@ -228,11 +228,29 @@ export default async function DespesasPage({
           </h2>
         </div>
 
-        {/* Banner Informativo */}
-        <div className="rounded-xl border-[#2B5278] border-l-4 bg-[#F0F6FD] p-4 text-[#1B3A5A] text-sm leading-relaxed">
-          São despesas empenhadas em anos anteriores ainda não pagas —
-          compromissos legais que continuam válidos até serem quitados ou
-          cancelados.
+        {/* Banner Informativo Visível */}
+        <div className="space-y-2.5 rounded-xl border-[#2B5278] border-l-4 bg-[#F0F6FD] p-4 text-[#1B3A5A] text-sm leading-relaxed">
+          <p>
+            São despesas empenhadas em anos anteriores ainda não pagas —
+            compromissos legais que continuam válidos até serem quitados ou
+            cancelados.
+          </p>
+          <div className="border-[#d0e2f7] border-t pt-2.5 text-[#20456c] text-xs">
+            <strong className="mb-1 block font-semibold text-[#132c46]">
+              Categorização Contábil (Norma STN/MCASP):
+            </strong>
+            <ul className="space-y-1">
+              <li>
+                • <strong>Restos Processados:</strong> Dívidas de serviços já
+                prestados ou bens entregues e liquidados (com direito adquirido
+                do credor).
+              </li>
+              <li>
+                • <strong>Restos Não Processados:</strong> Obras ou contratos em
+                andamento pendentes de medição e liquidação.
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* 3 KPI Grid */}

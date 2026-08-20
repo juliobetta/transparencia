@@ -33,4 +33,12 @@ describe("licitacoes-metrics", () => {
     expect(anomalias).toBeDefined();
     expect(Array.isArray(anomalias.fracionamento)).toBe(true);
   });
+
+  it("deve conter o limite_dispensa pré-calculado pelo dbt mart nos gaps sem licitação", async () => {
+    const gaps = await getLicitacaoGapsMetrics(PORTAL_SLUG, TEST_YEAR);
+    if (gaps.length > 0) {
+      expect(typeof gaps[0].limiteDispensa).toBe("number");
+      expect(gaps[0].limiteDispensa).toBeGreaterThan(0);
+    }
+  });
 });

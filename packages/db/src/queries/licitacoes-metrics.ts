@@ -97,6 +97,28 @@ export interface AnomaliasResultMetricsDTO {
 }
 
 /**
+ * Retorna o limite de dispensa de licitação para compras e serviços gerais para o ano especificado,
+ * consultando a constante fiscal cadastrada.
+ */
+export async function getLimiteDispensaComprasServicos(
+  _portalSlug: string,
+  year: number,
+): Promise<number | null> {
+  if (Number.isNaN(year)) return null;
+
+  const row = await db
+    .selectFrom("seed_constantes_fiscais")
+    .select("valor_num")
+    .where("dominio", "=", "licitacoes")
+    .where("chave", "=", "limite_dispensa_compras_servicos")
+    .where("ano_inicio", "<=", year)
+    .where("ano_fim", ">=", year)
+    .executeTakeFirst();
+
+  return row?.valor_num ? parseFloat(String(row.valor_num)) : null;
+}
+
+/**
  * Retorna os contratos sem licitação (gaps) a partir do mart unificado `fct_licitacoes_metricas`.
  */
 export async function getLicitacaoGapsMetrics(

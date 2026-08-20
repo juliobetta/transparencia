@@ -18,6 +18,9 @@ describe("getContratosServicosVigentes", () => {
       expect(typeof item.totalPago).toBe("number");
       expect(typeof item.saldoPendente).toBe("number");
       expect(typeof item.percentualPago).toBe("number");
+      expect(["em_execucao", "concluido", "inexecutado"]).toContain(
+        item.statusExecucao,
+      );
       expect(item.totalEmpenhado).toBeGreaterThanOrEqual(item.totalLiquidado);
       expect(item.totalLiquidado).toBeGreaterThanOrEqual(item.totalPago);
     }

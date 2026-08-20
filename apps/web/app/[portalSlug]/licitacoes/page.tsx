@@ -1,4 +1,4 @@
-import { cn, KPICard } from "@transparencia/ui";
+import { cn, fmtCurrency, KPICard } from "@transparencia/ui";
 import type { Metadata } from "next";
 import { ContratosServicosVigentesSection } from "@/components/contratos-servicos-vigentes-section";
 import { DistribucaoModalidadesChart } from "@/components/distribuicao-modalidades-chart";
@@ -28,6 +28,8 @@ export async function generateMetadata({
       "contratos públicos",
       "pregão eletrônico",
       "concorrência",
+      "dispensa de licitação",
+      "inexigibilidade",
       "compras públicas",
     ],
   });
@@ -51,6 +53,7 @@ export default async function LicitacoesPage({
     adesaoExterna,
     modalidades,
     acimaLimiteGaps,
+    limiteDispensaComprasServicos,
     fracionamentoVendorsMap,
     numCasosFracionamento,
     contratosServicosVigentes,
@@ -72,7 +75,7 @@ export default async function LicitacoesPage({
           de baixo valor e inexigibilidades são permitidas por lei. O ponto de
           atenção são os contratos{" "}
           <strong className="font-semibold text-slate-900">
-            acima de R$ 62.725,59 sem licitação
+            acima de {fmtCurrency(limiteDispensaComprasServicos)} sem licitação
           </strong>
           , que exigem justificativa formal.
         </p>
@@ -155,8 +158,8 @@ export default async function LicitacoesPage({
 
           <p className="mb-4 text-slate-600 text-xs leading-relaxed sm:text-sm">
             Cada linha merece análise da justificativa oficial. Quando o mesmo
-            fornecedor aparece várias vezes com valores próximos ao teto de R$
-            62.725,59, pode indicar{" "}
+            fornecedor aparece várias vezes com valores próximos ao teto de{" "}
+            {fmtCurrency(limiteDispensaComprasServicos)}, pode indicar{" "}
             <strong className="font-semibold text-slate-900">
               fracionamento
             </strong>
