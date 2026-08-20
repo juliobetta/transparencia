@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import * as duckdb from "@duckdb/duckdb-wasm";
+import pg from "pg";
 
 let dbPromise: Promise<unknown> | null = null;
 let initializedViews = false;
@@ -89,39 +89,161 @@ const MART_TABLES = [
   "fct_transferencias",
 ];
 
+function getDuckDbDistDir(): string {
+  const candidateBasePaths = [
+    path.resolve(process.cwd(), "apps/web/package.json"),
+    path.resolve(process.cwd(), "package.json"),
+    path.resolve(process.cwd(), "node_modules"),
+  ];
+
+  for (const basePath of candidateBasePaths) {
+    try {
+      const customRequire = createRequire(basePath);
+      const cjsPath = customRequire.resolve(
+        "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
+      );
+      const distDir = path.dirname(cjsPath);
+      if (fs.existsSync(path.join(distDir, "duckdb-eh.wasm"))) {
+        return distDir;
+      }
+    } catch {
+      // try next candidate
+    }
+  }
+
+  try {
+    const customRequire = createRequire(import.meta.url);
+    const cjsPath = customRequire.resolve(
+      "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
+    );
+    const distDir = path.dirname(cjsPath);
+    if (fs.existsSync(path.join(distDir, "duckdb-eh.wasm"))) {
+      return distDir;
+    }
+  } catch {
+    // try fallback paths
+  }
+
+  const rootPath = process.cwd().replace(/\/apps\/web$/, "");
+  const webNodeModules = path.join(
+    rootPath,
+    "apps",
+    "web",
+    "node_modules",
+    "@duckdb",
+    "duckdb-wasm",
+    "dist",
+  );
+  const rootNodeModules = path.join(
+    rootPath,
+    "node_modules",
+    "@duckdb",
+    "duckdb-wasm",
+    "dist",
+  );
+
+  if (fs.existsSync(webNodeModules)) return webNodeModules;
+  if (fs.existsSync(rootNodeModules)) return rootNodeModules;
+
+  const pnpmDir = path.join(rootPath, "node_modules", ".pnpm");
+  if (fs.existsSync(pnpmDir)) {
+    try {
+      const entries = fs.readdirSync(pnpmDir);
+      const duckdbPkg = entries.find((e) =>
+        e.startsWith("@duckdb+duckdb-wasm@"),
+      );
+      if (duckdbPkg) {
+        const pnpmDist = path.join(
+          pnpmDir,
+          duckdbPkg,
+          "node_modules",
+          "@duckdb",
+          "duckdb-wasm",
+          "dist",
+        );
+        if (fs.existsSync(pnpmDist)) return pnpmDist;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return webNodeModules;
+}
+
+function isFileReadable(filePath: string): boolean {
+  try {
+    const fd = fs.openSync(filePath, "r");
+    fs.closeSync(fd);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureWasmFiles(distDir: string): Promise<{
+  wasmPath: string;
+  workerPath: string;
+}> {
+  const localWasm = path.join(distDir, "duckdb-eh.wasm");
+  const localWorker = path.join(distDir, "duckdb-node-eh.worker.cjs");
+
+  if (isFileReadable(localWasm) && isFileReadable(localWorker)) {
+    return { wasmPath: localWasm, workerPath: localWorker };
+  }
+
+  const tmpDir = path.join("/tmp", "duckdb-wasm");
+  const tmpWasm = path.join(tmpDir, "duckdb-eh.wasm");
+  const tmpWorker = path.join(tmpDir, "duckdb-node-eh.worker.cjs");
+
+  if (isFileReadable(tmpWasm) && isFileReadable(tmpWorker)) {
+    return { wasmPath: tmpWasm, workerPath: tmpWorker };
+  }
+
+  fs.mkdirSync(tmpDir, { recursive: true });
+
+  const cdnBase =
+    "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/";
+
+  if (!isFileReadable(tmpWasm)) {
+    const res = await fetch(`${cdnBase}duckdb-eh.wasm`);
+    if (!res.ok) {
+      throw new Error(
+        `Falha ao baixar duckdb-eh.wasm do CDN: ${res.status} ${res.statusText}`,
+      );
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    fs.writeFileSync(tmpWasm, buf);
+  }
+
+  if (!isFileReadable(tmpWorker)) {
+    const res = await fetch(`${cdnBase}duckdb-node-eh.worker.cjs`);
+    if (!res.ok) {
+      throw new Error(
+        `Falha ao baixar duckdb-node-eh.worker.cjs do CDN: ${res.status} ${res.statusText}`,
+      );
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    fs.writeFileSync(tmpWorker, buf);
+  }
+
+  return { wasmPath: tmpWasm, workerPath: tmpWorker };
+}
+
 export async function getDuckDbInstance(): Promise<unknown> {
   if (dbPromise) return dbPromise;
 
   dbPromise = (async () => {
     if (typeof window === "undefined") {
-      const customRequire = createRequire(import.meta.url);
+      const distDir = getDuckDbDistDir();
+      const customRequire = createRequire(
+        path.join(distDir, "duckdb-node-blocking.cjs"),
+      );
       const duckdbNode = customRequire(
-        "@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs",
+        path.join(distDir, "duckdb-node-blocking.cjs"),
       );
 
-      const rootPath = process.cwd().replace(/\/apps\/web$/, "");
-      const webNodeModules = path.join(
-        rootPath,
-        "apps",
-        "web",
-        "node_modules",
-        "@duckdb",
-        "duckdb-wasm",
-        "dist",
-      );
-      const rootNodeModules = path.join(
-        rootPath,
-        "node_modules",
-        "@duckdb",
-        "duckdb-wasm",
-        "dist",
-      );
-      const distDir = fs.existsSync(webNodeModules)
-        ? webNodeModules
-        : rootNodeModules;
-
-      const wasmPath = path.join(distDir, "duckdb-eh.wasm");
-      const workerPath = path.join(distDir, "duckdb-node-eh.worker.cjs");
+      const { wasmPath, workerPath } = await ensureWasmFiles(distDir);
 
       const bundles = {
         eh: {
@@ -141,6 +263,7 @@ export async function getDuckDbInstance(): Promise<unknown> {
     }
 
     // Client-side browser bundle
+    const duckdb = await import("@duckdb/duckdb-wasm");
     const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
     const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
@@ -161,9 +284,78 @@ export async function getDuckDbInstance(): Promise<unknown> {
   return dbPromise;
 }
 
+let motherduckPool: pg.Pool | null = null;
+
+function getMotherDuckPool(): pg.Pool {
+  if (motherduckPool) return motherduckPool;
+
+  const token =
+    process.env.MOTHER_DUCK_MOTHERDUCK_TOKEN || process.env.MOTHERDUCK_TOKEN;
+  if (!token) {
+    throw new Error(
+      "MotherDuck token não configurado em MOTHER_DUCK_MOTHERDUCK_TOKEN",
+    );
+  }
+
+  const host = process.env.MOTHERDUCK_HOST || "pg.us-east-1-aws.motherduck.com";
+  const database =
+    process.env.MOTHERDUCK_DATABASE ||
+    process.env.MOTHER_DUCK_DATABASE ||
+    "my_db";
+
+  motherduckPool = new pg.Pool({
+    host,
+    port: 5432,
+    user: "postgres",
+    password: token,
+    database,
+    ssl: { rejectUnauthorized: false },
+    max: 5,
+  });
+
+  motherduckPool.on("error", (_err) => {});
+
+  return motherduckPool;
+}
+
+async function queryMotherDuck<T = Record<string, unknown>>(
+  sqlQuery: string,
+): Promise<T[]> {
+  const pool = getMotherDuckPool();
+  const client = await pool.connect();
+
+  try {
+    const prepStatements: string[] = [
+      "CREATE MACRO IF NOT EXISTS unaccent(str) AS strip_accents(str);",
+    ];
+
+    for (const table of MART_TABLES) {
+      if (sqlQuery.includes(table)) {
+        const parquetPath = resolveParquetPath(table);
+        prepStatements.push(
+          `CREATE VIEW IF NOT EXISTS ${table} AS SELECT * FROM read_parquet('${parquetPath}');`,
+        );
+      }
+    }
+
+    const fullQuery = `${prepStatements.join("\n")}\n${sqlQuery}`;
+    const result = await client.query(fullQuery);
+    return (result.rows || []) as T[];
+  } finally {
+    client.release();
+  }
+}
+
 export async function queryDuckDbParquet<T = Record<string, unknown>>(
   sqlQuery: string,
 ): Promise<T[]> {
+  if (
+    process.env.MOTHER_DUCK_MOTHERDUCK_TOKEN ||
+    process.env.MOTHERDUCK_TOKEN
+  ) {
+    return queryMotherDuck<T>(sqlQuery);
+  }
+
   const db = (await getDuckDbInstance()) as {
     connect: () => Promise<{
       query: (sql: string) => Promise<{ toArray: () => unknown[] }>;
