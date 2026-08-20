@@ -1,6 +1,6 @@
 import path from "node:path";
 import dotenv from "dotenv";
-import { Kysely, PostgresDialect } from "kysely";
+import { CompiledQuery, Kysely, PostgresDialect } from "kysely";
 import pg from "pg";
 
 // Tenta carregar .env da raiz se process.env.DATABASE_URL não estiver setado
@@ -38,6 +38,13 @@ export const db = new Kysely<any>({
     pool,
   }),
 });
+
+export async function executeRawSql<T = Record<string, unknown>>(
+  sqlQuery: string,
+): Promise<T[]> {
+  const result = await db.executeQuery(CompiledQuery.raw(sqlQuery));
+  return (result.rows || []) as T[];
+}
 
 export async function closeDb(): Promise<void> {
   await db.destroy();

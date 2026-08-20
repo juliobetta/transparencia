@@ -1,4 +1,4 @@
-export { db } from "./client";
+export { closeDb, db, executeRawSql } from "./client";
 export * from "./constants";
 export * from "./queries/analise-despesas-metrics";
 export * from "./queries/contratos-servicos-vigentes";
