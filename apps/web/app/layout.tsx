@@ -8,11 +8,13 @@ import { IBM_Plex_Sans, Source_Serif_4 } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 import { formatBaseUrl } from "@/lib/metadata";
+import { ExtractionNotificationBanner } from "../components/extraction-notification-banner";
 import {
   generateDataCatalogSchema,
   generateGovernmentOrganizationSchema,
   JsonLd,
 } from "../components/json-ld";
+import { PwaInstaller } from "../components/pwa-installer";
 import { SidebarWrapper } from "./components/sidebar-wrapper";
 import "./globals.css";
 
@@ -159,11 +161,16 @@ export default async function RootLayout({
           </Suspense>
           <div className="flex min-w-0 flex-1 flex-col">
             <Ribbon portalName={portalConfig?.displayName} />
+            <ExtractionNotificationBanner
+              lastExtractionDate={portalConfig?.dataExtracao}
+              portalName={portalConfig?.displayName}
+            />
             <main className="mx-auto w-full max-w-[1000px] flex-1 overflow-x-hidden px-4 py-4 sm:px-6 md:px-10 md:py-8">
               {children}
             </main>
           </div>
         </NuqsAdapter>
+        <PwaInstaller />
         <Analytics />
         <SpeedInsights />
       </body>

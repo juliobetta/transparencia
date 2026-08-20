@@ -1,4 +1,5 @@
 import { cn, Tooltip } from "@transparencia/ui";
+import { CircleQuestionMarkIcon } from "lucide-react";
 import Link from "next/link";
 
 export interface AntiguidadeBarItem {
@@ -109,7 +110,9 @@ export function CardsSecundariosVisaoGeral({
                     </p>
                   </div>
                 }
-              />
+              >
+                <CircleQuestionMarkIcon className="h-4 w-4 text-slate-400" />
+              </Tooltip>
             </div>
             {despesasLinkHref && (
               <Link
