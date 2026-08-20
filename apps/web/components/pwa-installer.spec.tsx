@@ -1,6 +1,13 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import posthog from "posthog-js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PwaInstaller } from "./pwa-installer";
+
+vi.mock("posthog-js", () => ({
+  default: {
+    capture: vi.fn(),
+  },
+}));
 
 describe("PwaInstaller Component", () => {
   beforeEach(() => {
@@ -65,11 +72,13 @@ describe("PwaInstaller Component", () => {
         "Instale o App MaisTransparencia no seu dispositivo",
       ),
     ).toBeInTheDocument();
+    expect(posthog.capture).toHaveBeenCalledWith("pwa_install_banner_viewed");
 
     const installButton = screen.getByRole("button", { name: "Instalar" });
     fireEvent.click(installButton);
     expect(promptMock).toHaveBeenCalled();
     expect(localStorage.getItem("pwa_dismissed")).toBe("true");
+    expect(posthog.capture).toHaveBeenCalledWith("pwa_install_clicked");
   });
 
   it("renders update banner when a waiting service worker is detected", async () => {
@@ -90,12 +99,14 @@ describe("PwaInstaller Component", () => {
       /Nova versão da aplicação disponível/i,
     );
     expect(updateBannerText).toBeInTheDocument();
+    expect(posthog.capture).toHaveBeenCalledWith("pwa_update_banner_viewed");
 
     const updateButton = screen.getByRole("button", {
       name: "Atualizar Agora",
     });
     fireEvent.click(updateButton);
     expect(postMessageMock).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+    expect(posthog.capture).toHaveBeenCalledWith("pwa_update_clicked");
   });
 
   it("suppresses install banner when running in standalone PWA mode", () => {
@@ -150,6 +161,7 @@ describe("PwaInstaller Component", () => {
     ).not.toBeInTheDocument();
 
     expect(localStorage.getItem("pwa_dismissed")).toBe("true");
+    expect(posthog.capture).toHaveBeenCalledWith("pwa_install_dismissed");
   });
 
   it("suppresses install banner when pwa_dismissed is set in localStorage", () => {

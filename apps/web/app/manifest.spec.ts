@@ -5,9 +5,7 @@ describe("PWA Manifest", () => {
   it("returns correct MetadataRoute.Manifest metadata with screenshots and any/maskable icons", () => {
     const config = manifest();
 
-    expect(config.name).toBe(
-      "MaisTransparencia - Transparência Pública Municipal",
-    );
+    expect(config.name).toBe("MaisTransparencia");
     expect(config.short_name).toBe("MaisTransparencia");
     expect(config.display).toBe("standalone");
     expect(config.start_url).toBe("/?mode=standalone");
