@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["@transparencia/ui", "@transparencia/db"],
-  serverExternalPackages: ["pg", "kysely", "@duckdb/duckdb-wasm"],
-  outputFileTracingIncludes: {
-    "/**": [
-      "./node_modules/@duckdb/duckdb-wasm/dist/**/*",
-      "../../node_modules/@duckdb/duckdb-wasm/dist/**/*",
-    ],
-  },
+  serverExternalPackages: ["pg", "kysely"],
+
   async rewrites() {
     return [
       {
