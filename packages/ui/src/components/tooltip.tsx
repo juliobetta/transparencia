@@ -1,4 +1,7 @@
+"use client";
+
 import type React from "react";
+import { useId, useState } from "react";
 import { cn } from "../utils/cn";
 
 export interface TooltipProps {
@@ -24,6 +27,11 @@ export function Tooltip({
   className,
   contentClassName,
 }: TooltipProps) {
+  const [open, setOpen] = useState(false);
+  const tooltipId = useId();
+
+  const toggle = () => setOpen((visible) => !visible);
+
   const positionClasses = {
     top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
     bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
@@ -31,26 +39,42 @@ export function Tooltip({
     right: "left-full top-1/2 -translate-y-1/2 ml-2",
   };
 
+  const tooltipClasses = open
+    ? "absolute z-30 block w-64 rounded-lg border border-slate-700 bg-slate-900 p-3 font-sans text-white shadow-xl transition-all"
+    : "pointer-events-none absolute z-30 hidden w-64 rounded-lg border border-slate-700 bg-slate-900 p-3 font-sans text-white shadow-xl transition-all group-focus-within:block group-hover:block";
+
   return (
     <div className={cn("group relative inline-flex items-center", className)}>
       {children ? (
-        children
-      ) : (
         <span
-          role="img"
-          className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-100 font-bold text-[10px] text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-800"
+          className="inline-flex cursor-help transition-colors"
+          aria-label={ariaLabel}
+          role="button"
+          aria-expanded={open}
+          onClick={toggle}
+        >
+          {children}
+        </span>
+      ) : (
+        <button
+          type="button"
+          className={cn(
+            "flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-100 font-bold text-[10px] text-slate-500 transition-colors",
+            open
+              ? "bg-slate-200 text-slate-800"
+              : "hover:bg-slate-200 hover:text-slate-800",
+          )}
           aria-label={ariaLabel || "Mais informações"}
+          aria-expanded={open}
+          onClick={toggle}
         >
           i
-        </span>
+        </button>
       )}
       <div
+        id={tooltipId}
         role="tooltip"
-        className={cn(
-          "pointer-events-none absolute z-30 hidden w-64 rounded-lg border border-slate-700 bg-slate-900 p-3 font-sans text-white shadow-xl transition-all group-focus-within:block group-hover:block",
-          positionClasses[position],
-          contentClassName,
-        )}
+        className={cn(tooltipClasses, positionClasses[position], contentClassName)}
       >
         {content}
       </div>
