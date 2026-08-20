@@ -1,7 +1,9 @@
--- Fato: despesas consolidadas com chaves para dimensões
--- Aplica a regra do Empenho Líquido: soma anulações (tipo_empenho='AN') ao empenhado bruto
--- para evitar distorções na taxa de quitação quando há estornos de fim de exercício.
--- RAP (restos a pagar): tipo_empenho é null — incluídos na tabela final sem anulações.
+{{ config(
+    post_hook=[
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_despesas_credor_unaccent ON {{ this }} (unaccent(lower(fornecedor_nome))) {% endif %}",
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_despesas_descricao_trgm ON {{ this }} USING gin (unaccent(lower(descricao)) gin_trgm_ops) {% endif %}"
+    ]
+) }}
 
 with despesas as (
     select

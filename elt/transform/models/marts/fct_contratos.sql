@@ -1,4 +1,9 @@
--- Fato: contratos consolidados de todos os portais
+{{ config(
+    post_hook=[
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_contratos_fornecedor_unaccent ON {{ this }} (unaccent(lower(nome_fornecedor))) {% endif %}",
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_contratos_objeto_trgm ON {{ this }} USING gin (unaccent(lower(objeto_contrato)) gin_trgm_ops) {% endif %}"
+    ]
+) }}
 
 with contratos as (
     select
