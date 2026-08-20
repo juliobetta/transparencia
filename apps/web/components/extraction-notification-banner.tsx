@@ -1,5 +1,6 @@
 "use client";
 
+import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 
 interface ExtractionNotificationBannerProps {
@@ -67,6 +68,11 @@ export function ExtractionNotificationBanner({
     if (!storedExtractionDate || storedExtractionDate !== lastExtractionDate) {
       setShowNotificationBanner(true);
 
+      posthog.capture("extraction_banner_viewed", {
+        last_extraction_date: lastExtractionDate,
+        portal_name: portalName,
+      });
+
       const formattedDate = formatDateBR(lastExtractionDate);
 
       // Trigger OS/Browser native notification safely via Service Worker registration if granted
@@ -90,6 +96,10 @@ export function ExtractionNotificationBanner({
   }, [lastExtractionDate, portalName]);
 
   const handleDismiss = () => {
+    posthog.capture("extraction_banner_dismissed", {
+      last_extraction_date: lastExtractionDate,
+      portal_name: portalName,
+    });
     if (lastExtractionDate) {
       safeSetLocalStorage("last_seen_extraction", lastExtractionDate);
     }

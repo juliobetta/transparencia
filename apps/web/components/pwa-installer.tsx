@@ -1,5 +1,6 @@
 "use client";
 
+import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -120,6 +121,7 @@ export function PwaInstaller() {
 
       event.preventDefault();
       setInstallPrompt(event as BeforeInstallPromptEvent);
+      posthog.capture("pwa_install_banner_viewed");
     };
 
     const handleAppInstalled = () => {
@@ -146,7 +148,14 @@ export function PwaInstaller() {
     };
   }, []);
 
+  useEffect(() => {
+    if (waitingWorker) {
+      posthog.capture("pwa_update_banner_viewed");
+    }
+  }, [waitingWorker]);
+
   const handleAppUpdate = () => {
+    posthog.capture("pwa_update_clicked");
     if (waitingWorker) {
       waitingWorker.postMessage({ type: "SKIP_WAITING" });
       setWaitingWorker(null);
@@ -184,6 +193,7 @@ export function PwaInstaller() {
           <button
             type="button"
             onClick={() => {
+              posthog.capture("pwa_install_clicked");
               safeSetLocalStorage("pwa_dismissed", "true");
               setIsDismissed(true);
               installPrompt.prompt();
@@ -206,6 +216,7 @@ export function PwaInstaller() {
           <button
             type="button"
             onClick={() => {
+              posthog.capture("pwa_install_dismissed");
               safeSetLocalStorage("pwa_dismissed", "true");
               setIsDismissed(true);
               setInstallPrompt(null);
