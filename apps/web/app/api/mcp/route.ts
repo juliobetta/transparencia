@@ -27,6 +27,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const startTime = Date.now();
+
   try {
     const body = await request.json();
     const { tool, args, trace_id: traceId } = body;
