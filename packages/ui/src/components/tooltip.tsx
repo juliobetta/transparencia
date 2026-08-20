@@ -32,13 +32,6 @@ export function Tooltip({
 
   const toggle = () => setOpen((visible) => !visible);
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      toggle();
-    }
-  };
-
   const positionClasses = {
     top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
     bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
@@ -53,18 +46,16 @@ export function Tooltip({
   return (
     <div className={cn("group relative inline-flex items-center", className)}>
       {children ? (
-        <span
+        <button
+          type="button"
           className="inline-flex cursor-help transition-colors"
           aria-label={ariaLabel || "Mais informações"}
           aria-describedby={open ? tooltipId : undefined}
-          role="button"
-          tabIndex={0}
           aria-expanded={open}
           onClick={toggle}
-          onKeyDown={handleKeyDown}
         >
           {children}
-        </span>
+        </button>
       ) : (
         <button
           type="button"
@@ -85,7 +76,11 @@ export function Tooltip({
       <div
         id={tooltipId}
         role="tooltip"
-        className={cn(tooltipClasses, positionClasses[position], contentClassName)}
+        className={cn(
+          tooltipClasses,
+          positionClasses[position],
+          contentClassName,
+        )}
       >
         {content}
       </div>
