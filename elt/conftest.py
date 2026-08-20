@@ -33,6 +33,8 @@ def _create_raw_schema(eng) -> None:
         return "integer" if col["name"] == "ano" else "text"
 
     with eng.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS unaccent"))
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS raw_porciuncula_prefeitura"))
         for table_def in tables:
             name = table_def["name"]
