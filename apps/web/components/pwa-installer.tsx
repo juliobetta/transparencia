@@ -113,7 +113,7 @@ export function PwaInstaller() {
       if (checkIsStandaloneOrInstalled()) return;
 
       event.preventDefault();
-      setInstallPrompt(event);
+      setInstallPrompt(event as BeforeInstallPromptEvent);
     };
 
     const handleAppInstalled = () => {
