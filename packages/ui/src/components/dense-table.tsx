@@ -28,9 +28,9 @@ export interface Column<T> {
     | "percent"
     | "number"
     | "compact"
+    | "date"
     | "statusBadge"
-    | "caspBadge"
-    | "date";
+    | "caspBadge";
   className?: string;
   sortable?: boolean;
   renderCell?: (row: T) => React.ReactNode;
@@ -200,25 +200,20 @@ export function DenseTable<T extends Record<string, any>>({
       const num = typeof raw === "number" ? raw : parseFloat(String(raw)) || 0;
       return fmtNumber(num);
     }
-    if (col.format === "statusBadge" || col.format === "caspBadge") {
-      const valStr = String(raw);
-      const variant =
-        (row.alertaBadgeVariant as
-          | "warning"
-          | "accent"
-          | "default"
-          | "success"
-          | "danger") ||
-        (valStr.includes("Atenção") ||
-        valStr === "excesso" ||
-        valStr === "Acima do Limite"
-          ? "warning"
-          : valStr.includes("Conformidade") || valStr.includes("Clínica")
-            ? "success"
-            : valStr.includes("Consórcio")
-              ? "accent"
-              : "default");
-      return <Badge variant={variant}>{valStr}</Badge>;
+    if (col.format === "statusBadge") {
+      const statusStr = String(raw).toLowerCase();
+      const variant: "success" | "danger" | "warning" | "default" =
+        statusStr === "normal"
+          ? "success"
+          : statusStr === "excesso"
+            ? "danger"
+            : statusStr === "baixa"
+              ? "warning"
+              : "default";
+      return <Badge variant={variant}>{String(raw)}</Badge>;
+    }
+    if (col.format === "caspBadge") {
+      return <Badge variant="default">{String(raw)}</Badge>;
     }
 
     return String(raw);

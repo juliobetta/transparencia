@@ -76,6 +76,14 @@ models:
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
+      - name: status_execucao
+        data_type: text
+        constraints:
+          - type: not_null
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['em_execucao', 'concluido', 'inexecutado']
 
 unit_tests:
   - name: test_contratos_servicos_vigentes_filtragem_e_agregacao
