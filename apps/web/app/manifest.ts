@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MaisTransparencia - Transparência Pública Municipal",
+    name: "MaisTransparencia",
     short_name: "MaisTransparencia",
     description:
       "Portal de Transparência Pública Municipal - Consulta de despesas, receitas, orçamentos, licitações, pessoal e previdência pública.",
