@@ -19,5 +19,9 @@ describe("Layered Context Builder", () => {
     expect(context).toContain("Exercício Fiscal Selecionado: 2025");
     expect(context).toContain("TAXONOMIA DOS MARTS FISCAIS DISPONÍVEIS");
     expect(context).toContain("fct_posicao_fiscal_metricas");
+    expect(context).toContain(
+      "FILTRAGEM POR ÁREA/ENTIDADE MUNICIPAL (EMPRESA_ID E DIM_ORGAO)",
+    );
+    expect(context).toContain("dim_orgao");
   });
 });
