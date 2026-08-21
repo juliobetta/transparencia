@@ -4,6 +4,7 @@
 1. **Saúde Pública**:
    - Aplicação Mínima Constitucional em Ações e Serviços Públicos de Saúde (ASPS) conforme LC 141/2012 (mínimo de 15% das receitas de impostos).
    - O mart `fct_historia_saude_metricas` consolida totais liquidados, pagos e percentual de aplicação.
+   - **Filtro de Área por Entidade/Órgão (`empresa_id` e `dim_orgao`)**: Em perguntas sobre emendas, despesas, licitações ou contratos direcionados à Saúde (ex: "quanto de emendas foram para a saúde?"), o filtro SQL deve OBRIGATORIAMENTE incluir a Entidade Fiscal `empresa_id` (via `dim_orgao`) combinando (`OR`) com buscas textuais (`destinacao` ou `resumo`), pois várias emendas e despesas de saúde têm descrições sem a palavra 'saúde' (ex: "AQUISIÇÃO DE EQUIPAMENTO", "CUSTEIO MAC"). Exemplo: `WHERE portal_slug = '{portalSlug}' AND ano = {ano} AND (empresa_id IN (SELECT empresa_id FROM dim_orgao WHERE portal_slug = '{portalSlug}' AND unaccent(lower(orgao_nome)) LIKE '%saude%') OR unaccent(lower(COALESCE(destinacao,''))) LIKE '%saude%' OR unaccent(lower(COALESCE(resumo,''))) LIKE '%saude%')`.
 2. **Previdência (CAPREM)**:
    - **Acumulado do Exercício**: Todas as métricas monetárias representam o acumulado acumulado no exercício fiscal (ano) até o momento, NUNCA parcelas mensais isoladas.
    - **Distinção de Escopo**:

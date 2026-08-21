@@ -24,3 +24,8 @@
    - ✅ **CORRETO**: Escreva filtros de área como restrição `AND`:
      `WHERE portal_slug = '...' AND ano IN (2025, 2026) AND (unaccent(lower(historico)) LIKE '%merenda%' OR unaccent(lower(historico)) LIKE '%alimentacao%escolar%' OR subfuncao_codigo = '306')`
    - **Acentuação**: Sempre use `unaccent(lower(coluna))` com padrões sem acento (ex: `'alimentacao'`, não `'alimentação'`).
+
+5. **Filtragem por Entidade / Órgão Gestor (`empresa_id` e `dim_orgao`)**:
+   - Quase todas as tabelas de fato (`fct_despesas`, `fct_emendas`, `fct_licitacoes`, `fct_contratos`, `fct_pessoal`) contêm a coluna `empresa_id`.
+   - Para identificar e filtrar gastos por órgão/secretaria/fundo específico (ex: Saúde, Educação, Assistência Social, Câmara), cruze `empresa_id` com a dimensão `dim_orgao` (`portal_slug`, `empresa_id`, `orgao_nome`).
+   - Distinga **Entidade Fiscal** (`empresa_id` em `dim_orgao`, ex: Fundo Municipal de Saúde) de **Função Orçamentária** (`funcao_codigo`, ex: 10 - Saúde). Ao buscar recursos direcionados a áreas municipais, consulte `dim_orgao.orgao_nome` via `unaccent(lower(orgao_nome))` combinando com buscas descritivas ou funcionais quando apropriado.
