@@ -4,9 +4,14 @@
 --            statement_timeout nas Roles nativas do Supabase (anon, authenticated, service_role).
 -- ==============================================================================
 
--- 1. Habilitar Extensões PostgreSQL Nativas
+-- 1. Habilitar Extensões PostgreSQL Nativas e Função Auxiliar Imutável
 CREATE EXTENSION IF NOT EXISTS unaccent;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE OR REPLACE FUNCTION immutable_unaccent(text)
+RETURNS text AS $$
+    SELECT public.unaccent($1);
+$$ LANGUAGE sql IMMUTABLE PARALLEL SAFE;
 
 -- 2. Configurar Timeouts Diferenciados nas Roles Nativas do Supabase (Zero Gestão de Senhas)
 -- Role 'anon': Usuários anônimos / públicos sem login (Timeout rígido de 3s para proteger CPU)
