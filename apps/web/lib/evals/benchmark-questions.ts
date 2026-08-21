@@ -149,4 +149,28 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
       "restos_pendentes_adm_anterior",
     ],
   },
+  {
+    id: "eval-18",
+    domain: "Receitas e Emendas",
+    question:
+      "Qual o total arrecadado em receitas extra-orçamentárias no município em 2025?",
+    expectedMart: "fct_receitas_extra_orcamentarias",
+    expectedMetrics: ["total_arrecadado"],
+  },
+  {
+    id: "eval-19",
+    domain: "Saúde e CAPREM",
+    question:
+      "Qual o valor total de contratações sem licitação e dispensas na área de saúde?",
+    expectedMart: "fct_historia_saude_metricas",
+    expectedMetrics: ["total_dispensa", "total_inexigibilidade"],
+  },
+  {
+    id: "eval-20",
+    domain: "Orçamento Funcional",
+    question:
+      "Qual o valor total dotado e empenhado na função Educação em 2025?",
+    expectedMart: "fct_execucao_orcamentaria_metricas",
+    expectedMetrics: ["dotacao_atualizada", "total_empenhado"],
+  },
 ];

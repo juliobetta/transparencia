@@ -431,7 +431,8 @@
           "valor_aditado",
           "total_empenhado",
           "total_liquidado",
-          "total_pago"
+          "total_pago",
+          "status_execucao"
         ]
       },
       {
