@@ -22,8 +22,8 @@ vi.mock("@ai-sdk/google", () => ({
   createGoogleGenerativeAI: vi.fn(() => vi.fn()),
 }));
 
-vi.mock("../../duckdb-executor", () => ({
-  queryDuckDbParquet: vi
+vi.mock("../../sql-executor", () => ({
+  executeAnalyticsQuery: vi
     .fn()
     .mockResolvedValue([
       { total_arrecadado: 50000000, despesas_pagas: 45000000 },

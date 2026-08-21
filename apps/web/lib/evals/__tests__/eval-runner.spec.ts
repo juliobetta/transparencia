@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { runBenchmarkEvals } from "../eval-runner";
 
-vi.mock("../../duckdb-executor", () => ({
-  queryDuckDbParquet: vi.fn().mockResolvedValue([{ total_arrecadado: 1000 }]),
+vi.mock("../../sql-executor", () => ({
+  executeAnalyticsQuery: vi
+    .fn()
+    .mockResolvedValue([{ total_arrecadado: 1000 }]),
 }));
 
 describe("AI Evals Benchmark Runner", () => {

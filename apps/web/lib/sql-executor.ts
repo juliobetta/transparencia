@@ -1,6 +1,6 @@
 import { executeRawSql } from "@transparencia/db";
 
-export async function queryDuckDbParquet<T = Record<string, unknown>>(
+export async function executeAnalyticsQuery<T = Record<string, unknown>>(
   sqlQuery: string,
 ): Promise<T[]> {
   const rawRows = await executeRawSql<Record<string, unknown>>(sqlQuery);

@@ -4,7 +4,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { getPostHogServer } from "../../posthog-server";
-import { queryDuckDbParquet } from "../duckdb-executor";
+import { executeAnalyticsQuery } from "../sql-executor";
 import fiscalTaxonomyJson from "./fiscal-taxonomy.json";
 
 export interface FiscalMart {
@@ -18,7 +18,7 @@ export interface FiscalDomain {
   marts: FiscalMart[];
 }
 
-// Catálogo de Taxonomia dos Marts Parquet de Transparência Fiscal (Gerado via pnpm codegen:taxonomy)
+// Catálogo de Taxonomia dos Marts de Transparência Fiscal (Gerado via pnpm codegen:taxonomy)
 export const FISCAL_TAXONOMY: FiscalDomain[] =
   fiscalTaxonomyJson as FiscalDomain[];
 
@@ -90,7 +90,7 @@ export function createTransparenciaMcpServer(): Server {
         {
           name: "list_marts_taxonomia",
           description:
-            "Lista a taxonomia completa dos marts Parquet de transparência fiscal divididos por domínio.",
+            "Lista a taxonomia completa dos marts de transparência fiscal divididos por domínio.",
           inputSchema: {
             type: "object",
             properties: {
@@ -105,7 +105,7 @@ export function createTransparenciaMcpServer(): Server {
         {
           name: "get_mart_schema",
           description:
-            "Retorna a estrutura de colunas e descrição detalhada de um mart Parquet específico.",
+            "Retorna a estrutura de colunas e descrição detalhada de um mart específico.",
           inputSchema: {
             type: "object",
             properties: {
@@ -119,16 +119,16 @@ export function createTransparenciaMcpServer(): Server {
           },
         },
         {
-          name: "query_duckdb_mart",
+          name: "query_fiscal_mart",
           description:
-            "Executa uma consulta SQL analítica (SELECT) via DuckDB contra os arquivos Parquet de métricas.",
+            "Executa uma consulta SQL analítica (SELECT) via PostgreSQL contra as tabelas de métricas fiscais.",
           inputSchema: {
             type: "object",
             properties: {
               sql_query: {
                 type: "string",
                 description:
-                  "Query SQL SELECT para DuckDB (ex: SELECT CAST(SUM(total_arrecadado) AS DOUBLE) as total FROM fct_posicao_fiscal_metricas WHERE portal_slug = 'porciuncula' AND ano = 2025)",
+                  "Query SQL SELECT para PostgreSQL (ex: SELECT SUM(total_arrecadado) as total FROM fct_posicao_fiscal_metricas WHERE portal_slug = 'porciuncula_prefeitura' AND ano = 2025)",
               },
               trace_id: {
                 type: "string",
@@ -202,7 +202,7 @@ export function createTransparenciaMcpServer(): Server {
       };
     }
 
-    if (name === "query_duckdb_mart") {
+    if (name === "query_fiscal_mart") {
       const sqlQuery = args?.sql_query as string;
       const traceId = args?.trace_id as string | undefined;
 
@@ -226,7 +226,7 @@ export function createTransparenciaMcpServer(): Server {
       }
 
       try {
-        const rows = await queryDuckDbParquet(sqlQuery);
+        const rows = await executeAnalyticsQuery(sqlQuery);
         const outputPayload = {
           row_count: rows.length,
           sample: rows.slice(0, 3),
@@ -245,35 +245,32 @@ export function createTransparenciaMcpServer(): Server {
           content: [
             {
               type: "text",
-              text: JSON.stringify(
-                { row_count: rows.length, data: rows },
-                null,
-                2,
-              ),
+              text: JSON.stringify(rows, null, 2),
             },
           ],
         };
       } catch (err) {
-        const errorMsg = {
+        const errorResult = {
           error: err instanceof Error ? err.message : String(err),
         };
         await trackMcpToolCall(
           name,
           {
             input: args || {},
-            output: errorMsg,
+            output: errorResult,
             latencyMs: Date.now() - startTime,
           },
           { traceId },
         );
+
         return {
           isError: true,
-          content: [{ type: "text", text: JSON.stringify(errorMsg) }],
+          content: [{ type: "text", text: JSON.stringify(errorResult) }],
         };
       }
     }
 
-    throw new Error(`Ferramenta MCP '${name}' não encontrada.`);
+    throw new Error(`Ferramenta MCP não encontrada: ${name}`);
   });
 
   return server;

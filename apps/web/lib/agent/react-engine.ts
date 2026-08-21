@@ -1,9 +1,9 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject, jsonSchema } from "ai";
-import { queryDuckDbParquet } from "../duckdb-executor";
 import { logger } from "../logger";
 import { FISCAL_TAXONOMY, trackMcpToolCall } from "../mcp/transparencia-mcp";
 import { buildLayeredContext } from "../skills/context-builder";
+import { executeAnalyticsQuery } from "../sql-executor";
 
 export interface ReActExecuteOptions {
   message: string;
@@ -38,7 +38,7 @@ const sqlGenerationSchema = jsonSchema<{
     sqlQuery: {
       type: "string",
       description:
-        "Query SQL DuckDB válida filtrada estritamente por portal_slug e ano",
+        "Query SQL PostgreSQL válida filtrada estritamente por portal_slug e ano",
     },
     reasoning: {
       type: "string",
@@ -212,7 +212,7 @@ export async function executeReActAgent(
       reasoning?: string;
     }>({
       schema: sqlGenerationSchema,
-      system: `${systemContext}\n\nREGRAS MANDATÓRIAS SQL DUCKDB:\n1. Escreva queries válidas para DuckDB.\n2. Toda agregação (SUM, AVG) DEVE ser convertida com CAST(SUM(...) AS DOUBLE).\n3. Sempre filtre por portal_slug = '${portalSlug}'. Se o cidadão citar um ano específico na pergunta ou no histórico recente (ex: 2023, 2024, 2026), utilize o(s) ano(s) solicitados. Caso contrário, se nenhum ano for citado, utilize ano = ${year}.\n4. CONSULTAS MULTI-TABELAS & CTEs: Você pode e deve fazer JOINs ou usar CTEs (WITH) cruzando tabelas de fatos (fct_*) e dimensões (dim_*) quando a pergunta exigir identificar termos ou códigos específicos (ex: para 'merenda escolar', busque elementos/naturezas de alimentação ou JOIN com dim_elemento_despesa / dim_natureza_despesa; para fornecedores de um setor, faça JOIN com dim_credor).\n5. LÓGICA BOOLEANA & UNACCENT MANDATÓRIO: Para buscar itens específicos (ex: merenda escolar, medicamentos, combustíveis), NUNCA conecte o termo específico com a função genérica usando OR (ex: JAMAIS use 'OR funcao_nome LIKE %Educação%'). Em TODOS os filtros textuais (historico, objeto, descricao, fornecedor_nome), utilize OBRIGATORIAMENTE unaccent(lower(coluna)) LIKE '%termo_sem_acento%' (ex: use '%alimentacao%', jamais '%alimentação%').\n6. Use apenas tabelas e colunas declaradas na taxonomia oficial.`,
+      system: `${systemContext}\n\nREGRAS MANDATÓRIAS SQL POSTGRESQL:\n1. Escreva queries SQL válidas e eficientes para PostgreSQL.\n2. Sempre filtre por portal_slug = '${portalSlug}'. Se o cidadão citar um ano específico na pergunta ou no histórico recente (ex: 2023, 2024, 2026), utilize o(s) ano(s) solicitados. Caso contrário, se nenhum ano for citado, utilize ano = ${year}.\n3. CONSULTAS MULTI-TABELAS & CTEs: Você pode e deve fazer JOINs ou usar CTEs (WITH) cruzando tabelas de fatos (fct_*) e dimensões (dim_*) quando a pergunta exigir identificar termos ou códigos específicos (ex: para 'merenda escolar', busque elementos/naturezas de alimentação ou JOIN com dim_elemento_despesa / dim_natureza_despesa; para fornecedores de um setor, faça JOIN com dim_credor).\n4. LÓGICA BOOLEANA & UNACCENT MANDATÓRIO: Para buscar itens específicos (ex: merenda escolar, medicamentos, combustíveis), NUNCA conecte o termo específico com a função genérica usando OR (ex: JAMAIS use 'OR funcao_nome LIKE %Educação%'). Em TODOS os filtros textuais (historico, objeto, descricao, fornecedor_nome), utilize OBRIGATORIAMENTE unaccent(lower(coluna)) LIKE '%termo_sem_acento%' (ex: use '%alimentacao%', jamais '%alimentação%').\n5. Use apenas tabelas e colunas declaradas na taxonomia oficial.`,
       prompt: `TAXONOMIA DE MARTS DISPONÍVEIS:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA ATUAL DO CIDADÃO: "${options.message}"`,
     });
 
@@ -220,10 +220,10 @@ export async function executeReActAgent(
 
     logger.debug(`Query SQL Gerada (Passo 1): ${executedSql}`);
 
-    // PASSO 2: Execução no DuckDB WASM Parquet com Auto-Correção Agêntica
+    // PASSO 2: Execução no PostgreSQL / Supabase com Auto-Correção Agêntica
     try {
-      queryResults = await queryDuckDbParquet(executedSql);
-      logger.debug(`DuckDB Retornou: ${queryResults.length} linha(s)`);
+      queryResults = await executeAnalyticsQuery(executedSql);
+      logger.debug(`PostgreSQL Retornou: ${queryResults.length} linha(s)`);
 
       // Auto-Correção se retornar 0 linhas
       if (queryResults.length === 0) {
@@ -238,18 +238,18 @@ export async function executeReActAgent(
         }>({
           schema: sqlGenerationSchema,
           system: systemContext,
-          prompt: `A query anterior '${executedSql}' retornou 0 resultados.\nAjuste a query para o cidadão. Dica: use filtros ILIKE '%termo%' se for nome de fornecedor/descrição.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA: "${options.message}"`,
+          prompt: `A query anterior '${executedSql}' retornou 0 resultados.\nAjuste a query para o cidadão. Dica: use filtros ILIKE '%termo%' ou unaccent(lower(...)) se for nome de fornecedor/descrição.\n\nTAXONOMIA:\n${JSON.stringify(FISCAL_TAXONOMY, null, 2)}${historyContext}\n\nPERGUNTA: "${options.message}"`,
         });
         executedSql = stepCorrected.object.sqlQuery;
         logger.debug(`Query Corrigida: ${executedSql}`);
-        queryResults = await queryDuckDbParquet(executedSql);
+        queryResults = await executeAnalyticsQuery(executedSql);
       }
     } catch (sqlErr) {
       autoCorrected = true;
       stepsCount++;
       const errMsg = sqlErr instanceof Error ? sqlErr.message : String(sqlErr);
       logger.debug(
-        `Falha DuckDB: ${errMsg}. Disparando Auto-Correção Agêntica...`,
+        `Falha PostgreSQL: ${errMsg}. Disparando Auto-Correção Agêntica...`,
       );
       const stepCorrected = await generateWithFallback<{
         sqlQuery: string;
@@ -261,7 +261,7 @@ export async function executeReActAgent(
       });
       executedSql = stepCorrected.object.sqlQuery;
       logger.debug(`Query Corrigida: ${executedSql}`);
-      queryResults = await queryDuckDbParquet(executedSql);
+      queryResults = await executeAnalyticsQuery(executedSql);
     }
 
     // PASSO 3: Síntese Agêntica Final para o Cidadão (Resposta + Métricas + Gráfico)
@@ -277,7 +277,7 @@ export async function executeReActAgent(
     }>({
       schema: finalAnswerSchema,
       system: systemContext,
-      prompt: `Com base nos dados orçamentários extraídos do DuckDB:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 8))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa. Limite 'metrics' a no máximo 4 itens e 'chartData' a no máximo 5 itens para manter a resposta concisa. Se 'chartData' não representar valores monetários (ex: contagem de servidores ou percentuais), forneça o 'formattedValue' adequado sem R$.`,
+      prompt: `Com base nos dados orçamentários extraídos do banco de dados de transparência:\nQuery executada: ${executedSql}\nResultados obtidos: ${JSON.stringify(queryResults.slice(0, 8))}${historyContext}\n\nPERGUNTA DO CIDADÃO: "${options.message}"\n\nFormate uma resposta explicativa clara, perfeitamente articulada com o histórico da conversa. Limite 'metrics' a no máximo 4 itens e 'chartData' a no máximo 5 itens para manter a resposta concisa. Se 'chartData' não representar valores monetários (ex: contagem de servidores ou percentuais), forneça o 'formattedValue' adequado sem R$.`,
     });
 
     const durationMs = Date.now() - startTime;

@@ -1,4 +1,4 @@
-import { queryDuckDbParquet } from "../duckdb-executor";
+import { executeAnalyticsQuery } from "../sql-executor";
 import { BENCHMARK_QUESTIONS } from "./benchmark-questions";
 import { generateSyntheticBenchmarkQuestions } from "./synthetic-generator";
 
@@ -40,7 +40,7 @@ export async function runBenchmarkEvals(
     try {
       const martTable = q.expectedMart || "fct_posicao_fiscal_metricas";
       sql = `SELECT * FROM ${martTable} WHERE portal_slug = '${portalSlug}' AND ano = ${year} LIMIT 5`;
-      const rows = await queryDuckDbParquet(sql);
+      const rows = await executeAnalyticsQuery(sql);
       passed = Boolean(rows && Array.isArray(rows));
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
