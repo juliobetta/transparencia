@@ -94,7 +94,7 @@ Esta seção demonstra o cumprimento das metas constitucionais de investimento n
 Para integrações automatizadas, consumo por agentes de IA e ecossistemas como Claude Desktop e ChatGPT:
 
 - **Servidor MCP (`transparencia-mcp`):** Endpoint `GET/POST /api/mcp`
-  - Ferramentas disponíveis: `list_marts_taxonomia` (cataloga os 25 marts), `get_mart_schema` (colunas e tipos de dados) e `query_duckdb_mart` (consultas analíticas SQL via DuckDB WASM Parquet).
+  - Ferramentas disponíveis: `list_marts_taxonomia` (cataloga os 39 marts), `get_mart_schema` (colunas e tipos de dados) e `query_fiscal_mart` (consultas analíticas SQL via PostgreSQL público / Supabase).
   - Rastreamento e observabilidade: Todos os eventos de ferramenta registram telemetria de IA (`$ai_generation`) no PostHog com modelo, latência e estatísticas.
 
 - **Assistente Fiscal LLM:** Endpoint `POST /api/assistant/chat`

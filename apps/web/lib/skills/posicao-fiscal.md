@@ -25,6 +25,6 @@
    - **Risco de Dupla Contagem**: Parcelas executadas dos contratos já são inscritas em Restos a Pagar. Somá-los duplica obrigações.
    - **Passivo Financeiro Exigível**: Refere-se estritamente a Restos a Pagar (Processados e Não Processados) e despesas liquidadas não pagas.
 
-6. **Regras SQL para DuckDB**:
-   - Toda consulta no DuckDB deve incluir a cláusula `WHERE portal_slug = '{portalSlug}' AND ano = {ano}`.
-   - Proteger somatórios com `CAST(SUM(...) AS DOUBLE)` para evitar estouro de 128-bit (`HugeInt`).
+6. **Regras SQL para PostgreSQL**:
+   - Toda consulta no PostgreSQL deve incluir a cláusula `WHERE portal_slug = '{portalSlug}' AND ano = {ano}`.
+   - Utilize a função `unaccent(lower(coluna))` para buscas textuais case e acento-insensitive.

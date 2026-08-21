@@ -29,7 +29,7 @@ describe("Transparencia MCP Server", () => {
 
   it("deve rastrear chamadas de ferramentas via trackMcpToolCall", async () => {
     await expect(
-      trackMcpToolCall("query_duckdb_mart", {
+      trackMcpToolCall("query_fiscal_mart", {
         input: { sql: "SELECT 1" },
         output: { row_count: 1 },
         latencyMs: 120,

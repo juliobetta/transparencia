@@ -17,7 +17,7 @@ describe("Layered Context Builder", () => {
 
     expect(context).toContain('Portal Slug Ativo: "porciuncula"');
     expect(context).toContain("Exercício Fiscal Selecionado: 2025");
-    expect(context).toContain("TAXONOMIA DOS MARTS PARQUET DISPONÍVEIS");
+    expect(context).toContain("TAXONOMIA DOS MARTS FISCAIS DISPONÍVEIS");
     expect(context).toContain("fct_posicao_fiscal_metricas");
   });
 });

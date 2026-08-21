@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
           )
       : undefined;
 
-    // Execução 100% Agêntica via Motor ReAct + Memória Conversacional + DuckDB
+    // Execução 100% Agêntica via Motor ReAct + Memória Conversacional + PostgreSQL
     const reactResult = await executeReActAgent({
       message,
       history,

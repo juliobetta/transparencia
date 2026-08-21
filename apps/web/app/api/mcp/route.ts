@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { queryDuckDbParquet } from "@/lib/duckdb-executor";
 import { FISCAL_TAXONOMY, trackMcpToolCall } from "@/lib/mcp/transparencia-mcp";
+import { executeAnalyticsQuery } from "@/lib/sql-executor";
 
 export async function GET() {
   return NextResponse.json({
@@ -11,15 +11,15 @@ export async function GET() {
     tools: [
       {
         name: "list_marts_taxonomia",
-        description: "Lista a taxonomia dos 25 marts Parquet.",
+        description: "Lista a taxonomia dos marts de transparência fiscal.",
       },
       {
         name: "get_mart_schema",
-        description: "Retorna a estrutura de colunas de um mart Parquet.",
+        description: "Retorna a estrutura de colunas de um mart fiscal.",
       },
       {
-        name: "query_duckdb_mart",
-        description: "Executa consultas SQL analíticas em DuckDB.",
+        name: "query_fiscal_mart",
+        description: "Executa consultas SQL analíticas em PostgreSQL.",
       },
     ],
   });
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ result });
     }
 
-    if (tool === "query_duckdb_mart") {
+    if (tool === "query_fiscal_mart") {
       const sqlQuery = args?.sql_query as string;
       if (!sqlQuery || !/^\s*(SELECT|WITH)\b/i.test(sqlQuery)) {
         return NextResponse.json(
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
         );
       }
 
-      const rows = await queryDuckDbParquet(sqlQuery);
+      const rows = await executeAnalyticsQuery(sqlQuery);
       const result = { row_count: rows.length, data: rows };
       await trackMcpToolCall(
         tool,
