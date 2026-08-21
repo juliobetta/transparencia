@@ -79,6 +79,7 @@ Não comprometa a estabilidade em nome da pressa. Após qualquer alteração:
 ## 11. BUSCAS E FILTROS DE TEXTO COM `unaccent`
 
 - **Tratamento de Acentuação e Caixa:** Em queries SQL de analytics e modelos dbt, ao filtrar ou categorizar colunas de texto/descrição (ex: `descricao`, `resumo`, `tipo_emenda`, `destinacao`), é **obrigatório** utilizar a função `{{ target.schema }}.unaccent(lower(...))` (ou `unaccent`). Isso previne falhas de categorização causadas por variações de caixa e acentuação nos dados brutos de origem.
+- **Índices de Expressão no PostgreSQL:** Para índices de expressão (ex: `post_hook` com DDL de `CREATE INDEX` em dbt), a função nativa `unaccent` do PostgreSQL é `STABLE` e não pode ser usada diretamente. É **obrigatório** utilizar a função wrapper imutável `immutable_unaccent(lower(...))` (definida no `on-run-start` do dbt e nas migrations de banco).
 
 ---
 
