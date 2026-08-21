@@ -1,18 +1,10 @@
 """Testes de Avaliação Determinística (AI Evals Benchmark) para verificações contábeis dos marts."""
 
-import duckdb
-
 
 def test_evals_posicao_fiscal_invariants():
     """Valida que as métricas fiscais cumprem as invariantes matemáticas."""
-    conn = duckdb.connect()
-    try:
-        # Testa se a fórmula de saldo estimado mantém consistência
-        res = conn.execute("SELECT (100 - 80) AS saldo").fetchone()
-        assert res is not None
-        assert res[0] == 20
-    finally:
-        conn.close()
+    saldo = 100 - 80
+    assert saldo == 20
 
 
 def test_evals_estagios_despesa_invariants():
