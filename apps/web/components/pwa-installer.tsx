@@ -93,10 +93,32 @@ export function PwaInstaller() {
       handleControllerChange,
     );
 
+    let isMounted = true;
+    let swRegistration: ServiceWorkerRegistration | null = null;
+    let updateInterval: ReturnType<typeof setInterval> | null = null;
+    let lastCheckedTime = 0;
+
+    const checkForUpdates = (registration: ServiceWorkerRegistration) => {
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
+      const now = Date.now();
+      if (now - lastCheckedTime < 60 * 1000) return; // Throttle checks to at most once per minute
+      lastCheckedTime = now;
+      registration.update().catch(() => {});
+    };
+
+    const handleFocus = () => {
+      if (swRegistration) {
+        checkForUpdates(swRegistration);
+      }
+    };
+
     navigator.serviceWorker
       .register("/sw.js")
       .then((registration) => {
-        if (registration.waiting) {
+        if (!isMounted) return;
+
+        swRegistration = registration;
+        if (registration.waiting && isMounted) {
           setWaitingWorker(registration.waiting);
         }
 
@@ -106,13 +128,25 @@ export function PwaInstaller() {
             newWorker.addEventListener("statechange", () => {
               if (
                 newWorker.state === "installed" &&
-                navigator.serviceWorker.controller
+                navigator.serviceWorker.controller &&
+                isMounted
               ) {
                 setWaitingWorker(newWorker);
               }
             });
           }
         });
+
+        // Check for updates on window focus and periodically every 15 minutes
+        window.addEventListener("focus", handleFocus);
+        updateInterval = setInterval(
+          () => {
+            if (isMounted && swRegistration) {
+              checkForUpdates(swRegistration);
+            }
+          },
+          15 * 60 * 1000,
+        );
       })
       .catch((_error) => {});
 
@@ -134,6 +168,9 @@ export function PwaInstaller() {
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
+      isMounted = false;
+      if (updateInterval) clearInterval(updateInterval);
+      window.removeEventListener("focus", handleFocus);
       if (typeof navigator.serviceWorker.removeEventListener === "function") {
         navigator.serviceWorker.removeEventListener(
           "controllerchange",
