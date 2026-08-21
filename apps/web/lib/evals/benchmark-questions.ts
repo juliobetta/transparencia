@@ -173,4 +173,28 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
     expectedMart: "fct_execucao_orcamentaria_metricas",
     expectedMetrics: ["dotacao_atualizada", "total_empenhado"],
   },
+  {
+    id: "eval-21",
+    domain: "Receitas e Emendas",
+    question:
+      "Quanto de emendas foram encaminhadas para a área da saúde e qual o valor total empenhado?",
+    expectedMart: "fct_emendas",
+    expectedMetrics: ["valor_total", "empenhado", "empresa_id"],
+  },
+  {
+    id: "eval-22",
+    domain: "Despesas e Credores",
+    question:
+      "Qual o valor total de despesas pagas e empenhadas por empresa_id na área da saúde?",
+    expectedMart: "fct_despesas",
+    expectedMetrics: ["empenhado", "pago", "empresa_id"],
+  },
+  {
+    id: "eval-23",
+    domain: "Despesas e Credores",
+    question:
+      "Quais licitações foram realizadas pelo Fundo de Assistência Social ou órgãos de saúde por empresa_id?",
+    expectedMart: "fct_licitacoes",
+    expectedMetrics: ["empresa_id", "valor_homologado"],
+  },
 ];
