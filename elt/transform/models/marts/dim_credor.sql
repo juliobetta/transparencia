@@ -1,6 +1,6 @@
 {{ config(
     post_hook=[
-        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_dim_credor_nome_unaccent ON {{ this }} (unaccent(lower(nome_credor))) {% endif %}"
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_dim_credor_nome_unaccent ON {{ this }} (immutable_unaccent(lower(fornecedor_nome))) {% endif %}"
     ]
 ) }}
 

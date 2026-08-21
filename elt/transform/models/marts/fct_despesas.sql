@@ -1,7 +1,7 @@
 {{ config(
     post_hook=[
-        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_despesas_credor_unaccent ON {{ this }} (unaccent(lower(fornecedor_nome))) {% endif %}",
-        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_despesas_descricao_trgm ON {{ this }} USING gin (unaccent(lower(descricao)) gin_trgm_ops) {% endif %}"
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_despesas_credor_unaccent ON {{ this }} (immutable_unaccent(lower(fornecedor_nome))) {% endif %}",
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_despesas_descricao_trgm ON {{ this }} USING gin (immutable_unaccent(lower(descricao)) gin_trgm_ops) {% endif %}"
     ]
 ) }}
 

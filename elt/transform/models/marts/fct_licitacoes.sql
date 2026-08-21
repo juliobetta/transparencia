@@ -1,6 +1,6 @@
 {{ config(
     post_hook=[
-        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_licitacoes_objeto_unaccent ON {{ this }} (unaccent(lower(objeto))) {% endif %}"
+        "{% if not var('test_mode', false) %} CREATE INDEX IF NOT EXISTS idx_fct_licitacoes_objeto_unaccent ON {{ this }} (immutable_unaccent(lower(objeto))) {% endif %}"
     ]
 ) }}
 
