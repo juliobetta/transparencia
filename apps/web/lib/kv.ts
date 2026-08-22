@@ -4,11 +4,10 @@ import posthog from "posthog-js";
 /**
  * Cliente KV / Redis unificado utilizando ioredis.
  *
- * - Em Localhost: Conecta via process.env.REDIS_URL ("redis://localhost:6379") do Docker.
+ * - Em Localhost: Conecta via process.env.REDIS_URL ("redis://localhost:6380") do Docker.
  * - Em Produção (Official Redis for Vercel / Redis Cloud): Conecta via process.env.REDIS_URL / process.env.KV_URL.
  */
-const redisUrl =
-  process.env.REDIS_URL || process.env.KV_URL || "redis://localhost:6379";
+const redisUrl = process.env.REDIS_URL || "redis://localhost:6380";
 
 function createRedisClient(): Redis {
   const client = new Redis(redisUrl, {

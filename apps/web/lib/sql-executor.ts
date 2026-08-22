@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { executeRawSql } from "@transparencia/db";
-import { unstable_cache } from "next/cache";
+import { kv } from "./kv";
 
 async function runSqlQueryDirect<T = Record<string, unknown>>(
   sqlQuery: string,
@@ -26,30 +26,39 @@ async function runSqlQueryDirect<T = Record<string, unknown>>(
 }
 
 /**
- * Executa queries SQL com cache KV (unstable_cache) e fallback gracioso em caso de erro.
- * Se o serviço de cache falhar, a query executa diretamente no banco de dados PostgreSQL
- * sem interromper a resposta da aplicação.
+ * Executa queries SQL com cache KV (Redis) e fallback gracioso para execução direta no Postgres.
+ * Grava e lê do cliente KV unificado (redis.get / redis.set) com TTL de 24h.
  */
 export async function executeAnalyticsQuery<T = Record<string, unknown>>(
   sqlQuery: string,
 ): Promise<T[]> {
   const normalizedQuery = sqlQuery.trim().replace(/\s+/g, " ");
-  // Hash SHA-256 completo para evitar colisões entre consultas SQL longas
+  // Hash SHA-256 para chave de cache no Redis
   const hash = crypto
     .createHash("sha256")
     .update(normalizedQuery)
     .digest("hex");
   const cacheKey = `sql-query-${hash}`;
 
+  // 1. Tentar obter do Redis local / Vercel KV
   try {
-    const cachedFn = unstable_cache(
-      () => runSqlQueryDirect<T>(sqlQuery),
-      [cacheKey],
-      { revalidate: 86400 }, // TTL de 24h
-    );
-    return await cachedFn();
-  } catch (_error) {
-    // Fallback gracioso para a execução direta no banco PostgreSQL
-    return await runSqlQueryDirect<T>(sqlQuery);
+    const cachedRows = await kv.get<T[]>(cacheKey);
+    if (cachedRows && Array.isArray(cachedRows)) {
+      return cachedRows;
+    }
+  } catch (_err) {
+    // Falha de conexão com o KV ignora e prossegue para a busca no Postgres
   }
+
+  // 2. Consulta direta ao banco de dados PostgreSQL
+  const rows = await runSqlQueryDirect<T>(sqlQuery);
+
+  // 3. Gravar resultado no Redis com TTL de 24h (86400s)
+  try {
+    await kv.set(cacheKey, rows, { ttlSeconds: 86400 });
+  } catch (_err) {
+    // Falha na gravação do KV ignora sem interromper a resposta
+  }
+
+  return rows;
 }
