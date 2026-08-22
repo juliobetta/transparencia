@@ -28,3 +28,9 @@
 6. **Regras SQL para PostgreSQL**:
    - Toda consulta no PostgreSQL deve incluir a cláusula `WHERE portal_slug = '{portalSlug}' AND ano = {ano}`.
    - Utilize a função `unaccent(lower(coluna))` para buscas textuais case e acento-insensitive.
+
+7. **Hierarquia e Origem das Receitas Orçamentárias (MCASP)**:
+   - **Distinção entre Categoria Econômica e Fonte Específica**: "Receitas Correntes" e "Receitas de Capital" são categorias econômicas agregadoras (grupos macro sintéticos). Fontes/Origens específicas são rubricas como FPM, ICMS, IPTU, ISS e Emendas Parlamentares.
+   - **Tabela Canônica para Fontes de Renda**: Para perguntas sobre principal fonte de renda, maiores receitas ou transferências vs receita própria, utilize obrigatoriamente a mart `fct_fontes_receita_metricas`.
+   - **Vedação de Consultas Naive em fct_receitas**: Jamais consulte `fct_receitas` ordenando diretamente por `arrecadado DESC` sem desconsiderar os códigos sintéticos agregadores (como `1.0.0.0.00.0.0`).
+
