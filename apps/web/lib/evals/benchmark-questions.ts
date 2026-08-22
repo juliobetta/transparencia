@@ -61,6 +61,13 @@ export const BENCHMARK_QUESTIONS: BenchmarkQuestion[] = [
     expectedMart: "fct_fontes_receita_metricas",
     expectedMetrics: ["emendas_pix_arrecadado"],
   },
+  {
+    id: "eval-16",
+    domain: "Receitas e Emendas",
+    question: "Qual a principal fonte de renda da prefeitura?",
+    expectedMart: "fct_fontes_receita_metricas",
+    expectedMetrics: ["fpm_arrecadado", "icms_arrecadado", "total_arrecadado"],
+  },
 
   // 4. Saúde e CAPREM
   {
