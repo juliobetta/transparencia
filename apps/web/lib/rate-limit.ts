@@ -12,6 +12,7 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 const WINDOW_MS = 24 * 60 * 60 * 1000; // 24 Horas
+
 function getAnonymousLimit(): number {
   const envVal = process.env.AI_ANONYMOUS_DAILY_LIMIT;
   if (envVal != null && !Number.isNaN(Number(envVal))) {
@@ -48,6 +49,8 @@ export function checkAnonymousRateLimit(
 
   const key = `anon:${clientIp}`;
   const now = Date.now();
+
+  // 3. Fallback gracioso para Map<string, RateLimitEntry> em memória caso o KV não esteja configurado
   const entry = rateLimitStore.get(key) || { timestamps: [] };
 
   // Filtrar apenas timestamps dentro da janela de 24h

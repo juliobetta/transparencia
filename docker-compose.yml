@@ -37,16 +37,11 @@ services:
     ports:
       - "5545:5432"
 
-  minio:
-    image: minio/minio
-    container_name: transparencia_minio
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+  redis:
+    image: redis:7-alpine
+    container_name: transparencia_redis
     ports:
-      - "9000:9000"
-      - "9001:9001"
-    command: server /data --console-address ":9001"
+      - "6380:6379"
     volumes:
-      - ./docker/volumes/minio_data:/data
+      - ./docker/volumes/redis_data:/data
     restart: unless-stopped
