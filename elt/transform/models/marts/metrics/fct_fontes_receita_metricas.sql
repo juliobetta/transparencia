@@ -96,26 +96,30 @@ carros_chefe as (
         ano,
         sum(
             case
-                when codigo ilike '%FPM%' or codigo like '1.7.1.8.01.2%' or codigo like '1718012%' or descricao ilike '%FPM%' or descricao ilike '%FUNDO DE PARTICIPA%' or {{ target.schema }}.unaccent(descricao) ilike '%PARTICIPACAO DOS MUNICIPIOS%'
+                when (codigo like '1711.51%' or codigo like '1.7.1.8.01.2%' or codigo like '1718012%' or codigo ilike '%FPM%' or descricao ilike '%FPM%' or {{ target.schema }}.unaccent(descricao) ilike '%PARTICIPACAO DOS MUNICIPIOS%')
+                     and codigo not like '1711.00%' and codigo not like '9%'
                 then coalesce(arrecadado, 0)
                 else 0
             end
         ) as fpm_arrecadado,
         sum(
             case
-                when codigo ilike '%ICMS%' or codigo like '1.7.2.8.01.1%' or codigo like '1728011%' or descricao ilike '%ICMS%'
+                when (codigo like '1721.50%' or codigo like '1.7.2.8.01.1%' or codigo like '1728011%' or codigo ilike '%ICMS%' or descricao ilike '%ICMS%')
+                     and codigo not like '1721.00%' and codigo not like '1720.00%' and codigo not like '9%'
                 then coalesce(arrecadado, 0)
                 else 0
             end
         ) as icms_arrecadado,
         sum(
             case
-                when codigo ilike '%ISS%' or codigo ilike '%IPTU%' or codigo like '1.1.1.8.01%' or codigo like '1.1.1.8.02%' or descricao ilike '%IPTU%' or descricao ilike '%ISS%' or descricao ilike '%PROPRIEDADE PREDIA%' or {{ target.schema }}.unaccent(descricao) ilike '%SERVICOS DE QUALQUER NATUREZA%'
+                when (codigo like '1112.50%' or codigo like '1114.51%' or codigo like '1.1.1.8.01%' or codigo like '1.1.1.8.02%' or descricao ilike '%IPTU%' or descricao ilike '%ISS%' or {{ target.schema }}.unaccent(descricao) ilike '%SERVICOS DE QUALQUER NATUREZA%')
+                     and codigo not like '1114.00%' and codigo not like '1110.00%' and codigo not like '9%'
                 then coalesce(arrecadado, 0)
                 else 0
             end
         ) as iss_iptu_arrecadado
     from {{ ref('fct_receitas') }}
+    where tipo_receita = 'orcamentaria'
     group by portal_slug, empresa_id, ano
 ),
 
