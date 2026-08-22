@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: fct_fontes_receita_metricas
-    description: "Mart de métricas agregadas de fontes de receita e transferências por portal e ano"
+    description: "Mart de métricas agregadas de fontes de receita e transferências por portal e ano. Esta é a TABELA CANÔNICA para consultar as principais fontes de renda municipal (FPM, ICMS, ISS/IPTU, Receita Própria vs Transferências da União/Estado e Emendas)."
     config:
       contract:
         enforced: true

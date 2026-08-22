@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: fct_receitas
-    description: "Fato de receitas consolidadas (orçamentária, união e estado) de todos os portais"
+    description: "Fato de receitas consolidadas (orçamentária, união e estado). ATENÇÃO: Contém contas sintéticas agregadoras (ex: 1.0.0.0.00.0.0 Receitas Correntes). Para consultar as principais fontes de receita, transferências (FPM, ICMS) e receita própria, utilize a mart fct_fontes_receita_metricas."
     config:
       contract:
         enforced: true
